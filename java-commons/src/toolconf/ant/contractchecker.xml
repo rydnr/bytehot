@@ -1,0 +1,362 @@
+<!--
+ @license
+                        ContractChecker
+
+    Copyright (C) 2004  Jose San Leandro Armend&aacute;riz
+                        jsanleandro@yahoo.es
+                        chousz@yahoo.com
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 2 of the License, or any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+    Thanks to ACM S.L. for distributing this library under the GPL license.
+    Contact info: jsr000@terra.es
+    Postal Address: c/Playa de Lagoa, 1
+                    Urb. Valdecaba&ntilde;as
+                    Boadilla del monte
+                    28660 Madrid
+                    Spain
+
+ @header
+  
+   Filename: $RCSfile$
+
+   Author: Jose San Leandro Armendariz
+
+   Description: Describes the design of ContractChecker task, that is,
+                how it's designed to be used from within an Ant build file.
+
+   Last modified by: $Author: chous $ at $Date: 2004-09-06 09:05:48 +0200 (Mon, 06 Sep 2004) $
+
+   File version: $Revision: 397 $
+
+   Project version: $Name$
+                    ("Name" means no concrete version has been checked out)
+
+   $Id: contractchecker.xml 397 2004-09-06 07:05:48Z chous $
+
+-->
+
+<!--
+ Describes the design of ContractChecker task, that is,
+ how it's designed to be used from within an Ant build file.
+ @author <a href="mailto:jsanleandro@yahoo.es">Jose San Leandro Armendariz</a>
+ @version $Revision: 397 $
+ @default description
+-->
+<project name="${project.name}" default="description" basedir="../../..">
+
+    <!--
+     Displays the build script purpose, and the folder structure required.
+     @return the output of the described message.
+    -->
+    <target
+      name="description"
+      description="Displays the build script purpose.">
+
+      <echo>
+        This build file is only intended to describe the design of
+        ContractChecker, and how it's gonna be used. It's not funtional by
+        any means.
+      </echo>
+    </target>
+
+    <!--
+     Defines the required variables in all tasks.
+     @calls property to initialize the required properties.
+     @calls path to define each one of the class and source paths.
+     @return the asignment of correct values to the required properties.
+    -->
+    <target name="init.properties">
+
+      <!--
+       System classpath not used.
+      -->
+      <property name="build.sysclasspath" value="ignore"/>
+
+      <!--
+       Dependencies base folder.
+      -->
+      <property name="dependencies.dir" value="dependencies"/>
+
+      <!--
+       Libraries base folder.
+      -->
+      <property name="lib.dir" value="${dependencies.dir}/lib"/>
+
+      <!--
+       Runtime libraries base folder.
+      -->
+      <property name="runtime.lib.dir" value="${lib.dir}/runtime"/>
+
+      <!--
+       Unit tests libraries base folder.
+      -->
+      <property name="unittests.lib.dir" value="${lib.dir}/unittest"/>
+
+      <!--
+       Compilation and distribution base folder.
+      -->
+      <property name="dist.dir" value="dist"/>
+
+      <!--
+       Classes folder.
+      -->
+      <property name="classes.dir" value="${dist.dir}/classes"/>
+
+      <!--
+       Base folder for all kind of source files.
+      -->
+      <property name="src.dir" value="src"/>
+
+      <!--
+       Java source folder.
+      -->
+      <property name="java.src.dir" value="${src.dir}/java"/>
+
+      <!--
+       Java source path.
+      -->
+      <path id="java.source.path">
+
+        <!--
+         Source files.
+        -->
+        <pathelement location="${java.src.dir}"/>
+
+      </path>
+
+      <!--
+       Compilation and distribution base folder.
+      -->
+      <property name="dist.dir" value="${project.base.folder}/dist"/>
+
+      <!--
+       Where the .class files are created while compiling.
+      -->
+      <property name="classes.dir" value="${dist.dir}/classes"/>
+
+      <!--
+       Java libraries folder. Files under this folder are needed for
+       compiling the Java sources and also at runtime.
+      -->
+      <property name="java.lib.dir" value="${lib.dir}/java"/>
+
+      <!--
+       Java libraries needed ONLY while developing the project,
+       required by development tools, not required at build or
+       runtime.
+      -->
+      <property
+        name="java.development.lib.dir"
+        value="${java.lib.dir}/development"/>
+
+      <!--
+       Java libraries needed ONLY for building the project, not required
+       at runtime.
+      -->
+      <property
+        name="java.build.lib.dir"
+        value="${java.lib.dir}/build"/>
+
+      <!--
+       Java libraries needed ONLY at runtime, not required for building
+       the project.
+      -->   
+      <property
+          name="java.runtime.lib.dir"
+          value="${java.lib.dir}/runtime"/>
+
+      <!--
+       Java libraries needed ONLY for unit tests, not required
+       for building the project.
+      -->   
+      <property
+          name="java.unit.test.lib.dir"
+          value="${java.lib.dir}/unittest"/>
+
+      <!--
+       Java compilation classpath.
+      -->
+      <path id="java.compile.class.path">
+
+        <!--
+         Project own classes.
+        -->
+        <pathelement location="${classes.dir}"/>
+
+        <!--
+         Java libraries needed only by development add-ins.
+        -->
+        <fileset dir="${java.development.lib.dir}">
+
+          <include name="*.jar"/>
+
+        </fileset>
+
+        <!--
+         Java libraries needed for compilation and at runtime.
+        -->
+        <fileset dir="${java.lib.dir}">
+
+          <include name="*.jar"/>
+
+        </fileset>
+
+        <!--
+         Java libraries needed only for compilation.
+        -->
+        <fileset dir="${java.build.lib.dir}">
+
+          <include name="*.jar"/>
+
+        </fileset>
+
+        <!--
+         Java libraries needed compiling the unit tests.
+        -->
+        <fileset dir="${java.unit.test.lib.dir}">
+
+            <include name="*.jar"/>
+
+        </fileset>
+
+
+      </path>
+
+      <!--
+       Using externally-defined properties.
+      -->
+      <property file="src/toolconf/ant/contractchecker.properties"/>
+
+      <!--
+       Defines the output folder of the classes generated by ContractChecker.
+      -->
+      <property name="contractchecker.outputdir" value="output"/>
+
+      <!--
+       Defines where to store the compiled classes for the generated sources.
+      -->
+      <property
+        name="contractchecker.classes.outputdir" value="output-classes"/>
+
+      <!--
+       Defines the classpath to use for executing ContractChecker.
+      -->
+      <path id="contractchecker.classpath">
+
+        <pathelement location="${classes.dir}"/>
+
+        <fileset dir="${java.development.lib.dir}">
+
+          <include name="*.jar"/>
+
+        </fileset>
+
+        <fileset dir="${java.lib.dir}">
+
+          <include name="*.jar"/>
+
+        </fileset>
+
+        <fileset dir="${java.runtime.lib.dir}">
+
+          <include name="*.jar"/>
+
+        </fileset>
+
+      </path>
+
+      <!--
+        Defines the classpath to use for declaring ContractChecker.
+      -->
+      <path id="contractchecker.declaration.classpath">
+
+        <path refid="contractchecker.classpath"/>
+
+      </path>
+
+    </target>
+
+    <!--
+     Declares ContractChecker task.
+     @return the correctly declared ContractChecker task.
+    -->
+    <target name="declare.contractchecker.task">
+
+      <description>Declares ContractChecker task</description>
+
+      <!--
+       Defines the <i>ContractChecker</i> task.
+      -->
+      <taskdef
+        name="contractchecker"
+        classname="org.acmsl.contractchecker.ContractCheckerTask"
+        classpathref="contractchecker.classpath"/>
+
+    </target>
+
+    <!--
+     Executes ContractChecker.
+     @return the result of executing ContractChecker.
+    -->
+    <target
+      name="contractchecker"
+      depends="init.properties, declare.contractchecker.task, clean"
+      description="Executes ContractChecker">
+
+      <!--
+       Executes ContractChecker defining all its attributes and
+       content.
+      -->
+      <contractchecker
+        sourcerootsref="java.source.path"
+        destdir="${classes.dir}"
+        classpathref="java.compile.class.path"
+        violationexception="java.lang.IllegalArgumentException"/>
+
+    </target>
+
+    <!--
+     Cleans any previously generated code.
+     @param contractchecker.outputdir the folder where the aspects
+            are generated.
+     @return the confidence that contractchecker.outputdir is empty.
+    -->
+    <target
+      name="clean"
+      depends="init.properties"
+      description="Cleans any previously generated code.">
+
+      <!--
+       Delete the output folder.
+      -->
+      <delete dir="${contractchecker.outputdir}"/>
+
+      <!--
+       Delete the output folder of the generated classes.
+      -->
+      <delete dir="${contractchecker.classes.outputdir}"/>
+
+      <!--
+       Create them again.
+      -->
+      <mkdir dir="${contractchecker.outputdir}"/>
+
+      <mkdir dir="${contractchecker.classes.outputdir}"/>
+
+    </target>
+
+</project>

@@ -1,0 +1,86 @@
+//;-*- mode: stringtemplate -*-
+//
+//                   Java Commons
+//
+//  Copyright (C) 2002-today  ACM-SL
+//                           chous@acm-sl.org
+//
+//  This library is free software; you can redistribute it and/or
+//  modify it under the terms of the GNU General Public
+//  License as published by the Free Software Foundation; either
+//  version 2 of the License, or any later version.
+//
+//  This library is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//  General Public License for more details.
+//
+//  You should have received a copy of the GNU General Public
+//  License along with this library; if not, write to the Free Software
+//  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//  Thanks to ACM S.L. for distributing this library under the GPL license.
+//  Contact info: jose.sanleandro@acm-sl.com
+//  Postal Address: c/Playa de Lagoa, 1
+//                  Urb. Valdecabanas
+//                  Boadilla del monte
+//                  28660 Madrid
+//                  Spain
+//
+//***************************************************************************
+//
+// Filename: ToStringUtilsJSON.stg
+//
+// Author: Jose San Leandro Armendariz
+//
+// Description: Defines the rules to generate Java Commons' ToStringUtils'
+//              toJson() output.
+//
+group ToStringUtilsJSON;
+
+toString(C) ::= <<
+<!
+ Generates a JSON representation of given instance.
+ @param obj the instance.
+ @param class the class.
+ @param attrs the instance's attributes.
+!>
+{ "class": "<C.fileClass.name>" <toStringImpl(obj=C.obj, fClass=C.fileClass, attrs=C.attrs)> }
+>>
+
+toStringImpl(obj, fClass, attrs) ::= <<
+<!
+ Generates a JSON representation of given instance.
+ @param obj the instance.
+ @param class the class.
+ @param attrs the instance's attributes.
+!>
+<if(obj.primitive)><obj.value>
+<else>
+<  if(obj.compound)><obj>
+<  else>
+<    if(attrs.keys)><attrs.keys:{ a |, <toJson(name=a, attr=attrs.(a))> }>
+<    else>
+<      if(obj.value)>
+<        if(obj.representedAsString)>"<obj.value>"
+<        else><obj.value>
+<        endif>
+<      else>
+<        if(obj.values)><obj.values:{ a | a<toStringImpl(obj=a, fClass=a, attrs=a)> }; separator=", ">
+<        else><obj>
+<        endif>
+<      endif>
+<    endif>
+<  endif>
+<endif>
+>>
+
+toJson(name, attr) ::= <<
+<!
+ Generates a JSON representation of given attribute.
+ @param attr the attribute.
+!>
+<if(name)>"<name>": <endif>
+<if(attr.collection)>[ <attr.value:{ a | <toStringImpl(obj=a, fClass=a, attrs=a)> }; separator=", "> ]
+<else><toStringImpl(obj=attr, fClass=attr.class, attrs="")><endif>
+>>

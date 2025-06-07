@@ -1,0 +1,202 @@
+/*
+                        Generic pattern implementations.
+
+    Copyright (C) 2002  Jose San Leandro Armendáriz
+                        jsanleandro@yahoo.es
+                        chousz@yahoo.com
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+    Thanks to ACM S.L. for distributing this library under the LGPL license.
+    Contact info: jsr000@terra.es
+    Postal Address: c/Playa de Lagoa, 1
+                    Urb. Valdecabañas
+                    Boadilla del monte
+                    28660 Madrid
+                    Spain
+
+    This library uses an external API to retrieve version information at
+    runtime.
+    So far I haven't released such API as a project itself, but you should be
+    able to download it from the web page where you got this source code.
+
+ ******************************************************************************
+ *
+ * Filename: $RCSfile$
+ *
+ * Author: Jose San Leandro Armendáriz
+ *
+ * Description: DAO abstract factory class responsible of retrieving the
+ *              concrete implementation from the configuration layer.
+ *
+ * Last modified by: $Author: chous $ at $Date: 2004-09-06 09:05:48 +0200 (Mon, 06 Sep 2004) $
+ *
+ * File version: $Revision: 397 $
+ *
+ * Project version: $Name$
+ *                  ("Name" means no concrete version has been checked out)
+ *
+ * $Id: DAOFactory.java.pending 397 2004-09-06 07:05:48Z chous $
+ *
+ */
+package org.acmsl.patterns.dao;
+
+/*
+ * Importing some ACM classes.
+ */
+import org.acmsl.patterns.AbstractFactory;
+import org.acm.configuration.ConfigurationManager;
+import org.acm.configuration.ConfigurationParameter;
+import org.acmsl.version.Version;
+import org.acmsl.version.VersionFactory;
+
+/**
+ * DAO abstract factory class responsible of retrieving the concrete
+ * implementation from the configuration layer.
+ * @author <a href="mailto:jsanleandro@yahoo.es"
+           >Jose San Leandro Armendáriz</a>
+ * @version $Revision: 397 $
+ */
+public abstract class DAOFactory
+    implements  AbstractFactory
+{
+    /**
+     * Protected constructor to avoid accidental instantiation.
+     */
+    protected DAOFactory() {};
+
+    /**
+     * Retrieves the concrete instance specified at deploy time and accessible
+     * via configuration layer.
+     * @param concreteSubclass an instance of the concrete DAO factory used.
+     * It's needed to retrieve the correct values from the configuration, from
+     * a static environment. It's not a perfect solution, but so far I haven't
+     * found a better one :(.
+     * @return the factory instance itself.
+     */
+    protected static DAOFactory getConcreteInstance(
+        DAOFactory concreteSubclass)
+    {
+        DAOFactory result = null;
+
+        try
+        {
+            if  (concreteSubclass != null)
+            {
+                // Retrieve the implementation information from the
+                // configuration layer.
+                ConfigurationParameter t_ConfParameter =
+                    ConfigurationManager.getInstance()
+                        .get(concreteSubclass.getConfigurationParameterName());
+
+                Object t_objResult = null;
+
+                if  (t_ConfParameter != null)
+                {
+                    String t_strClassName = t_ConfParameter.toString();
+
+                    Class t_Class = Class.forName(t_strClassName);
+
+                    t_objResult = t_Class.newInstance();
+
+                    if  (   (t_objResult != null)
+                         && (t_objResult instanceof DAOFactory))
+                    {
+                        result = (DAOFactory) t_objResult;
+                    }
+                }
+            }
+        }
+        catch  (Exception exception)
+        {
+            // To be defined. We should return a default implementation,
+            // otherwise null.
+        }
+
+         return result;
+    }
+
+    /**
+     * Retrieves the parameter name to query the configuration layer in order
+     * to find out which concrete implementation has been selected at deploy
+     * time.
+     * @return the parameter name.
+     */
+    protected abstract String getConfigurationParameterName();
+
+    /**
+     * Creates the concrete DAO.
+     * @return the DAO.
+     */
+    public abstract DAO createDAO();
+
+    /**
+    * Private unclean stuff to overcome OOP Java limits: from a static
+    * environment, you cannot design subclasses to implement abstract
+    * static methods, and if you implement them in the parent class,
+    * it never goes to the overridden methods in subclasses.
+    * @param configurationParameter the concrete parameter name to look for
+    * the appropiate subclass in the configuration.
+    */
+    protected static final DAOFactory getDummy(
+        String configurationParameter)
+    {
+        return new _Dummy(configurationParameter);
+    }
+
+    /**
+     * Tricky subclass used to retrieve a helpful dummy class.
+     * @author <a href="mailto:jsanleandro@yahoo.es"
+               >Jose San Leandro Armendáriz</a>
+     * @version $Revision: 397 $
+     */
+    protected static class _Dummy
+        extends  DAOFactory
+    {
+        /**
+         * Internal reference to the configuration parameter name.
+         */
+        private String m__strConfigurationParameter;
+
+        /**
+         * Default constructor
+         * @param configurationParameter the concrete parameter name to look
+         * for the appropiate subclass in the configuration.
+         */
+        public _Dummy(String configurationParameter)
+        {
+            m__strConfigurationParameter = configurationParameter;
+        }
+
+        /**
+         * Retrieves the configuration parameter name.
+         * @return such parameter name.
+         */
+        public String getConfigurationParameterName()
+        {
+            return m__strConfigurationParameter;
+        }
+
+        /**
+         * Creates the concrete DAO.
+         * @return the DAO.
+         */
+        public DAO createDAO()
+        {
+            return null;
+        }
+    }
+}
