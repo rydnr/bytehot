@@ -76,15 +76,31 @@ public class WatchConfiguration {
      */
     public static WatchConfiguration load(final Path configFile)
         throws IOException {
-        // TODO: load a yaml with this format, creating the list of `FolderWatch` objects.
-        /*
-        port: 6000
-        folders:
-          - path: /tmp/foo
-            interval: 1000
-          - path: /tmp/bar
-            interval: 2000
-         */
-        return null;
+        try (java.io.InputStream in = java.nio.file.Files.newInputStream(configFile)) {
+            org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
+            java.util.Map<String, Object> map = yaml.load(in);
+
+            int port = ((Number) map.getOrDefault("port", Defaults.PORT)).intValue();
+
+            java.util.List<FolderWatch> watches = new java.util.ArrayList<>();
+            java.util.List<?> folders = (java.util.List<?>) map.get("folders");
+            if (folders != null) {
+                for (Object entry : folders) {
+                    if (entry instanceof java.util.Map<?, ?> folderMap) {
+                        Object p = folderMap.get("path");
+                        Object i = folderMap.get("interval");
+                        if (p != null && i != null) {
+                            watches.add(new FolderWatch(
+                                java.nio.file.Path.of(p.toString()),
+                                ((Number) i).intValue()));
+                        }
+                    }
+                }
+            }
+
+            WatchConfiguration config = new WatchConfiguration(port);
+            config.folders = watches;
+            return config;
+        }
     }
 }

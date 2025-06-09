@@ -63,6 +63,41 @@ public class FolderWatch {
      * The interval between checks.
      * @return such value, in milliseconds.
      */
-    @Getter
+@Getter
     private final int interval;
+
+    /**
+     * Watches the folder and notifies on changes.
+     * @param onChange callback when a file changes.
+     * @throws IOException if watching fails.
+     */
+    public void watch(final java.util.function.Consumer<Path> onChange)
+        throws java.io.IOException {
+        final java.nio.file.WatchService watchService =
+            java.nio.file.FileSystems.getDefault().newWatchService();
+        folder.register(watchService,
+            java.nio.file.StandardWatchEventKinds.ENTRY_CREATE,
+            java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY,
+            java.nio.file.StandardWatchEventKinds.ENTRY_DELETE);
+
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                java.nio.file.WatchKey key =
+                    watchService.poll(interval,
+                        java.util.concurrent.TimeUnit.MILLISECONDS);
+                if (key != null) {
+                    for (java.nio.file.WatchEvent<?> event : key.pollEvents()) {
+                        java.nio.file.Path changed =
+                            folder.resolve((java.nio.file.Path) event.context());
+                        onChange.accept(changed);
+                    }
+                    key.reset();
+                }
+            }
+        } catch (final InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        } finally {
+            watchService.close();
+        }
+    }
 }
