@@ -76,7 +76,7 @@ public class WatchConfiguration {
      */
     public static WatchConfiguration load(final Path configFile)
         throws IOException {
-        // TODO: load a yaml with this format
+        // TODO: load a yaml with this format, creating the list of `FolderWatch` objects.
         /*
         port: 6000
         folders:
