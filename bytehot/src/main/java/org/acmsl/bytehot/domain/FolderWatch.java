@@ -35,12 +35,12 @@
  */
 package org.acmsl.bytehot.domain;
 
-import java.nio.file.Path;
-
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.nio.file.Path;
 
 /**
  * Watches folders for changes, every certain milliseconds.
