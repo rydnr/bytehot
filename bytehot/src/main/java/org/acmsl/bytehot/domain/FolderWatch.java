@@ -40,7 +40,13 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.function.Consumer;
 
 /**
  * Watches folders for changes, every certain milliseconds.
@@ -65,4 +71,37 @@ public class FolderWatch {
      */
     @Getter
     private final int interval;
+
+    /**
+     * Watches the folder for any file changes. The call blocks until the
+     * thread is interrupted.
+     *
+     * @param onChange callback invoked when a file changes
+     * @throws IOException          in case of IO errors
+     * @throws InterruptedException if the watch thread is interrupted
+     */
+    public void watch(final Consumer<Path> onChange)
+        throws IOException, InterruptedException {
+        final WatchService watchService =
+            folder.getFileSystem().newWatchService();
+
+        folder.register(watchService,
+            StandardWatchEventKinds.ENTRY_CREATE,
+            StandardWatchEventKinds.ENTRY_DELETE,
+            StandardWatchEventKinds.ENTRY_MODIFY);
+
+        while (!Thread.currentThread().isInterrupted()) {
+            final WatchKey key = watchService.take();
+
+            for (final WatchEvent<?> event : key.pollEvents()) {
+                final Path changed =
+                    folder.resolve((Path) event.context());
+                onChange.accept(changed);
+            }
+
+            if (!key.reset()) {
+                break;
+            }
+        }
+    }
 }
