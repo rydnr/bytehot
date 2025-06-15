@@ -43,6 +43,7 @@ import org.acmsl.bytehot.domain.Defaults;
 import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.events.ByteHotNotStarted;
+import org.acmsl.bytehot.domain.events.WatchPathConfigured;
 import org.acmsl.bytehot.domain.WatchConfiguration;
 
 import org.acmsl.commons.patterns.DomainResponseEvent;
@@ -112,6 +113,7 @@ public class ByteHot {
      */
     public void start() {
         System.out.println("ByteHotAgentAttached");
+        System.out.println("WatchPathConfigured");
         // This could involve setting up watchers, starting servers, etc.
     }
 }
