@@ -62,9 +62,9 @@ public class ByteHotCLI {
      * @param inst Instrumentation instance for the JVM.
      */
     public static void premain(final String agentArgs, final Instrumentation inst) {
-        String configPath = System.getProperty("hsconfig");
+        String configPath = System.getProperty("bhconfig");
         if (configPath == null || configPath.isBlank()) {
-            throw new IllegalStateException("Missing required system property hsconfig");
+            throw new IllegalStateException("Missing required system property bhconfig");
         }
 
         WatchConfiguration config;
