@@ -28,14 +28,14 @@
  *
  * Class name: ByteHotNotStarted
  *
- * Responsibilities: Represent a request to start ByteHot failed.
+ * Responsibilities: Represent a request to attach ByteHot agent failed.
  *
  * Collaborators:
  *   - None
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.events.ByteHotStartRequested;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import lombok.EqualsAndHashCode;
@@ -44,7 +44,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
- * Represents a request to start ByteHot failed.
+ * Represents a request to attach ByteHot agent failed.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-07
  */
@@ -52,14 +52,14 @@ import lombok.ToString;
 @RequiredArgsConstructor
 @ToString
 public class ByteHotNotStarted
-    implements DomainResponseEvent<ByteHotStartRequested> {
+    implements DomainResponseEvent<ByteHotAttachRequested> {
 
     /**
      * The original event.
      * @return such event.
      */
     @Getter
-    private final ByteHotStartRequested preceding;
+    private final ByteHotAttachRequested preceding;
 
     /**
      * The error cause.

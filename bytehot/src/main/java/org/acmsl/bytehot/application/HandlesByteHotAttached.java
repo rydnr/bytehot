@@ -22,51 +22,31 @@
 
  ******************************************************************************
  *
- * Filename: ByteHotStartRequested.java
+ * Filename: HandlesByteHotAttached.java
  *
  * Author: rydnr
  *
- * Class name: ByteHotStartRequested
+ * Class name: HandlesByteHotAttached
  *
- * Responsibilities: Represent a request to start ByteHot with a given configuration.
+ * Responsibilities: Define the methods to implement to accept a ByteHotAttachRequested.
  *
  * Collaborators:
- *   - None
+ *   - org.acmsl.bytehot.domain.events.ByteHotAttachRequested
+ *   - org.acmsl.commons.patterns.DomainEvent
+ *   - org.acmsl.commons.patterns.DomainResponseEvent
  */
-package org.acmsl.bytehot.domain.events;
+package org.acmsl.bytehot.application;
 
-import org.acmsl.bytehot.domain.WatchConfiguration;
-import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 
-import java.lang.instrument.Instrumentation;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.ToString;
+import org.acmsl.commons.patterns.Application;
+import org.acmsl.commons.patterns.DomainResponseEvent;
 
 /**
- * Represents a request to start ByteHot with a given configuration.
+ * Defines the methods to implement to accept a ByteHotAttachRequested.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-07
  */
-@RequiredArgsConstructor
-@EqualsAndHashCode
-@ToString
-public class ByteHotStartRequested
-    implements DomainEvent {
-
-    /**
-     * The configuration for ByteHot.
-     * @return the configuration object.
-     */
-    @Getter
-    private final WatchConfiguration configuration;
-
-    /**
-     * The instrumentation instance for the JVM.
-     * @return the instrumentation instance.
-     */
-    @Getter
-    private final Instrumentation instrumentation;
+public interface HandlesByteHotAttached
+    extends Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> {
 }

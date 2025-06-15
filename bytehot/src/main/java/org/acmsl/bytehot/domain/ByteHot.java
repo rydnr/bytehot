@@ -33,17 +33,18 @@
  *   - Receive callbacks when watched classes change.
  *
  * Collaborators:
- *   - ByteHotStartRequested: the event that triggers the start of ByteHot.
+ *   - ByteHotAttachRequested: the event that triggers ByteHot agent attachment.
  *   - FolderWatch: the domain object that represents a folder to watch for changes.
  *   - Defaults: the default configuration values for ByteHot.
  */
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.Defaults;
+import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.events.ByteHotNotStarted;
-import org.acmsl.bytehot.domain.events.ByteHotStarted;
-import org.acmsl.bytehot.domain.events.ByteHotStartRequested;
 import org.acmsl.bytehot.domain.WatchConfiguration;
+
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import java.lang.instrument.Instrumentation;
@@ -89,17 +90,17 @@ public class ByteHot {
     }
 
     /**
-     * Accepts a ByteHotStartRequested event and starts the ByteHot runtime.
-     * @param event the event containing the configuration to start ByteHot.
-     * @return an event representing a ByteHot instance has been started or
-     * was already running; or an error occurred during the start.
+     * Accepts a ByteHotAttachRequested event and starts the ByteHot runtime.
+     * @param event the event containing the configuration to attach ByteHot.
+     * @return an event representing ByteHot agent has been attached and started or
+     * an error occurred during the attachment.
      */
-    public static DomainResponseEvent<ByteHotStartRequested> accept(final ByteHotStartRequested event) {
-        DomainResponseEvent<ByteHotStartRequested> result = null;
+    public static DomainResponseEvent<ByteHotAttachRequested> accept(final ByteHotAttachRequested event) {
+        DomainResponseEvent<ByteHotAttachRequested> result = null;
         try {
-            new ByteHot(event.getConfiguration(), event.getInstrumentation())
+            new ByteHot(event.getInstrumentation(), event.getConfiguration())
                 .start();
-            result = new ByteHotStarted(event, event.getConfiguration());
+            result = new ByteHotAgentAttached(event, event.getConfiguration());
         } catch (final Throwable t) {
             result = new ByteHotNotStarted(event, t);
         }
@@ -110,6 +111,7 @@ public class ByteHot {
      * Starts ByteHot with the provided configuration.
      */
     public void start() {
+        System.out.println("ByteHotAgentAttached");
         // This could involve setting up watchers, starting servers, etc.
     }
 }

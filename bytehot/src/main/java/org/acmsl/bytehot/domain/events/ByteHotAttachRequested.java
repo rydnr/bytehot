@@ -22,31 +22,51 @@
 
  ******************************************************************************
  *
- * Filename: HandlesByteHotStarted.java
+ * Filename: ByteHotAttachRequested.java
  *
  * Author: rydnr
  *
- * Class name: HandlesByteHotStarted
+ * Class name: ByteHotAttachRequested
  *
- * Responsibilities: Define the methods to implement to accept a ByteHotStartRequested.
+ * Responsibilities: Represent a request to attach ByteHot agent with a given configuration.
  *
  * Collaborators:
- *   - org.acmsl.bytehot.domain.events.ByteHotStartRequested
- *   - org.acmsl.commons.patterns.DomainEvent
- *   - org.acmsl.commons.patterns.DomainResponseEvent
+ *   - None
  */
-package org.acmsl.bytehot.application;
+package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.events.ByteHotStartRequested;
+import org.acmsl.bytehot.domain.WatchConfiguration;
+import org.acmsl.commons.patterns.DomainEvent;
 
-import org.acmsl.commons.patterns.Application;
-import org.acmsl.commons.patterns.DomainResponseEvent;
+import java.lang.instrument.Instrumentation;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 /**
- * Defines the methods to implement to accept a ByteHotStartRequested.
+ * Represents a request to attach ByteHot agent with a given configuration.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-07
  */
-public interface HandlesByteHotStarted
-    extends Application<ByteHotStartRequested, DomainResponseEvent<ByteHotStartRequested>> {
+@RequiredArgsConstructor
+@EqualsAndHashCode
+@ToString
+public class ByteHotAttachRequested
+    implements DomainEvent {
+
+    /**
+     * The configuration for ByteHot.
+     * @return the configuration object.
+     */
+    @Getter
+    private final WatchConfiguration configuration;
+
+    /**
+     * The instrumentation instance for the JVM.
+     * @return the instrumentation instance.
+     */
+    @Getter
+    private final Instrumentation instrumentation;
 }

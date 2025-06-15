@@ -31,13 +31,13 @@
  * Responsibilities: Application layer for ByteHot.
  *
  * Collaborators:
- *   - org.acmsl.bytehot.domain.events.ByteHotStartRequested
+ *   - org.acmsl.bytehot.domain.events.ByteHotAttachRequested
  */
 package org.acmsl.bytehot.application;
 
 import org.acmsl.bytehot.domain.ByteHot;
-import org.acmsl.bytehot.domain.events.ByteHotStarted;
-import org.acmsl.bytehot.domain.events.ByteHotStartRequested;
+import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 
 import org.acmsl.commons.patterns.Application;
 import org.acmsl.commons.patterns.DomainEvent;
@@ -57,7 +57,7 @@ import lombok.ToString;
 @EqualsAndHashCode
 @ToString
 public class ByteHotApplication
-    implements HandlesByteHotStarted {
+    implements HandlesByteHotAttached {
 
     /**
      * Default constructor to point to the singleton.
@@ -80,12 +80,12 @@ public class ByteHotApplication
     }
 
     /**
-     * Accepts a ByteHotStartRequested event.
+     * Accepts a ByteHotAttachRequested event.
      * @param event such event.
      * @return A list of events in response.
      */
     @Override
-    public List<DomainResponseEvent<ByteHotStartRequested>> accept(final ByteHotStartRequested event) {
+    public List<DomainResponseEvent<ByteHotAttachRequested>> accept(final ByteHotAttachRequested event) {
         // TODO: Discover aggregate / primary port dynamically
         return Arrays.asList(ByteHot.accept(event));
     }

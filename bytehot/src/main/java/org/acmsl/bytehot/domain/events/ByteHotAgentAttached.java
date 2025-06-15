@@ -24,19 +24,21 @@
  *
  * Filename: ByteHotAgentAttached.java
  *
- * Author: Claude
+ * Author: rydnr
  *
  * Class name: ByteHotAgentAttached
  *
- * Responsibilities:
- *   - Represent the moment when the JVM agent is successfully attached
+ * Responsibilities: Represent the moment ByteHot agent has been attached and started.
  *
  * Collaborators:
- *   - org.acmsl.commons.patterns.DomainEvent: Base event interface
+ *   - org.acmsl.bytehot.domain.events.ByteHotAttachRequested
+ *   - org.acmsl.bytehot.domain.ByteHot
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
+import org.acmsl.bytehot.domain.WatchConfiguration;
+import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -44,31 +46,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
- * Represents the moment when the JVM agent is successfully attached.
- * @author Claude
- * @since 2025-06-15
+ * Represents the moment ByteHot agent has been attached and started.
+ * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
+ * @since 2025-06-07
  */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 @ToString
 public class ByteHotAgentAttached
-    implements DomainEvent {
+    implements DomainResponseEvent<ByteHotAttachRequested> {
 
     /**
-     * The JVM process ID where the agent was attached.
+     * The original event.
+     * @return such event.
      */
     @Getter
-    private final long jvmProcessId;
+    private final ByteHotAttachRequested preceding;
 
     /**
-     * The agent arguments passed during attachment.
+     * The configuration for ByteHot.
+     * @return the configuration object.
      */
     @Getter
-    private final String agentArguments;
-
-    /**
-     * The instrumentation class name used by the agent.
-     */
-    @Getter
-    private final String instrumentationClassName;
+    private final WatchConfiguration configuration;
 }

@@ -42,7 +42,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 import org.acmsl.bytehot.application.ByteHotApplication;
-import org.acmsl.bytehot.domain.events.ByteHotStartRequested;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.WatchConfiguration;
 
 /**
@@ -74,7 +74,7 @@ public class ByteHotCLI {
             throw new IllegalStateException("Failed to load configuration", exception);
         }
 
-        ByteHotApplication.getInstance().accept(new ByteHotStartRequested(config, inst));
+        ByteHotApplication.getInstance().accept(new ByteHotAttachRequested(config, inst));
     }
 
     /**

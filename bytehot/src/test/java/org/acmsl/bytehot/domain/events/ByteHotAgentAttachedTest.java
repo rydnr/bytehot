@@ -89,10 +89,12 @@ public class ByteHotAgentAttachedTest {
         }
 
         // when: run the test class with ByteHot agent attached
-        final String agentJarPath = findByteHotAgentJar();
+        final String agentJarPath = System.getProperty("user.dir") + "/" + findByteHotAgentJar();
+        final String configPath = System.getProperty("user.dir") + "/src/test/resources/test-config.yml";
         final ProcessBuilder runProcess = new ProcessBuilder(
             "java",
             "-javaagent:" + agentJarPath,
+            "-Dhsconfig=" + configPath,
             "-cp", tempDir.toString(),
             "TestApp"
         );
@@ -119,8 +121,7 @@ public class ByteHotAgentAttachedTest {
     }
 
     private String findByteHotAgentJar() {
-        // This will fail until we build the actual agent jar
-        // For now, return a placeholder path that the test expects to exist
-        return "target/bytehot-agent.jar";
+        // Return the shaded agent jar with all dependencies
+        return "target/bytehot-latest-SNAPSHOT-agent.jar";
     }
 }
