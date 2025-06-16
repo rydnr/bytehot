@@ -114,6 +114,12 @@ public class ByteHot {
     public void start() {
         System.out.println("ByteHotAgentAttached");
         System.out.println("WatchPathConfigured");
+        
+        // Check hot-swap capabilities
+        if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
+            System.out.println("HotSwapCapabilityEnabled");
+        }
+        
         // This could involve setting up watchers, starting servers, etc.
     }
 }

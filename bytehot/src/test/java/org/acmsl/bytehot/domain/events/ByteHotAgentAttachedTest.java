@@ -94,7 +94,7 @@ public class ByteHotAgentAttachedTest {
         final ProcessBuilder runProcess = new ProcessBuilder(
             "java",
             "-javaagent:" + agentJarPath,
-            "-Dhsconfig=" + configPath,
+            "-Dbhconfig=" + configPath,
             "-cp", tempDir.toString(),
             "TestApp"
         );
