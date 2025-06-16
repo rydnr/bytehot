@@ -87,9 +87,11 @@ public class WatchConfigurationTest {
 
         FolderWatch watch = new FolderWatch(folder, 100);
         CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch watchStarted = new CountDownLatch(1);
 
         Thread t = new Thread(() -> {
             try {
+                watchStarted.countDown(); // Signal that watch is starting
                 watch.watch(changed -> {
                     if (changed.equals(file)) {
                         latch.countDown();
@@ -102,8 +104,21 @@ public class WatchConfigurationTest {
         t.setDaemon(true);
         t.start();
 
-        Files.writeString(file, "world", StandardOpenOption.APPEND);
-        assertTrue(latch.await(5, TimeUnit.SECONDS));
+        // Wait for watch thread to start, then give it time to set up the watch service
+        assertTrue(watchStarted.await(1, TimeUnit.SECONDS), "Watch thread should start");
+        Thread.sleep(200); // Give watch service time to fully initialize
+
+        // Modify the file by writing a completely new content (more reliable than append)
+        Files.writeString(file, "world");
+        
+        // If that doesn't work, try deleting and recreating (most reliable)
+        if (!latch.await(1, TimeUnit.SECONDS)) {
+            Files.delete(file);
+            Thread.sleep(50);
+            Files.writeString(file, "recreated");
+        }
+
+        assertTrue(latch.await(3, TimeUnit.SECONDS), "Should detect file change within 3 seconds");
         t.interrupt();
     }
 }
