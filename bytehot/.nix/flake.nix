@@ -1,8 +1,6 @@
 {
   description = "Flake for https://github.com/rydnr/bytehot";
 
- nixConfig.permittedInsecurePackages = [ "openssl-1.1.1w" ];
-
  inputs = {
     flake-utils.url = "github:numtide/flake-utils/v1.0.0";
     nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
@@ -31,7 +29,7 @@
         nixpkgsRelease =
           builtins.replaceStrings [ "\n" ] [ "" ] "nixpkgs-${nixpkgsVersion}";
         shared = import ./shared.nix;
-        description = "TODO";
+        description = "A Java agent that reloads bytecode";
         homepage = "https://github.com/rydnr/bytehot";
         rydnr-bytehot-for = { jdk, pkgs }:
           pkgs.stdenv.mkDerivation {
@@ -40,7 +38,7 @@
 
             src = ./..;
 
-            nativeBuildInputs = [ jdk pkgs.mavenFullJdk pkgs.curl pkgs.openssl ];
+            nativeBuildInputs = with pkgs; [ jdk mavenFullJdk curl ];
 
             buildPhase = ''
                 # don't try to compile for now since it requires declaring its dependencies beforehand.
@@ -63,7 +61,7 @@
           rydnr-bytehot-23 = shared.devShell-for rec {
             jdk = pkgs.openjdk23;
             maven = pkgs.mavenFullJdk;
-            nativeDeps = [ pkgs.curl.out pkgs.openssl_1_1.out ];
+            nativeDeps = [ pkgs.curl.out ];
             inherit nixpkgsRelease;
             package = packages.rydnr-bytehot-23;
             pkgs = pkgs-for { jdk = officialNixpkgs.openjdk23; };
@@ -71,7 +69,7 @@
           rydnr-bytehot-21 = shared.devShell-for rec {
             jdk = pkgs.openjdk21;
             maven = pkgs.mavenFullJdk;
-            nativeDeps = [ pkgs.curl.out pkgs.openssl_1_1.out ];
+            nativeDeps = [ pkgs.curl.out ];
             inherit nixpkgsRelease;
             package = packages.rydnr-bytehot-21;
             pkgs = pkgs-for { jdk = officialNixpkgs.openjdk21; };
@@ -79,7 +77,7 @@
           rydnr-bytehot-17 = shared.devShell-for rec {
             jdk = pkgs.openjdk17;
             maven = pkgs.mavenFullJdk;
-            nativeDeps = [ pkgs.curl.out pkgs.openssl_1_1.out ];
+            nativeDeps = [ pkgs.curl.out ];
             inherit nixpkgsRelease;
             package = packages.rydnr-bytehot-17;
             pkgs = pkgs-for { jdk = officialNixpkgs.openjdk17; };
@@ -87,7 +85,7 @@
           rydnr-bytehot-11 = shared.devShell-for rec {
             jdk = pkgs.openjdk11;
             maven = pkgs.mavenFullJdk;
-            nativeDeps = [ pkgs.curl.out pkgs.openssl_1_1.out ];
+            nativeDeps = [ pkgs.curl.out ];
             inherit nixpkgsRelease;
             package = packages.rydnr-bytehot-11;
             pkgs = pkgs-for { jdk = officialNixpkgs.openjdk11; };
@@ -95,7 +93,7 @@
           rydnr-bytehot-8 = shared.devShell-for rec {
             jdk = pkgs.openjdk8;
             maven = pkgs.mavenFullJdk;
-            nativeDeps = [ pkgs.curl.out pkgs.openssl_1_1.out ];
+            nativeDeps = [ pkgs.curl.out ];
             inherit nixpkgsRelease;
             package = packages.rydnr-bytehot-8;
             pkgs = pkgs-for { jdk = officialNixpkgs.openjdk8; };
