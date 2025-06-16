@@ -242,3 +242,30 @@ When creating a PR, please ensure it:
 3. Ensures all tests pass
 5. Keeps PRs focused on a single concern
 
+## Memories
+
+### Setup & Configuration Events
+- ByteHotAgentAttached: When the JVM agent is successfully attached
+- WatchPathConfigured: When a file/directory path is configured for monitoring
+- HotSwapCapabilityEnabled: When hot-swap functionality is activated for a class
+
+### File System Monitoring Events
+- ClassFileChanged: When a .class file is modified on disk
+- ClassFileCreated: When a new .class file appears
+- ClassFileDeleted: When a .class file is removed
+
+### Bytecode Processing Events
+- BytecodeValidated: When modified bytecode passes validation checks
+- BytecodeRejected: When bytecode fails validation (incompatible changes)
+- ClassMetadataExtracted: When class information is successfully parsed
+
+### Hot-Swap Execution Events
+- HotSwapRequested: When a hot-swap operation is initiated
+- ClassRedefinitionSucceeded: When JVM successfully redefines a class
+- ClassRedefinitionFailed: When JVM rejects the class redefinition
+- InstancesUpdated: When existing instances are updated with new behavior
+
+## Project-wide Architectural Constraints
+
+### Dependency Management
+- Parent pom (acmsl-pom) is the only pom.xml allowed to define versions of dependencies. The only exceptions are plugin versions, if specifying them in child poms is inevitable to make them work.

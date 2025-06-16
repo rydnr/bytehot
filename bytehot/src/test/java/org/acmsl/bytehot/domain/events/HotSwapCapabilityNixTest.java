@@ -94,6 +94,20 @@ public class HotSwapCapabilityNixTest {
     private void testJvmHotSwapCapability(@TempDir Path tempDir, String jvmVersion, boolean expectHotSwapSupport) 
             throws IOException, InterruptedException {
         
+        // First: Build the agent with the target JVM version to avoid UnsupportedClassVersionError
+        ProcessBuilder packageBuilder = new ProcessBuilder(
+            "nix", "develop", ".nix/#rydnr-bytehot-" + jvmVersion, "-c",
+            "mvn", "clean", "package", "-DskipTests"
+        );
+        packageBuilder.directory(Path.of(".").toFile());
+        packageBuilder.redirectErrorStream(true);
+        Process packageProcess = packageBuilder.start();
+        
+        if (!packageProcess.waitFor(120, TimeUnit.SECONDS) || packageProcess.exitValue() != 0) {
+            String error = new String(packageProcess.getInputStream().readAllBytes());
+            throw new RuntimeException("Failed to build agent with JVM " + jvmVersion + ": " + error);
+        }
+        
         // Given: A test Java class and valid configuration
         Path testJavaFile = tempDir.resolve("TestApp.java");
         Files.writeString(testJavaFile, """
