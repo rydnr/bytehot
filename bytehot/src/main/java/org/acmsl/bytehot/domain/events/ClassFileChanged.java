@@ -36,14 +36,13 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.bytehot.domain.EventMetadata;
 
 import java.nio.file.Path;
 import java.time.Instant;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -51,10 +50,9 @@ import lombok.ToString;
  * @author Claude Code
  * @since 2025-06-16
  */
-@RequiredArgsConstructor
-@EqualsAndHashCode
-@ToString
-public class ClassFileChanged implements DomainEvent {
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class ClassFileChanged extends AbstractVersionedDomainEvent {
 
     /**
      * The path to the modified .class file
@@ -78,9 +76,131 @@ public class ClassFileChanged implements DomainEvent {
     private final long fileSize;
 
     /**
-     * The timestamp when the change was detected
-     * @return the timestamp
+     * The timestamp when the change was detected (domain-specific, different from event timestamp)
+     * @return the file change detection timestamp
      */
     @Getter
-    private final Instant timestamp;
+    private final Instant detectionTimestamp;
+
+    /**
+     * Constructor with all parameters including EventSourcing metadata
+     */
+    public ClassFileChanged(
+        String eventId,
+        String aggregateType,
+        String aggregateId,
+        long aggregateVersion,
+        Instant timestamp,
+        String previousEventId,
+        int schemaVersion,
+        String userId,
+        String correlationId,
+        Path classFile,
+        String className,
+        long fileSize,
+        Instant detectionTimestamp
+    ) {
+        super(eventId, aggregateType, aggregateId, aggregateVersion, timestamp, 
+              previousEventId, schemaVersion, userId, correlationId);
+        this.classFile = classFile;
+        this.className = className;
+        this.fileSize = fileSize;
+        this.detectionTimestamp = detectionTimestamp;
+    }
+
+    /**
+     * Constructor using EventMetadata
+     */
+    public ClassFileChanged(
+        EventMetadata metadata,
+        Path classFile,
+        String className,
+        long fileSize,
+        Instant detectionTimestamp
+    ) {
+        super(metadata);
+        this.classFile = classFile;
+        this.className = className;
+        this.fileSize = fileSize;
+        this.detectionTimestamp = detectionTimestamp;
+    }
+
+    /**
+     * Factory method to create a ClassFileChanged event for a new file monitoring session
+     */
+    public static ClassFileChanged forNewSession(
+        Path classFile,
+        String className,
+        long fileSize,
+        Instant detectionTimestamp
+    ) {
+        EventMetadata metadata = createMetadataForNewAggregate(
+            "filewatch", 
+            classFile.toString()
+        );
+        
+        return new ClassFileChanged(
+            metadata,
+            classFile,
+            className,
+            fileSize,
+            detectionTimestamp
+        );
+    }
+
+    /**
+     * Factory method to create a ClassFileChanged event for an existing file monitoring session
+     */
+    public static ClassFileChanged forExistingSession(
+        Path classFile,
+        String className,
+        long fileSize,
+        Instant detectionTimestamp,
+        String previousEventId,
+        long currentVersion
+    ) {
+        EventMetadata metadata = createMetadataForExistingAggregate(
+            "filewatch",
+            classFile.toString(),
+            previousEventId,
+            currentVersion
+        );
+        
+        return new ClassFileChanged(
+            metadata,
+            classFile,
+            className,
+            fileSize,
+            detectionTimestamp
+        );
+    }
+
+    /**
+     * Factory method to create a ClassFileChanged event with user context
+     */
+    public static ClassFileChanged withUser(
+        Path classFile,
+        String className,
+        long fileSize,
+        Instant detectionTimestamp,
+        String userId,
+        String previousEventId,
+        long currentVersion
+    ) {
+        EventMetadata metadata = createMetadataWithUser(
+            "filewatch",
+            classFile.toString(),
+            previousEventId,
+            currentVersion,
+            userId
+        );
+        
+        return new ClassFileChanged(
+            metadata,
+            classFile,
+            className,
+            fileSize,
+            detectionTimestamp
+        );
+    }
 }

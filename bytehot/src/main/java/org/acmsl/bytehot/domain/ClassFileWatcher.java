@@ -181,7 +181,7 @@ public class ClassFileWatcher extends FolderWatch {
         final long fileSize = Files.size(classFile);
         final Instant timestamp = Instant.now();
         
-        return new ClassFileChanged(classFile, className, fileSize, timestamp);
+        return ClassFileChanged.forNewSession(classFile, className, fileSize, timestamp);
     }
 
     /**
