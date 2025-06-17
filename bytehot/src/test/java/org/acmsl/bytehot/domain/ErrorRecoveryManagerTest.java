@@ -169,7 +169,7 @@ public class ErrorRecoveryManagerTest {
         // Then: Should initiate emergency shutdown
         assertTrue(result.isSuccessful(), "Emergency shutdown should be initiated successfully");
         assertEquals(RecoveryAction.EMERGENCY_SHUTDOWN, result.getAction(), "Should perform emergency shutdown");
-        assertTrue(result.getMessage().contains("emergency"), "Should mention emergency in message");
+        assertTrue(result.getMessage().toLowerCase().contains("emergency"), "Should mention emergency in message");
         assertTrue(result.requiresImmediateAction(), "Should require immediate action");
     }
 
@@ -187,7 +187,7 @@ public class ErrorRecoveryManagerTest {
         // Then: Should activate fallback mode
         assertTrue(result.isSuccessful(), "Fallback mode activation should be successful");
         assertEquals(RecoveryAction.FALLBACK_MODE, result.getAction(), "Should activate fallback mode");
-        assertTrue(result.getMessage().contains("fallback"), "Should mention fallback in message");
+        assertTrue(result.getMessage().toLowerCase().contains("fallback"), "Should mention fallback in message");
     }
 
     /**

@@ -111,6 +111,14 @@ public class InstanceTracker {
      * Tracks an instance of a class
      * @param instance the instance to track
      */
+    public void track(final Object instance) {
+        trackInstance(instance);
+    }
+
+    /**
+     * Tracks an instance of a class
+     * @param instance the instance to track
+     */
     public void trackInstance(final Object instance) {
         if (instance == null) {
             return;
@@ -153,6 +161,20 @@ public class InstanceTracker {
      */
     public int countInstances(final Class<?> clazz) {
         return findInstances(clazz).size();
+    }
+
+    /**
+     * Gets the number of tracked instances for a specific class name
+     * @param className the fully qualified class name
+     * @return number of tracked instances
+     */
+    public int getInstanceCount(final String className) {
+        try {
+            final Class<?> clazz = Class.forName(className);
+            return countInstances(clazz);
+        } catch (ClassNotFoundException e) {
+            return 0;
+        }
     }
 
     /**
