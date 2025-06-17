@@ -38,6 +38,7 @@
  */
 package org.acmsl.bytehot.infrastructure.agent;
 
+import org.acmsl.bytehot.application.ByteHotApplication;
 import org.acmsl.bytehot.domain.InstrumentationProvider;
 
 import java.lang.instrument.Instrumentation;
@@ -56,7 +57,11 @@ public class ByteHotAgent {
      */
     public static void premain(final String agentArgs, final Instrumentation inst) {
         InstrumentationProvider.setInstrumentation(inst);
-        // Future: Initialize ByteHot system components
+        
+        // Initialize ByteHot hexagonal architecture
+        ByteHotApplication.initialize(inst);
+        
+        System.out.println("ByteHot agent initialized successfully");
     }
 
     /**
