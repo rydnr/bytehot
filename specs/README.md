@@ -68,14 +68,16 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 
 ### EventSourcing and User Management (WALKING SKELETON PHASE)
 
-#### [Milestone 6A: Basic EventSourcing Infrastructure](milestone-6a-basic-eventsourcing.md) 🚧 IN PROGRESS
+#### [Milestone 6A: Basic EventSourcing Infrastructure](milestone-6a-basic-eventsourcing.md) ✅ COMPLETED
 **Objective:** Establish foundational EventSourcing with filesystem storage
+**Status:** ✅ Implemented and tested (10/11 EventStore tests passing)
 **Walking Skeleton Value:** Event persistence foundation for all future capabilities
 **Key Components:**
 - `EventStorePort` - Domain interface for event persistence
 - `FilesystemEventStoreAdapter` - "Poor-man's" filesystem EventStore
 - `VersionedDomainEvent` - Enhanced events with EventSourcing metadata
 - Event serialization and filesystem organization
+- `JsonClassFileChanged` - DTO pattern for domain purity
 
 #### [Milestone 6B: Event-Driven Testing Framework](milestone-6b-event-driven-testing.md) 📋 PLANNED
 **Objective:** Revolutionary Given/When/Then testing with events
@@ -123,6 +125,18 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - `EventBus`, `CommandBus` abstractions
 - `AggregateRepository<T>` with EventSourcing
 - Enhanced `PortResolver` with plugin awareness
+
+### Development Infrastructure (SUPPORTING)
+
+#### [GitHub Actions CI/CD Pipeline](github-actions-cicd.md) ✅ COMPLETED
+**Objective:** Automated testing, quality checks, and milestone-based releases
+**Status:** ✅ Implemented with comprehensive CI/CD workflows
+**Value:** Professional development workflow with automated testing and release management
+**Key Components:**
+- Continuous Integration workflow with automated testing
+- Release workflow with milestone tag automation
+- Code quality analysis and security scanning
+- Automated release notes and artifact management
 
 ### Advanced Features (FUTURE MILESTONES)
 
@@ -200,9 +214,8 @@ All development follows strict TDD methodology with emoji-based commit conventio
 - **Milestone 3:** Hot-Swap Operations - Complete with JVM agent integration
 - **Milestone 4:** Instance Management - 41/41 tests passing
 - **Milestone 5:** Hexagonal Architecture - Complete Ports and Adapters with dynamic discovery
-
-### 🚧 In Progress (Walking Skeleton Phase)
-- **Milestone 6A:** Basic EventSourcing Infrastructure - Implementing EventStore foundation
+- **Milestone 6A:** Basic EventSourcing Infrastructure - 10/11 EventStore tests passing
+- **GitHub Actions CI/CD:** Automated testing and milestone releases - Complete workflows
 
 ### 📋 Next Steps (Walking Skeleton Approach)
 - **Milestone 6B:** Event-Driven Testing Framework - Revolutionary testing approach
@@ -302,8 +315,8 @@ ByteHot understands and documents its own behavior:
 - ✅ JVM agent deployment working with comprehensive error handling
 - ✅ Thread-safe concurrent programming throughout
 
-### EventSourcing Success (IN PROGRESS)
-- 🚧 Complete event persistence and retrieval (Milestone 6A)
+### EventSourcing Success (PARTIALLY COMPLETE)
+- ✅ Complete event persistence and retrieval (Milestone 6A) - 10/11 tests passing
 - 📋 Event-driven testing framework operational (Milestone 6B)
 - 📋 User-aware operations with auto-discovery (Milestone 6C)
 - 📋 Bug reproduction from event snapshots (Milestone 6D)

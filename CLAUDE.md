@@ -288,3 +288,10 @@ When creating a PR, please ensure it:
 ### Inversion of Control / Dependency Injection
 
 The Inversion of Control / Dependency Injection is responsibility of the application layer. The domain layer must be free from annotations coming from frameworks (lombok is permitted). The application layer should configure the `Ports` class, after exploring the infrastructure layer and annotating all adapters found for each `Port`. The application layer can choose to use a framework if needed, but any framework annotations can only be applied to adapters, i.e., classes in the infrastructure layer. The rationale is to protect the domain layer from accidental complexity affecting the other layers, or the outside world.
+
+## Memories
+
+### GitHub Management
+- Leverage GitHub by creating tags for each milestone
+- Publish tags as releases in GitHub
+- Configure GitHub Actions to automate release and test processes
