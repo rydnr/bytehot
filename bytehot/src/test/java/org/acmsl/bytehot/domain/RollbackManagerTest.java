@@ -81,11 +81,11 @@ public class RollbackManagerTest {
         instanceTracker.track(service);
         
         // When: Creating a rollback snapshot
-        RollbackSnapshot snapshot = rollbackManager.createSnapshot("com.example.TestService");
+        RollbackSnapshot snapshot = rollbackManager.createSnapshot(TestService.class.getName());
         
         // Then: Should capture current state
         assertNotNull(snapshot, "Snapshot should not be null");
-        assertEquals("com.example.TestService", snapshot.getClassName(), "Should capture class name");
+        assertEquals(TestService.class.getName(), snapshot.getClassName(), "Should capture class name");
         assertTrue(snapshot.getInstanceCount() >= 1, "Should capture instance count");
         assertNotNull(snapshot.getTimestamp(), "Should have timestamp");
         assertNotNull(snapshot.getSnapshotId(), "Should have unique ID");
@@ -101,10 +101,10 @@ public class RollbackManagerTest {
         instanceTracker.enableTracking(TestService.class);
         instanceTracker.track(service);
         
-        RollbackSnapshot snapshot = rollbackManager.createSnapshot("com.example.TestService");
+        RollbackSnapshot snapshot = rollbackManager.createSnapshot(TestService.class.getName());
         
         ClassRedefinitionFailed failure = new ClassRedefinitionFailed(
-            "com.example.TestService",
+            TestService.class.getName(),
             Paths.get("/app/classes/TestService.class"),
             "Structural changes not supported",
             "JVM rejected class redefinition",
@@ -118,8 +118,8 @@ public class RollbackManagerTest {
         // Then: Should successfully rollback
         assertTrue(result.isSuccessful(), "Rollback should be successful");
         assertEquals(snapshot.getSnapshotId(), result.getSnapshotId(), "Should reference correct snapshot");
-        assertEquals("com.example.TestService", result.getClassName(), "Should rollback correct class");
-        assertTrue(result.getMessage().contains("rollback"), "Should mention rollback in message");
+        assertEquals(TestService.class.getName(), result.getClassName(), "Should rollback correct class");
+        assertTrue(result.getMessage().toLowerCase().contains("rollback"), "Should mention rollback in message");
     }
 
     /**
@@ -135,7 +135,7 @@ public class RollbackManagerTest {
         instanceTracker.track(service1);
         instanceTracker.track(service2);
         
-        RollbackSnapshot snapshot = rollbackManager.createSnapshot("com.example.TestService");
+        RollbackSnapshot snapshot = rollbackManager.createSnapshot(TestService.class.getName());
         
         // Simulate state changes
         service1.updateData("modified-state-1");
