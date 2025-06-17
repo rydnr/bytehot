@@ -69,8 +69,8 @@ public class ByteHotCLI {
 
         WatchConfiguration config;
         try {
-            config = WatchConfiguration.load(Path.of(configPath));
-        } catch (final IOException exception) {
+            config = WatchConfiguration.load();
+        } catch (final Exception exception) {
             throw new IllegalStateException("Failed to load configuration", exception);
         }
 
