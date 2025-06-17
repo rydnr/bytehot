@@ -469,7 +469,9 @@ public class FilesystemEventStoreAdapter
      * Gets the directory path for an aggregate
      */
     private Path getAggregateDirectoryPath(String aggregateType, String aggregateId) {
-        return eventStoreBasePath.resolve(aggregateType).resolve(aggregateId);
+        // Encode aggregateId to make it filesystem-safe
+        String safeAggregateId = aggregateId.replace("/", "_").replace("\\", "_");
+        return eventStoreBasePath.resolve(aggregateType).resolve(safeAggregateId);
     }
 
     /**
@@ -498,7 +500,7 @@ public class FilesystemEventStoreAdapter
      * Serializes an event to JSON
      */
     private String serializeEvent(VersionedDomainEvent event) throws IOException {
-        return objectMapper.writeValueAsString(event);
+        return EventSerializationSupport.toJson(event);
     }
 
     /**
@@ -507,9 +509,7 @@ public class FilesystemEventStoreAdapter
     private VersionedDomainEvent deserializeEvent(Path eventFile) {
         try {
             String json = Files.readString(eventFile);
-            // For now, we'll return null as we need proper event type resolution
-            // This will be implemented when we enhance the serialization support
-            return null;
+            return EventSerializationSupport.fromJson(json);
         } catch (IOException e) {
             System.err.println("Warning: Failed to deserialize event from " + eventFile + ": " + e.getMessage());
             return null;

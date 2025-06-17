@@ -141,7 +141,7 @@ public class ByteHotApplicationIntegrationTest {
      * Tests the complete startup flow: agent attach → config load → capability check
      */
     @Test
-    public void complete_startup_flow_produces_expected_events_and_output(@TempDir Path tempDir) throws IOException {
+    public void complete_startup_flow_produces_expected_events_and_output(@TempDir Path tempDir) throws IOException, Exception {
         // Given: A configuration with watch paths and instrumentation that supports hot-swap
         Path watchDir = tempDir.resolve("watch");
         Files.createDirectories(watchDir);
@@ -153,7 +153,14 @@ public class ByteHotApplicationIntegrationTest {
             
             """);
 
-        WatchConfiguration config = WatchConfiguration.load(configFile);
+        // Register ConfigurationAdapter and load configuration via the port
+        org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter configAdapter = 
+            new org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter();
+        org.acmsl.bytehot.domain.Ports.getInstance().inject(org.acmsl.bytehot.domain.ConfigurationPort.class, configAdapter);
+        
+        // Use system properties to configure the adapter, then load via ConfigurationPort
+        System.setProperty("bytehot.watch.paths", watchDir.toAbsolutePath().toString());
+        WatchConfiguration config = WatchConfiguration.load();
         
         // Test instrumentation that supports hot-swap capabilities
         Instrumentation instrumentation = new TestInstrumentation(true, true);
@@ -199,7 +206,7 @@ public class ByteHotApplicationIntegrationTest {
      * Tests startup flow when JVM doesn't support hot-swap capabilities
      */
     @Test
-    public void startup_flow_without_hotswap_support_skips_capability_message(@TempDir Path tempDir) throws IOException {
+    public void startup_flow_without_hotswap_support_skips_capability_message(@TempDir Path tempDir) throws IOException, Exception {
         // Given: A configuration with watch paths but instrumentation that doesn't support hot-swap
         Path watchDir = tempDir.resolve("watch");
         Files.createDirectories(watchDir);
@@ -211,7 +218,14 @@ public class ByteHotApplicationIntegrationTest {
             
             """);
 
-        WatchConfiguration config = WatchConfiguration.load(configFile);
+        // Register ConfigurationAdapter and load configuration via the port
+        org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter configAdapter = 
+            new org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter();
+        org.acmsl.bytehot.domain.Ports.getInstance().inject(org.acmsl.bytehot.domain.ConfigurationPort.class, configAdapter);
+        
+        // Use system properties to configure the adapter, then load via ConfigurationPort
+        System.setProperty("bytehot.watch.paths", watchDir.toAbsolutePath().toString());
+        WatchConfiguration config = WatchConfiguration.load();
         
         // Test instrumentation that doesn't support hot-swap capabilities
         Instrumentation instrumentation = new TestInstrumentation(false, false);

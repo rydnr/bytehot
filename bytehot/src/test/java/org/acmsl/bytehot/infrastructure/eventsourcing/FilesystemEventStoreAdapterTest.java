@@ -87,7 +87,7 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldSaveAndRetrieveEvent() throws EventStoreException {
         // Given: A valid domain event
-        Path classFile = Paths.get("/target/classes/MyClass.class");
+        Path classFile = Paths.get("target/classes/MyClass.class");
         ClassFileChanged event = ClassFileChanged.forNewSession(
             classFile,
             "MyClass",
@@ -115,7 +115,7 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldMaintainEventOrdering() throws EventStoreException {
         // Given: Multiple events for the same aggregate
-        Path classFile = Paths.get("/target/classes/OrderTest.class");
+        Path classFile = Paths.get("target/classes/OrderTest.class");
         
         ClassFileChanged event1 = ClassFileChanged.forNewSession(
             classFile, "OrderTest", 1024L, Instant.now()
@@ -151,7 +151,7 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldTrackCurrentVersion() throws EventStoreException {
         // Given: An aggregate with multiple events
-        Path classFile = Paths.get("/target/classes/VersionTest.class");
+        Path classFile = Paths.get("target/classes/VersionTest.class");
         String aggregateType = "filewatch";
         String aggregateId = classFile.toString();
 
@@ -187,7 +187,7 @@ class FilesystemEventStoreAdapterTest {
     void shouldCheckAggregateExistence() throws EventStoreException {
         // Given: An aggregate that doesn't exist
         String aggregateType = "filewatch";
-        String aggregateId = "/nonexistent/file.class";
+        String aggregateId = "nonexistent/file.class";
 
         // When: Checking if aggregate exists
         boolean existsInitially = eventStore.aggregateExists(aggregateType, aggregateId);
@@ -210,8 +210,8 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldCountEvents() throws EventStoreException {
         // Given: Multiple aggregates with different numbers of events
-        Path file1 = Paths.get("/target/classes/File1.class");
-        Path file2 = Paths.get("/target/classes/File2.class");
+        Path file1 = Paths.get("target/classes/File1.class");
+        Path file2 = Paths.get("target/classes/File2.class");
         
         // When: No events exist
         long initialTotal = eventStore.getTotalEventCount();
@@ -249,8 +249,8 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldRetrieveEventsByType() throws EventStoreException {
         // Given: Multiple events of the same type across different aggregates
-        Path file1 = Paths.get("/target/classes/TypeTest1.class");
-        Path file2 = Paths.get("/target/classes/TypeTest2.class");
+        Path file1 = Paths.get("target/classes/TypeTest1.class");
+        Path file2 = Paths.get("target/classes/TypeTest2.class");
         
         ClassFileChanged event1 = ClassFileChanged.forNewSession(
             file1, "TypeTest1", 1024L, Instant.now()
@@ -280,7 +280,7 @@ class FilesystemEventStoreAdapterTest {
         Instant time2 = baseTime.plusSeconds(10);
         Instant time3 = baseTime.plusSeconds(20);
         
-        Path file = Paths.get("/target/classes/TimeTest.class");
+        Path file = Paths.get("target/classes/TimeTest.class");
         
         ClassFileChanged event1 = ClassFileChanged.forNewSession(
             file, "TimeTest", 1024L, time1
@@ -312,8 +312,8 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldGetAggregateTypesAndIds() throws EventStoreException {
         // Given: Events for different aggregate types
-        Path file1 = Paths.get("/target/classes/MetaTest1.class");
-        Path file2 = Paths.get("/target/classes/MetaTest2.class");
+        Path file1 = Paths.get("target/classes/MetaTest1.class");
+        Path file2 = Paths.get("target/classes/MetaTest2.class");
         
         ClassFileChanged event1 = ClassFileChanged.forNewSession(
             file1, "MetaTest1", 1024L, Instant.now()
@@ -337,7 +337,7 @@ class FilesystemEventStoreAdapterTest {
     @Test
     void shouldRetrieveEventsSinceVersion() throws EventStoreException {
         // Given: Multiple events for an aggregate
-        Path file = Paths.get("/target/classes/SinceTest.class");
+        Path file = Paths.get("target/classes/SinceTest.class");
         
         ClassFileChanged event1 = ClassFileChanged.forNewSession(
             file, "SinceTest", 1024L, Instant.now()
@@ -373,7 +373,7 @@ class FilesystemEventStoreAdapterTest {
         // This test demonstrates the complete EventSourcing capabilities of Milestone 6A
         
         // Given: A file being monitored over time with multiple changes
-        Path monitoredFile = Paths.get("/src/main/java/com/example/Service.class");
+        Path monitoredFile = Paths.get("src/main/java/com/example/Service.class");
         String className = "Service";
         
         // Event 1: File first created/detected

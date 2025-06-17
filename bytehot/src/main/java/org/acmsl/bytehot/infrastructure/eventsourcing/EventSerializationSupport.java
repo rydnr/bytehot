@@ -41,6 +41,7 @@
 package org.acmsl.bytehot.infrastructure.eventsourcing;
 
 import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -111,8 +112,9 @@ public class EventSerializationSupport {
         ObjectNode metadataNode = createMetadataNode(event);
         rootNode.set(EVENT_METADATA_PROPERTY, metadataNode);
         
-        // Add event data (the actual event object)
-        JsonNode eventDataNode = OBJECT_MAPPER.valueToTree(event);
+        // Convert domain event to DTO and add as event data
+        Object dto = convertToDto(event);
+        JsonNode eventDataNode = OBJECT_MAPPER.valueToTree(dto);
         rootNode.set(EVENT_DATA_PROPERTY, eventDataNode);
         
         return OBJECT_MAPPER.writeValueAsString(rootNode);
@@ -141,13 +143,8 @@ public class EventSerializationSupport {
             throw new IOException("Missing event data in JSON");
         }
         
-        // Resolve event class and deserialize
-        Class<? extends VersionedDomainEvent> eventClass = resolveEventClass(eventType);
-        if (eventClass == null) {
-            throw new IOException("Unknown event type: " + eventType);
-        }
-        
-        return OBJECT_MAPPER.treeToValue(eventDataNode, eventClass);
+        // Convert from DTO to domain event based on event type
+        return convertFromDto(eventType, eventDataNode);
     }
 
     /**
@@ -326,5 +323,43 @@ public class EventSerializationSupport {
         } catch (IOException e) {
             throw new RuntimeException("Failed to create minimal event JSON", e);
         }
+    }
+
+    /**
+     * Converts a domain event to its corresponding DTO for JSON serialization
+     * @param event the domain event
+     * @return the DTO object
+     */
+    private static Object convertToDto(VersionedDomainEvent event) {
+        if (event instanceof ClassFileChanged) {
+            return JsonClassFileChanged.fromDomain((ClassFileChanged) event);
+        }
+        
+        // For other event types, fall back to direct serialization
+        // TODO: Add more DTO mappings as needed
+        return event;
+    }
+
+    /**
+     * Converts a DTO back to a domain event based on event type
+     * @param eventType the event type name
+     * @param eventDataNode the JSON node containing the DTO data
+     * @return the domain event
+     * @throws IOException if conversion fails
+     */
+    private static VersionedDomainEvent convertFromDto(String eventType, JsonNode eventDataNode) throws IOException {
+        if ("ClassFileChanged".equals(eventType)) {
+            JsonClassFileChanged dto = OBJECT_MAPPER.treeToValue(eventDataNode, JsonClassFileChanged.class);
+            return dto.toDomain();
+        }
+        
+        // For other event types, fall back to direct deserialization
+        // TODO: Add more DTO mappings as needed
+        Class<? extends VersionedDomainEvent> eventClass = resolveEventClass(eventType);
+        if (eventClass == null) {
+            throw new IOException("Unknown event type: " + eventType);
+        }
+        
+        return OBJECT_MAPPER.treeToValue(eventDataNode, eventClass);
     }
 }
