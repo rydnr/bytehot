@@ -114,6 +114,8 @@ Infrastructure should grow as we add more adapters, not as we add more functiona
 
 ## Methodology
 
+### TDD
+
 ByteHot uses TDD and makes the process explicit in Git and Github. Note: by "naive" I mean returning exactly what the test will verify, with no actual business logic involved.
 
 - For a new feature, create an issue.
@@ -128,6 +130,13 @@ In summary,
 | 🤔 :thinking-face:    | Naive implementation   | When test passes trivially       |
 | ✅ :white-check-mark: | Working implementation | When test passes with real logic |
 | 🚀 :rocket:           | Refactor               | Improving code after green       |
+
+### Literate programming
+
+- The development process follows a story, described in org-mode format, in a file named `story.org`. It's meant to be the most useful resource for anyone trying to understand the project. Use storytelling techniques, but don't leave out important aspects.
+- Use a file named "journal.org" to annotate all the conversations that took place while developing the project, even dead-ends.
+- For each class, document it in a literate programming style in a file named "docs/[class].org". Use `:tangle [file]` in `#+begin_src java` blocks, so each fragment gets appended to the previous one. Each `docs/[class].org` file should describe both the structure and behavior of the class, but also the invariants: what the class assumes to be true and constant. If something that was considered an invariant is no longer invariant, it's not considered as a bug on the class, but an invalid assumption.
+- Every relevant interaction among classes (i.e., `flow`) should be documented in a `docs/flows/[flow].org` class. Consider a `flow` as the interactions that need to happen to emit an event starting from another. In other words, a `flow` helps understand why an event is the consequence of another, under certain circumstances, when certain classes collaborate. 
 
 ### Glossary
 
@@ -271,5 +280,11 @@ When creating a PR, please ensure it:
 - Parent pom (acmsl-pom) is the only pom.xml allowed to define versions of dependencies. The only exceptions are plugin versions, if specifying them in child poms is inevitable to make them work.
 
 ### Code Design Principles
-- private methods are not allowed. Make them protected. private methods violate the Open-Closed principle of SOLID. If they need to be immutable, make them final.
-- final classes are not allowed in general, besides certain scenarios (singleton pattern, enums). In other words, they need to be explicitly justified.
+- `private` methods are not allowed. Make them `protected`. `private` methods violate the Open-Closed principle of SOLID. If they need to be immutable, make them `final`.
+- `final` classes are not allowed in general, besides certain scenarios (singleton pattern, enums). In other words, they need to be explicitly justified.
+
+## Architectural Principles
+
+### Inversion of Control / Dependency Injection
+
+The Inversion of Control / Dependency Injection is responsibility of the application layer. The domain layer must be free from annotations coming from frameworks (lombok is permitted). The application layer should configure the `Ports` class, after exploring the infrastructure layer and annotating all adapters found for each `Port`. The application layer can choose to use a framework if needed, but any framework annotations can only be applied to adapters, i.e., classes in the infrastructure layer. The rationale is to protect the domain layer from accidental complexity affecting the other layers, or the outside world.
