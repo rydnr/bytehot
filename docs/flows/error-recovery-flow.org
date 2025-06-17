@@ -1,0 +1,342 @@
+#+TITLE: Error Recovery Flow - From Error Detection to System Stabilization
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+This flow documents the comprehensive error handling and recovery process in ByteHot. It shows how the system detects, classifies, and recovers from various types of errors that can occur during hot-swap operations, ensuring system reliability and consistency.
+
+** Flow Trigger
+- **Starting Event**: Any error during ByteHot operations (validation, redefinition, instance updates)
+- **Ending Event**: `RecoveryResult` or `RollbackResult`
+- **Duration**: 100ms - 30s depending on recovery strategy
+- **Criticality**: Critical - System stability and reliability
+
+* Flow Participants
+
+** Primary Actors
+- `ErrorHandler` (Domain): Central error processing and classification
+- `ErrorRecoveryManager` (Domain): Orchestrates recovery operations
+- `RollbackManager` (Domain): Manages rollback operations and snapshots
+- `RecoveryStrategy` (Domain): Defines recovery approaches
+
+** Secondary Actors
+- `StatePreserver` (Domain): Preserves and restores system state
+- `InstanceTracker` (Domain): Tracks affected instances
+- `FrameworkIntegration` (Domain): Framework-specific recovery
+
+* Error Detection and Classification Flow
+
+** Phase 1: Error Detection
+```
+[ Operation Failure ] --exception--> [ ErrorHandler ] --classify--> [ ErrorType ]
+                                           |
+                                           v
+                                    [ ErrorSeverity Assessment ]
+                                           |
+                                           v
+                                    [ RecoveryStrategy Selection ]
+```
+
+When any ByteHot operation fails:
+
+1. **Exception Capture**: Any component catches exception during operation
+2. **Error Handler Invocation**: `ErrorHandler.handleError()` is called with:
+   - Original exception
+   - Operation context (class name, operation type)
+   - Affected resources
+3. **Error Classification**: Error is classified into `ErrorType`:
+   - `VALIDATION_ERROR`: Bytecode validation failures
+   - `REDEFINITION_FAILURE`: JVM class redefinition rejections
+   - `INSTANCE_UPDATE_ERROR`: Instance update failures
+   - `CRITICAL_SYSTEM_ERROR`: System-level failures
+   - `SECURITY_ERROR`: Security violations
+   - `RESOURCE_ERROR`: Memory or resource exhaustion
+4. **Severity Assessment**: Error severity is determined:
+   - `INFO`: Informational, no action needed
+   - `WARNING`: Monitor but continue operation
+   - `ERROR`: Prevents operation, recovery possible
+   - `CRITICAL`: Compromises system stability
+   - `FATAL`: Requires immediate intervention
+
+** Phase 2: Recovery Strategy Selection
+```
+[ ErrorType + ErrorSeverity ] --mapping--> [ RecoveryStrategy ]
+                                                  |
+                                                  v
+                                          [ Strategy Validation ]
+                                                  |
+                                                  v
+                                          [ Recovery Planning ]
+```
+
+Based on error classification, appropriate recovery strategy is selected:
+
+1. **Strategy Mapping**: `ErrorHandler` maps error characteristics to recovery strategies:
+   - `VALIDATION_ERROR` → `REJECT_CHANGE`
+   - `REDEFINITION_FAILURE` → `ROLLBACK_CHANGES`
+   - `INSTANCE_UPDATE_ERROR` → `PRESERVE_CURRENT_STATE`
+   - `CRITICAL_SYSTEM_ERROR` → `EMERGENCY_SHUTDOWN`
+   - `RESOURCE_ERROR` → `FALLBACK_MODE`
+
+2. **Strategy Validation**: Selected strategy is validated for feasibility:
+   - Check if rollback snapshots are available
+   - Verify system resources for recovery operation
+   - Validate manual intervention requirements
+
+3. **Recovery Planning**: `ErrorRecoveryManager` creates recovery plan:
+   - Sequence of `RecoveryAction` items
+   - Resource allocation requirements
+   - Time estimates and timeouts
+   - Rollback points and safety checks
+
+* Recovery Execution Flows
+
+** Simple Recovery Flow (REJECT_CHANGE)
+```
+[ VALIDATION_ERROR ] --> [ ErrorHandler ] --> [ REJECT_CHANGE ] --> [ RecoveryResult.success ]
+```
+
+For validation errors, the simplest recovery is rejecting the proposed change:
+
+1. **Error Processing**: `ErrorHandler` receives `VALIDATION_ERROR`
+2. **Strategy Selection**: `REJECT_CHANGE` strategy selected
+3. **Action Execution**: No system changes made, operation cancelled
+4. **Result Reporting**: `RecoveryResult` indicates successful rejection
+5. **System State**: System remains in original stable state
+
+** Rollback Recovery Flow (ROLLBACK_CHANGES)
+```
+[ REDEFINITION_FAILURE ] --> [ ErrorRecoveryManager ] --> [ RollbackManager ]
+                                     |                           |
+                                     v                           v
+                             [ Recovery Planning ]      [ Snapshot Retrieval ]
+                                     |                           |
+                                     v                           v
+                             [ Rollback Execution ] <-----------/
+                                     |
+                                     v
+                             [ RollbackResult ]
+```
+
+For redefinition failures, rollback to previous stable state:
+
+1. **Error Analysis**: `ErrorRecoveryManager` analyzes `REDEFINITION_FAILURE`
+2. **Snapshot Identification**: `RollbackManager` locates appropriate snapshot
+3. **Rollback Planning**: Recovery plan includes:
+   - Class redefinition rollback
+   - Instance state restoration
+   - Framework integration updates
+4. **Rollback Execution**: 
+   - Restore previous class definition
+   - Restore instance states from snapshot
+   - Update framework-managed instances
+5. **Validation**: Verify system consistency after rollback
+6. **Result Reporting**: `RollbackResult` with success metrics
+
+** Complex Recovery Flow (Multiple Strategies)
+```
+[ INSTANCE_UPDATE_ERROR ] --> [ ErrorRecoveryManager ] --> [ Strategy Combination ]
+                                     |                            |
+                                     v                            v
+                            [ Parallel Recovery Actions ]   [ State Preservation ]
+                                     |                            |
+                                     v                            v
+                            [ Partial Success Handling ] <-------/
+                                     |
+                                     v
+                            [ Recovery Completion ]
+```
+
+For complex failures requiring multiple recovery actions:
+
+1. **Multi-Phase Recovery**: `ErrorRecoveryManager` orchestrates multiple strategies:
+   - `PRESERVE_CURRENT_STATE` for successful instances
+   - `RETRY_OPERATION` for failed instances
+   - `FALLBACK_MODE` if retries fail
+2. **Parallel Execution**: Recovery actions executed concurrently where possible
+3. **Progress Tracking**: Monitor individual action progress and overall recovery
+4. **Partial Success Handling**: Handle scenarios where some actions succeed and others fail
+5. **Consolidation**: Combine results from all recovery actions into final result
+
+* Emergency Procedures
+
+** Emergency Shutdown Flow
+```
+[ CRITICAL_SYSTEM_ERROR ] --> [ ErrorHandler ] --> [ EMERGENCY_SHUTDOWN ]
+                                     |                        |
+                                     v                        v
+                            [ Immediate Assessment ]   [ Shutdown Sequence ]
+                                     |                        |
+                                     v                        v
+                            [ Resource Cleanup ]      [ Service Termination ]
+```
+
+For critical system errors requiring immediate shutdown:
+
+1. **Critical Error Detection**: `ErrorHandler` identifies `CRITICAL_SYSTEM_ERROR`
+2. **Emergency Protocol**: `EMERGENCY_SHUTDOWN` strategy activated
+3. **Immediate Actions**:
+   - Stop all ongoing hot-swap operations
+   - Preserve critical system state
+   - Release allocated resources
+   - Notify monitoring systems
+4. **Graceful Termination**: Attempt graceful shutdown of ByteHot agent
+5. **Last Resort**: Force termination if graceful shutdown fails
+
+** Fallback Mode Flow
+```
+[ RESOURCE_ERROR ] --> [ ErrorRecoveryManager ] --> [ FALLBACK_MODE ]
+                              |                           |
+                              v                           v
+                      [ Reduced Functionality ]   [ Resource Management ]
+                              |                           |
+                              v                           v
+                      [ Monitoring Activation ]  <-------/
+```
+
+For resource exhaustion, activate reduced functionality mode:
+
+1. **Resource Assessment**: Evaluate available system resources
+2. **Feature Reduction**: Disable non-essential ByteHot features:
+   - Reduce monitoring frequency
+   - Limit concurrent operations
+   - Simplify instance update strategies
+3. **Resource Conservation**: Implement resource-saving measures:
+   - Garbage collection optimization
+   - Memory usage reduction
+   - CPU throttling
+4. **Recovery Monitoring**: Monitor for resource availability improvement
+5. **Gradual Restoration**: Gradually restore full functionality as resources become available
+
+* Recovery Monitoring and Analysis
+
+** Recovery Performance Tracking
+```
+[ Recovery Start ] --> [ Action Tracking ] --> [ Performance Metrics ] --> [ Analysis Report ]
+                            |                          |
+                            v                          v
+                    [ Progress Updates ]      [ Success Rate Calculation ]
+```
+
+Throughout recovery operations:
+
+1. **Action Tracking**: Monitor each `RecoveryAction`:
+   - Start and end timestamps
+   - Success/failure status
+   - Resource consumption
+   - Error details for failures
+
+2. **Performance Metrics**: Calculate recovery performance:
+   - Total recovery duration
+   - Action success rates
+   - Resource utilization
+   - Strategy effectiveness
+
+3. **Analysis and Reporting**: Generate recovery analysis:
+   - Strategy effectiveness comparison
+   - Performance bottleneck identification
+   - Improvement recommendations
+   - Pattern detection for future optimizations
+
+** Error Pattern Analysis
+```
+[ Error History ] --> [ Pattern Detection ] --> [ Strategy Optimization ]
+                           |                           |
+                           v                           v
+                   [ Trend Analysis ]          [ Configuration Updates ]
+```
+
+Long-term error analysis for system improvement:
+
+1. **Pattern Detection**: Identify recurring error patterns:
+   - Common error types and frequencies
+   - Temporal patterns (time-based failures)
+   - Class-specific error rates
+   - Environment-related failures
+
+2. **Strategy Effectiveness**: Analyze recovery strategy performance:
+   - Success rates by strategy type
+   - Recovery duration trends
+   - Resource consumption patterns
+   - Manual intervention requirements
+
+3. **System Optimization**: Apply learnings to improve system:
+   - Update default recovery strategies
+   - Adjust error classification thresholds
+   - Optimize recovery action sequences
+   - Enhance monitoring and alerting
+
+* Flow Variations
+
+** Cascading Failure Recovery
+```
+[ Initial Failure ] --> [ Recovery Attempt ] --> [ Secondary Failure ] --> [ Escalated Recovery ]
+```
+
+When recovery operations themselves fail:
+1. **Secondary Error Detection**: Recovery failure triggers new error handling
+2. **Escalated Strategy**: More aggressive recovery strategy selected
+3. **Manual Intervention**: May require human intervention for resolution
+
+** Partial Recovery Flow
+```
+[ Mixed Results ] --> [ Partial Success Analysis ] --> [ Targeted Retry ] --> [ Final State ]
+```
+
+When some instances update successfully and others fail:
+1. **Success Isolation**: Preserve successful updates
+2. **Failure Analysis**: Analyze why specific instances failed
+3. **Targeted Recovery**: Apply specific recovery to failed instances only
+4. **State Consolidation**: Ensure overall system consistency
+
+** Proactive Recovery Flow
+```
+[ Warning Conditions ] --> [ Preventive Actions ] --> [ Risk Mitigation ] --> [ Stability Enhancement ]
+```
+
+Before errors become critical:
+1. **Early Warning Detection**: Monitor for conditions that may lead to errors
+2. **Preventive Measures**: Take action before errors occur
+3. **Risk Reduction**: Minimize likelihood of failure
+4. **System Hardening**: Improve overall system resilience
+
+* Recovery Flow Invariants
+
+** Pre-conditions
+- Error has been properly classified and severity assessed
+- Appropriate recovery strategy has been selected and validated
+- Required resources (snapshots, backups) are available
+- System is in a known state before recovery begins
+
+** Post-conditions
+- System is in a stable, consistent state
+- All affected instances are in a known, valid state
+- Recovery operation has been logged and tracked
+- System is ready for normal operations to resume
+
+** Consistency Guarantees
+- No partial state updates that leave system inconsistent
+- All recovery operations are atomic where possible
+- Failed recovery operations are fully rolled back
+- System invariants are maintained throughout recovery process
+
+* Architecture Integration
+
+** Event-Driven Recovery
+- All recovery operations emit appropriate events
+- Monitoring systems can track recovery progress
+- Audit trails are maintained for compliance
+- Downstream systems are notified of recovery outcomes
+
+** Domain-Driven Design Alignment
+- Recovery logic encapsulated in domain layer
+- Infrastructure concerns separated from recovery business logic
+- Recovery strategies modeled as domain concepts
+- Clear boundaries between recovery and operational concerns
+
+** Hexagonal Architecture Benefits
+- Recovery system isolated from infrastructure details
+- Multiple recovery adapters for different environments
+- Testable recovery logic independent of external systems
+- Pluggable recovery strategies for different scenarios

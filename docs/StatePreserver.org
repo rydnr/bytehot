@@ -1,0 +1,308 @@
+#+TITLE: StatePreserver - Object State Management Using Reflection
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =StatePreserver= class provides object state management capabilities using reflection. It enables preservation and restoration of instance state during hot-swap operations, ensuring that existing objects maintain their data integrity after class redefinition.
+
+** Key Responsibilities
+- Preserve instance state before class redefinition
+- Restore state after successful redefinition
+- Handle complex object hierarchies and relationships
+- Support different field types and access modifiers
+- Provide safe reflection-based operations
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/StatePreserver.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: StatePreserver.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: StatePreserver
+ *
+ * Responsibilities:
+ *   - Preserve and restore instance state using reflection
+ *   - Handle complex object hierarchies and field types
+ *   - Provide safe reflection operations for hot-swap scenarios
+ *
+ * Collaborators:
+ *   - InstanceUpdater: Uses state preservation during updates
+ */
+package org.acmsl.bytehot.domain;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Manages object state preservation and restoration using reflection
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public class StatePreserver {
+
+    /**
+     * Preserves the current state of an object
+     * @param instance the instance whose state to preserve
+     * @return preserved state as a map of field names to values
+     * @throws Exception if state preservation fails
+     */
+    public Map<String, Object> preserveState(final Object instance) throws Exception {
+        if (instance == null) {
+            return new HashMap<>();
+        }
+
+        final Map<String, Object> state = new HashMap<>();
+        final Class<?> clazz = instance.getClass();
+
+        // Process all fields including inherited ones
+        Class<?> currentClass = clazz;
+        while (currentClass != null && currentClass != Object.class) {
+            preserveFieldsFromClass(instance, currentClass, state);
+            currentClass = currentClass.getSuperclass();
+        }
+
+        return state;
+    }
+
+    /**
+     * Preserves fields from a specific class level
+     * @param instance the instance
+     * @param clazz the class to process
+     * @param state the state map to populate
+     * @throws Exception if field access fails
+     */
+    private void preserveFieldsFromClass(final Object instance, final Class<?> clazz, 
+                                       final Map<String, Object> state) throws Exception {
+        final Field[] fields = clazz.getDeclaredFields();
+        
+        for (final Field field : fields) {
+            // Skip static and transient fields
+            if (Modifier.isStatic(field.getModifiers()) || 
+                Modifier.isTransient(field.getModifiers())) {
+                continue;
+            }
+
+            final boolean wasAccessible = field.isAccessible();
+            try {
+                field.setAccessible(true);
+                final Object value = field.get(instance);
+                
+                // Use fully qualified field name to avoid conflicts
+                final String fieldKey = clazz.getName() + "." + field.getName();
+                state.put(fieldKey, value);
+                
+            } finally {
+                field.setAccessible(wasAccessible);
+            }
+        }
+    }
+
+    /**
+     * Restores state to an object instance
+     * @param instance the instance to restore state to
+     * @param preservedState the preserved state map
+     * @throws Exception if state restoration fails
+     */
+    public void restoreState(final Object instance, final Object preservedState) throws Exception {
+        if (instance == null || preservedState == null) {
+            return;
+        }
+
+        if (!(preservedState instanceof Map)) {
+            throw new IllegalArgumentException("Preserved state must be a Map");
+        }
+
+        @SuppressWarnings("unchecked")
+        final Map<String, Object> state = (Map<String, Object>) preservedState;
+        final Class<?> clazz = instance.getClass();
+
+        // Restore fields from all class levels
+        Class<?> currentClass = clazz;
+        while (currentClass != null && currentClass != Object.class) {
+            restoreFieldsFromClass(instance, currentClass, state);
+            currentClass = currentClass.getSuperclass();
+        }
+    }
+
+    /**
+     * Restores fields for a specific class level
+     * @param instance the instance
+     * @param clazz the class to process
+     * @param state the state map
+     * @throws Exception if field access fails
+     */
+    private void restoreFieldsFromClass(final Object instance, final Class<?> clazz,
+                                      final Map<String, Object> state) throws Exception {
+        final Field[] fields = clazz.getDeclaredFields();
+        
+        for (final Field field : fields) {
+            // Skip static, final, and transient fields
+            if (Modifier.isStatic(field.getModifiers()) || 
+                Modifier.isFinal(field.getModifiers()) ||
+                Modifier.isTransient(field.getModifiers())) {
+                continue;
+            }
+
+            final String fieldKey = clazz.getName() + "." + field.getName();
+            if (!state.containsKey(fieldKey)) {
+                continue;
+            }
+
+            final boolean wasAccessible = field.isAccessible();
+            try {
+                field.setAccessible(true);
+                final Object value = state.get(fieldKey);
+                
+                // Perform type compatibility check
+                if (value != null && !isAssignableValue(field.getType(), value)) {
+                    System.err.println("Type mismatch for field " + fieldKey + 
+                                     ", skipping restoration");
+                    continue;
+                }
+                
+                field.set(instance, value);
+                
+            } finally {
+                field.setAccessible(wasAccessible);
+            }
+        }
+    }
+
+    /**
+     * Checks if a value can be assigned to a field of given type
+     * @param fieldType the field type
+     * @param value the value to assign
+     * @return true if assignment is compatible
+     */
+    private boolean isAssignableValue(final Class<?> fieldType, final Object value) {
+        if (value == null) {
+            return !fieldType.isPrimitive();
+        }
+        
+        // Handle primitive types and their wrappers
+        if (fieldType.isPrimitive()) {
+            return isPrimitiveCompatible(fieldType, value.getClass());
+        }
+        
+        return fieldType.isAssignableFrom(value.getClass());
+    }
+
+    /**
+     * Checks primitive type compatibility
+     * @param primitiveType the primitive field type
+     * @param valueType the value's class type
+     * @return true if compatible
+     */
+    private boolean isPrimitiveCompatible(final Class<?> primitiveType, final Class<?> valueType) {
+        if (primitiveType == int.class) {
+            return valueType == Integer.class;
+        }
+        if (primitiveType == long.class) {
+            return valueType == Long.class;
+        }
+        if (primitiveType == double.class) {
+            return valueType == Double.class;
+        }
+        if (primitiveType == float.class) {
+            return valueType == Float.class;
+        }
+        if (primitiveType == boolean.class) {
+            return valueType == Boolean.class;
+        }
+        if (primitiveType == byte.class) {
+            return valueType == Byte.class;
+        }
+        if (primitiveType == short.class) {
+            return valueType == Short.class;
+        }
+        if (primitiveType == char.class) {
+            return valueType == Character.class;
+        }
+        return false;
+    }
+
+    /**
+     * Checks if an object's state can be safely preserved
+     * @param instance the instance to check
+     * @return true if state can be preserved
+     */
+    public boolean canPreserveState(final Object instance) {
+        if (instance == null) {
+            return false;
+        }
+
+        final Class<?> clazz = instance.getClass();
+        
+        // Cannot preserve state for arrays, primitives, or immutable objects
+        if (clazz.isArray() || clazz.isPrimitive() || isImmutableType(clazz)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks if a type is immutable and doesn't need state preservation
+     * @param clazz the class to check
+     * @return true if type is immutable
+     */
+    private boolean isImmutableType(final Class<?> clazz) {
+        return clazz == String.class ||
+               clazz == Integer.class ||
+               clazz == Long.class ||
+               clazz == Double.class ||
+               clazz == Float.class ||
+               clazz == Boolean.class ||
+               clazz == Byte.class ||
+               clazz == Short.class ||
+               clazz == Character.class ||
+               Number.class.isAssignableFrom(clazz);
+    }
+}
+#+end_src
+
+* Usage Examples
+
+#+begin_src java
+StatePreserver preserver = new StatePreserver();
+
+// Before class redefinition
+Object instance = getServiceInstance();
+if (preserver.canPreserveState(instance)) {
+    Object preservedState = preserver.preserveState(instance);
+    
+    // Perform class redefinition
+    redefineClass(instance.getClass(), newBytecode);
+    
+    // Restore state after redefinition
+    preserver.restoreState(instance, preservedState);
+}
+#+end_src

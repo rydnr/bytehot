@@ -1,0 +1,358 @@
+#+TITLE: InstanceUpdateMethod - Instance Update Strategies
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =InstanceUpdateMethod= enum defines different strategies for updating existing instances after class redefinition in ByteHot operations. Each strategy offers different trade-offs between safety, performance, and completeness of updates.
+
+** Key Responsibilities
+- Define specific approaches for updating existing instances
+- Support strategy selection based on instance characteristics
+- Provide different levels of update safety and thoroughness
+- Enable performance optimization through appropriate strategy selection
+
+* Enum Definition
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdateMethod.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: InstanceUpdateMethod.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: InstanceUpdateMethod
+ *
+ * Responsibilities:
+ *   - Define strategies for updating instances after class redefinition
+ *   - Support different levels of update safety and thoroughness
+ *   - Enable performance optimization through strategy selection
+ *
+ * Collaborators:
+ *   - InstanceUpdater: Uses update methods for instance updates
+ *   - InstancesUpdated: Contains information about update method used
+ */
+package org.acmsl.bytehot.domain;
+
+/**
+ * Strategies for updating instances after class redefinition
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public enum InstanceUpdateMethod {
+
+    /**
+     * Automatically select the best update method based on instance characteristics
+     */
+    AUTOMATIC("Automatic method selection based on instance analysis"),
+
+    /**
+     * Use reflection to preserve and restore instance state
+     */
+    REFLECTION("Reflection-based state preservation and restoration"),
+
+    /**
+     * Refresh proxy instances to use new class definition
+     */
+    PROXY_REFRESH("Refresh proxy instances for new class definition"),
+
+    /**
+     * Recreate instances using factory methods or DI containers
+     */
+    FACTORY_RESET("Recreate instances using factory methods"),
+
+    /**
+     * Do not update instances (may leave them in inconsistent state)
+     */
+    NO_UPDATE("Do not update instances");
+
+    /**
+     * Human-readable description of the update method
+     */
+    private final String description;
+
+    /**
+     * Creates a new instance update method with description
+     * @param description human-readable description
+     */
+    InstanceUpdateMethod(final String description) {
+        this.description = description;
+    }
+
+    /**
+     * Gets the human-readable description of this update method
+     * @return description of the method
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Returns whether this update method preserves instance state
+     * @return true if instance state is preserved
+     */
+    public boolean preservesState() {
+        return this == REFLECTION || this == AUTOMATIC;
+    }
+
+    /**
+     * Returns whether this update method creates new instances
+     * @return true if new instances are created
+     */
+    public boolean createsNewInstances() {
+        return this == FACTORY_RESET;
+    }
+
+    /**
+     * Returns whether this update method is safe for all instance types
+     * @return true if method is universally safe
+     */
+    public boolean isUniversallySafe() {
+        return this == NO_UPDATE || this == AUTOMATIC;
+    }
+
+    /**
+     * Returns the performance impact level of this update method
+     * @return performance impact level
+     */
+    public PerformanceImpact getPerformanceImpact() {
+        switch (this) {
+            case NO_UPDATE:
+                return PerformanceImpact.NONE;
+                
+            case PROXY_REFRESH:
+                return PerformanceImpact.LOW;
+                
+            case REFLECTION:
+            case AUTOMATIC:
+                return PerformanceImpact.MEDIUM;
+                
+            case FACTORY_RESET:
+                return PerformanceImpact.HIGH;
+                
+            default:
+                return PerformanceImpact.MEDIUM;
+        }
+    }
+
+    /**
+     * Returns the safety level of this update method
+     * @return safety level
+     */
+    public SafetyLevel getSafetyLevel() {
+        switch (this) {
+            case NO_UPDATE:
+                return SafetyLevel.UNSAFE;
+                
+            case PROXY_REFRESH:
+                return SafetyLevel.MODERATE;
+                
+            case REFLECTION:
+                return SafetyLevel.SAFE;
+                
+            case FACTORY_RESET:
+            case AUTOMATIC:
+                return SafetyLevel.VERY_SAFE;
+                
+            default:
+                return SafetyLevel.MODERATE;
+        }
+    }
+
+    /**
+     * Returns whether this method requires framework support
+     * @return true if framework integration is required
+     */
+    public boolean requiresFrameworkSupport() {
+        return this == FACTORY_RESET || this == PROXY_REFRESH;
+    }
+
+    /**
+     * Performance impact levels for update methods
+     */
+    public enum PerformanceImpact {
+        NONE("No performance impact"),
+        LOW("Low performance impact"),
+        MEDIUM("Medium performance impact"),
+        HIGH("High performance impact");
+        
+        private final String description;
+        
+        PerformanceImpact(final String description) {
+            this.description = description;
+        }
+        
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    /**
+     * Safety levels for update methods
+     */
+    public enum SafetyLevel {
+        UNSAFE("May leave instances in inconsistent state"),
+        MODERATE("Generally safe with some risk"),
+        SAFE("Safe for most scenarios"),
+        VERY_SAFE("Very safe with comprehensive validation");
+        
+        private final String description;
+        
+        SafetyLevel(final String description) {
+            this.description = description;
+        }
+        
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return description;
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Strategy Selection Based on Instance Characteristics
+
+#+begin_src java
+public InstanceUpdateMethod selectUpdateMethod(Class<?> targetClass, Object instance) {
+    // For stateless services, factory reset is often best
+    if (isStatelessService(targetClass)) {
+        return InstanceUpdateMethod.FACTORY_RESET;
+    }
+    
+    // For proxy instances, use proxy refresh
+    if (isProxyInstance(instance)) {
+        return InstanceUpdateMethod.PROXY_REFRESH;
+    }
+    
+    // For complex stateful objects, use reflection
+    if (hasComplexState(targetClass)) {
+        return InstanceUpdateMethod.REFLECTION;
+    }
+    
+    // Default to automatic selection
+    return InstanceUpdateMethod.AUTOMATIC;
+}
+#+end_src
+
+** Performance vs Safety Trade-off
+
+#+begin_src java
+public InstanceUpdateMethod selectOptimalMethod(PerformanceRequirement perf, SafetyRequirement safety) {
+    if (safety == SafetyRequirement.MAXIMUM) {
+        return InstanceUpdateMethod.FACTORY_RESET;
+    }
+    
+    if (perf == PerformanceRequirement.MAXIMUM) {
+        if (safety == SafetyRequirement.MINIMUM) {
+            return InstanceUpdateMethod.NO_UPDATE;
+        } else {
+            return InstanceUpdateMethod.PROXY_REFRESH;
+        }
+    }
+    
+    // Balanced approach
+    return InstanceUpdateMethod.AUTOMATIC;
+}
+#+end_src
+
+** Framework-Specific Method Selection
+
+#+begin_src java
+public InstanceUpdateMethod selectForFramework(String frameworkType) {
+    switch (frameworkType.toLowerCase()) {
+        case "spring":
+            // Spring supports proxy refresh and factory reset
+            return InstanceUpdateMethod.FACTORY_RESET;
+            
+        case "cdi":
+            // CDI works well with proxy refresh
+            return InstanceUpdateMethod.PROXY_REFRESH;
+            
+        case "guice":
+            // Guice supports factory-based recreation
+            return InstanceUpdateMethod.FACTORY_RESET;
+            
+        default:
+            // Fall back to reflection for unknown frameworks
+            return InstanceUpdateMethod.REFLECTION;
+    }
+}
+#+end_src
+
+** Validation Before Execution
+
+#+begin_src java
+public boolean canExecuteMethod(InstanceUpdateMethod method, Class<?> targetClass) {
+    if (method.requiresFrameworkSupport() && !isFrameworkAvailable()) {
+        return false;
+    }
+    
+    if (method == InstanceUpdateMethod.REFLECTION && !isReflectionSafe(targetClass)) {
+        return false;
+    }
+    
+    if (method == InstanceUpdateMethod.FACTORY_RESET && !hasDefaultConstructor(targetClass)) {
+        return false;
+    }
+    
+    return true;
+}
+#+end_src
+
+* Method Comparison Matrix
+
+| Method | Safety | Performance | State Preservation | Framework Required |
+|--------|--------|-------------|-------------------|-------------------|
+| AUTOMATIC | Very Safe | Medium | Yes | No |
+| REFLECTION | Safe | Medium | Yes | No |
+| PROXY_REFRESH | Moderate | Low | Partial | Yes |
+| FACTORY_RESET | Very Safe | High | No | Yes |
+| NO_UPDATE | Unsafe | None | N/A | No |
+
+* Architecture Notes
+
+** Strategy Design Pattern
+- Each method represents a different strategy for instance updates
+- Strategies can be selected dynamically based on runtime conditions
+- Fallback mechanisms ensure robustness
+- Performance and safety characteristics are well-defined
+
+** Framework Integration
+- Methods that require framework support are clearly identified
+- Different frameworks may prefer different update strategies
+- Extensible design allows for framework-specific optimizations
+- Graceful degradation when framework features are unavailable
+
+** Safety and Performance Balance
+- Clear trade-offs between safety and performance
+- Multiple safety levels to match different requirements
+- Performance impact assessment for capacity planning
+- Validation mechanisms to prevent unsafe operations

@@ -1,0 +1,528 @@
+#+TITLE: RecoveryStatistics - Recovery Operation Metrics and Analysis
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =RecoveryStatistics= class provides comprehensive metrics and statistical analysis for error recovery operations in ByteHot. It tracks recovery performance, success rates, and patterns to enable system optimization and reliability monitoring.
+
+** Key Responsibilities
+- Collect and aggregate recovery operation metrics
+- Calculate success rates and performance statistics
+- Track recovery strategy effectiveness over time
+- Provide data for recovery system optimization
+- Support monitoring and alerting for recovery operations
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/RecoveryStatistics.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: RecoveryStatistics.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: RecoveryStatistics
+ *
+ * Responsibilities:
+ *   - Collect and analyze recovery operation metrics
+ *   - Track recovery success rates and performance trends
+ *   - Support recovery system optimization and monitoring
+ *
+ * Collaborators:
+ *   - RecoveryResult: Provides data for statistical analysis
+ *   - ErrorRecoveryManager: Uses statistics for strategy optimization
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+/**
+ * Comprehensive statistics for error recovery operations
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class RecoveryStatistics {
+
+    /**
+     * Total number of recovery operations attempted
+     */
+    private final AtomicInteger totalRecoveryAttempts;
+
+    /**
+     * Number of successful recovery operations
+     */
+    private final AtomicInteger successfulRecoveries;
+
+    /**
+     * Number of failed recovery operations
+     */
+    private final AtomicInteger failedRecoveries;
+
+    /**
+     * Total time spent in recovery operations (milliseconds)
+     */
+    private final AtomicLong totalRecoveryTime;
+
+    /**
+     * Number of manual interventions required
+     */
+    private final AtomicInteger manualInterventionsRequired;
+
+    /**
+     * Recovery attempts by strategy type
+     */
+    private final Map<RecoveryStrategy, AtomicInteger> recoveryAttemptsByStrategy;
+
+    /**
+     * Successful recoveries by strategy type
+     */
+    private final Map<RecoveryStrategy, AtomicInteger> successfulRecoveriesByStrategy;
+
+    /**
+     * Total recovery time by strategy type (milliseconds)
+     */
+    private final Map<RecoveryStrategy, AtomicLong> recoveryTimeByStrategy;
+
+    /**
+     * Recovery attempts by error type
+     */
+    private final Map<ErrorType, AtomicInteger> recoveryAttemptsByErrorType;
+
+    /**
+     * Successful recoveries by error type
+     */
+    private final Map<ErrorType, AtomicInteger> successfulRecoveriesByErrorType;
+
+    /**
+     * Retry attempts tracking
+     */
+    private final AtomicInteger totalRetryAttempts;
+
+    /**
+     * Statistics collection start time
+     */
+    private final Instant statisticsStartTime;
+
+    /**
+     * Creates new recovery statistics instance
+     */
+    public RecoveryStatistics() {
+        this.totalRecoveryAttempts = new AtomicInteger(0);
+        this.successfulRecoveries = new AtomicInteger(0);
+        this.failedRecoveries = new AtomicInteger(0);
+        this.totalRecoveryTime = new AtomicLong(0);
+        this.manualInterventionsRequired = new AtomicInteger(0);
+        this.recoveryAttemptsByStrategy = new ConcurrentHashMap<>();
+        this.successfulRecoveriesByStrategy = new ConcurrentHashMap<>();
+        this.recoveryTimeByStrategy = new ConcurrentHashMap<>();
+        this.recoveryAttemptsByErrorType = new ConcurrentHashMap<>();
+        this.successfulRecoveriesByErrorType = new ConcurrentHashMap<>();
+        this.totalRetryAttempts = new AtomicInteger(0);
+        this.statisticsStartTime = Instant.now();
+    }
+
+    /**
+     * Records a recovery operation result
+     */
+    public void recordRecoveryOperation(final RecoveryResult result) {
+        totalRecoveryAttempts.incrementAndGet();
+        totalRecoveryTime.addAndGet(result.getOperationDuration().toMillis());
+        totalRetryAttempts.addAndGet(result.getRetryAttempts());
+
+        if (result.isSuccess()) {
+            successfulRecoveries.incrementAndGet();
+        } else {
+            failedRecoveries.incrementAndGet();
+        }
+
+        if (result.isManualInterventionRequired()) {
+            manualInterventionsRequired.incrementAndGet();
+        }
+
+        // Track by strategy
+        final RecoveryStrategy strategy = result.getStrategy();
+        recoveryAttemptsByStrategy.computeIfAbsent(strategy, k -> new AtomicInteger(0)).incrementAndGet();
+        recoveryTimeByStrategy.computeIfAbsent(strategy, k -> new AtomicLong(0))
+                             .addAndGet(result.getOperationDuration().toMillis());
+
+        if (result.isSuccess()) {
+            successfulRecoveriesByStrategy.computeIfAbsent(strategy, k -> new AtomicInteger(0)).incrementAndGet();
+        }
+    }
+
+    /**
+     * Records recovery operation by error type
+     */
+    public void recordRecoveryByErrorType(final ErrorType errorType, final boolean successful) {
+        recoveryAttemptsByErrorType.computeIfAbsent(errorType, k -> new AtomicInteger(0)).incrementAndGet();
+
+        if (successful) {
+            successfulRecoveriesByErrorType.computeIfAbsent(errorType, k -> new AtomicInteger(0)).incrementAndGet();
+        }
+    }
+
+    /**
+     * Calculates overall recovery success rate as percentage
+     */
+    public double getOverallSuccessRate() {
+        final int total = totalRecoveryAttempts.get();
+        if (total == 0) {
+            return 100.0;
+        }
+        return (double) successfulRecoveries.get() / total * 100.0;
+    }
+
+    /**
+     * Calculates success rate for a specific strategy
+     */
+    public double getSuccessRateForStrategy(final RecoveryStrategy strategy) {
+        final AtomicInteger attempts = recoveryAttemptsByStrategy.get(strategy);
+        final AtomicInteger successes = successfulRecoveriesByStrategy.get(strategy);
+        
+        if (attempts == null || attempts.get() == 0) {
+            return 0.0;
+        }
+        
+        final int successCount = successes != null ? successes.get() : 0;
+        return (double) successCount / attempts.get() * 100.0;
+    }
+
+    /**
+     * Calculates success rate for a specific error type
+     */
+    public double getSuccessRateForErrorType(final ErrorType errorType) {
+        final AtomicInteger attempts = recoveryAttemptsByErrorType.get(errorType);
+        final AtomicInteger successes = successfulRecoveriesByErrorType.get(errorType);
+        
+        if (attempts == null || attempts.get() == 0) {
+            return 0.0;
+        }
+        
+        final int successCount = successes != null ? successes.get() : 0;
+        return (double) successCount / attempts.get() * 100.0;
+    }
+
+    /**
+     * Calculates average recovery duration
+     */
+    public Duration getAverageRecoveryDuration() {
+        final int total = totalRecoveryAttempts.get();
+        if (total == 0) {
+            return Duration.ZERO;
+        }
+        return Duration.ofMillis(totalRecoveryTime.get() / total);
+    }
+
+    /**
+     * Calculates average recovery duration for a specific strategy
+     */
+    public Duration getAverageRecoveryDurationForStrategy(final RecoveryStrategy strategy) {
+        final AtomicInteger attempts = recoveryAttemptsByStrategy.get(strategy);
+        final AtomicLong totalTime = recoveryTimeByStrategy.get(strategy);
+        
+        if (attempts == null || attempts.get() == 0 || totalTime == null) {
+            return Duration.ZERO;
+        }
+        
+        return Duration.ofMillis(totalTime.get() / attempts.get());
+    }
+
+    /**
+     * Calculates manual intervention rate as percentage
+     */
+    public double getManualInterventionRate() {
+        final int total = totalRecoveryAttempts.get();
+        if (total == 0) {
+            return 0.0;
+        }
+        return (double) manualInterventionsRequired.get() / total * 100.0;
+    }
+
+    /**
+     * Calculates average retry attempts per recovery
+     */
+    public double getAverageRetryAttempts() {
+        final int total = totalRecoveryAttempts.get();
+        if (total == 0) {
+            return 0.0;
+        }
+        return (double) totalRetryAttempts.get() / total;
+    }
+
+    /**
+     * Returns the most successful recovery strategy
+     */
+    public RecoveryStrategy getMostSuccessfulStrategy() {
+        RecoveryStrategy bestStrategy = null;
+        double bestSuccessRate = -1.0;
+
+        for (final RecoveryStrategy strategy : recoveryAttemptsByStrategy.keySet()) {
+            final double successRate = getSuccessRateForStrategy(strategy);
+            if (successRate > bestSuccessRate) {
+                bestSuccessRate = successRate;
+                bestStrategy = strategy;
+            }
+        }
+
+        return bestStrategy;
+    }
+
+    /**
+     * Returns the fastest recovery strategy on average
+     */
+    public RecoveryStrategy getFastestStrategy() {
+        RecoveryStrategy fastestStrategy = null;
+        Duration shortestDuration = Duration.ofDays(1); // Large initial value
+
+        for (final RecoveryStrategy strategy : recoveryAttemptsByStrategy.keySet()) {
+            final Duration avgDuration = getAverageRecoveryDurationForStrategy(strategy);
+            if (avgDuration.compareTo(shortestDuration) < 0) {
+                shortestDuration = avgDuration;
+                fastestStrategy = strategy;
+            }
+        }
+
+        return fastestStrategy;
+    }
+
+    /**
+     * Returns statistics collection duration
+     */
+    public Duration getStatisticsCollectionDuration() {
+        return Duration.between(statisticsStartTime, Instant.now());
+    }
+
+    /**
+     * Returns recovery operations per hour
+     */
+    public double getRecoveryOperationsPerHour() {
+        final Duration collectionDuration = getStatisticsCollectionDuration();
+        if (collectionDuration.toHours() == 0) {
+            return 0.0;
+        }
+        return (double) totalRecoveryAttempts.get() / collectionDuration.toHours();
+    }
+
+    /**
+     * Checks if recovery performance is above threshold
+     */
+    public boolean isPerformanceAboveThreshold(final double successRateThreshold, 
+                                             final Duration durationThreshold) {
+        return getOverallSuccessRate() >= successRateThreshold && 
+               getAverageRecoveryDuration().compareTo(durationThreshold) <= 0;
+    }
+
+    /**
+     * Generates performance summary
+     */
+    public String getPerformanceSummary() {
+        return String.format(
+            "Recovery Performance: %.1f%% success rate, %dms avg duration, %.1f ops/hour, %.1f%% manual intervention",
+            getOverallSuccessRate(),
+            getAverageRecoveryDuration().toMillis(),
+            getRecoveryOperationsPerHour(),
+            getManualInterventionRate()
+        );
+    }
+
+    /**
+     * Resets all statistics
+     */
+    public void reset() {
+        totalRecoveryAttempts.set(0);
+        successfulRecoveries.set(0);
+        failedRecoveries.set(0);
+        totalRecoveryTime.set(0);
+        manualInterventionsRequired.set(0);
+        totalRetryAttempts.set(0);
+        recoveryAttemptsByStrategy.clear();
+        successfulRecoveriesByStrategy.clear();
+        recoveryTimeByStrategy.clear();
+        recoveryAttemptsByErrorType.clear();
+        successfulRecoveriesByErrorType.clear();
+    }
+
+    @Override
+    public String toString() {
+        return "RecoveryStatistics{" +
+               "total=" + totalRecoveryAttempts.get() +
+               ", successful=" + successfulRecoveries.get() +
+               ", successRate=" + String.format("%.1f%%", getOverallSuccessRate()) +
+               ", avgDuration=" + getAverageRecoveryDuration().toMillis() + "ms" +
+               ", manualInterventions=" + manualInterventionsRequired.get() +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Recording Recovery Operations
+
+#+begin_src java
+// Create statistics instance
+RecoveryStatistics stats = new RecoveryStatistics();
+
+// Record recovery operations
+RecoveryResult result1 = performRecoveryOperation();
+stats.recordRecoveryOperation(result1);
+stats.recordRecoveryByErrorType(ErrorType.VALIDATION_ERROR, result1.isSuccess());
+
+RecoveryResult result2 = performAnotherRecovery();
+stats.recordRecoveryOperation(result2);
+stats.recordRecoveryByErrorType(ErrorType.REDEFINITION_FAILURE, result2.isSuccess());
+
+// Get performance metrics
+logger.info("Overall success rate: {:.1f}%", stats.getOverallSuccessRate());
+logger.info("Average recovery time: {}ms", stats.getAverageRecoveryDuration().toMillis());
+logger.info("Manual intervention rate: {:.1f}%", stats.getManualInterventionRate());
+#+end_src
+
+** Strategy Performance Analysis
+
+#+begin_src java
+public void analyzeStrategyPerformance(RecoveryStatistics stats) {
+    logger.info("Recovery Strategy Performance Analysis:");
+    
+    for (RecoveryStrategy strategy : RecoveryStrategy.values()) {
+        double successRate = stats.getSuccessRateForStrategy(strategy);
+        Duration avgDuration = stats.getAverageRecoveryDurationForStrategy(strategy);
+        
+        if (successRate > 0) {
+            logger.info("  {}: {:.1f}% success, {}ms average", 
+                       strategy, successRate, avgDuration.toMillis());
+        }
+    }
+    
+    RecoveryStrategy bestStrategy = stats.getMostSuccessfulStrategy();
+    RecoveryStrategy fastestStrategy = stats.getFastestStrategy();
+    
+    logger.info("Most successful strategy: {}", bestStrategy);
+    logger.info("Fastest strategy: {}", fastestStrategy);
+}
+#+end_src
+
+** Performance Monitoring and Alerting
+
+#+begin_src java
+public void monitorRecoveryPerformance(RecoveryStatistics stats) {
+    // Define performance thresholds
+    double minSuccessRate = 95.0; // 95% minimum success rate
+    Duration maxAvgDuration = Duration.ofSeconds(30); // 30 second max average
+    double maxManualInterventionRate = 5.0; // 5% max manual intervention
+    
+    // Check overall performance
+    if (!stats.isPerformanceAboveThreshold(minSuccessRate, maxAvgDuration)) {
+        alertManager.sendPerformanceAlert(
+            "Recovery performance below threshold",
+            stats.getPerformanceSummary()
+        );
+    }
+    
+    // Check manual intervention rate
+    if (stats.getManualInterventionRate() > maxManualInterventionRate) {
+        alertManager.sendAlert(
+            "High manual intervention rate: " + 
+            String.format("%.1f%%", stats.getManualInterventionRate())
+        );
+    }
+    
+    // Check strategy-specific performance
+    for (RecoveryStrategy strategy : RecoveryStrategy.values()) {
+        double strategySuccessRate = stats.getSuccessRateForStrategy(strategy);
+        if (strategySuccessRate > 0 && strategySuccessRate < 90.0) {
+            alertManager.sendAlert(
+                "Low success rate for strategy " + strategy + ": " +
+                String.format("%.1f%%", strategySuccessRate)
+            );
+        }
+    }
+}
+#+end_src
+
+** Trend Analysis and Reporting
+
+#+begin_src java
+public RecoveryTrendReport generateTrendReport(List<RecoveryStatistics> historicalStats) {
+    RecoveryTrendReport report = new RecoveryTrendReport();
+    
+    // Calculate trends over time
+    List<Double> successRates = historicalStats.stream()
+        .map(RecoveryStatistics::getOverallSuccessRate)
+        .collect(Collectors.toList());
+    
+    List<Long> avgDurations = historicalStats.stream()
+        .map(stats -> stats.getAverageRecoveryDuration().toMillis())
+        .collect(Collectors.toList());
+    
+    // Analyze trends
+    boolean improvingSuccessRate = isIncreasingTrend(successRates);
+    boolean improvingDuration = isDecreasingTrend(avgDurations);
+    
+    report.setSuccessRateTrend(improvingSuccessRate ? "IMPROVING" : "DECLINING");
+    report.setDurationTrend(improvingDuration ? "IMPROVING" : "DECLINING");
+    
+    // Calculate strategy effectiveness over time
+    for (RecoveryStrategy strategy : RecoveryStrategy.values()) {
+        List<Double> strategyRates = historicalStats.stream()
+            .map(stats -> stats.getSuccessRateForStrategy(strategy))
+            .collect(Collectors.toList());
+        
+        boolean strategyImproving = isIncreasingTrend(strategyRates);
+        report.addStrategyTrend(strategy, strategyImproving ? "IMPROVING" : "STABLE");
+    }
+    
+    return report;
+}
+#+end_src
+
+* Architecture Notes
+
+** Thread-Safe Statistics Collection
+- Uses atomic integers and longs for concurrent access
+- ConcurrentHashMap for strategy and error type tracking
+- Lock-free operations for high-performance statistics collection
+- Safe for use in multi-threaded recovery environments
+
+** Performance Optimization
+- Efficient atomic operations for frequent metric updates
+- Lazy calculation of derived metrics (averages, rates)
+- Minimal memory footprint for long-running statistics collection
+- Fast lookup and aggregation operations
+
+** Monitoring Integration
+- Real-time performance threshold checking
+- Integration with alerting systems
+- Support for trend analysis and historical comparison
+- Comprehensive reporting capabilities for operational insights

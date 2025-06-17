@@ -1,0 +1,432 @@
+#+TITLE: InstanceTracker - Thread-Safe Instance Management
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =InstanceTracker= class provides thread-safe tracking of class instances using weak references. It enables discovery and counting of existing instances without preventing garbage collection, which is crucial for hot-swap operations that need to update existing objects.
+
+** Key Responsibilities
+- Track existing instances of classes using weak references
+- Enable/disable tracking for specific classes
+- Provide instance discovery and counting capabilities
+- Maintain thread-safety for concurrent access
+- Prevent memory leaks through garbage collection compatibility
+
+** Design Patterns
+- *Observer Pattern*: For instance lifecycle tracking
+- *Weak Reference Pattern*: For garbage collection compatibility
+- *Registry Pattern*: For centralized instance management
+
+* Class Declaration and Imports
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: InstanceTracker.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: InstanceTracker
+ *
+ * Responsibilities:
+ *   - Track existing instances of classes using weak references
+ *   - Enable/disable tracking for specific classes
+ *   - Provide instance discovery and counting capabilities
+ *
+ * Collaborators:
+ *   - WeakReference: For tracking instances without preventing garbage collection
+ *   - ConcurrentHashMap: For thread-safe tracking
+ */
+package org.acmsl.bytehot.domain;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+#+end_src
+
+* Class Definition and State Management
+
+The =InstanceTracker= uses thread-safe collections and weak references to track instances without affecting garbage collection.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+/**
+ * Tracks existing instances of classes using weak references
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public class InstanceTracker {
+
+    /**
+     * Registry of tracked instances per class using weak references
+     */
+    private final ConcurrentHashMap<Class<?>, List<WeakReference<Object>>> instanceRegistry;
+
+    /**
+     * Set of classes that have tracking enabled
+     */
+    private final Set<Class<?>> trackedClasses;
+
+    /**
+     * Creates a new instance tracker
+     */
+    public InstanceTracker() {
+        this.instanceRegistry = new ConcurrentHashMap<>();
+        this.trackedClasses = Collections.synchronizedSet(new HashSet<>());
+    }
+#+end_src
+
+* Tracking Control Methods
+
+** Global Tracking Status
+
+Checks if any class tracking is currently enabled.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Checks if tracking is enabled globally (any class is being tracked)
+     * @return true if any class has tracking enabled
+     */
+    public boolean isTrackingEnabled() {
+        return !trackedClasses.isEmpty();
+    }
+#+end_src
+
+** Class-Specific Tracking Status
+
+Checks if tracking is enabled for a specific class.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Checks if tracking is enabled for a specific class
+     * @param clazz the class to check
+     * @return true if tracking is enabled for the class
+     */
+    public boolean isTrackingEnabled(final Class<?> clazz) {
+        return trackedClasses.contains(clazz);
+    }
+#+end_src
+
+** Enable Tracking
+
+Enables tracking for a specific class and initializes the instance registry.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Enables tracking for a specific class
+     * @param clazz the class to enable tracking for
+     */
+    public void enableTracking(final Class<?> clazz) {
+        trackedClasses.add(clazz);
+        instanceRegistry.putIfAbsent(clazz, Collections.synchronizedList(new ArrayList<>()));
+    }
+#+end_src
+
+** Disable Tracking
+
+Disables tracking for a specific class and removes all tracked instances.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Disables tracking for a specific class
+     * @param clazz the class to disable tracking for
+     */
+    public void disableTracking(final Class<?> clazz) {
+        trackedClasses.remove(clazz);
+        instanceRegistry.remove(clazz);
+    }
+#+end_src
+
+* Instance Registration Methods
+
+** Primary Instance Tracking
+
+Provides a convenient interface for tracking instances.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Tracks an instance of a class
+     * @param instance the instance to track
+     */
+    public void track(final Object instance) {
+        trackInstance(instance);
+    }
+#+end_src
+
+** Core Instance Tracking
+
+The main method for registering instances for tracking using weak references.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Tracks an instance of a class
+     * @param instance the instance to track
+     */
+    public void trackInstance(final Object instance) {
+        if (instance == null) {
+            return;
+        }
+        
+        final Class<?> clazz = instance.getClass();
+        if (isTrackingEnabled(clazz)) {
+            final List<WeakReference<Object>> instances = instanceRegistry.get(clazz);
+            if (instances != null) {
+                instances.add(new WeakReference<>(instance));
+            }
+        }
+    }
+#+end_src
+
+* Instance Discovery Methods
+
+** Find Instances by Class
+
+Discovers all currently tracked instances of a specific class.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Finds all tracked instances of a specific class
+     * @param clazz the class to find instances for
+     * @return set of tracked instances (may be empty but never null)
+     */
+    public Set<Object> findInstances(final Class<?> clazz) {
+        if (!isTrackingEnabled(clazz)) {
+            return Collections.emptySet();
+        }
+        
+        final List<WeakReference<Object>> weakRefs = instanceRegistry.get(clazz);
+        if (weakRefs == null) {
+            return Collections.emptySet();
+        }
+        
+        final Set<Object> instances = new HashSet<>();
+        cleanupWeakReferences(weakRefs, instances);
+        
+        return instances;
+    }
+#+end_src
+
+* Instance Counting Methods
+
+** Count by Class Object
+
+Counts the number of tracked instances for a specific class.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Counts tracked instances of a specific class
+     * @param clazz the class to count instances for
+     * @return number of tracked instances
+     */
+    public int countInstances(final Class<?> clazz) {
+        return findInstances(clazz).size();
+    }
+#+end_src
+
+** Count by Class Name
+
+Provides counting capability using class names for integration with other components.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Gets the number of tracked instances for a specific class name
+     * @param className the fully qualified class name
+     * @return number of tracked instances
+     */
+    public int getInstanceCount(final String className) {
+        try {
+            final Class<?> clazz = Class.forName(className);
+            return countInstances(clazz);
+        } catch (ClassNotFoundException e) {
+            return 0;
+        }
+    }
+#+end_src
+
+* Memory Management Methods
+
+** Public Cleanup Interface
+
+Provides a public interface for triggering cleanup of dead weak references.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Cleans up weak references that have been garbage collected
+     */
+    public void cleanupWeakReferences() {
+        for (final List<WeakReference<Object>> weakRefs : instanceRegistry.values()) {
+            cleanupWeakReferences(weakRefs, null);
+        }
+    }
+#+end_src
+
+** Internal Cleanup Implementation
+
+The core cleanup method that removes dead references and optionally collects live instances.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java
+
+    /**
+     * Cleans up weak references and optionally collects live instances
+     * @param weakRefs the list of weak references to clean
+     * @param liveInstances optional set to collect live instances into
+     */
+    protected void cleanupWeakReferences(final List<WeakReference<Object>> weakRefs, final Set<Object> liveInstances) {
+        synchronized (weakRefs) {
+            final List<WeakReference<Object>> toRemove = new ArrayList<>();
+            
+            for (final WeakReference<Object> weakRef : weakRefs) {
+                final Object instance = weakRef.get();
+                if (instance == null) {
+                    // Instance has been garbage collected
+                    toRemove.add(weakRef);
+                } else if (liveInstances != null) {
+                    // Collect live instance
+                    liveInstances.add(instance);
+                }
+            }
+            
+            // Remove dead references
+            weakRefs.removeAll(toRemove);
+        }
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Basic Instance Tracking
+
+#+begin_src java
+InstanceTracker tracker = new InstanceTracker();
+
+// Enable tracking for a specific class
+tracker.enableTracking(MyService.class);
+
+// Track instances as they are created
+MyService service1 = new MyService();
+MyService service2 = new MyService();
+tracker.track(service1);
+tracker.track(service2);
+
+// Count tracked instances
+int count = tracker.countInstances(MyService.class);
+System.out.println("Tracked instances: " + count);
+
+// Find all instances
+Set<Object> instances = tracker.findInstances(MyService.class);
+for (Object instance : instances) {
+    // Process each tracked instance
+    System.out.println("Found instance: " + instance);
+}
+#+end_src
+
+** Integration with Hot-Swap Operations
+
+#+begin_src java
+// Before performing hot-swap, find all instances that need updating
+Set<Object> instancesToUpdate = tracker.findInstances(targetClass);
+
+// Perform hot-swap operation
+redefineClass(targetClass, newBytecode);
+
+// Update all tracked instances
+for (Object instance : instancesToUpdate) {
+    updateInstanceAfterRedefinition(instance);
+}
+#+end_src
+
+** Cleanup and Memory Management
+
+#+begin_src java
+// Periodic cleanup to remove dead references
+Timer cleanupTimer = new Timer();
+cleanupTimer.scheduleAtFixedRate(new TimerTask() {
+    @Override
+    public void run() {
+        tracker.cleanupWeakReferences();
+    }
+}, 0, 60000); // Cleanup every minute
+#+end_src
+
+** Dynamic Tracking Control
+
+#+begin_src java
+// Enable tracking when needed
+if (needsInstanceTracking(someClass)) {
+    tracker.enableTracking(someClass);
+}
+
+// Disable tracking to save resources
+if (!needsInstanceTracking(someClass)) {
+    tracker.disableTracking(someClass);
+}
+
+// Check if any tracking is active
+if (tracker.isTrackingEnabled()) {
+    System.out.println("Instance tracking is active");
+}
+#+end_src
+
+* Architecture Notes
+
+** Thread Safety Design
+- =ConcurrentHashMap= for thread-safe class-to-instances mapping
+- Synchronized =Set= for tracked classes management
+- Synchronized lists for weak reference collections
+- Atomic operations for consistent state updates
+
+** Memory Management Strategy
+- Weak references prevent memory leaks by allowing garbage collection
+- Automatic cleanup of dead references during instance discovery
+- Manual cleanup methods for proactive memory management
+- No strong references maintained to tracked instances
+
+** Performance Considerations
+- Lazy cleanup during normal operations to minimize overhead
+- Efficient concurrent data structures for high-performance access
+- Optional manual cleanup for applications with strict memory requirements
+- Minimal synchronization overhead through careful lock design
+
+** Integration Points
+- Class name-based access for integration with reflection-based systems
+- Flexible enable/disable tracking for dynamic resource management
+- Compatible with dependency injection frameworks
+- Suitable for integration with JVM agents and instrumentation

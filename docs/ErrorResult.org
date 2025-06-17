@@ -1,0 +1,209 @@
+#+TITLE: ErrorResult - Comprehensive Error Context and Metadata
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =ErrorResult= class encapsulates comprehensive error context and metadata from error handling operations. It provides detailed information about errors, their classification, severity assessment, and recommended recovery strategies.
+
+** Key Responsibilities
+- Contain complete error context and metadata
+- Provide error classification and severity information
+- Include recommended recovery strategies
+- Support error analysis and reporting
+- Enable error pattern detection and monitoring
+
+* Class Declaration and Imports
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorResult.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: ErrorResult.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: ErrorResult
+ *
+ * Responsibilities:
+ *   - Encapsulate comprehensive error context and metadata
+ *   - Provide error classification, severity, and recovery information
+ *   - Support error analysis, reporting, and pattern detection
+ *
+ * Collaborators:
+ *   - ErrorHandler: Creates ErrorResult instances
+ *   - ErrorType: Classifies the type of error
+ *   - ErrorSeverity: Indicates severity level
+ *   - RecoveryStrategy: Recommended recovery approach
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Instant;
+import java.util.UUID;
+
+/**
+ * Comprehensive error context and metadata container
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class ErrorResult {
+
+    /**
+     * Unique identifier for this error occurrence
+     */
+    private final String errorId;
+
+    /**
+     * Classification of the error type
+     */
+    private final ErrorType errorType;
+
+    /**
+     * Severity level of the error
+     */
+    private final ErrorSeverity severity;
+
+    /**
+     * Recommended recovery strategy
+     */
+    private final RecoveryStrategy recoveryStrategy;
+
+    /**
+     * Whether the error is considered recoverable
+     */
+    private final boolean recoverable;
+
+    /**
+     * Descriptive error message with context
+     */
+    private final String errorMessage;
+
+    /**
+     * Class name where the error occurred
+     */
+    private final String className;
+
+    /**
+     * Operation that was being performed when error occurred
+     */
+    private final String operation;
+
+    /**
+     * Original exception that caused the error
+     */
+    private final Throwable cause;
+
+    /**
+     * Timestamp when the error occurred
+     */
+    private final Instant timestamp;
+
+    /**
+     * Creates a new error result
+     */
+    private ErrorResult(final ErrorType errorType, final ErrorSeverity severity,
+                       final RecoveryStrategy recoveryStrategy, final boolean recoverable,
+                       final String errorMessage, final String className, final String operation,
+                       final Throwable cause) {
+        this.errorId = UUID.randomUUID().toString();
+        this.errorType = errorType;
+        this.severity = severity;
+        this.recoveryStrategy = recoveryStrategy;
+        this.recoverable = recoverable;
+        this.errorMessage = errorMessage;
+        this.className = className;
+        this.operation = operation;
+        this.cause = cause;
+        this.timestamp = Instant.now();
+    }
+
+    /**
+     * Creates an error result with full context
+     */
+    public static ErrorResult create(final ErrorType errorType, final ErrorSeverity severity,
+                                   final RecoveryStrategy recoveryStrategy, final boolean recoverable,
+                                   final String errorMessage, final String className, final String operation,
+                                   final Throwable cause) {
+        return new ErrorResult(errorType, severity, recoveryStrategy, recoverable,
+                             errorMessage, className, operation, cause);
+    }
+
+    /**
+     * Returns whether this error requires immediate attention
+     */
+    public boolean requiresImmediateAttention() {
+        return severity == ErrorSeverity.CRITICAL || severity == ErrorSeverity.FATAL ||
+               errorType.requiresImmediateAttention();
+    }
+
+    /**
+     * Returns whether this error is related to core ByteHot operations
+     */
+    public boolean isCoreOperationError() {
+        return errorType.isCoreOperation();
+    }
+
+    @Override
+    public String toString() {
+        return "ErrorResult{" +
+               "id='" + errorId + '\'' +
+               ", type=" + errorType +
+               ", severity=" + severity +
+               ", recoverable=" + recoverable +
+               ", className='" + className + '\'' +
+               ", operation='" + operation + '\'' +
+               ", timestamp=" + timestamp +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+#+begin_src java
+// Create error result from exception handling
+ErrorResult result = ErrorResult.create(
+    ErrorType.VALIDATION_ERROR,
+    ErrorSeverity.ERROR,
+    RecoveryStrategy.REJECT_CHANGE,
+    true,
+    "Bytecode validation failed",
+    "com.example.MyClass",
+    "hot-swap",
+    validationException
+);
+
+// Check if immediate attention is required
+if (result.requiresImmediateAttention()) {
+    alertOperations(result);
+}
+
+// Execute recovery strategy
+if (result.isRecoverable()) {
+    executeRecovery(result.getRecoveryStrategy());
+}
+#+end_src

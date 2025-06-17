@@ -1,0 +1,768 @@
+#+TITLE: RollbackAuditEntry - Individual Audit Trail Record
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =RollbackAuditEntry= class represents a single entry in a rollback audit trail. Each entry captures a specific event, decision, action, or milestone during a rollback operation, providing granular tracking for compliance and analysis purposes.
+
+** Key Responsibilities
+- Represent individual events in rollback audit trails
+- Capture detailed context and metadata for each audit event
+- Provide structured information for audit analysis
+- Support different types of audit events (decisions, actions, errors, etc.)
+- Enable chronological reconstruction of rollback operations
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/RollbackAuditEntry.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: RollbackAuditEntry.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: RollbackAuditEntry
+ *
+ * Responsibilities:
+ *   - Represent individual events in rollback audit trails
+ *   - Capture detailed context and metadata for audit events
+ *   - Support structured audit analysis and reporting
+ *
+ * Collaborators:
+ *   - RollbackAuditTrail: Contains collections of audit entries
+ *   - RollbackManager: Creates audit entries during operations
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Instant;
+
+/**
+ * Individual entry in a rollback audit trail
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class RollbackAuditEntry {
+
+    /**
+     * Type of audit entry
+     */
+    private final EntryType entryType;
+
+    /**
+     * Timestamp when this entry was created
+     */
+    private final Instant timestamp;
+
+    /**
+     * Human-readable description of the event
+     */
+    private final String description;
+
+    /**
+     * Additional details and context
+     */
+    private final String details;
+
+    /**
+     * Actor or component that generated this entry
+     */
+    private final String actor;
+
+    /**
+     * Target of the action (class name, instance, etc.)
+     */
+    private final String target;
+
+    /**
+     * Whether the action/decision was successful
+     */
+    private final Boolean success;
+
+    /**
+     * Associated exception or error, if any
+     */
+    private final Throwable associatedError;
+
+    /**
+     * Duration of the action, if applicable
+     */
+    private final Long durationMillis;
+
+    /**
+     * Additional metadata as key-value pairs
+     */
+    private final String metadata;
+
+    /**
+     * Creates a new rollback audit entry
+     */
+    private RollbackAuditEntry(final EntryType entryType, final String description, final String details,
+                              final String actor, final String target, final Boolean success,
+                              final Throwable associatedError, final Long durationMillis, final String metadata) {
+        this.entryType = entryType;
+        this.timestamp = Instant.now();
+        this.description = description;
+        this.details = details;
+        this.actor = actor;
+        this.target = target;
+        this.success = success;
+        this.associatedError = associatedError;
+        this.durationMillis = durationMillis;
+        this.metadata = metadata;
+    }
+
+    /**
+     * Creates an operation started entry
+     */
+    public static RollbackAuditEntry operationStarted(final RollbackAuditTrail.RollbackOperationType operationType,
+                                                     final String className) {
+        return new RollbackAuditEntry(
+            EntryType.OPERATION_START,
+            "Rollback operation started",
+            operationType.getDescription() + " for " + className,
+            "RollbackManager",
+            className,
+            null,
+            null,
+            null,
+            "operationType=" + operationType
+        );
+    }
+
+    /**
+     * Creates an operation completed entry
+     */
+    public static RollbackAuditEntry operationCompleted(final RollbackAuditTrail.RollbackOutcome outcome,
+                                                       final String summary) {
+        return new RollbackAuditEntry(
+            EntryType.OPERATION_END,
+            "Rollback operation completed",
+            summary,
+            "RollbackManager",
+            null,
+            outcome.isSuccessful(),
+            null,
+            null,
+            "outcome=" + outcome
+        );
+    }
+
+    /**
+     * Creates a decision made entry
+     */
+    public static RollbackAuditEntry decisionMade(final String decision, final String reasoning,
+                                                 final String decisionMaker) {
+        return new RollbackAuditEntry(
+            EntryType.DECISION,
+            decision,
+            "Reasoning: " + reasoning,
+            decisionMaker,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
+    /**
+     * Creates an action executed entry
+     */
+    public static RollbackAuditEntry actionExecuted(final String action, final String target,
+                                                   final boolean success, final String details) {
+        return new RollbackAuditEntry(
+            EntryType.ACTION,
+            action,
+            details,
+            "RollbackManager",
+            target,
+            success,
+            null,
+            null,
+            null
+        );
+    }
+
+    /**
+     * Creates an action executed entry with duration
+     */
+    public static RollbackAuditEntry actionExecutedWithDuration(final String action, final String target,
+                                                               final boolean success, final String details,
+                                                               final long durationMillis) {
+        return new RollbackAuditEntry(
+            EntryType.ACTION,
+            action,
+            details,
+            "RollbackManager",
+            target,
+            success,
+            null,
+            durationMillis,
+            "duration=" + durationMillis + "ms"
+        );
+    }
+
+    /**
+     * Creates a warning recorded entry
+     */
+    public static RollbackAuditEntry warningRecorded(final String warning, final String context) {
+        return new RollbackAuditEntry(
+            EntryType.WARNING,
+            warning,
+            "Context: " + context,
+            "RollbackManager",
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
+    /**
+     * Creates an error recorded entry
+     */
+    public static RollbackAuditEntry errorRecorded(final String error, final Throwable cause, final String context) {
+        return new RollbackAuditEntry(
+            EntryType.ERROR,
+            error,
+            "Context: " + context + (cause != null ? ", Cause: " + cause.getMessage() : ""),
+            "RollbackManager",
+            null,
+            false,
+            cause,
+            null,
+            cause != null ? "exceptionType=" + cause.getClass().getSimpleName() : null
+        );
+    }
+
+    /**
+     * Creates a milestone reached entry
+     */
+    public static RollbackAuditEntry milestoneReached(final String milestone, final String description) {
+        return new RollbackAuditEntry(
+            EntryType.MILESTONE,
+            milestone,
+            description,
+            "RollbackManager",
+            null,
+            true,
+            null,
+            null,
+            null
+        );
+    }
+
+    /**
+     * Creates a snapshot created entry
+     */
+    public static RollbackAuditEntry snapshotCreated(final String snapshotId, final String className,
+                                                    final int instanceCount) {
+        return new RollbackAuditEntry(
+            EntryType.SNAPSHOT,
+            "Snapshot created",
+            "Created snapshot " + snapshotId + " for " + instanceCount + " instances",
+            "StatePreserver",
+            className,
+            true,
+            null,
+            null,
+            "snapshotId=" + snapshotId + ",instanceCount=" + instanceCount
+        );
+    }
+
+    /**
+     * Creates a conflict detected entry
+     */
+    public static RollbackAuditEntry conflictDetected(final String conflictType, final String description,
+                                                     final String conflictingClasses) {
+        return new RollbackAuditEntry(
+            EntryType.CONFLICT,
+            "Conflict detected: " + conflictType,
+            description,
+            "ConflictDetector",
+            conflictingClasses,
+            null,
+            null,
+            null,
+            "conflictType=" + conflictType
+        );
+    }
+
+    /**
+     * Creates a conflict resolved entry
+     */
+    public static RollbackAuditEntry conflictResolved(final String conflictType, final String resolution,
+                                                     final String strategy, final long resolutionTimeMillis) {
+        return new RollbackAuditEntry(
+            EntryType.CONFLICT,
+            "Conflict resolved: " + conflictType,
+            "Resolution: " + resolution + " using strategy: " + strategy,
+            "ConflictResolver",
+            null,
+            true,
+            null,
+            resolutionTimeMillis,
+            "strategy=" + strategy + ",resolutionTime=" + resolutionTimeMillis + "ms"
+        );
+    }
+
+    /**
+     * Returns whether this entry represents a successful event
+     */
+    public boolean isSuccessful() {
+        return success != null && success;
+    }
+
+    /**
+     * Returns whether this entry represents a failed event
+     */
+    public boolean isFailed() {
+        return success != null && !success;
+    }
+
+    /**
+     * Returns whether this entry has an associated error
+     */
+    public boolean hasError() {
+        return associatedError != null;
+    }
+
+    /**
+     * Returns whether this entry has duration information
+     */
+    public boolean hasDuration() {
+        return durationMillis != null;
+    }
+
+    /**
+     * Returns the duration in milliseconds, or 0 if not available
+     */
+    public long getDuration() {
+        return durationMillis != null ? durationMillis : 0;
+    }
+
+    /**
+     * Returns whether this entry has metadata
+     */
+    public boolean hasMetadata() {
+        return metadata != null && !metadata.trim().isEmpty();
+    }
+
+    /**
+     * Returns a formatted string representation for logging
+     */
+    public String getFormattedDescription() {
+        final StringBuilder formatted = new StringBuilder();
+        formatted.append(String.format("[%s] %s: %s", 
+                                      timestamp.toString(), entryType, description));
+        
+        if (actor != null) {
+            formatted.append(String.format(" (by %s)", actor));
+        }
+        
+        if (target != null) {
+            formatted.append(String.format(" -> %s", target));
+        }
+        
+        if (success != null) {
+            formatted.append(success ? " ✓" : " ✗");
+        }
+        
+        if (durationMillis != null) {
+            formatted.append(String.format(" [%dms]", durationMillis));
+        }
+        
+        if (details != null && !details.trim().isEmpty()) {
+            formatted.append(String.format(" - %s", details));
+        }
+        
+        return formatted.toString();
+    }
+
+    /**
+     * Types of audit entries that can be recorded
+     */
+    public enum EntryType {
+        OPERATION_START("Operation start"),
+        OPERATION_END("Operation end"),
+        DECISION("Decision point"),
+        ACTION("Action execution"),
+        WARNING("Warning condition"),
+        ERROR("Error condition"),
+        MILESTONE("Milestone reached"),
+        SNAPSHOT("Snapshot operation"),
+        CONFLICT("Conflict event"),
+        PERFORMANCE("Performance measurement"),
+        VALIDATION("Validation check"),
+        FRAMEWORK("Framework interaction");
+
+        private final String description;
+
+        EntryType(final String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "RollbackAuditEntry{" +
+               "type=" + entryType +
+               ", timestamp=" + timestamp +
+               ", description='" + description + '\'' +
+               ", actor='" + actor + '\'' +
+               ", target='" + target + '\'' +
+               ", success=" + success +
+               ", duration=" + durationMillis +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Creating Different Types of Audit Entries
+
+#+begin_src java
+// Operation lifecycle entries
+RollbackAuditEntry startEntry = RollbackAuditEntry.operationStarted(
+    RollbackAuditTrail.RollbackOperationType.CASCADING_ROLLBACK,
+    "com.example.MyService"
+);
+
+RollbackAuditEntry endEntry = RollbackAuditEntry.operationCompleted(
+    RollbackAuditTrail.RollbackOutcome.SUCCESS,
+    "Rollback completed successfully with 15 instances updated"
+);
+
+// Decision tracking
+RollbackAuditEntry decisionEntry = RollbackAuditEntry.decisionMade(
+    "Use Spring framework integration",
+    "Target class is Spring-managed bean requiring proxy refresh",
+    "FrameworkIntegration"
+);
+
+// Action tracking with timing
+RollbackAuditEntry actionEntry = RollbackAuditEntry.actionExecutedWithDuration(
+    "Instance state restoration",
+    "com.example.MyService",
+    true,
+    "Restored state for 15 instances using reflection",
+    1250L // 1.25 seconds
+);
+
+// Error recording
+RollbackAuditEntry errorEntry = RollbackAuditEntry.errorRecorded(
+    "Failed to access private field",
+    new IllegalAccessException("Cannot access field: secretKey"),
+    "Instance state restoration for com.example.SecureService"
+);
+
+// Milestone tracking
+RollbackAuditEntry milestoneEntry = RollbackAuditEntry.milestoneReached(
+    "Snapshot validation complete",
+    "All 15 instance snapshots validated for integrity"
+);
+#+end_src
+
+** Audit Entry Analysis and Filtering
+
+#+begin_src java
+public void analyzeAuditEntries(List<RollbackAuditEntry> entries) {
+    // Categorize entries by type
+    Map<RollbackAuditEntry.EntryType, List<RollbackAuditEntry>> entriesByType = 
+        entries.stream().collect(Collectors.groupingBy(RollbackAuditEntry::getEntryType));
+    
+    // Analyze decisions
+    List<RollbackAuditEntry> decisions = entriesByType.get(RollbackAuditEntry.EntryType.DECISION);
+    if (decisions != null) {
+        logger.info("Decision Analysis:");
+        decisions.forEach(decision -> 
+            logger.info("  {}: {} - {}", 
+                       decision.getTimestamp(), decision.getDescription(), decision.getDetails())
+        );
+    }
+    
+    // Analyze errors
+    List<RollbackAuditEntry> errors = entriesByType.get(RollbackAuditEntry.EntryType.ERROR);
+    if (errors != null && !errors.isEmpty()) {
+        logger.error("Error Analysis ({} errors):", errors.size());
+        errors.forEach(error -> {
+            logger.error("  {}: {}", error.getTimestamp(), error.getDescription());
+            if (error.hasError()) {
+                logger.error("    Exception: {}", error.getAssociatedError().getMessage());
+            }
+        });
+    }
+    
+    // Analyze performance
+    List<RollbackAuditEntry> actionsWithDuration = entries.stream()
+        .filter(RollbackAuditEntry::hasDuration)
+        .collect(Collectors.toList());
+    
+    if (!actionsWithDuration.isEmpty()) {
+        double avgDuration = actionsWithDuration.stream()
+            .mapToLong(RollbackAuditEntry::getDuration)
+            .average()
+            .orElse(0.0);
+        
+        long maxDuration = actionsWithDuration.stream()
+            .mapToLong(RollbackAuditEntry::getDuration)
+            .max()
+            .orElse(0L);
+        
+        logger.info("Performance Analysis:");
+        logger.info("  Actions with timing: {}", actionsWithDuration.size());
+        logger.info("  Average duration: {:.1f}ms", avgDuration);
+        logger.info("  Maximum duration: {}ms", maxDuration);
+        
+        // Identify slow actions
+        actionsWithDuration.stream()
+            .filter(entry -> entry.getDuration() > avgDuration * 2)
+            .forEach(slowAction -> 
+                logger.warn("  Slow action: {} took {}ms", 
+                           slowAction.getDescription(), slowAction.getDuration())
+            );
+    }
+}
+#+end_src
+
+** Chronological Audit Entry Processing
+
+#+begin_src java
+public void processChronologicalAuditTrail(List<RollbackAuditEntry> entries) {
+    logger.info("Chronological Audit Trail Processing:");
+    
+    // Sort by timestamp to ensure chronological order
+    List<RollbackAuditEntry> sortedEntries = entries.stream()
+        .sorted(Comparator.comparing(RollbackAuditEntry::getTimestamp))
+        .collect(Collectors.toList());
+    
+    Instant previousTimestamp = null;
+    
+    for (RollbackAuditEntry entry : sortedEntries) {
+        // Calculate time delta from previous entry
+        String timeDelta = "";
+        if (previousTimestamp != null) {
+            long deltaMs = Duration.between(previousTimestamp, entry.getTimestamp()).toMillis();
+            timeDelta = String.format(" (+%dms)", deltaMs);
+        }
+        
+        // Format entry with status indicators
+        String statusIndicator = "";
+        if (entry.getSuccess() != null) {
+            statusIndicator = entry.isSuccessful() ? " ✓" : " ✗";
+        }
+        
+        String durationInfo = "";
+        if (entry.hasDuration()) {
+            durationInfo = String.format(" [%dms]", entry.getDuration());
+        }
+        
+        logger.info("  {}{}: {} {}{}{}", 
+                   entry.getTimestamp(), timeDelta,
+                   entry.getEntryType(), entry.getDescription(),
+                   statusIndicator, durationInfo);
+        
+        // Log additional details for important entries
+        if (entry.getEntryType() == RollbackAuditEntry.EntryType.ERROR ||
+            entry.getEntryType() == RollbackAuditEntry.EntryType.DECISION) {
+            logger.info("    Details: {}", entry.getDetails());
+        }
+        
+        previousTimestamp = entry.getTimestamp();
+    }
+}
+#+end_src
+
+** Audit Entry Search and Filtering
+
+#+begin_src java
+public List<RollbackAuditEntry> searchAuditEntries(List<RollbackAuditEntry> entries, 
+                                                   AuditEntrySearchCriteria criteria) {
+    return entries.stream()
+        .filter(entry -> {
+            // Filter by entry type
+            if (criteria.getEntryTypes() != null && 
+                !criteria.getEntryTypes().contains(entry.getEntryType())) {
+                return false;
+            }
+            
+            // Filter by success status
+            if (criteria.getSuccessOnly() != null) {
+                if (criteria.getSuccessOnly() && !entry.isSuccessful()) {
+                    return false;
+                }
+                if (!criteria.getSuccessOnly() && !entry.isFailed()) {
+                    return false;
+                }
+            }
+            
+            // Filter by actor
+            if (criteria.getActor() != null && 
+                (entry.getActor() == null || !entry.getActor().contains(criteria.getActor()))) {
+                return false;
+            }
+            
+            // Filter by target
+            if (criteria.getTarget() != null && 
+                (entry.getTarget() == null || !entry.getTarget().contains(criteria.getTarget()))) {
+                return false;
+            }
+            
+            // Filter by time range
+            if (criteria.getStartTime() != null && 
+                entry.getTimestamp().isBefore(criteria.getStartTime())) {
+                return false;
+            }
+            
+            if (criteria.getEndTime() != null && 
+                entry.getTimestamp().isAfter(criteria.getEndTime())) {
+                return false;
+            }
+            
+            // Filter by minimum duration
+            if (criteria.getMinDurationMs() != null && 
+                (!entry.hasDuration() || entry.getDuration() < criteria.getMinDurationMs())) {
+                return false;
+            }
+            
+            // Filter by description content
+            if (criteria.getDescriptionContains() != null && 
+                (entry.getDescription() == null || 
+                 !entry.getDescription().toLowerCase().contains(criteria.getDescriptionContains().toLowerCase()))) {
+                return false;
+            }
+            
+            return true;
+        })
+        .collect(Collectors.toList());
+}
+
+// Example usage
+AuditEntrySearchCriteria criteria = new AuditEntrySearchCriteria();
+criteria.setEntryTypes(Arrays.asList(
+    RollbackAuditEntry.EntryType.ERROR, 
+    RollbackAuditEntry.EntryType.WARNING
+));
+criteria.setMinDurationMs(1000L); // Actions taking more than 1 second
+
+List<RollbackAuditEntry> problematicEntries = searchAuditEntries(allEntries, criteria);
+#+end_src
+
+** Audit Entry Export and Reporting
+
+#+begin_src java
+public String exportAuditEntriesToCsv(List<RollbackAuditEntry> entries) {
+    StringBuilder csv = new StringBuilder();
+    
+    // CSV header
+    csv.append("Timestamp,Type,Description,Actor,Target,Success,Duration(ms),Details,Metadata\n");
+    
+    // CSV data rows
+    for (RollbackAuditEntry entry : entries) {
+        csv.append(String.format("%s,%s,\"%s\",\"%s\",\"%s\",%s,%s,\"%s\",\"%s\"\n",
+            entry.getTimestamp().toString(),
+            entry.getEntryType(),
+            escapeCsvField(entry.getDescription()),
+            escapeCsvField(entry.getActor()),
+            escapeCsvField(entry.getTarget()),
+            entry.getSuccess(),
+            entry.hasDuration() ? entry.getDuration() : "",
+            escapeCsvField(entry.getDetails()),
+            escapeCsvField(entry.getMetadata())
+        ));
+    }
+    
+    return csv.toString();
+}
+
+public AuditEntryStatistics generateStatistics(List<RollbackAuditEntry> entries) {
+    AuditEntryStatistics stats = new AuditEntryStatistics();
+    
+    // Count by type
+    Map<RollbackAuditEntry.EntryType, Long> typeCount = entries.stream()
+        .collect(Collectors.groupingBy(RollbackAuditEntry::getEntryType, Collectors.counting()));
+    stats.setTypeDistribution(typeCount);
+    
+    // Success/failure rates
+    long successCount = entries.stream().filter(RollbackAuditEntry::isSuccessful).count();
+    long failureCount = entries.stream().filter(RollbackAuditEntry::isFailed).count();
+    long totalWithStatus = successCount + failureCount;
+    
+    if (totalWithStatus > 0) {
+        stats.setSuccessRate((double) successCount / totalWithStatus * 100.0);
+        stats.setFailureRate((double) failureCount / totalWithStatus * 100.0);
+    }
+    
+    // Duration statistics
+    List<Long> durations = entries.stream()
+        .filter(RollbackAuditEntry::hasDuration)
+        .map(RollbackAuditEntry::getDuration)
+        .collect(Collectors.toList());
+    
+    if (!durations.isEmpty()) {
+        stats.setAverageDuration(durations.stream().mapToLong(Long::longValue).average().orElse(0.0));
+        stats.setMaxDuration(durations.stream().mapToLong(Long::longValue).max().orElse(0L));
+        stats.setMinDuration(durations.stream().mapToLong(Long::longValue).min().orElse(0L));
+    }
+    
+    // Actor activity
+    Map<String, Long> actorActivity = entries.stream()
+        .filter(entry -> entry.getActor() != null)
+        .collect(Collectors.groupingBy(RollbackAuditEntry::getActor, Collectors.counting()));
+    stats.setActorActivity(actorActivity);
+    
+    return stats;
+}
+#+end_src
+
+* Architecture Notes
+
+** Granular Audit Tracking
+- Individual event capture with precise timestamps
+- Rich context information for each audit event
+- Structured data format for analysis and reporting
+- Support for different event types and classifications
+
+** Compliance and Analysis Support
+- Immutable audit record creation
+- Comprehensive metadata capture
+- Search and filtering capabilities
+- Export functionality for external analysis tools
+
+** Performance and Monitoring Integration
+- Duration tracking for performance analysis
+- Success/failure status tracking
+- Actor and target identification for accountability
+- Integration with broader audit trail and compliance systems

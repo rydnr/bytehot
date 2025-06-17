@@ -1,0 +1,464 @@
+#+TITLE: RecoveryAction - Individual Recovery Operation Steps
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =RecoveryAction= class represents an individual step or action taken during error recovery operations in ByteHot. It provides detailed tracking of specific recovery operations, enabling comprehensive audit trails and analysis of recovery processes.
+
+** Key Responsibilities
+- Represent individual steps in recovery operations
+- Track action execution status and outcomes
+- Provide detailed timing and performance metrics
+- Support recovery operation audit trails and analysis
+- Enable granular recovery process monitoring
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/RecoveryAction.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: RecoveryAction.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: RecoveryAction
+ *
+ * Responsibilities:
+ *   - Represent individual recovery operation steps
+ *   - Track action execution status and performance
+ *   - Support recovery audit trails and analysis
+ *
+ * Collaborators:
+ *   - RecoveryResult: Contains list of recovery actions taken
+ *   - ErrorRecoveryManager: Creates and executes recovery actions
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Duration;
+import java.time.Instant;
+
+/**
+ * Represents an individual action taken during error recovery
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class RecoveryAction {
+
+    /**
+     * Type of recovery action performed
+     */
+    private final ActionType actionType;
+
+    /**
+     * Human-readable description of the action
+     */
+    private final String description;
+
+    /**
+     * Whether the action was successful
+     */
+    private final boolean successful;
+
+    /**
+     * Timestamp when action started
+     */
+    private final Instant startTime;
+
+    /**
+     * Timestamp when action completed
+     */
+    private final Instant endTime;
+
+    /**
+     * Duration of the action execution
+     */
+    private final Duration duration;
+
+    /**
+     * Error that occurred during action execution, if any
+     */
+    private final Throwable error;
+
+    /**
+     * Additional details about the action execution
+     */
+    private final String details;
+
+    /**
+     * Number of attempts made for this action
+     */
+    private final int attempts;
+
+    /**
+     * Creates a new recovery action
+     */
+    private RecoveryAction(final ActionType actionType, final String description, final boolean successful,
+                          final Instant startTime, final Instant endTime, final Throwable error,
+                          final String details, final int attempts) {
+        this.actionType = actionType;
+        this.description = description;
+        this.successful = successful;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.duration = Duration.between(startTime, endTime);
+        this.error = error;
+        this.details = details;
+        this.attempts = attempts;
+    }
+
+    /**
+     * Creates a successful recovery action
+     */
+    public static RecoveryAction success(final ActionType actionType, final String description,
+                                       final Instant startTime, final Instant endTime,
+                                       final String details, final int attempts) {
+        return new RecoveryAction(actionType, description, true, startTime, endTime,
+                                null, details, attempts);
+    }
+
+    /**
+     * Creates a failed recovery action
+     */
+    public static RecoveryAction failure(final ActionType actionType, final String description,
+                                       final Instant startTime, final Instant endTime,
+                                       final Throwable error, final String details, final int attempts) {
+        return new RecoveryAction(actionType, description, false, startTime, endTime,
+                                error, details, attempts);
+    }
+
+    /**
+     * Returns whether this action required multiple attempts
+     */
+    public boolean requiredRetries() {
+        return attempts > 1;
+    }
+
+    /**
+     * Returns whether this action completed within the given threshold
+     */
+    public boolean completedWithin(final Duration threshold) {
+        return duration.compareTo(threshold) <= 0;
+    }
+
+    /**
+     * Returns the error message if action failed
+     */
+    public String getErrorMessage() {
+        return error != null ? error.getMessage() : null;
+    }
+
+    /**
+     * Returns whether this action is considered time-critical
+     */
+    public boolean isTimeCritical() {
+        return actionType.isTimeCritical();
+    }
+
+    /**
+     * Returns the priority level of this action
+     */
+    public ActionPriority getPriority() {
+        return actionType.getPriority();
+    }
+
+    /**
+     * Types of recovery actions that can be performed
+     */
+    public enum ActionType {
+        ROLLBACK_SNAPSHOT("Rollback to previous snapshot", true, ActionPriority.HIGH),
+        PRESERVE_STATE("Preserve current state", false, ActionPriority.MEDIUM),
+        RETRY_OPERATION("Retry failed operation", false, ActionPriority.MEDIUM),
+        EMERGENCY_SHUTDOWN("Emergency system shutdown", true, ActionPriority.CRITICAL),
+        FALLBACK_ACTIVATION("Activate fallback mode", true, ActionPriority.HIGH),
+        RESTART_SERVICE("Restart affected service", true, ActionPriority.HIGH),
+        APPLY_HOTFIX("Apply emergency hotfix", true, ActionPriority.HIGH),
+        VALIDATE_STATE("Validate system state", false, ActionPriority.LOW),
+        CLEANUP_RESOURCES("Clean up allocated resources", false, ActionPriority.LOW),
+        NOTIFY_OPERATORS("Notify system operators", false, ActionPriority.MEDIUM);
+
+        private final String description;
+        private final boolean timeCritical;
+        private final ActionPriority priority;
+
+        ActionType(final String description, final boolean timeCritical, final ActionPriority priority) {
+            this.description = description;
+            this.timeCritical = timeCritical;
+            this.priority = priority;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public boolean isTimeCritical() {
+            return timeCritical;
+        }
+
+        public ActionPriority getPriority() {
+            return priority;
+        }
+    }
+
+    /**
+     * Priority levels for recovery actions
+     */
+    public enum ActionPriority {
+        LOW(1, "Low priority - can be deferred"),
+        MEDIUM(2, "Medium priority - should be executed promptly"),
+        HIGH(3, "High priority - requires immediate execution"),
+        CRITICAL(4, "Critical priority - must be executed immediately");
+
+        private final int level;
+        private final String description;
+
+        ActionPriority(final int level, final String description) {
+            this.level = level;
+            this.description = description;
+        }
+
+        public int getLevel() {
+            return level;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public boolean isHigherThan(final ActionPriority other) {
+            return this.level > other.level;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "RecoveryAction{" +
+               "type=" + actionType +
+               ", successful=" + successful +
+               ", duration=" + duration.toMillis() + "ms" +
+               ", attempts=" + attempts +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Creating and Tracking Recovery Actions
+
+#+begin_src java
+public RecoveryAction executeRollbackAction(String snapshotId) {
+    Instant startTime = Instant.now();
+    ActionType actionType = RecoveryAction.ActionType.ROLLBACK_SNAPSHOT;
+    String description = "Rollback to snapshot: " + snapshotId;
+    int attempts = 1;
+    
+    try {
+        // Perform rollback operation
+        rollbackManager.rollbackToSnapshot(snapshotId);
+        
+        Instant endTime = Instant.now();
+        String details = "Successfully rolled back to snapshot " + snapshotId;
+        
+        return RecoveryAction.success(actionType, description, startTime, endTime, details, attempts);
+        
+    } catch (Exception e) {
+        Instant endTime = Instant.now();
+        String details = "Rollback failed: " + e.getMessage();
+        
+        return RecoveryAction.failure(actionType, description, startTime, endTime, e, details, attempts);
+    }
+}
+#+end_src
+
+** Action Priority and Scheduling
+
+#+begin_src java
+public void scheduleRecoveryActions(List<RecoveryAction> actions) {
+    // Sort actions by priority
+    actions.sort((a1, a2) -> {
+        int priorityComparison = Integer.compare(
+            a2.getPriority().getLevel(), 
+            a1.getPriority().getLevel()
+        );
+        
+        // If same priority, time-critical actions go first
+        if (priorityComparison == 0) {
+            return Boolean.compare(a2.isTimeCritical(), a1.isTimeCritical());
+        }
+        
+        return priorityComparison;
+    });
+    
+    // Execute actions in priority order
+    for (RecoveryAction action : actions) {
+        if (action.getPriority() == RecoveryAction.ActionPriority.CRITICAL) {
+            executeImmediately(action);
+        } else if (action.isTimeCritical()) {
+            scheduleForImmediate(action);
+        } else {
+            scheduleForExecution(action);
+        }
+    }
+}
+#+end_src
+
+** Performance Analysis of Recovery Actions
+
+#+begin_src java
+public void analyzeActionPerformance(List<RecoveryAction> actions) {
+    Map<RecoveryAction.ActionType, ActionMetrics> metrics = new EnumMap<>(RecoveryAction.ActionType.class);
+    
+    for (RecoveryAction action : actions) {
+        ActionMetrics actionMetrics = metrics.computeIfAbsent(
+            action.getActionType(), 
+            k -> new ActionMetrics()
+        );
+        
+        actionMetrics.addExecution(action);
+        
+        // Track performance issues
+        if (action.isTimeCritical() && action.getDuration().toMillis() > 5000) {
+            logger.warn("Time-critical action {} took {}ms", 
+                       action.getActionType(), action.getDuration().toMillis());
+        }
+        
+        // Track retry patterns
+        if (action.requiredRetries()) {
+            actionMetrics.recordRetry(action.getAttempts());
+        }
+    }
+    
+    // Report metrics
+    for (Map.Entry<RecoveryAction.ActionType, ActionMetrics> entry : metrics.entrySet()) {
+        RecoveryAction.ActionType type = entry.getKey();
+        ActionMetrics metric = entry.getValue();
+        
+        logger.info("Action {}: Success rate {:.1f}%, Avg duration {}ms, Retry rate {:.1f}%",
+                   type, metric.getSuccessRate(), metric.getAverageDuration().toMillis(),
+                   metric.getRetryRate());
+    }
+}
+#+end_src
+
+** Audit Trail Generation
+
+#+begin_src java
+public AuditTrail generateActionAuditTrail(List<RecoveryAction> actions) {
+    AuditTrail trail = new AuditTrail();
+    
+    for (RecoveryAction action : actions) {
+        AuditEntry entry = new AuditEntry();
+        entry.setTimestamp(action.getStartTime());
+        entry.setActionType(action.getActionType().toString());
+        entry.setDescription(action.getDescription());
+        entry.setSuccess(action.isSuccessful());
+        entry.setDuration(action.getDuration());
+        entry.setAttempts(action.getAttempts());
+        
+        if (!action.isSuccessful()) {
+            entry.setErrorMessage(action.getErrorMessage());
+        }
+        
+        if (action.getDetails() != null) {
+            entry.setDetails(action.getDetails());
+        }
+        
+        trail.addEntry(entry);
+    }
+    
+    return trail;
+}
+#+end_src
+
+** Action Effectiveness Analysis
+
+#+begin_src java
+public ActionEffectivenessReport analyzeActionEffectiveness(List<RecoveryAction> actions) {
+    Map<RecoveryAction.ActionType, EffectivenessStats> stats = new EnumMap<>(RecoveryAction.ActionType.class);
+    
+    for (RecoveryAction action : actions) {
+        RecoveryAction.ActionType type = action.getActionType();
+        EffectivenessStats actionStats = stats.computeIfAbsent(type, k -> new EffectivenessStats());
+        
+        actionStats.addAction(action);
+        
+        // Analyze effectiveness based on success and performance
+        boolean effective = action.isSuccessful();
+        if (effective && action.isTimeCritical()) {
+            // Time-critical actions should complete within 10 seconds
+            effective = action.completedWithin(Duration.ofSeconds(10));
+        } else if (effective) {
+            // Non-critical actions should complete within 1 minute
+            effective = action.completedWithin(Duration.ofMinutes(1));
+        }
+        
+        if (effective) {
+            actionStats.incrementEffective();
+        }
+    }
+    
+    // Generate recommendations
+    List<String> recommendations = new ArrayList<>();
+    for (Map.Entry<RecoveryAction.ActionType, EffectivenessStats> entry : stats.entrySet()) {
+        RecoveryAction.ActionType type = entry.getKey();
+        EffectivenessStats stat = entry.getValue();
+        
+        if (stat.getEffectivenessRate() < 80.0) {
+            recommendations.add("Consider optimizing " + type + " - effectiveness rate: " + 
+                              String.format("%.1f%%", stat.getEffectivenessRate()));
+        }
+        
+        if (stat.getAverageRetries() > 2.0) {
+            recommendations.add("High retry rate for " + type + " - investigate reliability issues");
+        }
+    }
+    
+    return new ActionEffectivenessReport(stats, recommendations);
+}
+#+end_src
+
+* Architecture Notes
+
+** Command Pattern Implementation
+- Each RecoveryAction represents a discrete command in the recovery process
+- Actions encapsulate execution details and outcomes
+- Support for action composition and sequencing
+- Comprehensive audit trail through action tracking
+
+** Priority-Based Execution
+- Clear priority levels for action scheduling
+- Time-critical action identification and handling
+- Support for emergency action escalation
+- Resource allocation based on action priority
+
+** Performance and Reliability Tracking
+- Detailed timing metrics for performance optimization
+- Retry pattern analysis for reliability improvement
+- Success rate tracking for effectiveness measurement
+- Integration with monitoring and alerting systems

@@ -1,0 +1,370 @@
+#+TITLE: Rollback Coordination Flow - System State Rollback and Recovery
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+This flow documents the sophisticated rollback coordination process in ByteHot, showing how the system creates snapshots, manages cascading rollbacks, and coordinates recovery across multiple classes and framework integrations. This flow ensures system consistency when hot-swap operations must be undone.
+
+** Flow Trigger
+- **Starting Event**: Rollback request (manual or automatic due to failure)
+- **Ending Event**: `RollbackResult` with complete system restoration
+- **Duration**: 200ms - 10s depending on rollback scope and complexity
+- **Criticality**: High - Essential for system reliability and consistency
+
+* Flow Participants
+
+** Primary Actors
+- `RollbackManager` (Domain): Orchestrates all rollback operations
+- `RollbackSnapshot` (Domain): Contains captured system state
+- `StatePreserver` (Domain): Handles instance state restoration
+- `ConflictResolutionStrategy` (Domain): Resolves rollback conflicts
+
+** Secondary Actors
+- `InstanceTracker` (Domain): Tracks instances affected by rollback
+- `FrameworkIntegration` (Domain): Framework-aware rollback operations
+- `RollbackAuditTrail` (Domain): Tracks rollback operation history
+- `ErrorRecoveryManager` (Domain): Coordinates with error recovery
+
+* Snapshot Creation and Management
+
+** Phase 1: Snapshot Creation
+```
+[ Pre-Operation State ] --> [ Snapshot Creation ] --> [ State Capture ] --> [ Snapshot Validation ]
+                                    |                      |                     |
+                                    v                      v                     v
+                            [ Metadata Collection ] --> [ Serialization ] --> [ Storage ]
+```
+
+Before any risky operation, system state is captured:
+
+1. **Snapshot Initialization**: Create new `RollbackSnapshot` with:
+   - Unique snapshot ID
+   - Timestamp of creation
+   - Target class name
+   - Operation context metadata
+
+2. **State Capture**: Comprehensive state preservation:
+   - **Bytecode Capture**: Store current class bytecode
+   - **Instance State Capture**: Use `StatePreserver` to capture all instance states
+   - **Framework State**: Capture framework-specific configurations
+   - **Dependency Graph**: Map inter-object relationships
+
+3. **Metadata Collection**: Gather operation context:
+   - Operation type (hot-swap, configuration change)
+   - User/trigger information
+   - System performance metrics at snapshot time
+   - Framework integration status
+
+4. **Snapshot Validation**: Ensure snapshot integrity:
+   - Verify all required state is captured
+   - Check serialization completeness
+   - Validate state consistency
+   - Confirm rollback feasibility
+
+** Phase 2: Snapshot Chain Management
+```
+[ Current Snapshot ] --> [ Previous Snapshot Link ] --> [ Chain Validation ] --> [ Cleanup Policy ]
+```
+
+Snapshots are organized into chains for complex rollback scenarios:
+
+1. **Chain Linking**: Connect snapshots in temporal order:
+   - Link to previous snapshot for same class
+   - Maintain chronological order
+   - Support branching for concurrent operations
+
+2. **Chain Validation**: Ensure chain integrity:
+   - Verify link consistency
+   - Check for broken chains
+   - Validate rollback paths
+
+3. **Cleanup Policy**: Manage snapshot lifecycle:
+   - Automatic cleanup of old snapshots
+   - Retention policies for critical operations
+   - Memory management for large snapshots
+
+* Rollback Execution Flow
+
+** Phase 3: Rollback Initiation
+```
+[ Rollback Request ] --> [ Snapshot Selection ] --> [ Rollback Planning ] --> [ Conflict Analysis ]
+                               |                         |                       |
+                               v                         v                       v
+                      [ Chain Analysis ] --> [ Resource Allocation ] --> [ Strategy Selection ]
+```
+
+When rollback is requested, comprehensive planning occurs:
+
+1. **Snapshot Selection**: Choose appropriate rollback target:
+   - Specific snapshot ID (manual selection)
+   - Latest stable snapshot (automatic)
+   - Chain-based rollback (multiple snapshots)
+
+2. **Rollback Planning**: Create detailed rollback execution plan:
+   - Affected classes and instances
+   - Rollback order (dependencies first)
+   - Resource requirements
+   - Expected duration estimates
+
+3. **Conflict Analysis**: Identify potential conflicts:
+   - Concurrent operations on same classes
+   - Framework-managed instance conflicts
+   - Resource lock conflicts
+   - Cross-class dependency conflicts
+
+4. **Strategy Selection**: Choose rollback approach:
+   - **Simple Rollback**: Single class, no dependencies
+   - **Cascading Rollback**: Multiple related classes
+   - **Partial Rollback**: Selective instance rollback
+   - **Framework-Coordinated**: Framework-aware rollback
+
+** Phase 4: Coordinated Rollback Execution
+```
+[ Rollback Plan ] --> [ Class Redefinition ] --> [ Instance Restoration ] --> [ Framework Update ]
+                            |                        |                         |
+                            v                        v                         v
+                   [ Bytecode Rollback ] --> [ State Restoration ] --> [ Validation ]
+```
+
+Execute rollback with careful coordination:
+
+1. **Class Redefinition Rollback**: Restore previous class definitions:
+   - Load bytecode from snapshot
+   - Use JVM instrumentation to redefine classes
+   - Verify successful redefinition
+   - Handle JVM rejection gracefully
+
+2. **Instance State Restoration**: Restore captured instance states:
+   - **State Extraction**: Extract preserved states from snapshot
+   - **Instance Identification**: Map states to current instances
+   - **State Application**: Apply preserved state to instances
+   - **Consistency Verification**: Ensure state consistency
+
+3. **Framework Integration Updates**: Coordinate with frameworks:
+   - Update framework-managed instances
+   - Refresh dependency injection graphs
+   - Update proxy configurations
+   - Synchronize framework metadata
+
+4. **Validation and Verification**: Ensure rollback success:
+   - Verify class definitions match snapshot
+   - Check instance state consistency
+   - Validate framework integration
+   - Confirm system stability
+
+* Cascading Rollback Management
+
+** Multi-Class Rollback Coordination
+```
+[ Primary Class Rollback ] --> [ Dependency Analysis ] --> [ Cascading Rollback ] --> [ Coordination ]
+                                      |                         |                       |
+                                      v                         v                       v
+                              [ Dependent Classes ] --> [ Rollback Order ] --> [ Batch Execution ]
+```
+
+When rollback affects multiple classes:
+
+1. **Dependency Analysis**: Map class dependencies:
+   - Direct dependencies (inheritance, composition)
+   - Framework dependencies (injection relationships)
+   - Runtime dependencies (method calls, field access)
+
+2. **Rollback Order Determination**: Calculate optimal rollback sequence:
+   - Dependencies rolled back before dependents
+   - Framework constraints considered
+   - Performance optimization
+   - Error minimization
+
+3. **Batch Coordination**: Execute coordinated rollback:
+   - **Preparation Phase**: Prepare all classes for rollback
+   - **Execution Phase**: Execute rollbacks in determined order
+   - **Validation Phase**: Verify each rollback before proceeding
+   - **Completion Phase**: Finalize all rollback operations
+
+** Conflict Resolution During Cascading Rollback
+```
+[ Rollback Conflict ] --> [ Conflict Analysis ] --> [ Resolution Strategy ] --> [ Coordinated Resolution ]
+```
+
+Handle conflicts that arise during complex rollbacks:
+
+1. **Conflict Detection**: Identify rollback conflicts:
+   - Timing conflicts (concurrent operations)
+   - Dependency conflicts (circular dependencies)
+   - Framework conflicts (container management issues)
+   - Resource conflicts (memory, file locks)
+
+2. **Resolution Strategy Selection**: Choose conflict resolution approach:
+   - **Wait Strategy**: Wait for conflicting operations to complete
+   - **Abort Strategy**: Abort conflicting operations
+   - **Merge Strategy**: Merge compatible changes
+   - **Manual Strategy**: Require manual intervention
+
+3. **Coordinated Resolution**: Execute resolution strategy:
+   - Coordinate with other ByteHot operations
+   - Communicate with framework containers
+   - Manage resource allocation
+   - Ensure atomicity of resolution
+
+* Advanced Rollback Scenarios
+
+** Partial Rollback Flow
+```
+[ Selective Rollback Request ] --> [ Instance Selection ] --> [ Targeted Rollback ] --> [ State Synchronization ]
+```
+
+When only specific instances need rollback:
+
+1. **Instance Selection**: Identify specific instances for rollback:
+   - Instance ID-based selection
+   - Criteria-based selection (state, type, framework)
+   - Manual instance selection
+
+2. **Targeted Rollback**: Rollback only selected instances:
+   - Preserve non-selected instances
+   - Maintain overall system consistency
+   - Handle inter-instance dependencies
+
+3. **State Synchronization**: Ensure consistent system state:
+   - Synchronize dependencies between rolled-back and non-rolled-back instances
+   - Update framework registrations
+   - Validate system consistency
+
+** Cross-Framework Rollback
+```
+[ Multi-Framework Environment ] --> [ Framework Coordination ] --> [ Unified Rollback ] --> [ Integration Validation ]
+```
+
+When multiple frameworks are involved:
+
+1. **Framework Coordination**: Coordinate rollback across frameworks:
+   - Spring + CDI environments
+   - Nested container scenarios
+   - Framework interdependencies
+
+2. **Unified Rollback Strategy**: Execute framework-aware rollback:
+   - Framework-specific rollback procedures
+   - Cross-framework dependency handling
+   - Unified transaction semantics
+
+3. **Integration Validation**: Ensure cross-framework consistency:
+   - Verify framework integration points
+   - Check cross-framework dependencies
+   - Validate unified system state
+
+* Rollback Performance and Monitoring
+
+** Performance Optimization
+```
+[ Rollback Performance ] --> [ Parallel Execution ] --> [ Resource Management ] --> [ Optimization Strategies ]
+```
+
+Optimize rollback performance:
+
+1. **Parallel Execution**: Execute independent rollbacks concurrently:
+   - Identify parallelizable operations
+   - Manage resource contention
+   - Coordinate completion timing
+
+2. **Resource Management**: Optimize resource usage:
+   - Memory allocation for snapshot data
+   - Thread pool management
+   - Framework resource coordination
+
+3. **Optimization Strategies**: Apply performance optimizations:
+   - Lazy loading of snapshot data
+   - Incremental state restoration
+   - Framework-specific optimizations
+
+** Monitoring and Auditing
+```
+[ Rollback Execution ] --> [ Audit Trail ] --> [ Performance Metrics ] --> [ Success Analysis ]
+```
+
+Comprehensive monitoring of rollback operations:
+
+1. **Audit Trail Creation**: Track all rollback activities:
+   - `RollbackAuditTrail` with complete operation history
+   - Individual `RollbackAuditEntry` for each step
+   - Timing and performance data
+   - Error and warning information
+
+2. **Performance Metrics**: Collect rollback performance data:
+   - Rollback duration by complexity
+   - Resource usage patterns
+   - Framework integration overhead
+   - Success/failure rates
+
+3. **Success Analysis**: Analyze rollback effectiveness:
+   - Complete vs. partial rollback success
+   - Framework integration effectiveness
+   - Conflict resolution success rates
+   - Long-term system stability
+
+* Error Handling and Recovery
+
+** Rollback Failure Management
+```
+[ Rollback Failure ] --> [ Failure Analysis ] --> [ Recovery Strategy ] --> [ Emergency Procedures ]
+```
+
+Handle cases where rollback itself fails:
+
+1. **Failure Analysis**: Categorize rollback failures:
+   - Snapshot corruption
+   - JVM redefinition rejection
+   - Framework integration failures
+   - Resource exhaustion
+
+2. **Recovery Strategy**: Attempt rollback recovery:
+   - Alternative snapshot selection
+   - Partial rollback completion
+   - Framework-specific recovery
+   - Manual intervention procedures
+
+3. **Emergency Procedures**: Last-resort recovery actions:
+   - System restart procedures
+   - Emergency state preservation
+   - Manual system restoration
+   - Data consistency verification
+
+* Rollback Flow Invariants
+
+** Pre-conditions
+- Valid rollback snapshot exists and is accessible
+- Target system state is consistent and stable
+- Required permissions and resources are available
+- No conflicting operations are in progress
+
+** Post-conditions
+- System state matches the targeted snapshot
+- All affected instances reflect the rolled-back state
+- Framework integrations are consistent with rollback
+- System is stable and ready for normal operations
+
+** Consistency Guarantees
+- Atomic rollback operations (all or nothing)
+- Temporal consistency (no partial time-state mixing)
+- Dependency consistency (dependent objects remain consistent)
+- Framework consistency (framework state matches rolled-back application state)
+
+* Architecture Integration
+
+** Event-Driven Rollback
+- All rollback operations emit appropriate events
+- Monitoring systems track rollback progress
+- Audit trails provide complete operation history
+- Integration with error recovery systems
+
+** Domain-Driven Design
+- Rollback logic encapsulated in domain layer
+- Clear separation of rollback concerns
+- Framework integration abstracted through ports
+- Business rules for rollback embedded in domain objects
+
+** Hexagonal Architecture Benefits
+- Rollback system isolated from infrastructure details
+- Multiple rollback adapters for different scenarios
+- Testable rollback logic independent of external systems
+- Pluggable conflict resolution strategies

@@ -1,0 +1,216 @@
+#+TITLE: ErrorType - Error Classification System
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =ErrorType= enum provides a comprehensive classification system for errors that can occur during ByteHot operations. It enables precise error categorization, appropriate recovery strategy selection, and systematic error handling across the entire system.
+
+** Key Responsibilities
+- Classify errors into distinct categories for targeted handling
+- Support error severity assessment and recovery strategy mapping
+- Provide human-readable descriptions for error reporting
+- Enable statistical analysis and pattern detection
+
+* Enum Definition
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorType.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: ErrorType.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: ErrorType
+ *
+ * Responsibilities:
+ *   - Classify different types of errors in ByteHot operations
+ *   - Support error handling strategy selection
+ *   - Provide error categorization for monitoring and analysis
+ *
+ * Collaborators:
+ *   - ErrorHandler: Uses error types for classification
+ *   - RecoveryStrategy: Maps error types to recovery approaches
+ *   - ErrorResult: Contains error type information
+ */
+package org.acmsl.bytehot.domain;
+
+/**
+ * Classification of different error types in ByteHot operations
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public enum ErrorType {
+
+    /**
+     * Errors related to bytecode validation and verification
+     */
+    VALIDATION_ERROR("Bytecode validation or verification error"),
+
+    /**
+     * Failures during class redefinition operations
+     */
+    REDEFINITION_FAILURE("Class redefinition operation failure"),
+
+    /**
+     * Errors during instance state updates after redefinition
+     */
+    INSTANCE_UPDATE_ERROR("Instance update operation error"),
+
+    /**
+     * Critical system errors that may require shutdown
+     */
+    CRITICAL_SYSTEM_ERROR("Critical system error requiring immediate attention"),
+
+    /**
+     * Security-related errors and access violations
+     */
+    SECURITY_ERROR("Security or access control error"),
+
+    /**
+     * File system access and I/O related errors
+     */
+    FILE_SYSTEM_ERROR("File system or I/O operation error"),
+
+    /**
+     * Configuration and setup related errors
+     */
+    CONFIGURATION_ERROR("Configuration or setup error"),
+
+    /**
+     * Network and communication related errors
+     */
+    NETWORK_ERROR("Network or communication error"),
+
+    /**
+     * Resource management and memory related errors
+     */
+    RESOURCE_ERROR("Resource management or memory error"),
+
+    /**
+     * Unknown or unclassified errors
+     */
+    UNKNOWN_ERROR("Unknown or unclassified error");
+
+    /**
+     * Human-readable description of the error type
+     */
+    private final String description;
+
+    /**
+     * Creates a new error type with description
+     * @param description human-readable description
+     */
+    ErrorType(final String description) {
+        this.description = description;
+    }
+
+    /**
+     * Gets the human-readable description of this error type
+     * @return description of the error type
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Returns whether this error type indicates a critical system condition
+     * @return true if error type is critical
+     */
+    public boolean isCritical() {
+        return this == CRITICAL_SYSTEM_ERROR || this == SECURITY_ERROR;
+    }
+
+    /**
+     * Returns whether this error type is typically recoverable
+     * @return true if error type is generally recoverable
+     */
+    public boolean isRecoverable() {
+        return this != CRITICAL_SYSTEM_ERROR;
+    }
+
+    /**
+     * Returns whether this error type requires immediate attention
+     * @return true if immediate attention is required
+     */
+    public boolean requiresImmediateAttention() {
+        return this == CRITICAL_SYSTEM_ERROR || this == SECURITY_ERROR || this == RESOURCE_ERROR;
+    }
+
+    /**
+     * Returns whether this error type is related to ByteHot core operations
+     * @return true if error is core operation related
+     */
+    public boolean isCoreOperation() {
+        return this == VALIDATION_ERROR || this == REDEFINITION_FAILURE || this == INSTANCE_UPDATE_ERROR;
+    }
+
+    @Override
+    public String toString() {
+        return description;
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Error Classification
+
+#+begin_src java
+public ErrorType classifyException(Throwable error) {
+    if (error instanceof BytecodeValidationException) {
+        return ErrorType.VALIDATION_ERROR;
+    }
+    if (error instanceof SecurityException) {
+        return ErrorType.SECURITY_ERROR;
+    }
+    if (error instanceof OutOfMemoryError) {
+        return ErrorType.CRITICAL_SYSTEM_ERROR;
+    }
+    return ErrorType.UNKNOWN_ERROR;
+}
+#+end_src
+
+** Recovery Strategy Mapping
+
+#+begin_src java
+public RecoveryStrategy selectStrategy(ErrorType errorType) {
+    if (errorType.isCritical()) {
+        return RecoveryStrategy.EMERGENCY_SHUTDOWN;
+    }
+    if (errorType.isCoreOperation()) {
+        return RecoveryStrategy.ROLLBACK_CHANGES;
+    }
+    return RecoveryStrategy.RETRY_OPERATION;
+}
+#+end_src
+
+* Architecture Notes
+
+The ErrorType enum provides a hierarchical classification system that enables:
+- Systematic error handling with appropriate recovery strategies
+- Statistical analysis and monitoring of error patterns
+- Clear separation between critical and recoverable errors
+- Framework for extending error classification as needed
