@@ -1,0 +1,615 @@
+# Milestone 5: Integration & Testing
+
+## Overview
+
+This final milestone focuses on comprehensive integration testing and ensuring the complete ByteHot system works end-to-end. It validates the entire workflow from file system changes to successful hot-swapping with instance updates, providing confidence in the MVP's reliability and performance.
+
+## Objectives
+
+- **End-to-end workflow validation** from file change to instance update
+- **Integration testing** with real JVM instrumentation and class files
+- **Performance benchmarking** and optimization
+- **Production readiness** testing and validation
+- **Comprehensive documentation** and deployment guides
+
+## Integration Test Scenarios
+
+### 1. Complete Hot-Swap Workflow
+**Scenario:** Developer modifies a class, compiles it, and ByteHot automatically hot-swaps it
+
+**Test Flow:**
+```
+File Change → Detection → Analysis → Validation → Hot-Swap → Instance Update
+     ↓            ↓          ↓          ↓          ↓           ↓
+ClassFileChanged → ClassMetadataExtracted → BytecodeValidated → HotSwapRequested → ClassRedefinitionSucceeded → InstancesUpdated
+```
+
+**Test Implementation:**
+```java
+@Test
+public void testCompleteHotSwapWorkflow() throws Exception {
+    // 1. Setup: Create initial class and load it
+    Path sourceFile = createJavaSourceFile("TestService", "v1");
+    Path classFile = compileJavaSource(sourceFile);
+    Class<?> originalClass = loadClass(classFile);
+    Object instance = originalClass.newInstance();
+    
+    // 2. Verify initial behavior
+    Object result1 = invokeMethod(instance, "getValue");
+    assertEquals("v1", result1);
+    
+    // 3. Start ByteHot monitoring
+    ByteHotApplication app = new ByteHotApplication();
+    EventCollector collector = new EventCollector();
+    app.subscribe(collector);
+    app.startMonitoring(classFile.getParent());
+    
+    // 4. Modify and recompile class
+    updateJavaSourceFile(sourceFile, "TestService", "v2");
+    compileJavaSource(sourceFile); // Triggers file system event
+    
+    // 5. Wait for hot-swap completion
+    collector.waitForEvent(InstancesUpdated.class, Duration.ofSeconds(5));
+    
+    // 6. Verify new behavior on existing instance
+    Object result2 = invokeMethod(instance, "getValue");
+    assertEquals("v2", result2); // Same instance, new behavior!
+    
+    // 7. Verify all events were generated
+    assertEventSequence(collector, 
+        ClassFileChanged.class,
+        ClassMetadataExtracted.class,
+        BytecodeValidated.class,
+        HotSwapRequested.class,
+        ClassRedefinitionSucceeded.class,
+        InstancesUpdated.class
+    );
+}
+```
+
+### 2. Multiple Class Dependencies
+**Scenario:** Hot-swap a class that depends on other classes
+
+**Test Implementation:**
+```java
+@Test
+public void testDependentClassHotSwap() throws Exception {
+    // 1. Create class hierarchy: Service -> Repository -> Entity
+    compileClassHierarchy("UserService", "UserRepository", "User");
+    
+    // 2. Load and instantiate classes
+    UserService service = loadAndInstantiate("UserService");
+    
+    // 3. Modify middle layer (Repository)
+    updateRepositoryImplementation("UserRepository");
+    
+    // 4. Verify hot-swap propagates correctly
+    waitForHotSwapCompletion();
+    
+    // 5. Test that Service uses new Repository behavior
+    verifyServiceBehaviorUpdated(service);
+}
+```
+
+### 3. Framework Integration Testing
+**Scenario:** Hot-swap classes managed by Spring Framework
+
+**Test Implementation:**
+```java
+@SpringBootTest
+@TestMethodOrder(OrderAnnotation.class)
+public class SpringIntegrationTest {
+    
+    @Autowired
+    private ApplicationContext context;
+    
+    @Test
+    @Order(1)
+    public void testSpringBeanHotSwap() throws Exception {
+        // 1. Get Spring-managed bean
+        TestService service = context.getBean(TestService.class);
+        assertEquals("initial", service.getValue());
+        
+        // 2. Trigger hot-swap
+        hotSwapServiceClass("TestService", "updated");
+        
+        // 3. Verify bean instance updated
+        assertEquals("updated", service.getValue());
+        
+        // 4. Verify Spring context is still healthy
+        assertTrue(((ConfigurableApplicationContext) context).isActive());
+    }
+}
+```
+
+### 4. Error Handling and Recovery
+**Scenario:** Test various failure modes and recovery strategies
+
+**Test Implementation:**
+```java
+@Test
+public void testIncompatibleChangeRejection() throws Exception {
+    // 1. Load initial class
+    TestClass instance = loadTestClass("v1");
+    
+    // 2. Attempt incompatible change (add field)
+    Path incompatibleClass = createIncompatibleClassFile("TestClass");
+    
+    // 3. Verify rejection
+    EventCollector collector = triggerHotSwap(incompatibleClass);
+    
+    // 4. Verify failure events
+    BytecodeRejected rejection = collector.waitForEvent(BytecodeRejected.class);
+    assertThat(rejection.getRejectionReason()).contains("schema changes");
+    
+    // 5. Verify original instance still works
+    assertEquals("v1", instance.getValue());
+    
+    // 6. Verify system remains stable
+    assertTrue(isSystemHealthy());
+}
+
+@Test
+public void testJvmRedefinitionFailure() throws Exception {
+    // 1. Create scenario that passes validation but fails at JVM level
+    TestClass instance = loadTestClass();
+    
+    // 2. Mock JVM instrumentation to fail
+    mockInstrumentationFailure();
+    
+    // 3. Trigger hot-swap
+    EventCollector collector = triggerHotSwap();
+    
+    // 4. Verify failure handling
+    ClassRedefinitionFailed failure = collector.waitForEvent(ClassRedefinitionFailed.class);
+    assertNotNull(failure.getFailureReason());
+    
+    // 5. Verify graceful degradation
+    assertEquals("original", instance.getValue()); // Unchanged
+    assertTrue(isSystemHealthy());
+}
+```
+
+### 5. Performance and Stress Testing
+**Scenario:** Test system performance under various loads
+
+**Test Implementation:**
+```java
+@Test
+public void testRapidHotSwapPerformance() throws Exception {
+    // 1. Setup performance monitoring
+    PerformanceMonitor monitor = new PerformanceMonitor();
+    
+    // 2. Perform rapid hot-swaps
+    for (int i = 0; i < 100; i++) {
+        long start = System.nanoTime();
+        
+        hotSwapClass("TestClass", "version" + i);
+        waitForCompletion();
+        
+        long duration = System.nanoTime() - start;
+        monitor.recordHotSwapTime(duration);
+    }
+    
+    // 3. Verify performance metrics
+    assertThat(monitor.getAverageHotSwapTime()).isLessThan(Duration.ofMillis(100));
+    assertThat(monitor.getMaxHotSwapTime()).isLessThan(Duration.ofSeconds(1));
+    assertThat(monitor.getSuccessRate()).isGreaterThan(0.95);
+}
+
+@Test
+public void testConcurrentHotSwaps() throws Exception {
+    // 1. Setup concurrent hot-swap scenario
+    ExecutorService executor = Executors.newFixedThreadPool(10);
+    List<Future<Boolean>> futures = new ArrayList<>();
+    
+    // 2. Trigger concurrent hot-swaps of different classes
+    for (int i = 0; i < 10; i++) {
+        final String className = "TestClass" + i;
+        futures.add(executor.submit(() -> {
+            try {
+                return performHotSwap(className);
+            } catch (Exception e) {
+                return false;
+            }
+        }));
+    }
+    
+    // 3. Verify all complete successfully
+    for (Future<Boolean> future : futures) {
+        assertTrue(future.get(10, TimeUnit.SECONDS));
+    }
+}
+```
+
+## Real JVM Integration Tests
+
+### Agent Deployment Testing
+```java
+@Test
+public void testAgentDeployment() throws Exception {
+    // 1. Start JVM with ByteHot agent
+    ProcessBuilder pb = new ProcessBuilder(
+        "java",
+        "-javaagent:target/bytehot-agent.jar",
+        "-cp", "target/test-classes",
+        "TestApplication"
+    );
+    
+    Process process = pb.start();
+    
+    // 2. Verify agent initialization
+    String output = readProcessOutput(process);
+    assertThat(output).contains("ByteHot agent initialized");
+    assertThat(output).contains("Instrumentation available: true");
+    
+    // 3. Test hot-swap functionality
+    communicateWithTestApp(process, "HOTSWAP_REQUEST");
+    
+    // 4. Verify hot-swap success
+    String response = readResponse(process);
+    assertThat(response).contains("Hot-swap successful");
+    
+    process.destroyForcibly();
+}
+```
+
+### Runtime Attachment Testing
+```java
+@Test
+public void testRuntimeAgentAttachment() throws Exception {
+    // 1. Start target JVM without agent
+    Process targetJvm = startTargetApplication();
+    String pid = getProcessId(targetJvm);
+    
+    // 2. Attach agent at runtime
+    VirtualMachine vm = VirtualMachine.attach(pid);
+    vm.loadAgent("target/bytehot-agent.jar");
+    vm.detach();
+    
+    // 3. Verify agent is active
+    boolean agentActive = checkAgentStatus(targetJvm);
+    assertTrue(agentActive);
+    
+    // 4. Test hot-swap functionality
+    performRuntimeHotSwap(targetJvm);
+    
+    targetJvm.destroyForcibly();
+}
+```
+
+## Test Infrastructure
+
+### EventCollector
+**Responsibility:** Capture and analyze domain events during testing
+
+```java
+public class EventCollector implements EventSubscriber {
+    private final Map<Class<?>, List<Object>> events = new ConcurrentHashMap<>();
+    private final CountDownLatch completionLatch = new CountDownLatch(1);
+    
+    @Override
+    public void onEvent(Object event) {
+        events.computeIfAbsent(event.getClass(), k -> new ArrayList<>()).add(event);
+        if (event instanceof InstancesUpdated) {
+            completionLatch.countDown(); // End of workflow
+        }
+    }
+    
+    public <T> T waitForEvent(Class<T> eventType, Duration timeout) throws TimeoutException {
+        // Wait for specific event with timeout
+    }
+    
+    public void assertEventSequence(Class<?>... expectedEvents) {
+        // Verify events occurred in expected order
+    }
+}
+```
+
+### TestClassCompiler
+**Responsibility:** Dynamically compile Java source code for testing
+
+```java
+public class TestClassCompiler {
+    private final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+    
+    public Path compileClass(String className, String sourceCode) throws IOException {
+        // 1. Write source to temporary file
+        Path sourceFile = writeSourceFile(className, sourceCode);
+        
+        // 2. Compile using JavaCompiler API
+        StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null);
+        Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjects(sourceFile);
+        
+        CompilationTask task = compiler.getTask(null, fileManager, null, null, null, sources);
+        boolean success = task.call();
+        
+        if (!success) {
+            throw new RuntimeException("Compilation failed for " + className);
+        }
+        
+        // 3. Return path to compiled .class file
+        return sourceFile.getParent().resolve(className + ".class");
+    }
+}
+```
+
+### MockInstrumentation
+**Responsibility:** Mock JVM instrumentation for unit testing
+
+```java
+public class MockInstrumentation implements Instrumentation {
+    private boolean redefinitionSupported = true;
+    private Exception redefinitionException = null;
+    
+    public void setRedefinitionSupported(boolean supported) {
+        this.redefinitionSupported = supported;
+    }
+    
+    public void setRedefinitionException(Exception exception) {
+        this.redefinitionException = exception;
+    }
+    
+    @Override
+    public void redefineClasses(ClassDefinition... definitions) 
+            throws UnsupportedOperationException {
+        if (!redefinitionSupported) {
+            throw new UnsupportedOperationException("Redefinition not supported");
+        }
+        if (redefinitionException != null) {
+            throw new RuntimeException(redefinitionException);
+        }
+        // Simulate successful redefinition
+    }
+}
+```
+
+## Performance Benchmarking
+
+### Metrics Collection
+```java
+public class HotSwapPerformanceMetrics {
+    // Timing metrics
+    private final Timer fileDetectionTime;
+    private final Timer bytecodeAnalysisTime;
+    private final Timer validationTime;
+    private final Timer redefinitionTime;
+    private final Timer instanceUpdateTime;
+    private final Timer totalHotSwapTime;
+    
+    // Throughput metrics
+    private final Counter successfulHotSwaps;
+    private final Counter failedHotSwaps;
+    private final Gauge activeBytecodeAnalyses;
+    
+    // System impact metrics
+    private final Gauge memoryUsage;
+    private final Gauge cpuUsage;
+    private final Counter fileSystemEvents;
+}
+```
+
+### Performance Benchmarks
+```java
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@State(Scope.Benchmark)
+public class HotSwapBenchmark {
+    
+    @Benchmark
+    public void benchmarkSimpleMethodBodyChange() throws Exception {
+        // Measure time for simple method body hot-swap
+        hotSwapManager.performSimpleChange("TestClass", "methodBody");
+    }
+    
+    @Benchmark
+    public void benchmarkComplexClassHotSwap() throws Exception {
+        // Measure time for complex class with many methods
+        hotSwapManager.performComplexChange("ComplexClass", "multipleMethodBodies");
+    }
+    
+    @Benchmark
+    public void benchmarkFrameworkIntegratedClass() throws Exception {
+        // Measure time for Spring-managed bean hot-swap
+        hotSwapManager.performSpringBeanChange("SpringService", "methodBody");
+    }
+}
+```
+
+### Performance Requirements
+- **File Detection Latency:** < 100ms from file change to detection
+- **Analysis Time:** < 50ms for typical class files
+- **Validation Time:** < 20ms for compatible changes
+- **Redefinition Time:** < 30ms for JVM redefinition
+- **Instance Update Time:** < 10ms per 100 instances
+- **Total Hot-Swap Time:** < 200ms end-to-end
+- **Memory Overhead:** < 10MB for monitoring 1000 classes
+- **CPU Overhead:** < 2% during normal operation
+
+## Production Testing
+
+### Smoke Tests
+```java
+@Test
+public void productionSmokeTest() throws Exception {
+    // 1. Deploy ByteHot agent to production-like environment
+    deployAgent();
+    
+    // 2. Start real application
+    Application app = startApplication();
+    
+    // 3. Perform basic hot-swap
+    boolean success = performBasicHotSwap();
+    assertTrue(success);
+    
+    // 4. Verify application health
+    assertTrue(app.isHealthy());
+    
+    // 5. Check for any errors or warnings
+    assertNoErrorsInLogs();
+}
+```
+
+### Load Testing
+```java
+@Test
+public void loadTestHotSwapUnderTraffic() throws Exception {
+    // 1. Start application with simulated user load
+    LoadGenerator loadGen = new LoadGenerator();
+    loadGen.startLoad(1000); // 1000 req/sec
+    
+    // 2. Perform hot-swaps during load
+    for (int i = 0; i < 10; i++) {
+        performHotSwap("ServiceClass", "version" + i);
+        Thread.sleep(30000); // 30 second intervals
+    }
+    
+    // 3. Verify no impact on user requests
+    assertThat(loadGen.getErrorRate()).isLessThan(0.01); // < 1% errors
+    assertThat(loadGen.getAverageResponseTime()).isLessThan(Duration.ofMillis(500));
+    
+    loadGen.stop();
+}
+```
+
+### Security Testing
+```java
+@Test
+public void securityValidationTest() throws Exception {
+    // 1. Verify agent doesn't expose sensitive information
+    assertNoSensitiveDataInLogs();
+    
+    // 2. Test with security manager enabled
+    System.setSecurityManager(new SecurityManager());
+    
+    // 3. Verify hot-swap still works with appropriate permissions
+    boolean success = performHotSwap();
+    assertTrue(success);
+    
+    // 4. Verify unauthorized hot-swap attempts are rejected
+    assertThrows(SecurityException.class, () -> {
+        performUnauthorizedHotSwap();
+    });
+}
+```
+
+## Documentation and Deployment
+
+### Deployment Guides
+1. **Agent Installation Guide**
+   - JVM agent configuration
+   - Manifest requirements
+   - Command-line options
+
+2. **Framework Integration Guide**
+   - Spring Boot integration
+   - CDI integration
+   - Custom framework integration
+
+3. **Production Deployment Guide**
+   - Performance tuning
+   - Monitoring setup
+   - Troubleshooting guide
+
+4. **Developer Setup Guide**
+   - IDE integration
+   - Development workflow
+   - Testing procedures
+
+### Configuration Documentation
+```yaml
+# bytehot-config.yml
+bytehot:
+  agent:
+    enabled: true
+    log-level: INFO
+    
+  file-monitoring:
+    watch-directories:
+      - "/app/classes"
+      - "/app/lib"
+    polling-interval: 500ms
+    
+  validation:
+    strict-mode: false
+    allow-schema-changes: false
+    
+  performance:
+    max-concurrent-hotswaps: 5
+    timeout: 30s
+    
+  integration:
+    spring:
+      enabled: true
+      refresh-context: true
+    cdi:
+      enabled: false
+```
+
+## Success Criteria
+
+### Functional Requirements
+- ✅ **End-to-end workflow:** Complete hot-swap from file change to instance update
+- ✅ **Framework integration:** Working integration with Spring/CDI
+- ✅ **Error handling:** Graceful failure handling and recovery
+- ✅ **Multi-class scenarios:** Complex class hierarchies and dependencies
+
+### Performance Requirements
+- ✅ **Sub-second hot-swap:** < 200ms total time for typical classes
+- ✅ **Low overhead:** < 2% CPU, < 10MB memory for normal monitoring
+- ✅ **High reliability:** > 99% success rate for compatible changes
+- ✅ **Concurrent support:** Multiple simultaneous hot-swaps
+
+### Production Requirements
+- ✅ **Security compliance:** Safe for production deployment
+- ✅ **Monitoring integration:** Observable metrics and health checks
+- ✅ **Configuration management:** Flexible configuration options
+- ✅ **Documentation completeness:** Comprehensive guides and examples
+
+### Quality Requirements
+- ✅ **Test coverage:** > 90% code coverage across all milestones
+- ✅ **Integration testing:** Real JVM and framework testing
+- ✅ **Performance benchmarking:** Established performance baselines
+- ✅ **User documentation:** Complete deployment and usage guides
+
+## Completion Criteria
+
+### MVP Readiness Checklist
+- [ ] All 10 domain events implemented and tested
+- [ ] End-to-end hot-swap workflow functional
+- [ ] JVM agent deployment working
+- [ ] Framework integration (Spring) operational
+- [ ] Performance requirements met
+- [ ] Production deployment guide complete
+- [ ] Security validation passed
+- [ ] Load testing completed successfully
+
+### Release Artifacts
+1. **ByteHot Agent JAR** - Deployable JVM agent
+2. **Integration Libraries** - Spring/CDI integration modules
+3. **Documentation Package** - Deployment and usage guides
+4. **Example Applications** - Working demonstration projects
+5. **Performance Benchmarks** - Baseline performance data
+
+## Future Roadmap
+
+### Post-MVP Enhancements
+1. **Real Bytecode Analysis** - Replace mock parsing with ASM library
+2. **Advanced Framework Support** - Additional framework integrations
+3. **Cloud-Native Features** - Kubernetes deployment, service mesh integration
+4. **Developer Tools** - IDE plugins, CLI tools, debugging utilities
+5. **Enterprise Features** - Multi-tenant support, audit logging, governance
+
+### Community and Ecosystem
+1. **Open Source Release** - GitHub repository and community building
+2. **Plugin Architecture** - Extensible system for custom integrations
+3. **Documentation Website** - Comprehensive online documentation
+4. **Community Examples** - Real-world usage examples and patterns
+
+## Completion Status: 📋 PLANNED
+
+**Dependencies:** Requires completion of Milestones 1-4
+
+**Estimated Effort:** 2-3 weeks for comprehensive integration testing and documentation
+
+**Critical Path:** End-to-end testing → Performance validation → Production readiness → Documentation

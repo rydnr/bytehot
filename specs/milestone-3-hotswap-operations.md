@@ -1,0 +1,395 @@
+# Milestone 3: Hot-Swap Operations
+
+## Overview
+
+This milestone implements the core hot-swap functionality using the Java Instrumentation API to perform runtime class redefinition. This is the heart of ByteHot: taking validated bytecode and safely updating running classes in the JVM without restart.
+
+## Objectives
+
+- **Initiate hot-swap operations** when validated bytecode is available
+- **Interface with JVM Instrumentation API** for class redefinition
+- **Handle redefinition success and failure** scenarios gracefully
+- **Provide detailed feedback** about hot-swap operations
+- **Maintain system stability** during class updates
+
+## Domain Events
+
+### 1. HotSwapRequested
+**Trigger:** When a hot-swap operation is initiated for validated bytecode
+**Use Case:** Starting the actual class redefinition process
+
+**Event Properties:**
+- `classFile` (Path) - Path to the .class file being hot-swapped
+- `className` (String) - Fully qualified name of the class
+- `originalBytecode` (byte[]) - Current bytecode in JVM
+- `newBytecode` (byte[]) - New bytecode to install
+- `requestReason` (String) - Why hot-swap was requested
+- `timestamp` (Instant) - When hot-swap was requested
+
+**Example Scenario:**
+```java
+// After successful validation, initiate hot-swap
+HotSwapRequested event = new HotSwapRequested(
+    Paths.get("/classes/com/example/UserService.class"),
+    "com.example.UserService",
+    currentBytecode, // from JVM
+    newBytecode,     // from file
+    "File change detected and validated",
+    Instant.now()
+);
+```
+
+### 2. ClassRedefinitionSucceeded
+**Trigger:** When JVM successfully redefines a class
+**Use Case:** Confirming hot-swap completed successfully
+
+**Event Properties:**
+- `className` (String) - Name of the redefined class
+- `classFile` (Path) - Source file that was hot-swapped
+- `affectedInstances` (int) - Number of existing instances updated
+- `redefinitionDetails` (String) - Technical details about the operation
+- `duration` (Duration) - Time taken for redefinition
+- `timestamp` (Instant) - When redefinition completed
+
+**Example Scenario:**
+```java
+// JVM successfully redefined the class
+ClassRedefinitionSucceeded event = new ClassRedefinitionSucceeded(
+    "com.example.UserService",
+    Paths.get("/classes/com/example/UserService.class"),
+    3, // 3 existing instances updated
+    "Method implementation updated successfully",
+    Duration.ofMillis(15),
+    Instant.now()
+);
+```
+
+### 3. ClassRedefinitionFailed
+**Trigger:** When JVM rejects the class redefinition
+**Use Case:** Handling hot-swap failures for debugging and recovery
+
+**Event Properties:**
+- `className` (String) - Name of the class that failed to redefine
+- `classFile` (Path) - Source file that failed to hot-swap
+- `failureReason` (String) - Why the JVM rejected the redefinition
+- `jvmError` (String) - Original JVM error message
+- `recoveryAction` (String) - Suggested action for resolution
+- `timestamp` (Instant) - When redefinition failed
+
+**Common Failure Reasons:**
+- Schema incompatibility detected at JVM level
+- Class not found in loaded classes
+- Instrumentation not available
+- Security manager restrictions
+- JVM-specific limitations
+
+**Example Scenario:**
+```java
+// JVM rejected the redefinition
+ClassRedefinitionFailed event = new ClassRedefinitionFailed(
+    "com.example.UserService",
+    Paths.get("/classes/com/example/UserService.class"),
+    "JVM detected incompatible changes",
+    "java.lang.UnsupportedOperationException: class redefinition failed: attempted to change the schema",
+    "Restart application to load new class definition",
+    Instant.now()
+);
+```
+
+## Implementation Components
+
+### HotSwapManager
+**Responsibility:** Coordinate hot-swap operations and interface with JVM
+
+**Key Methods:**
+```java
+public HotSwapRequested requestHotSwap(ClassFile classFile, BytecodeValidated validation)
+public ClassRedefinitionSucceeded performRedefinition(HotSwapRequested request) 
+    throws HotSwapException
+public boolean isHotSwapSupported()
+public Set<Class<?>> getLoadedClasses(String className)
+```
+
+**Core Logic:**
+```java
+public ClassRedefinitionSucceeded performRedefinition(HotSwapRequested request) 
+    throws HotSwapException {
+    try {
+        // 1. Find loaded class
+        Class<?> loadedClass = findLoadedClass(request.getClassName());
+        
+        // 2. Create class definition
+        ClassDefinition definition = new ClassDefinition(loadedClass, request.getNewBytecode());
+        
+        // 3. Perform redefinition
+        instrumentation.redefineClasses(definition);
+        
+        // 4. Count affected instances
+        int affectedInstances = countInstances(loadedClass);
+        
+        // 5. Create success event
+        return new ClassRedefinitionSucceeded(...);
+        
+    } catch (Exception e) {
+        throw new HotSwapException(createFailedEvent(request, e));
+    }
+}
+```
+
+### InstrumentationProvider
+**Responsibility:** Provide access to JVM Instrumentation API
+
+**Key Features:**
+- Singleton pattern for global instrumentation access
+- Validation of instrumentation capabilities
+- Safe initialization and error handling
+
+```java
+public class InstrumentationProvider {
+    private static Instrumentation instrumentation;
+    
+    public static void setInstrumentation(Instrumentation inst) {
+        instrumentation = inst;
+    }
+    
+    public static boolean isAvailable() {
+        return instrumentation != null && instrumentation.isRedefineClassesSupported();
+    }
+    
+    public static Instrumentation get() throws IllegalStateException {
+        if (!isAvailable()) {
+            throw new IllegalStateException("Instrumentation not available");
+        }
+        return instrumentation;
+    }
+}
+```
+
+### HotSwapException
+**Responsibility:** Handle hot-swap failures with embedded domain events
+
+**Properties:**
+- `message` (String) - Exception message
+- `failureEvent` (ClassRedefinitionFailed) - Domain event with failure details
+- `cause` (Throwable) - Original exception from JVM
+
+### ByteHotAgent
+**Responsibility:** JVM agent entry point for instrumentation setup
+
+```java
+public class ByteHotAgent {
+    public static void premain(String agentArgs, Instrumentation inst) {
+        InstrumentationProvider.setInstrumentation(inst);
+        // Initialize ByteHot system
+    }
+    
+    public static void agentmain(String agentArgs, Instrumentation inst) {
+        // Runtime agent attachment
+        premain(agentArgs, inst);
+    }
+}
+```
+
+## JVM Instrumentation Integration
+
+### Required Capabilities
+The JVM must support these instrumentation features:
+- `canRedefineClasses()` - Basic redefinition support
+- `isRedefineClassesSupported()` - Runtime capability check
+
+### Agent Manifest
+```
+Manifest-Version: 1.0
+Premain-Class: org.acmsl.bytehot.agent.ByteHotAgent
+Agent-Class: org.acmsl.bytehot.agent.ByteHotAgent
+Can-Redefine-Classes: true
+Can-Retransform-Classes: true
+```
+
+### JVM Startup
+```bash
+java -javaagent:bytehot-agent.jar -cp myapp.jar com.example.MyApp
+```
+
+### Runtime Attachment
+```java
+// For development environments
+VirtualMachine vm = VirtualMachine.attach(processId);
+vm.loadAgent("/path/to/bytehot-agent.jar");
+```
+
+## Hot-Swap Workflow
+
+### End-to-End Process
+1. **File Change Detection** (Milestone 1)
+   - ClassFileChanged event detected
+   
+2. **Bytecode Analysis** (Milestone 2)
+   - Extract metadata: ClassMetadataExtracted
+   - Validate compatibility: BytecodeValidated
+   
+3. **Hot-Swap Request** (This Milestone)
+   - Create HotSwapRequested event
+   - Load current and new bytecode
+   
+4. **JVM Redefinition**
+   - Call `instrumentation.redefineClasses()`
+   - Handle success: ClassRedefinitionSucceeded
+   - Handle failure: ClassRedefinitionFailed
+
+### State Transitions
+```
+File Change → Validation → Hot-Swap Request → JVM Redefinition
+     ↓             ↓              ↓                ↓
+ClassFileChanged → BytecodeValidated → HotSwapRequested → ClassRedefinitionSucceeded
+                    ↓                                      ↓
+                BytecodeRejected                   ClassRedefinitionFailed
+```
+
+## Error Handling Strategies
+
+### JVM-Level Failures
+- **UnsupportedOperationException:** Schema changes detected by JVM
+- **ClassNotFoundException:** Class not loaded in current JVM
+- **IllegalArgumentException:** Invalid bytecode format
+- **SecurityException:** Security manager prevents redefinition
+
+### Recovery Actions
+- **Restart Recommendation:** For schema changes
+- **Retry Logic:** For transient failures
+- **Fallback Strategies:** Disable hot-swap for problematic classes
+- **User Notification:** Clear error messages and next steps
+
+### Graceful Degradation
+```java
+public boolean attemptHotSwap(ClassFile classFile) {
+    try {
+        if (!HotSwapManager.isSupported()) {
+            logger.warn("Hot-swap not supported, restart required");
+            return false;
+        }
+        
+        performHotSwap(classFile);
+        return true;
+        
+    } catch (HotSwapException e) {
+        logger.error("Hot-swap failed: " + e.getMessage());
+        notifyUser(e.getFailureEvent());
+        return false;
+    }
+}
+```
+
+## Technical Requirements
+
+### Performance
+- **Fast redefinition:** Minimize JVM pause time
+- **Efficient bytecode loading:** Avoid unnecessary I/O
+- **Concurrent safety:** Handle multiple redefinitions
+
+### Reliability
+- **Atomic operations:** All-or-nothing redefinition
+- **State consistency:** Ensure JVM remains stable
+- **Error recovery:** Clean up after failures
+
+### Monitoring
+- **Success metrics:** Track hot-swap success rate
+- **Performance metrics:** Measure redefinition times
+- **Error tracking:** Log and analyze failures
+
+## Integration Points
+
+### Input
+- **Validation events** from Milestone 2 (BytecodeValidated)
+- **JVM Instrumentation API** for class redefinition
+- **File system** for loading new bytecode
+
+### Output
+- **Operation events** (HotSwapRequested, ClassRedefinitionSucceeded, ClassRedefinitionFailed)
+- **JVM state changes** (updated class definitions)
+- **User notifications** for success/failure
+
+### Dependencies
+- Java Instrumentation API
+- Domain event infrastructure
+- Logging framework
+- Future: Milestone 4 (Instance Management)
+
+## Testing Strategy
+
+### Unit Tests
+- **Hot-swap request creation:** Verify correct event generation
+- **Success scenarios:** Test successful redefinition paths
+- **Failure scenarios:** Test JVM rejection handling
+- **Error propagation:** Verify exception and event handling
+
+### Integration Tests
+- **Mock JVM instrumentation:** Test without actual redefinition
+- **Agent initialization:** Verify instrumentation setup
+- **End-to-end workflow:** File change → hot-swap completion
+
+### Manual Testing
+- **Real JVM testing:** Deploy agent and test actual redefinition
+- **Performance testing:** Measure redefinition overhead
+- **Stress testing:** Multiple rapid redefinitions
+
+### Test Scenarios
+```java
+// Successful hot-swap
+HotSwapRequested request = createHotSwapRequest();
+ClassRedefinitionSucceeded result = hotSwapManager.performRedefinition(request);
+assertTrue(result.getAffectedInstances() >= 0);
+
+// Failed hot-swap
+HotSwapException exception = assertThrows(HotSwapException.class,
+    () -> hotSwapManager.performRedefinition(incompatibleRequest));
+ClassRedefinitionFailed failure = exception.getFailureEvent();
+assertNotNull(failure.getFailureReason());
+```
+
+## Success Criteria
+
+### Functional
+- ✅ **HotSwapRequested events** generated for validated bytecode
+- ✅ **ClassRedefinitionSucceeded events** for successful operations
+- ✅ **ClassRedefinitionFailed events** for JVM rejections
+- ✅ **JVM instrumentation integration** working properly
+
+### Technical
+- ✅ **Agent deployment** - proper manifest and initialization
+- ✅ **Error handling** - graceful failure recovery
+- ✅ **Performance** - minimal impact on application
+- ✅ **Stability** - no JVM crashes or corruption
+
+### Quality
+- ✅ **Test coverage** - comprehensive test suite
+- ✅ **Documentation** - clear deployment and usage guides
+- ✅ **Monitoring** - observable success/failure metrics
+
+## Future Enhancements
+
+### Advanced Features
+- **Partial redefinition:** Update only changed methods
+- **Rollback support:** Revert to previous class definition
+- **Batch operations:** Redefine multiple classes atomically
+- **Dependency tracking:** Handle class interdependencies
+
+### Performance Optimizations
+- **Bytecode diffing:** Only send changed portions
+- **Lazy loading:** Load bytecode on demand
+- **Caching strategies:** Avoid redundant operations
+
+### Enterprise Features
+- **Configuration management:** Hot-swap policies and rules
+- **Audit logging:** Track all redefinition operations
+- **Security integration:** Role-based hot-swap permissions
+- **Monitoring dashboards:** Real-time hot-swap metrics
+
+## Completion Status: 🚧 IN PROGRESS
+
+**Next Tasks:**
+1. Implement HotSwapRequested event and test
+2. Create HotSwapManager with JVM instrumentation
+3. Implement ClassRedefinitionSucceeded/Failed events
+4. Build ByteHotAgent for JVM integration
+5. Test with real JVM instrumentation

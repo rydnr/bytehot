@@ -269,3 +269,7 @@ When creating a PR, please ensure it:
 
 ### Dependency Management
 - Parent pom (acmsl-pom) is the only pom.xml allowed to define versions of dependencies. The only exceptions are plugin versions, if specifying them in child poms is inevitable to make them work.
+
+### Code Design Principles
+- private methods are not allowed. Make them protected. private methods violate the Open-Closed principle of SOLID. If they need to be immutable, make them final.
+- final classes are not allowed in general, besides certain scenarios (singleton pattern, enums). In other words, they need to be explicitly justified.

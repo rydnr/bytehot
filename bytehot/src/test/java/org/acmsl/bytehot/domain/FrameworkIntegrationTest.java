@@ -78,7 +78,7 @@ public class FrameworkIntegrationTest {
     public void registers_and_uses_factory_methods() {
         // Given: A factory method for creating service instances
         Supplier<TestService> factory = () -> new TestService("factory-created", 100);
-        Class<?> serviceClass = TestService.class;
+        Class<TestService> serviceClass = TestService.class;
         
         // When: Registering the factory
         frameworkIntegration.registerFactory(serviceClass, factory);
@@ -98,7 +98,7 @@ public class FrameworkIntegrationTest {
     @Test
     public void updates_instances_using_factory_pattern() {
         // Given: A service class with factory-managed instances
-        Class<?> serviceClass = TestService.class;
+        Class<TestService> serviceClass = TestService.class;
         Supplier<TestService> factory = () -> new TestService("refreshed-instance", 200);
         
         frameworkIntegration.registerFactory(serviceClass, factory);
@@ -179,7 +179,7 @@ public class FrameworkIntegrationTest {
     @Test
     public void handles_classes_without_factories() {
         // Given: A class without a registered factory
-        Class<?> serviceClass = TestService.class;
+        Class<TestService> serviceClass = TestService.class;
         
         // When: Checking for factory
         boolean hasFactory = frameworkIntegration.hasFactory(serviceClass);

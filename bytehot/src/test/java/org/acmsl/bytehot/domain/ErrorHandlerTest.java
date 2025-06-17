@@ -70,7 +70,8 @@ public class ErrorHandlerTest {
     public void handles_bytecode_validation_errors() {
         // Given: A bytecode validation error
         BytecodeValidationException validationError = new BytecodeValidationException(
-            "Invalid bytecode: method signature mismatch"
+            "Invalid bytecode: method signature mismatch",
+            null // No specific bytecode rejected event
         );
         
         // When: Handling the error
@@ -94,9 +95,9 @@ public class ErrorHandlerTest {
         ClassRedefinitionFailed redefinitionFailed = new ClassRedefinitionFailed(
             "com.example.UserService",
             Paths.get("/app/classes/UserService.class"),
-            new HotSwapException("JVM rejected class redefinition: unsupported changes"),
             "Structural changes not supported",
-            Duration.ofMillis(100),
+            "JVM rejected class redefinition: unsupported changes",
+            "Try using method body changes only",
             Instant.now()
         );
         
@@ -137,7 +138,7 @@ public class ErrorHandlerTest {
     @Test
     public void handles_critical_system_errors() {
         // Given: A critical system error
-        RuntimeException criticalError = new OutOfMemoryError("Java heap space");
+        Error criticalError = new OutOfMemoryError("Java heap space");
         
         // When: Handling the critical error
         ErrorResult result = errorHandler.handleError(criticalError, "com.example.Service");
@@ -178,7 +179,7 @@ public class ErrorHandlerTest {
         // Given: Different types of errors
         Exception warningError = new IllegalArgumentException("Invalid parameter");
         Exception errorLevel = new RuntimeException("Operation failed");
-        Exception criticalError = new OutOfMemoryError("Memory exhausted");
+        Error criticalError = new OutOfMemoryError("Memory exhausted");
         
         // When: Assessing severity
         ErrorSeverity warningSeverity = errorHandler.assessSeverity(warningError);
