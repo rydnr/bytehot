@@ -35,7 +35,6 @@
  */
 package org.acmsl.bytehot.domain;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -69,38 +68,12 @@ public class WatchConfiguration {
     private List<FolderWatch> folders;
 
     /**
-     * Loads the configuration from a YAML file.
-     * @param configFile the path to the configuration file.
+     * Loads the configuration using the ConfigurationPort.
      * @return a WatchConfiguration object containing the loaded configuration.
-     * @throws IOException if an error occurs while reading the file.
+     * @throws Exception if an error occurs while loading the configuration.
      */
-    public static WatchConfiguration load(final Path configFile)
-        throws IOException {
-        try (java.io.InputStream in = java.nio.file.Files.newInputStream(configFile)) {
-            org.yaml.snakeyaml.Yaml yaml = new org.yaml.snakeyaml.Yaml();
-            java.util.Map<String, Object> map = yaml.load(in);
-
-            int port = ((Number) map.getOrDefault("port", Defaults.PORT)).intValue();
-
-            java.util.List<FolderWatch> watches = new java.util.ArrayList<>();
-            java.util.List<?> folders = (java.util.List<?>) map.get("folders");
-            if (folders != null) {
-                for (Object entry : folders) {
-                    if (entry instanceof java.util.Map<?, ?> folderMap) {
-                        Object p = folderMap.get("path");
-                        Object i = folderMap.get("interval");
-                        if (p != null && i != null) {
-                            watches.add(new FolderWatch(
-                                java.nio.file.Path.of(p.toString()),
-                                ((Number) i).intValue()));
-                        }
-                    }
-                }
-            }
-
-            WatchConfiguration config = new WatchConfiguration(port);
-            config.folders = watches;
-            return config;
-        }
+    public static WatchConfiguration load() throws Exception {
+        final ConfigurationPort configPort = Ports.resolve(ConfigurationPort.class);
+        return configPort.loadWatchConfiguration();
     }
 }

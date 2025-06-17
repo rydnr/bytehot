@@ -43,6 +43,7 @@ import org.acmsl.bytehot.domain.Defaults;
 import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.events.ByteHotNotStarted;
+import org.acmsl.bytehot.domain.events.HotSwapCapabilityEnabled;
 import org.acmsl.bytehot.domain.events.WatchPathConfigured;
 import org.acmsl.bytehot.domain.WatchConfiguration;
 
@@ -100,7 +101,7 @@ public class ByteHot {
         DomainResponseEvent<ByteHotAttachRequested> result = null;
         try {
             new ByteHot(event.getInstrumentation(), event.getConfiguration())
-                .start();
+                .start(event);
             result = new ByteHotAgentAttached(event, event.getConfiguration());
         } catch (final Throwable t) {
             result = new ByteHotNotStarted(event, t);
@@ -110,16 +111,25 @@ public class ByteHot {
 
     /**
      * Starts ByteHot with the provided configuration.
+     * @param precedingEvent the event that triggered this startup
      */
-    public void start() {
-        System.out.println("ByteHotAgentAttached");
-        System.out.println("WatchPathConfigured");
-        
-        // Check hot-swap capabilities
-        if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
-            System.out.println("HotSwapCapabilityEnabled");
+    public void start(final ByteHotAttachRequested precedingEvent) {
+        try {
+            final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+            
+            // Configure watch paths
+            final WatchPathConfigured watchEvent = new WatchPathConfigured(configuration, precedingEvent);
+            eventEmitter.emit(watchEvent);
+            
+            // Check and emit hot-swap capability
+            if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
+                final HotSwapCapabilityEnabled capabilityEvent = new HotSwapCapabilityEnabled(instrumentation, precedingEvent);
+                eventEmitter.emit(capabilityEvent);
+            }
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to emit domain events during startup: " + e.getMessage());
+            // Continue with startup even if event emission fails
         }
-        
-        // This could involve setting up watchers, starting servers, etc.
     }
 }

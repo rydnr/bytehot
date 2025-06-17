@@ -67,37 +67,37 @@ public class FolderWatch {
     private final int interval;
 
     /**
-     * Watches the folder and notifies on changes.
-     * @param onChange callback when a file changes.
-     * @throws IOException if watching fails.
+     * Starts watching the folder using the FileWatcherPort.
+     * @param patterns file patterns to watch
+     * @param recursive whether to watch recursively
+     * @return watch identifier for management
+     * @throws Exception if watching fails
      */
-    public void watch(final java.util.function.Consumer<Path> onChange)
-        throws java.io.IOException {
-        final java.nio.file.WatchService watchService =
-            java.nio.file.FileSystems.getDefault().newWatchService();
-        folder.register(watchService,
-            java.nio.file.StandardWatchEventKinds.ENTRY_CREATE,
-            java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY,
-            java.nio.file.StandardWatchEventKinds.ENTRY_DELETE);
+    public String startWatching(final java.util.List<String> patterns, final boolean recursive) throws Exception {
+        final FileWatcherPort watcherPort = Ports.resolve(FileWatcherPort.class);
+        return watcherPort.startWatching(folder, patterns, recursive);
+    }
 
+    /**
+     * Stops watching using the given watch identifier.
+     * @param watchId the identifier returned by startWatching
+     * @throws Exception if stopping fails
+     */
+    public void stopWatching(final String watchId) throws Exception {
+        final FileWatcherPort watcherPort = Ports.resolve(FileWatcherPort.class);
+        watcherPort.stopWatching(watchId);
+    }
+
+    /**
+     * Checks if this folder is currently being watched.
+     * @return true if folder is being watched
+     */
+    public boolean isWatching() {
         try {
-            while (!Thread.currentThread().isInterrupted()) {
-                java.nio.file.WatchKey key =
-                    watchService.poll(interval,
-                        java.util.concurrent.TimeUnit.MILLISECONDS);
-                if (key != null) {
-                    for (java.nio.file.WatchEvent<?> event : key.pollEvents()) {
-                        java.nio.file.Path changed =
-                            folder.resolve((java.nio.file.Path) event.context());
-                        onChange.accept(changed);
-                    }
-                    key.reset();
-                }
-            }
-        } catch (final InterruptedException ignored) {
-            Thread.currentThread().interrupt();
-        } finally {
-            watchService.close();
+            final FileWatcherPort watcherPort = Ports.resolve(FileWatcherPort.class);
+            return watcherPort.isWatching(folder);
+        } catch (final Exception e) {
+            return false;
         }
     }
 }
