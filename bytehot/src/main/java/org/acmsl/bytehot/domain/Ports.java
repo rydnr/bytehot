@@ -53,6 +53,49 @@ public class Ports
     extends CachingPortResolver {
 
     /**
+     * The singleton instance
+     */
+    private static volatile Ports instance;
+
+    /**
+     * Private constructor for singleton
+     */
+    private Ports() {}
+
+    /**
+     * Returns the singleton instance
+     * @return the Ports instance
+     */
+    public static Ports getInstance() {
+        if (instance == null) {
+            synchronized (Ports.class) {
+                if (instance == null) {
+                    instance = new Ports();
+                }
+            }
+        }
+        return instance;
+    }
+
+    /**
+     * Resolves a port implementation
+     * @param port the port interface class
+     * @return the port implementation
+     * @throws RuntimeException if no implementation is found
+     */
+    @SuppressWarnings("unchecked")
+    public static <P extends Port> P resolve(final Class<P> port) {
+        final Ports instance = getInstance();
+        final java.util.Optional<Adapter<P>> adapter = instance._resolve(port);
+        
+        if (adapter.isEmpty()) {
+            throw new RuntimeException("No implementation found for port: " + port.getName());
+        }
+        
+        return (P) adapter.get();
+    }
+
+    /**
      * Do not call! It's used by the application layer.
      */
     @SuppressWarnings("unchecked")
