@@ -147,11 +147,9 @@ public class ByteHotApplicationIntegrationTest {
         Files.createDirectories(watchDir);
         
         Path configFile = tempDir.resolve("bytehot-config.yml");
-        Files.writeString(configFile, """
-            watchPaths:
-              - """ + watchDir.toAbsolutePath() + """
-            
-            """);
+        Files.writeString(configFile, 
+            "watchPaths:\n" +
+            "  - " + watchDir.toAbsolutePath() + "\n\n");
 
         // Register ConfigurationAdapter and load configuration via the port
         org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter configAdapter = 
@@ -213,11 +211,9 @@ public class ByteHotApplicationIntegrationTest {
         Files.createDirectories(watchDir);
         
         Path configFile = tempDir.resolve("bytehot-config.yml");
-        Files.writeString(configFile, """
-            watchPaths:
-              - """ + watchDir.toAbsolutePath() + """
-            
-            """);
+        Files.writeString(configFile, 
+            "watchPaths:\n" +
+            "  - " + watchDir.toAbsolutePath() + "\n\n");
 
         // Register ConfigurationAdapter and load configuration via the port
         org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter configAdapter = 

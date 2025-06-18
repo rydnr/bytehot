@@ -232,7 +232,8 @@ public class RegexpManager
         if  (useClassLoader)
         {
             // Identify the class loader we will be using
-            t_ClassLoader = 
+            @SuppressWarnings("removal")
+            ClassLoader tempClassLoader = 
                 AccessController.doPrivileged(
                     new PrivilegedAction<ClassLoader>()
                     {
@@ -241,6 +242,7 @@ public class RegexpManager
                                 return getContextClassLoader();
                             }
                     });
+            t_ClassLoader = tempClassLoader;
         }
 
         result = getEngineUsingClassLoader(t_ClassLoader);
@@ -590,6 +592,7 @@ public class RegexpManager
       throws RegexpEngineNotFoundException,
              RegexpPluginMisconfiguredException
     {
+        @SuppressWarnings("removal")
         @Nullable final RegexpEngine result =
             AccessController.doPrivileged(
                 new PrivilegedAction<RegexpEngine>()
@@ -618,7 +621,7 @@ public class RegexpManager
                                     t_RegexpEngineClass =
                                         (Class<RegexpEngine>) classLoader.loadClass(engineClass);
 
-                                    innerResult = t_RegexpEngineClass.newInstance();
+                                    innerResult = t_RegexpEngineClass.getDeclaredConstructor().newInstance();
 
                                 }
                                 catch  (final ClassNotFoundException classNotFoundException)
@@ -673,7 +676,7 @@ public class RegexpManager
                                 // to be generated/caught & recast properly.
                                 t_RegexpEngineClass = (Class<RegexpEngine>) Class.forName(engineClass);
 
-                                innerResult = t_RegexpEngineClass.newInstance();
+                                innerResult = t_RegexpEngineClass.getDeclaredConstructor().newInstance();
                             }
                         }
                         catch  (final Exception otherException)
@@ -722,7 +725,8 @@ public class RegexpManager
     protected InputStream getResourceAsStream(
         @Nullable final ClassLoader loader, @NotNull final String name)
     {
-        return
+        @SuppressWarnings("removal")
+        InputStream result =
             AccessController.doPrivileged(
                 new PrivilegedAction<InputStream>()
                 {
@@ -743,6 +747,7 @@ public class RegexpManager
                         return result;
                     }
                 });
+        return result;
     }
 
     @Override

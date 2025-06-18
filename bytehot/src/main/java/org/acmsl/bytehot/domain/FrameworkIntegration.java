@@ -39,6 +39,7 @@
  */
 package org.acmsl.bytehot.domain;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -169,7 +170,7 @@ public class FrameworkIntegration {
         }
         
         // Get existing instances that need to be refreshed
-        final var existingInstances = instanceTracker.findInstances(clazz);
+        final Set<Object> existingInstances = instanceTracker.findInstances(clazz);
         final int instanceCount = existingInstances.size();
         
         // In a real implementation, this would:

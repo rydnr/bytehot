@@ -45,6 +45,8 @@ package org.acmsl.bytehot.domain;
  */
 public class InstanceUpdateException extends RuntimeException {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * Creates a new InstanceUpdateException with a message
      * @param message the error message

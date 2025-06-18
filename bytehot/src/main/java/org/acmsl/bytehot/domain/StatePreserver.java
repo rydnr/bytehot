@@ -75,7 +75,7 @@ public class StatePreserver {
                 }
                 
                 // Make field accessible if it's private
-                final boolean wasAccessible = field.isAccessible();
+                final boolean wasAccessible = field.canAccess(object);
                 if (!wasAccessible) {
                     field.setAccessible(true);
                 }
@@ -125,7 +125,7 @@ public class StatePreserver {
                 }
                 
                 // Make field accessible if it's private
-                final boolean wasAccessible = field.isAccessible();
+                final boolean wasAccessible = field.canAccess(object);
                 if (!wasAccessible) {
                     field.setAccessible(true);
                 }

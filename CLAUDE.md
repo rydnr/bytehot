@@ -295,9 +295,21 @@ The Inversion of Control / Dependency Injection is responsibility of the applica
 - Leverage GitHub by creating tags for each milestone
 - Publish tags as releases in GitHub
 - Configure GitHub Actions to automate release and test processes
+- Add the required Github Actions configuration to publish the "gh-pages" branch as Github Pages
 
 ## Memories
 
 ### Architectural Principles
 - Adapters should never inject themselves or others into the Ports. That's exclusive responsibility of the application layer.
 - All commits must be signed
+
+## Memories
+
+### Documentation Requirements
+- All javadocs must include the parameter documentation, be it method parameters, or parameterized types
+- All packages should include their own javadoc file
+- A branch named "gh-pages" should include the `story.org` converted to `index.html`, with a preamble linking the generated javadocs stored under the `javadocs/` folder, and also linking the generated html files from the org documents under `docs/`
+- Link to the html version of the `journal.org` and the `docs/flows`
+
+## Memories
+- `var` declarations are not allowed.

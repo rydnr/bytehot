@@ -54,9 +54,9 @@ import java.nio.file.Path;
 public class AgentJarBuilder {
 
     /**
-     * Expected location of the agent JAR
+     * Expected filename of the agent JAR
      */
-    private static final String AGENT_JAR_PATH = "/target/bytehot-latest-SNAPSHOT-agent.jar";
+    private static final String AGENT_JAR_FILENAME = "bytehot-latest-SNAPSHOT-agent.jar";
 
     /**
      * Ensures the agent JAR exists, building it if necessary.
@@ -67,10 +67,10 @@ public class AgentJarBuilder {
      */
     public static void ensureAgentJarExists() {
         try {
-            Path agentJar = Path.of(System.getProperty("user.dir") + AGENT_JAR_PATH);
+            Path agentJar = findAgentJar();
             
-            if (!Files.exists(agentJar)) {
-                buildAgentJar(agentJar);
+            if (agentJar == null || !Files.exists(agentJar)) {
+                agentJar = buildAgentJar();
             }
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException("Failed to ensure agent JAR exists", e);
@@ -84,8 +84,89 @@ public class AgentJarBuilder {
      * @throws RuntimeException if the JAR cannot be built
      */
     public static Path getAgentJarPath() {
+        Path agentJar = findAgentJar();
+        if (agentJar != null && Files.exists(agentJar)) {
+            return agentJar;
+        }
+        
         ensureAgentJarExists();
-        return Path.of(System.getProperty("user.dir") + AGENT_JAR_PATH);
+        agentJar = findAgentJar();
+        if (agentJar == null || !Files.exists(agentJar)) {
+            throw new RuntimeException("Agent JAR still not found after building");
+        }
+        return agentJar;
+    }
+
+    /**
+     * Finds the agent JAR in common locations.
+     * 
+     * @return the path to the agent JAR, or null if not found
+     */
+    private static Path findAgentJar() {
+        Path currentDir = Path.of(System.getProperty("user.dir"));
+        
+        // Try current directory first
+        Path agentJar = currentDir.resolve("target/" + AGENT_JAR_FILENAME);
+        if (Files.exists(agentJar)) {
+            return agentJar;
+        }
+        
+        // Try parent directory structure (for GitHub Actions)
+        agentJar = currentDir.resolve("bytehot/target/" + AGENT_JAR_FILENAME);
+        if (Files.exists(agentJar)) {
+            return agentJar;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Builds the agent JAR using Maven, detecting the correct directory structure.
+     * 
+     * @return the path to the built agent JAR
+     * @throws IOException if process creation fails
+     * @throws InterruptedException if the process is interrupted
+     * @throws RuntimeException if the build fails
+     */
+    private static Path buildAgentJar() throws IOException, InterruptedException {
+        System.out.println("Building agent JAR for test...");
+        
+        Path currentDir = Path.of(System.getProperty("user.dir"));
+        Path buildDir;
+        Path expectedJar;
+        
+        // Detect if we're in the bytehot module or parent directory
+        if (Files.exists(currentDir.resolve("pom.xml")) && 
+            Files.exists(currentDir.resolve("src/main/java"))) {
+            // We're in the bytehot module directory
+            buildDir = currentDir;
+            expectedJar = currentDir.resolve("target/" + AGENT_JAR_FILENAME);
+        } else {
+            // We're in the parent directory, build from bytehot subdirectory
+            buildDir = currentDir.resolve("bytehot");
+            expectedJar = buildDir.resolve("target/" + AGENT_JAR_FILENAME);
+            
+            if (!Files.exists(buildDir.resolve("pom.xml"))) {
+                throw new RuntimeException("Cannot find bytehot module in: " + buildDir);
+            }
+        }
+        
+        ProcessBuilder builder = new ProcessBuilder("mvn", "package", "-DskipTests=true", "-q");
+        builder.directory(buildDir.toFile());
+        
+        Process process = builder.start();
+        int exitCode = process.waitFor();
+        
+        if (exitCode != 0) {
+            throw new RuntimeException("Failed to build agent JAR for test. Exit code: " + exitCode);
+        }
+        
+        if (!Files.exists(expectedJar)) {
+            throw new RuntimeException("Agent JAR was not created: " + expectedJar);
+        }
+        
+        System.out.println("Agent JAR built successfully: " + expectedJar);
+        return expectedJar;
     }
 
     /**

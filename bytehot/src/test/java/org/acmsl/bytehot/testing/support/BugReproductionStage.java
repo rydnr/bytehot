@@ -48,6 +48,11 @@ import org.acmsl.bytehot.testing.stages.GivenStage;
 import org.acmsl.bytehot.testing.stages.ThenStage;
 import org.acmsl.bytehot.testing.stages.WhenStage;
 
+import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.DomainEvent;
+
+import java.util.List;
+
 /**
  * Specialized stage for reproducing bugs using their captured event sequences.
  * This revolutionary approach allows bugs to be automatically reproduced
@@ -111,8 +116,8 @@ public class BugReproductionStage {
 
         // The last event in the sequence is typically the trigger
         if (!bugReport.getReproductionEvents().isEmpty()) {
-            var events = bugReport.getReproductionEvents();
-            var triggerEvent = events.get(events.size() - 1);
+            final List<VersionedDomainEvent> events = bugReport.getReproductionEvents();
+            final VersionedDomainEvent triggerEvent = events.get(events.size() - 1);
             
             // Execute the trigger event
             WhenStage when = new WhenStage(context, application);

@@ -111,7 +111,7 @@ public class MBeanRegistrator
         {
             result =
                 register(
-                    Class.forName(mbeanClassName).newInstance(),
+                    Class.forName(mbeanClassName).getDeclaredConstructor().newInstance(),
                     new ObjectName(objectName));
         }
         catch  (final Throwable throwable)

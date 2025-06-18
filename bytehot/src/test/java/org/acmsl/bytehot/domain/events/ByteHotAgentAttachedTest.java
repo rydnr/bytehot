@@ -66,12 +66,33 @@ public class ByteHotAgentAttachedTest {
      */
     @BeforeAll
     public static void ensureAgentJarExists() throws IOException, InterruptedException {
-        Path agentJar = Path.of(System.getProperty("user.dir") + "/target/bytehot-latest-SNAPSHOT-agent.jar");
+        // Try multiple possible locations for the agent JAR
+        Path currentDir = Path.of(System.getProperty("user.dir"));
+        Path agentJar = currentDir.resolve("target/bytehot-latest-SNAPSHOT-agent.jar");
+        
+        // If not found in current directory, try parent directory (for GitHub Actions)
+        if (!Files.exists(agentJar)) {
+            agentJar = currentDir.resolve("bytehot/target/bytehot-latest-SNAPSHOT-agent.jar");
+        }
         
         if (!Files.exists(agentJar)) {
-            System.out.println("Building agent JAR for test...");
+            System.out.println("Agent JAR not found. Attempting to build...");
+            System.out.println("Current working directory: " + currentDir);
+            System.out.println("Looking for agent JAR at: " + agentJar);
+            
+            // Determine the correct build directory
+            Path buildDir = currentDir;
+            if (Files.exists(currentDir.resolve("bytehot/pom.xml"))) {
+                // We're in the parent directory
+                buildDir = currentDir.resolve("bytehot");
+            } else if (!Files.exists(currentDir.resolve("pom.xml"))) {
+                // Neither current nor bytehot subdirectory has pom.xml
+                throw new RuntimeException("No pom.xml found in " + currentDir + " or " + currentDir.resolve("bytehot"));
+            }
+            
+            System.out.println("Building from directory: " + buildDir);
             ProcessBuilder builder = new ProcessBuilder("mvn", "package", "-DskipTests=true", "-q");
-            builder.directory(Path.of(System.getProperty("user.dir")).toFile());
+            builder.directory(buildDir.toFile());
             builder.inheritIO();
             
             Process process = builder.start();
@@ -81,11 +102,15 @@ public class ByteHotAgentAttachedTest {
                 throw new RuntimeException("Failed to build agent JAR for test. Exit code: " + exitCode);
             }
             
+            // Re-check for the JAR in the expected location
+            agentJar = buildDir.resolve("target/bytehot-latest-SNAPSHOT-agent.jar");
             if (!Files.exists(agentJar)) {
                 throw new RuntimeException("Agent JAR was not created: " + agentJar);
             }
             
             System.out.println("Agent JAR built successfully: " + agentJar);
+        } else {
+            System.out.println("Agent JAR found: " + agentJar);
         }
     }
 
@@ -93,19 +118,18 @@ public class ByteHotAgentAttachedTest {
     public void bytehot_agent_attachment_produces_agent_attached_event(@TempDir Path tempDir) throws Exception {
         // given: create a simple test class
         final Path testClassFile = tempDir.resolve("TestApp.java");
-        final String testClassContent = """
-            public class TestApp {
-                public static void main(String[] args) {
-                    System.out.println("TestApp started");
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        // ignore
-                    }
-                    System.out.println("TestApp finished");
-                }
-            }
-            """;
+        final String testClassContent = 
+            "public class TestApp {\n" +
+            "    public static void main(String[] args) {\n" +
+            "        System.out.println(\"TestApp started\");\n" +
+            "        try {\n" +
+            "            Thread.sleep(1000);\n" +
+            "        } catch (InterruptedException e) {\n" +
+            "            // ignore\n" +
+            "        }\n" +
+            "        System.out.println(\"TestApp finished\");\n" +
+            "    }\n" +
+            "}\n";
         Files.writeString(testClassFile, testClassContent);
 
         // compile the test class
@@ -153,7 +177,21 @@ public class ByteHotAgentAttachedTest {
     }
 
     private String findByteHotAgentJar() {
-        // Return the shaded agent jar with all dependencies
+        // Find the agent JAR in the most likely locations
+        Path currentDir = Path.of(System.getProperty("user.dir"));
+        Path agentJar = currentDir.resolve("target/bytehot-latest-SNAPSHOT-agent.jar");
+        
+        if (Files.exists(agentJar)) {
+            return "target/bytehot-latest-SNAPSHOT-agent.jar";
+        }
+        
+        // Try parent directory structure (for GitHub Actions)
+        agentJar = currentDir.resolve("bytehot/target/bytehot-latest-SNAPSHOT-agent.jar");
+        if (Files.exists(agentJar)) {
+            return "bytehot/target/bytehot-latest-SNAPSHOT-agent.jar";
+        }
+        
+        // Default to the standard location
         return "target/bytehot-latest-SNAPSHOT-agent.jar";
     }
 }

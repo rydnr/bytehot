@@ -468,6 +468,7 @@ public class BundleI14able
             if  (useClassLoader)
             {
                 // Identify the class loader we will be using
+                @SuppressWarnings("removal")
                 final ClassLoader t_AnotherClassLoader =
                     AccessController.doPrivileged(
                         new PrivilegedAction<ClassLoader>()

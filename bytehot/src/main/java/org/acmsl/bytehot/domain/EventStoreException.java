@@ -46,6 +46,8 @@ package org.acmsl.bytehot.domain;
  */
 public class EventStoreException extends Exception {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * The type of event store operation that failed
      */

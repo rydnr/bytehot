@@ -87,23 +87,20 @@ public class HotSwapCapabilityEnabledTest {
     public void bytehot_agent_with_hotswap_support_produces_capability_enabled_event(@TempDir Path tempDir) throws IOException, InterruptedException {
         // Given: A test Java class and valid configuration
         Path testJavaFile = tempDir.resolve("TestApp.java");
-        Files.writeString(testJavaFile, """
-            public class TestApp {
-                public static void main(String[] args) {
-                    System.out.println("Test application started");
-                }
-            }
-            """);
+        Files.writeString(testJavaFile, 
+            "public class TestApp {\n" +
+            "    public static void main(String[] args) {\n" +
+            "        System.out.println(\"Test application started\");\n" +
+            "    }\n" +
+            "}\n");
 
         Path watchDir = tempDir.resolve("watch");
         Files.createDirectories(watchDir);
         
         Path configFile = tempDir.resolve("bytehot-config.yml");
-        Files.writeString(configFile, """
-            watchPaths:
-              - """ + watchDir.toAbsolutePath() + """
-            
-            """);
+        Files.writeString(configFile, 
+            "watchPaths:\n" +
+            "  - " + watchDir.toAbsolutePath() + "\n\n");
 
         // Compile the test class
         ProcessBuilder compileBuilder = new ProcessBuilder("javac", testJavaFile.toString());
