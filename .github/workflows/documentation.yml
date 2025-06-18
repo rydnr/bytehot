@@ -183,26 +183,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create or checkout gh-pages branch
-        run: |
-          # Check if remote gh-pages branch exists
-          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
-            echo "Remote gh-pages branch exists, checking out..."
-            git fetch origin gh-pages
-            git checkout -B gh-pages origin/gh-pages
-          else
-            echo "Creating new gh-pages branch..."
-            git checkout --orphan gh-pages
-            # Remove all files more safely
-            git reset --hard
-            git clean -fd
-            # Create initial commit
-            echo "# ByteHot Documentation" > README.md
-            git add README.md
-            git commit -m "📚 Initialize gh-pages branch for documentation"
-          fi
-
-      - name: Prepare documentation files
+      - name: Prepare documentation files before branch switch
         run: |
           # Create a temporary directory to store generated docs
           mkdir -p /tmp/bytehot-docs
@@ -306,29 +287,53 @@ jobs:
             echo "ℹ️ specs/ directory not found (this is optional)"
           fi
           
-          echo "Files in temp directory:"
+          echo "📊 Final temp directory contents:"
           ls -la /tmp/bytehot-docs/
 
-      - name: Switch to gh-pages and copy files
+      - name: Create or checkout gh-pages branch
         run: |
-          # Switch to gh-pages branch
+          # Check if remote gh-pages branch exists
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+            echo "Remote gh-pages branch exists, checking out..."
+            git fetch origin gh-pages
+            git checkout -B gh-pages origin/gh-pages
+          else
+            echo "Creating new gh-pages branch..."
+            git checkout --orphan gh-pages
+            # Remove all files more safely
+            git reset --hard
+            git clean -fd
+            # Create initial commit
+            echo "# ByteHot Documentation" > README.md
+            git add README.md
+            git commit -m "📚 Initialize gh-pages branch for documentation"
+          fi
+
+      - name: Copy files to gh-pages and convert
+        run: |
+          # Ensure we're on gh-pages branch (should already be from previous step)
           git checkout gh-pages
           
           # Create bytehot directory
           mkdir -p bytehot
           
-          # Copy all prepared documentation
-          cp -r /tmp/bytehot-docs/* bytehot/ || echo "Some files could not be copied"
+          # Copy all prepared documentation from temp directory
+          echo "📁 Copying documentation from temp directory..."
+          cp -r /tmp/bytehot-docs/* bytehot/ 2>/dev/null || echo "Some files could not be copied (this might be normal)"
           
           # List what we have
-          echo "Files in bytehot directory:"
+          echo "📋 Files in bytehot directory after copy:"
           ls -la bytehot/
           
           # Show which org files are available for conversion
-          echo "Org files available for conversion:"
-          find bytehot/ -name "*.org" -type f || echo "No .org files found"
+          echo "📄 Org files available for conversion:"
+          find bytehot/ -name "*.org" -type f 2>/dev/null || echo "No .org files found"
+          
+          # Show which md files are available for conversion
+          echo "📄 Markdown files available for conversion:"
+          find bytehot/ -name "*.md" -type f 2>/dev/null || echo "No .md files found"
 
-      - name: Convert org files to HTML
+      - name: Convert documentation files to HTML
         run: |
           # Create style.css from gh-pages branch or use basic styling
           if [ ! -f bytehot/style.css ]; then
