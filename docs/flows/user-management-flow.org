@@ -1,0 +1,496 @@
+#+TITLE: User Management Flow - Auto-Discovery and Registration
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-18
+
+* Overview
+
+The User Management Flow describes how ByteHot automatically discovers, registers, and manages users throughout their interaction with the hot-swapping system. This flow ensures that all ByteHot operations are user-aware while maintaining seamless developer experience.
+
+* Flow Participants
+
+** Domain Aggregates
+- ~User~ - Central user aggregate managing user lifecycle
+- ~UserId~ - User identification with auto-discovery capabilities
+- ~UserProfile~ - Complete user profile information
+- ~UserSession~ - Session tracking and environment capture
+
+** Domain Events
+- ~UserRegistrationRequested~ - Initial user registration request
+- ~UserRegistered~ - Successful user registration completion
+- ~UserAuthenticationRequested~ - User authentication initiation
+- ~UserAuthenticated~ - Authentication completion (success/failure)
+- ~UserSessionStartRequested~ - Session start request
+- ~UserSessionStarted~ - Active session establishment
+
+** Infrastructure Components
+- ~EventStorePort~ - Event persistence for user state reconstruction
+- ~Git Configuration~ - Auto-discovery source for user information
+- ~Environment Variables~ - Fallback user identification mechanism
+
+* Primary Flow: First-Time User Auto-Discovery
+
+** Flow Trigger
+When ByteHot agent starts and encounters user operations for the first time.
+
+** Flow Steps
+
+*** Step 1: Auto-Discovery Initiation
+#+begin_example
+[Agent Startup] → [User Operation Detected] → [Auto-Discovery Triggered]
+#+end_example
+
+The flow begins when any user-related operation is attempted:
+
+#+begin_src java
+// In ByteHotApplication when user context is needed
+public void handleClassFileChanged(ClassFileChanged event) {
+    // Auto-discover user if not known
+    UserId userId = UserId.autoDiscover();
+    
+    // Create event with user context
+    EventMetadata metadata = EventMetadata.withUser(userId);
+    // ... continue with operation
+}
+#+end_src
+
+*** Step 2: Git Configuration Discovery
+#+begin_example
+[Auto-Discovery] → [Git Config Read] → [User Profile Creation]
+#+end_example
+
+ByteHot attempts to read Git configuration:
+
+#+begin_src java
+// In UserId.discoverFromGitConfig()
+Process gitNameProcess = new ProcessBuilder("git", "config", "user.name").start();
+Process gitEmailProcess = new ProcessBuilder("git", "config", "user.email").start();
+
+String gitName = readProcessOutput(gitNameProcess).trim();
+String gitEmail = readProcessOutput(gitEmailProcess).trim();
+
+if (!gitEmail.isEmpty()) {
+    String displayName = !gitName.isEmpty() ? gitName : extractDisplayNameFromEmail(gitEmail);
+    return new UserId(gitEmail, displayName);
+}
+#+end_src
+
+*** Step 3: Environment Variable Fallback
+#+begin_example
+[Git Discovery Failed] → [Environment Check] → [System User Detection]
+#+end_example
+
+If Git configuration is unavailable:
+
+#+begin_src java
+// In UserId.fromEnvironment()
+String[] envVariables = {"USER", "USERNAME", "LOGNAME"};
+
+for (String envVar : envVariables) {
+    String username = System.getenv(envVar);
+    if (username != null && !username.trim().isEmpty()) {
+        return new UserId(username.trim(), formatDisplayName(username.trim()));
+    }
+}
+#+end_src
+
+*** Step 4: User Registration Request
+#+begin_example
+[User Discovered] → [Registration Request] → [UserRegistrationRequested Event]
+#+end_example
+
+Once user is identified, registration is requested:
+
+#+begin_src java
+// Automatic registration trigger
+UserRegistrationRequested registrationEvent = new UserRegistrationRequested(
+    userId, 
+    UserRegistered.UserRegistrationSource.AUTOMATIC
+);
+
+// Send through application layer
+DomainResponseEvent response = User.accept(registrationEvent);
+#+end_src
+
+*** Step 5: Profile Auto-Population
+#+begin_example
+[Registration Request] → [Profile Creation] → [Git Integration]
+#+end_example
+
+User profile is automatically populated:
+
+#+begin_src java
+// In User.accept(UserRegistrationRequested)
+UserProfile profile = UserProfile.defaultProfile(event.getUserId());
+
+// Profile automatically includes Git configuration
+GitConfig gitConfig = readGitConfiguration();
+String fullName = gitConfig.getName() != null ? 
+    gitConfig.getName() : userId.getDisplayName();
+String email = gitConfig.getEmail() != null ? 
+    gitConfig.getEmail() : userId.getValue();
+#+end_src
+
+*** Step 6: User Registration Completion
+#+begin_example
+[Profile Created] → [User Aggregate Created] → [UserRegistered Event]
+#+end_example
+
+User aggregate is created and registration event emitted:
+
+#+begin_src java
+// Complete user registration
+User user = new User(
+    userId,
+    profile,
+    UserPreferences.defaults(),
+    UserStatistics.empty(),
+    Instant.now(),
+    Instant.now(),
+    1L
+);
+
+return UserRegistered.of(event, profile, event.getSource());
+#+end_src
+
+*** Step 7: Event Persistence
+#+begin_example
+[UserRegistered Event] → [EventStore] → [Audit Trail Created]
+#+end_example
+
+Registration event is persisted for future state reconstruction:
+
+#+begin_src java
+// In EventStorePort implementation
+eventStore.save(userRegisteredEvent);
+
+// Event structure: eventstore/user/{userId}/timestamp-UserRegistered.json
+{
+  "eventType": "UserRegistered",
+  "userId": "john.doe@example.com", 
+  "userProfile": { ... },
+  "source": "AUTOMATIC",
+  "timestamp": "2025-06-18T10:30:00Z"
+}
+#+end_src
+
+* Secondary Flow: User Authentication
+
+** Flow Trigger
+When user performs authenticated operations or explicit authentication is required.
+
+** Flow Steps
+
+*** Step 1: Authentication Request
+#+begin_example
+[Operation Requires Auth] → [Authentication Check] → [UserAuthenticationRequested]
+#+end_example
+
+#+begin_src java
+// When authenticated operation is attempted
+UserAuthenticationRequested authEvent = new UserAuthenticationRequested(userId);
+DomainResponseEvent authResponse = User.accept(authEvent);
+#+end_src
+
+*** Step 2: User Existence Check
+#+begin_example
+[Auth Request] → [User Reconstruction] → [EventStore Query]
+#+end_example
+
+System checks if user exists through event reconstruction:
+
+#+begin_src java
+// In User.accept(UserAuthenticationRequested)
+User user = reconstructFromEvents(event.getUserId());
+
+if (user == null) {
+    // Auto-register if user doesn't exist
+    UserRegistrationRequested registrationEvent = new UserRegistrationRequested(
+        event.getUserId(), 
+        UserRegistered.UserRegistrationSource.AUTOMATIC
+    );
+    accept(registrationEvent);
+}
+#+end_src
+
+*** Step 3: Authentication Response
+#+begin_example
+[User Verified] → [Authentication Success] → [UserAuthenticated Event]
+#+end_example
+
+#+begin_src java
+// Authentication success
+User authenticatedUser = reconstructFromEvents(event.getUserId());
+UserProfile profile = authenticatedUser != null ? 
+    authenticatedUser.getProfile() : UserProfile.defaultProfile(event.getUserId());
+
+return UserAuthenticated.success(event, profile);
+#+end_src
+
+* Tertiary Flow: Session Management
+
+** Flow Trigger
+When user starts a development session or performs session-aware operations.
+
+** Flow Steps
+
+*** Step 1: Session Initiation
+#+begin_example
+[Development Session Start] → [Environment Capture] → [UserSessionStartRequested]
+#+end_example
+
+#+begin_src java
+// Session start request
+Map<String, String> environment = captureEnvironment();
+UserSessionStartRequested sessionEvent = new UserSessionStartRequested(userId, environment);
+#+end_src
+
+*** Step 2: Session Creation
+#+begin_example
+[Session Request] → [Session ID Generation] → [Environment Snapshot]
+#+end_example
+
+#+begin_src java
+// In User.accept(UserSessionStartRequested)
+String sessionId = generateSessionId();
+UserSession session = UserSession.start(
+    sessionId, 
+    event.getUserId(), 
+    Instant.now(), 
+    event.getEnvironment()
+);
+
+return UserSessionStarted.of(event, session);
+#+end_src
+
+*** Step 3: Analytics Update
+#+begin_example
+[Session Started] → [Statistics Update] → [User State Evolution]
+#+end_example
+
+#+begin_src java
+// In User.applyEvent for UserSessionStarted
+UserStatistics updatedStats = currentUser.statistics.recordSession(
+    sessionEvent.getSession().getStartedAt(),
+    sessionEvent.getSession().getDuration()
+);
+
+// User state is updated with new statistics
+return new User(/* updated user with new statistics */);
+#+end_src
+
+* EventSourcing Integration
+
+** State Reconstruction Flow
+#+begin_example
+[User Query] → [Event Retrieval] → [Event Replay] → [Current State]
+#+end_example
+
+#+begin_src java
+// In User.reconstructFromEvents()
+EventStorePort eventStore = Ports.resolve(EventStorePort.class);
+List<VersionedDomainEvent> events = eventStore.getEventsForAggregate("user", userId.getValue());
+
+User user = null;
+for (VersionedDomainEvent event : events) {
+    user = applyEvent(user, event);  // State evolution through events
+}
+return user;
+#+end_src
+
+** Event Application Pattern
+Each event type has specific state transition logic:
+
+#+begin_src java
+// Event application maintains state consistency
+protected static User applyEvent(User currentUser, VersionedDomainEvent event) {
+    if (event instanceof UserRegistered) {
+        // Create initial user state
+        return createUserFromRegistrationEvent((UserRegistered) event);
+    } else if (event instanceof UserAuthenticated) {
+        // Update last active timestamp
+        return updateUserFromAuthenticationEvent(currentUser, (UserAuthenticated) event);
+    } else if (event instanceof UserSessionStarted) {
+        // Update statistics and session info
+        return updateUserFromSessionEvent(currentUser, (UserSessionStarted) event);
+    }
+    return currentUser;
+}
+#+end_src
+
+* Error Handling and Recovery
+
+** Auto-Discovery Failure Handling
+#+begin_example
+[Git Discovery Fails] → [Environment Fallback] → [Anonymous User Creation]
+#+end_example
+
+The flow gracefully degrades through multiple fallback mechanisms:
+
+#+begin_src java
+// Graceful degradation chain
+public static UserId autoDiscover() {
+    try {
+        return discoverFromGitConfig();  // Primary method
+    } catch (Exception e) {
+        try {
+            return fromEnvironment();    // Fallback method
+        } catch (Exception e2) {
+            return anonymous();          // Final fallback
+        }
+    }
+}
+#+end_src
+
+** Registration Conflict Resolution
+#+begin_example
+[Duplicate Registration] → [Existing User Check] → [Authentication Instead]
+#+end_example
+
+#+begin_src java
+// Handle duplicate registration attempts
+public static DomainResponseEvent<UserRegistrationRequested> accept(UserRegistrationRequested event) {
+    User existingUser = reconstructFromEvents(event.getUserId());
+    if (existingUser != null) {
+        // User already exists, treat as authentication
+        return UserAuthenticated.success(
+            new UserAuthenticationRequested(event.getUserId()),
+            existingUser.getProfile()
+        );
+    }
+    // Proceed with normal registration
+    return performRegistration(event);
+}
+#+end_src
+
+* Integration Points
+
+** ByteHot Agent Integration
+User management integrates with agent lifecycle:
+
+#+begin_src java
+// In ByteHotAgent.premain()
+public static void premain(String agentArgs, Instrumentation inst) {
+    // Initialize user context during agent startup
+    UserId currentUser = UserId.autoDiscover();
+    ByteHotApplication.initializeWithUser(currentUser);
+}
+#+end_src
+
+** Hot-Swap Operation Integration
+All hot-swap operations include user context:
+
+#+begin_src java
+// In ClassFileChanged event creation
+ClassFileChanged event = ClassFileChanged.forExistingAggregate(
+    classFile,
+    className,
+    detectionTimestamp,
+    previousEventId,
+    currentVersion
+);
+
+// Event automatically includes user context through EventMetadata
+EventMetadata metadata = event.getMetadata();
+String userId = metadata.getUserId();  // User context preserved
+#+end_str
+
+** Audit Trail Integration
+Complete audit trail through user-aware events:
+
+#+begin_example
+[User Operation] → [Event with User Context] → [Audit Trail] → [Compliance Support]
+#+end_example
+
+* Performance Considerations
+
+** Discovery Caching
+Auto-discovery results are cached to avoid repeated Git/environment queries:
+
+#+begin_src java
+private static volatile UserId cachedUserId = null;
+
+public static UserId autoDiscover() {
+    if (cachedUserId == null) {
+        synchronized (UserId.class) {
+            if (cachedUserId == null) {
+                cachedUserId = performDiscovery();
+            }
+        }
+    }
+    return cachedUserId;
+}
+#+end_src
+
+** Lazy Registration
+User registration is deferred until actually needed:
+
+#+begin_src java
+// Registration only happens when user operations are performed
+public void handleUserAwareOperation() {
+    if (!isUserRegistered()) {
+        performAutoRegistration();
+    }
+    // Continue with operation
+}
+#+end_src
+
+** Event Store Optimization
+User events are stored efficiently with proper indexing:
+
+#+begin_example
+eventstore/
+  user/
+    john.doe@example.com/
+      20250618-103000-UserRegistered.json
+      20250618-103001-UserAuthenticated.json
+      20250618-103002-UserSessionStarted.json
+#+end_example
+
+* Monitoring and Observability
+
+** Flow Metrics
+User management flow provides comprehensive metrics:
+
+#+begin_src java
+// In UserStatistics
+public class UserStatistics {
+    private final int totalHotSwaps;
+    private final int successfulHotSwaps;
+    private final Duration totalTimeSaved;
+    private final Map<String, Integer> operationCounts;
+    
+    public double getSuccessRate() {
+        return totalHotSwaps > 0 ? (double) successfulHotSwaps / totalHotSwaps : 0.0;
+    }
+    
+    public Duration getAverageTimeSavedPerHotSwap() {
+        return totalHotSwaps > 0 ? totalTimeSaved.dividedBy(totalHotSwaps) : Duration.ZERO;
+    }
+}
+#+end_src
+
+** Health Checks
+Flow health is monitored through various checkpoints:
+
+#+begin_example
+[Auto-Discovery Health] → [Registration Success Rate] → [Session Management Health]
+#+end_example
+
+* Future Enhancements
+
+** Advanced Auto-Discovery
+- Integration with enterprise identity providers (LDAP/AD)
+- OAuth/OIDC integration for cloud-based development
+- SSH key-based user identification
+
+** Enhanced Session Management
+- Distributed session management for team environments
+- Session sharing and collaboration features
+- Advanced session analytics and insights
+
+** Workflow Integration
+- Integration with issue tracking systems
+- Team collaboration and code review integration
+- Advanced audit and compliance features
+
+The User Management Flow ensures that ByteHot operations are consistently user-aware while maintaining a seamless, zero-configuration developer experience through intelligent auto-discovery and graceful fallback mechanisms.

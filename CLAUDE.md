@@ -295,3 +295,9 @@ The Inversion of Control / Dependency Injection is responsibility of the applica
 - Leverage GitHub by creating tags for each milestone
 - Publish tags as releases in GitHub
 - Configure GitHub Actions to automate release and test processes
+
+## Memories
+
+### Architectural Principles
+- Adapters should never inject themselves or others into the Ports. That's exclusive responsibility of the application layer.
+- All commits must be signed

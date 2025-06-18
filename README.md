@@ -29,17 +29,17 @@ Traditional Java hot-swap is limited to method body changes—add a field, chang
 
 ByteHot transforms this reality by providing:
 
-#### 🔄 Comprehensive Hot-Swapping
-Not just method bodies—ByteHot handles class structural changes, new fields, method signature modifications, and even complex inheritance hierarchy updates.
+#### 🔄 Advanced Hot-Swapping
+ByteHot provides comprehensive bytecode hot-swapping capabilities with intelligent validation, error handling, and state management for method body changes and compatible class modifications.
 
 #### 🧠 Intelligent Instance Management  
-When classes change, existing instances don't just disappear. ByteHot preserves their state, applies the changes, and ensures they continue functioning with the new class definition.
+Sophisticated instance tracking and updating system that preserves object state across class redefinitions with multiple update strategies and framework integration.
 
 #### 🔌 Framework Integration
-Spring applications? CDI containers? Guice modules? ByteHot understands these frameworks and works with their dependency injection systems, not against them.
+Built-in support for dependency injection frameworks through extensible adapter patterns. Includes integration points for Spring, CDI, Guice, and other frameworks.
 
-#### 🛡️ Bulletproof Reliability
-Every change is reversible. If something goes wrong, ByteHot can roll back to the exact previous state, maintaining system integrity.
+#### 🛡️ Enterprise Reliability
+Complete error handling and recovery system with rollback capabilities, comprehensive audit trails, and production-ready monitoring and observability.
 
 ## 🏗️ Architecture Excellence
 
@@ -68,7 +68,15 @@ ByteHot is built with **Hexagonal Architecture** and **Domain-Driven Design** pr
 - **FileWatcherPort/Adapter**: File system monitoring with pattern matching and recursion  
 - **InstrumentationPort/Adapter**: JVM instrumentation with safety checks and error handling
 - **EventEmitterPort/Adapter**: Event emission to multiple targets (console, files, both)
+- **EventStorePort/Adapter**: EventSourcing persistence with filesystem storage
 - **Dynamic Discovery**: Automatic adapter detection and injection at runtime
+
+### ⚡ EventSourcing & User Management
+- **Complete Event History**: Every operation captured as immutable domain events
+- **Time-Travel Debugging**: Reproduce any issue by replaying exact event sequences
+- **User-Aware Operations**: Automatic user discovery from Git configuration and environment
+- **Session Management**: Track development sessions with environment snapshots
+- **Analytics & Insights**: Personal productivity metrics and usage analytics
 
 ## 🚀 Quick Start
 
@@ -137,10 +145,11 @@ public String greet() {
 - Keep your debugging session alive
 
 ### 🧪 The Testing Revolution
-- Modify test implementations on the fly
-- Update application logic during integration tests
-- Maintain test state across iterations
-- Accelerate the red-green-refactor cycle
+- **Event-Driven Testing**: Revolutionary Given/When/Then framework using actual domain events
+- **Bug Reproduction**: Automatic test case generation from historical event sequences
+- **No More Mocks**: Test with real events instead of artificial mock objects
+- **Living Documentation**: Tests serve as executable documentation of system behavior
+- Modify test implementations on the fly and maintain test state across iterations
 
 ## 🏢 Production Ready
 

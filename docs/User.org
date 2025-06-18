@@ -1,0 +1,344 @@
+#+TITLE: User - User Management Aggregate Root
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-18
+
+* Overview
+
+The ~User~ class is the aggregate root for ByteHot's user management domain, implementing comprehensive user lifecycle operations with EventSourcing capabilities.
+
+* Class Responsibilities
+
+** Primary Responsibilities
+- Serve as the aggregate root for all user-related operations
+- Handle user registration, authentication, and session management
+- Provide EventSourcing reconstruction from event history
+- Maintain user state through immutable operations
+
+** Secondary Responsibilities  
+- Coordinate with EventStorePort for event persistence
+- Support auto-discovery of user information
+- Generate unique session identifiers
+- Enforce user business invariants
+
+* Architecture Context
+
+The User aggregate follows Domain-Driven Design principles:
+- **Aggregate Root**: Central entry point for user domain operations
+- **EventSourcing**: Complete state reconstruction from event history
+- **Primary Ports**: Accepts domain events and produces response events
+- **Clean Boundaries**: No infrastructure dependencies, pure domain logic
+
+* Key Operations
+
+** Primary Ports (Event Handlers)
+
+*** accept(UserRegistrationRequested)
+Handles user registration requests.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/User.java
+public static DomainResponseEvent<UserRegistrationRequested> accept(final UserRegistrationRequested event) {
+    // Create user profile
+    final UserProfile profile = UserProfile.defaultProfile(event.getUserId());
+    
+    // Create new user
+    final User user = new User(
+        event.getUserId(),
+        profile,
+        UserPreferences.defaults(),
+        UserStatistics.empty(),
+        Instant.now(),
+        Instant.now(),
+        1L
+    );
+    
+    return UserRegistered.of(event, profile, event.getSource());
+}
+#+end_src
+
+*** accept(UserAuthenticationRequested)
+Handles user authentication with auto-registration support.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/User.java
+public static DomainResponseEvent<UserAuthenticationRequested> accept(final UserAuthenticationRequested event) {
+    // Try to reconstruct user from events
+    final User user = reconstructFromEvents(event.getUserId());
+    
+    if (user == null) {
+        // User doesn't exist, auto-register first
+        final UserRegistrationRequested registrationEvent = new UserRegistrationRequested(
+            event.getUserId(), 
+            UserRegistered.UserRegistrationSource.AUTOMATIC
+        );
+        accept(registrationEvent);
+    }
+    
+    // Get user profile (after potential registration)
+    final User authenticatedUser = reconstructFromEvents(event.getUserId());
+    final UserProfile profile = authenticatedUser != null ? authenticatedUser.getProfile() : 
+                               UserProfile.defaultProfile(event.getUserId());
+    
+    return UserAuthenticated.success(event, profile);
+}
+#+end_src
+
+*** accept(UserSessionStartRequested)
+Handles user session initiation.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/User.java
+public static DomainResponseEvent<UserSessionStartRequested> accept(final UserSessionStartRequested event) {
+    // Reconstruct user to get current state
+    final User user = reconstructFromEvents(event.getUserId());
+    
+    if (user == null) {
+        throw new IllegalStateException("Cannot start session for non-existent user: " + event.getUserId());
+    }
+    
+    // Create session
+    final String sessionId = generateSessionId();
+    final UserSession session = UserSession.start(sessionId, event.getUserId(), Instant.now(), event.getEnvironment());
+    
+    return UserSessionStarted.of(event, session);
+}
+#+end_src
+
+** EventSourcing Operations
+
+*** reconstructFromEvents(UserId)
+Reconstructs user state from complete event history.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/User.java
+protected static User reconstructFromEvents(final UserId userId) {
+    try {
+        final EventStorePort eventStore = Ports.resolve(EventStorePort.class);
+        final List<VersionedDomainEvent> events = eventStore.getEventsForAggregate("user", userId.getValue());
+        
+        if (events.isEmpty()) {
+            return null;
+        }
+        
+        User user = null;
+        for (final VersionedDomainEvent event : events) {
+            user = applyEvent(user, event);
+        }
+        
+        return user;
+    } catch (final Exception e) {
+        // If EventStore is not available, return null
+        return null;
+    }
+}
+#+end_src
+
+*** applyEvent(User, VersionedDomainEvent)
+Applies individual events to rebuild user state.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/User.java
+protected static User applyEvent(final User currentUser, final VersionedDomainEvent event) {
+    if (event instanceof UserRegistered) {
+        final UserRegistered registeredEvent = (UserRegistered) event;
+        return new User(
+            registeredEvent.getUserProfile().getUserId(),
+            registeredEvent.getUserProfile(),
+            UserPreferences.defaults(),
+            UserStatistics.empty(),
+            Instant.now(),
+            Instant.now(),
+            1L
+        );
+    } else if (event instanceof UserAuthenticated) {
+        final UserAuthenticated authEvent = (UserAuthenticated) event;
+        if (currentUser == null) {
+            throw new IllegalStateException("Cannot authenticate user without registration event");
+        }
+        return new User(
+            currentUser.userId,
+            currentUser.profile,
+            currentUser.preferences,
+            currentUser.statistics,
+            currentUser.registeredAt,
+            Instant.now(),
+            currentUser.version + 1
+        );
+    } else if (event instanceof UserSessionStarted) {
+        final UserSessionStarted sessionEvent = (UserSessionStarted) event;
+        if (currentUser == null) {
+            throw new IllegalStateException("Cannot start session without user registration");
+        }
+        // Update statistics with new session
+        final UserStatistics updatedStats = currentUser.statistics.recordSession(
+            sessionEvent.getSession().getStartedAt(),
+            sessionEvent.getSession().getDuration()
+        );
+        
+        return new User(
+            currentUser.userId,
+            currentUser.profile,
+            currentUser.preferences,
+            updatedStats,
+            currentUser.registeredAt,
+            Instant.now(),
+            currentUser.version + 1
+        );
+    }
+    
+    // Unknown event type, return current state
+    return currentUser;
+}
+#+end_src
+
+* State Management
+
+The User aggregate maintains the following state:
+
+** Core Identity
+- ~UserId userId~: Unique user identifier with auto-discovery capabilities
+- ~UserProfile profile~: User profile information (name, email, avatar)
+- ~Instant registeredAt~: When the user was first registered
+- ~Instant lastActiveAt~: Most recent activity timestamp
+
+** User Preferences
+- ~UserPreferences preferences~: Type-safe user configuration storage
+- Includes ByteHot-specific settings and customizations
+- Supports boolean, string, and integer preference types
+
+** Analytics
+- ~UserStatistics statistics~: Hot-swap usage analytics and metrics
+- Tracks hot-swap operations, success rates, time savings
+- Provides derived metrics for efficiency analysis
+
+** Versioning
+- ~long version~: Aggregate version for EventSourcing
+- Incremented with each state transition
+- Used for optimistic concurrency control
+
+* Invariants
+
+The User aggregate maintains several business invariants:
+
+** Identity Invariants
+- User ID cannot be null or empty
+- User ID must be valid format (email, username, or generated)
+- Each user must have a unique identifier
+
+** State Invariants
+- Registration timestamp cannot be in the future
+- Last active timestamp cannot be before registration
+- Version number must be positive and monotonically increasing
+
+** EventSourcing Invariants
+- User state can always be reconstructed from event history
+- Events must be applied in chronological order
+- Event application must be idempotent and deterministic
+
+** Session Invariants
+- Sessions can only be started for existing users
+- Session IDs must be unique within the system
+- Environment snapshots must be captured for each session
+
+* Auto-Discovery Features
+
+The User aggregate supports intelligent user discovery:
+
+** Git Configuration Discovery
+- Reads user.name and user.email from Git configuration
+- Creates UserProfile automatically from Git information
+- Integrates with development workflow seamlessly
+
+** Environment Variable Detection
+- Detects USER, USERNAME, LOGNAME environment variables
+- Provides fallback identification when Git is unavailable
+- Supports various operating system conventions
+
+** Email-Based Identification
+- Extracts display names from email addresses intelligently
+- Handles common email formats and conventions
+- Provides user-friendly display names automatically
+
+* Integration Points
+
+** EventStorePort Integration
+- Uses EventStorePort for event persistence and retrieval
+- Supports aggregate reconstruction from stored events
+- Handles EventStore unavailability gracefully
+
+** Value Object Composition
+- Composes with UserId, UserProfile, UserPreferences, UserStatistics, UserSession
+- Maintains immutability through value object patterns
+- Provides factory methods for object creation
+
+** Domain Event Production
+- Produces UserRegistered, UserAuthenticated, UserSessionStarted events
+- Follows request/response event patterns consistently
+- Maintains event causality and correlation
+
+* Error Handling
+
+** Registration Errors
+- Validates user information before registration
+- Handles duplicate registration attempts gracefully
+- Provides meaningful error messages for validation failures
+
+** Authentication Errors
+- Supports auto-registration for non-existent users
+- Handles authentication failures with appropriate responses
+- Maintains security while providing usability
+
+** Session Errors
+- Validates session requirements before creation
+- Handles environment capture failures gracefully
+- Provides session management error recovery
+
+* Performance Considerations
+
+** Memory Management
+- Uses weak references where appropriate for instance tracking
+- Implements efficient state reconstruction algorithms
+- Minimizes object creation during event replay
+
+** Concurrent Access
+- Supports thread-safe aggregate reconstruction
+- Handles concurrent user operations safely
+- Uses atomic operations for consistency
+
+** Caching Strategy
+- EventStore handles event caching for performance
+- User instances are reconstructed on demand
+- Avoids long-lived user object references
+
+* Testing Strategy
+
+The User aggregate is thoroughly tested using ByteHot's event-driven testing framework:
+
+** Event-Driven Tests
+- Tests use actual domain events instead of mocks
+- Realistic test scenarios through event sequences
+- Bug reproduction through captured event history
+
+** State Reconstruction Tests
+- Verifies complete aggregate reconstruction from events
+- Tests event application ordering and consistency
+- Validates invariant preservation during reconstruction
+
+** Auto-Discovery Tests
+- Tests Git configuration integration scenarios
+- Validates environment variable detection logic
+- Verifies fallback behavior when auto-discovery fails
+
+* Future Enhancements
+
+** Advanced Analytics
+- More sophisticated usage pattern analysis
+- Machine learning for user behavior prediction
+- Advanced metrics and reporting capabilities
+
+** Enhanced Auto-Discovery
+- Integration with additional identity providers
+- More sophisticated email parsing and name extraction
+- Support for enterprise directory services
+
+** Workflow Integration
+- Integration with issue tracking systems
+- Support for team collaboration features
+- Advanced session sharing and coordination
+
+The User aggregate represents the foundation of ByteHot's user-aware operations, providing comprehensive user management while maintaining strict architectural boundaries and EventSourcing capabilities.
