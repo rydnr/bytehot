@@ -248,30 +248,62 @@ jobs:
           fi
           
           # Copy source files for conversion (from root directory)
-          echo "Copying source files from root directory..."
-          echo "Current directory: $(pwd)"
-          echo "Files in current directory:"
-          ls -la | grep -E '\.(org|md)$|^docs' || echo "No org/md files or docs directory found"
+          echo "📁 Copying source files from root directory..."
+          echo "📍 Current directory: $(pwd)"
+          echo "📋 Files in current directory:"
+          ls -la | grep -E '\.(org|md)$|^docs' || echo "No org/md files or docs directory found in current directory"
           
+          echo "🔍 Looking for files in repository root..."
+          ls -la | head -20
+          
+          # Find and copy story.org
           if [ -f "story.org" ]; then
             cp story.org /tmp/bytehot-docs/
-            echo "✅ story.org copied"
+            echo "✅ story.org copied from root"
+          elif [ -f "../story.org" ]; then
+            cp ../story.org /tmp/bytehot-docs/
+            echo "✅ story.org copied from parent directory"
           else
-            echo "❌ story.org not found in $(pwd)"
+            echo "❌ story.org not found in $(pwd) or parent directory"
+            echo "🔍 Searching for story.org..."
+            find . -name "story.org" -type f 2>/dev/null || echo "story.org not found anywhere"
           fi
           
+          # Find and copy journal.org
           if [ -f "journal.org" ]; then
             cp journal.org /tmp/bytehot-docs/
-            echo "✅ journal.org copied"
+            echo "✅ journal.org copied from root"
+          elif [ -f "../journal.org" ]; then
+            cp ../journal.org /tmp/bytehot-docs/
+            echo "✅ journal.org copied from parent directory"
           else
-            echo "❌ journal.org not found in $(pwd)"
+            echo "❌ journal.org not found in $(pwd) or parent directory"
+            echo "🔍 Searching for journal.org..."
+            find . -name "journal.org" -type f 2>/dev/null || echo "journal.org not found anywhere"
           fi
           
+          # Find and copy docs directory
           if [ -d "docs" ]; then
             cp -r docs /tmp/bytehot-docs/
-            echo "✅ docs/ directory copied"
+            echo "✅ docs/ directory copied from root"
+          elif [ -d "../docs" ]; then
+            cp -r ../docs /tmp/bytehot-docs/
+            echo "✅ docs/ directory copied from parent directory"
           else
-            echo "❌ docs/ directory not found in $(pwd)"
+            echo "❌ docs/ directory not found in $(pwd) or parent directory"
+            echo "🔍 Searching for docs directory..."
+            find . -name "docs" -type d 2>/dev/null || echo "docs directory not found anywhere"
+          fi
+          
+          # Also copy specs directory if it exists
+          if [ -d "specs" ]; then
+            cp -r specs /tmp/bytehot-docs/
+            echo "✅ specs/ directory copied from root"
+          elif [ -d "../specs" ]; then
+            cp -r ../specs /tmp/bytehot-docs/
+            echo "✅ specs/ directory copied from parent directory"
+          else
+            echo "ℹ️ specs/ directory not found (this is optional)"
           fi
           
           echo "Files in temp directory:"
@@ -337,6 +369,7 @@ jobs:
             echo '  <a href="docs/configuration.html">⚙️ Configuration Guide</a>' >> temp_nav.html
             echo '  <a href="docs/User.html">👤 User Management</a>' >> temp_nav.html
             echo '  <a href="docs/flows/user-management-flow.html">🔄 User Flow</a>' >> temp_nav.html
+            echo '  <a href="specs/README.html">📋 Project Specs</a>' >> temp_nav.html
             echo '  <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>' >> temp_nav.html
             echo '</div>' >> temp_nav.html
             # Insert navigation after <body> tag
@@ -353,14 +386,16 @@ jobs:
           fi
           
           # Convert docs/*.org files if they exist
-          mkdir -p bytehot/docs bytehot/docs/flows
+          mkdir -p bytehot/docs bytehot/docs/flows bytehot/specs
           
           # Convert documentation files
           if [ -d "bytehot/docs" ]; then
+            echo "📄 Converting docs/*.org and *.md files..."
             for file in bytehot/docs/*.org bytehot/docs/*.md; do
               if [ -f "$file" ]; then
                 basename=$(basename "$file" .org)
                 basename=$(basename "$basename" .md)
+                echo "Converting: $file -> bytehot/docs/${basename}.html"
                 if [[ "$file" == *.org ]]; then
                   pandoc -f org -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
                 else
@@ -372,10 +407,24 @@ jobs:
           
           # Convert flow documentation
           if [ -d "bytehot/docs/flows" ]; then
+            echo "📄 Converting docs/flows/*.org files..."
             for file in bytehot/docs/flows/*.org; do
               if [ -f "$file" ]; then
                 basename=$(basename "$file" .org)
+                echo "Converting flow: $file -> bytehot/docs/flows/${basename}.html"
                 pandoc -f org -t html5 -s --css=../../style.css --toc "$file" -o "bytehot/docs/flows/${basename}.html" || echo "Failed to convert $file"
+              fi
+            done
+          fi
+          
+          # Convert specs documentation
+          if [ -d "bytehot/specs" ]; then
+            echo "📄 Converting specs/*.md files..."
+            for file in bytehot/specs/*.md; do
+              if [ -f "$file" ]; then
+                basename=$(basename "$file" .md)
+                echo "Converting spec: $file -> bytehot/specs/${basename}.html"
+                pandoc -f markdown -t html5 -s --css=../style.css --toc "$file" -o "bytehot/specs/${basename}.html" || echo "Failed to convert $file"
               fi
             done
           fi
