@@ -50,18 +50,23 @@ jobs:
       - name: Verify Pandoc installation
         run: pandoc --version
 
-      - name: Build project and run tests
+      - name: Build project and install dependencies
         run: |
-          # Build the multi-module project from root
-          mvn clean compile test-compile
+          # Build and install the multi-module project from root
+          mvn clean install -DskipTests
 
       - name: Generate Javadocs
         run: |
           # Generate Javadocs using Maven for the bytehot module
           mvn javadoc:javadoc -pl bytehot || echo "Javadoc generation completed with warnings"
           # Copy generated javadocs to expected location
-          cp -r bytehot/target/site/apidocs bytehot/javadocs || echo "Fallback: creating empty javadocs directory"
-          mkdir -p bytehot/javadocs
+          if [ -d "bytehot/target/site/apidocs" ]; then
+            cp -r bytehot/target/site/apidocs bytehot/javadocs
+          else
+            echo "Javadocs not found, creating empty directory"
+            mkdir -p bytehot/javadocs
+            echo "<html><body><h1>Javadocs generation failed</h1></body></html>" > bytehot/javadocs/index.html
+          fi
 
       - name: Create or checkout gh-pages branch
         run: |
