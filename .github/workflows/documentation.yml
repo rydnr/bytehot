@@ -92,22 +92,44 @@ jobs:
             git commit -m "📚 Initialize gh-pages branch for documentation"
           fi
 
-      - name: Copy Javadocs to gh-pages
+      - name: Prepare documentation files
         run: |
-          # Ensure we're on gh-pages branch
+          # Create a temporary directory to store generated docs
+          mkdir -p /tmp/bytehot-docs
+          
+          # Copy Javadocs if they exist
+          if [ -d "bytehot/javadocs" ]; then
+            cp -r bytehot/javadocs /tmp/bytehot-docs/
+            echo "Javadocs copied to temp directory"
+          elif [ -d "bytehot/target/site/apidocs" ]; then
+            cp -r bytehot/target/site/apidocs /tmp/bytehot-docs/javadocs
+            echo "Javadocs copied from Maven target to temp directory"
+          else
+            echo "No Javadocs found, creating empty directory"
+            mkdir -p /tmp/bytehot-docs/javadocs
+            echo "<html><body><h1>Javadocs not available</h1></body></html>" > /tmp/bytehot-docs/javadocs/index.html
+          fi
+          
+          # Copy source files for conversion
+          cp -r story.org journal.org docs/ /tmp/bytehot-docs/ || echo "Some source files not found"
+
+      - name: Switch to gh-pages and copy files
+        run: |
+          # Switch to gh-pages branch
           git checkout gh-pages
           
-          # Create bytehot directory if it doesn't exist
+          # Create bytehot directory
           mkdir -p bytehot
           
-          # Copy generated javadocs
-          cp -r bytehot/javadocs bytehot/javadocs
+          # Copy all prepared documentation
+          cp -r /tmp/bytehot-docs/* bytehot/ || echo "Some files could not be copied"
+          
+          # List what we have
+          echo "Files in bytehot directory:"
+          ls -la bytehot/
 
       - name: Convert org files to HTML
         run: |
-          # Ensure we have the necessary files
-          git checkout main -- story.org journal.org docs/ || true
-          
           # Create style.css from gh-pages branch or use basic styling
           if [ ! -f bytehot/style.css ]; then
             # Try to get existing style.css from gh-pages branch
