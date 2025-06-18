@@ -68,26 +68,28 @@ jobs:
             echo "<html><body><h1>Javadocs generation failed</h1></body></html>" > bytehot/javadocs/index.html
           fi
 
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Create or checkout gh-pages branch
         run: |
-          # Check if gh-pages branch exists locally
-          if git show-ref --verify --quiet refs/heads/gh-pages; then
-            echo "Local gh-pages branch exists, checking out..."
-            git checkout gh-pages
+          # Check if remote gh-pages branch exists
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+            echo "Remote gh-pages branch exists, checking out..."
+            git fetch origin gh-pages
+            git checkout -B gh-pages origin/gh-pages
           else
-            # Check if remote gh-pages branch exists
-            if git ls-remote --exit-code --heads origin gh-pages; then
-              echo "Remote gh-pages branch exists, checking out..."
-              git checkout -b gh-pages origin/gh-pages
-            else
-              echo "Creating new gh-pages branch..."
-              git checkout --orphan gh-pages
-              git rm -rf .
-              # Create initial commit
-              echo "# ByteHot Documentation" > README.md
-              git add README.md
-              git commit -m "📚 Initialize gh-pages branch for documentation"
-            fi
+            echo "Creating new gh-pages branch..."
+            git checkout --orphan gh-pages
+            # Remove all files more safely
+            git reset --hard
+            git clean -fd
+            # Create initial commit
+            echo "# ByteHot Documentation" > README.md
+            git add README.md
+            git commit -m "📚 Initialize gh-pages branch for documentation"
           fi
 
       - name: Copy Javadocs to gh-pages
