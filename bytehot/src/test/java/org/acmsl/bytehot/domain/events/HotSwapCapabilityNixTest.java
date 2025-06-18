@@ -68,13 +68,14 @@ public class HotSwapCapabilityNixTest {
     }
 
     /**
-     * Tests that minimum supported JVM version (11) works correctly.
+     * Tests that minimum supported JVM version (17) works correctly.
+     * ByteHot is currently configured to require Java 17+ in the Maven configuration.
      */
     @Test
-    public void minimum_supported_jvm_works(@TempDir Path tempDir) throws IOException, InterruptedException {
+    public void minimum_supported_jvm_17_works(@TempDir Path tempDir) throws IOException, InterruptedException {
         assumeTrue(nixAvailable, "Nix is not available - skipping test");
         
-        testJvmHotSwapCapability(tempDir, "11", true);
+        testJvmHotSwapCapability(tempDir, "17", true);
     }
 
     /**
@@ -88,15 +89,25 @@ public class HotSwapCapabilityNixTest {
     }
 
     /**
-     * Tests that older JVM versions (8) are not supported due to modern Java language features.
-     * ByteHot uses Java 10+ features (var keyword) and cannot be compiled with Java 8.
+     * Tests that older JVM versions (8, 11) are not supported due to Maven configuration.
+     * ByteHot is currently configured to require Java 17+ in the parent POM.
      */
     @Test
-    public void legacy_jvm_not_supported_due_to_modern_language_features(@TempDir Path tempDir) throws IOException, InterruptedException {
+    public void legacy_jvm_not_supported_due_to_maven_configuration(@TempDir Path tempDir) throws IOException, InterruptedException {
         assumeTrue(nixAvailable, "Nix is not available - skipping test");
         
-        // Expect that Java 8 build fails due to language compatibility
-        testJvmBuildFailure(tempDir, "8", "ByteHot requires Java 11+ due to modern language features");
+        // Expect that Java 8 and 11 build fails due to Maven target configuration
+        testJvmBuildFailure(tempDir, "8", "ByteHot requires Java 17+ per Maven configuration");
+    }
+
+    /**
+     * Tests that Java 11 is not supported due to Maven configuration.
+     */
+    @Test
+    public void java_11_not_supported_due_to_maven_configuration(@TempDir Path tempDir) throws IOException, InterruptedException {
+        assumeTrue(nixAvailable, "Nix is not available - skipping test");
+        
+        testJvmBuildFailure(tempDir, "11", "ByteHot requires Java 17+ per Maven configuration");
     }
 
     /**
