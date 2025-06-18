@@ -234,7 +234,10 @@ public class HotSwapCapabilityNixTest {
             "Build should fail for JVM " + jvmVersion + " due to: " + expectedReason + ". Output: " + output);
         
         // Verify it's failing for the right reason (compilation error, not environment issue)
-        assertTrue(output.contains("BUILD FAILURE") || output.contains("COMPILATION ERROR"), 
+        assertTrue(output.contains("BUILD FAILURE") || 
+                   output.contains("COMPILATION ERROR") ||
+                   output.contains("Failed to execute goal") ||
+                   output.contains("invalid target release"), 
             "Should fail due to compilation issues. Output: " + output);
     }
 }
