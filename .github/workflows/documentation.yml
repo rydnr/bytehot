@@ -98,20 +98,34 @@ jobs:
           mkdir -p /tmp/bytehot-docs
           
           # Copy Javadocs if they exist
-          if [ -d "bytehot/javadocs" ]; then
-            cp -r bytehot/javadocs /tmp/bytehot-docs/
-            echo "Javadocs copied to temp directory"
-          elif [ -d "bytehot/target/site/apidocs" ]; then
+          if [ -d "bytehot/target/site/apidocs" ]; then
             cp -r bytehot/target/site/apidocs /tmp/bytehot-docs/javadocs
             echo "Javadocs copied from Maven target to temp directory"
+            echo "Javadocs directory contents:"
+            ls -la /tmp/bytehot-docs/javadocs/ | head -10
           else
             echo "No Javadocs found, creating empty directory"
             mkdir -p /tmp/bytehot-docs/javadocs
             echo "<html><body><h1>Javadocs not available</h1></body></html>" > /tmp/bytehot-docs/javadocs/index.html
           fi
           
-          # Copy source files for conversion
-          cp -r story.org journal.org docs/ /tmp/bytehot-docs/ || echo "Some source files not found"
+          # Copy source files for conversion (from root directory)
+          echo "Copying source files from root directory..."
+          if [ -f "story.org" ]; then
+            cp story.org /tmp/bytehot-docs/
+            echo "story.org copied"
+          fi
+          if [ -f "journal.org" ]; then
+            cp journal.org /tmp/bytehot-docs/
+            echo "journal.org copied"
+          fi
+          if [ -d "docs" ]; then
+            cp -r docs /tmp/bytehot-docs/
+            echo "docs/ directory copied"
+          fi
+          
+          echo "Files in temp directory:"
+          ls -la /tmp/bytehot-docs/
 
       - name: Switch to gh-pages and copy files
         run: |
