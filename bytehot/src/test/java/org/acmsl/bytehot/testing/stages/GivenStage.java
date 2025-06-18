@@ -159,7 +159,7 @@ public class GivenStage {
         try {
             // Load all events up to the timestamp
             List<VersionedDomainEvent> historicalEvents = 
-                eventStore.getEventsByTimeRange(Instant.EPOCH, timestamp);
+                eventStore.getEventsBetween(Instant.EPOCH, timestamp);
             
             historicalEvents.forEach(this::event);
             return this;
@@ -179,7 +179,7 @@ public class GivenStage {
     public GivenStage eventsBetween(Instant start, Instant end) {
         try {
             List<VersionedDomainEvent> rangeEvents = 
-                eventStore.getEventsByTimeRange(start, end);
+                eventStore.getEventsBetween(start, end);
             
             rangeEvents.forEach(this::event);
             return this;
@@ -252,7 +252,7 @@ public class GivenStage {
     public GivenStage aggregateStatesSince(String aggregateType, String aggregateId, long sinceVersion) {
         try {
             List<VersionedDomainEvent> recentEvents = 
-                eventStore.getEventsSinceVersion(aggregateType, aggregateId, sinceVersion);
+                eventStore.getEventsForAggregateSince(aggregateType, aggregateId, sinceVersion);
             
             recentEvents.forEach(this::event);
             return this;

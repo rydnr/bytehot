@@ -101,16 +101,10 @@ public abstract class EventDrivenTestSupport {
         this.application = ByteHotApplication.getInstance();
         
         // Wire the test event store (temporarily override production store)
-        Ports.getInstance().inject(EventStorePort.class, eventStore);
+        Ports.getInstance().inject(EventStorePort.class, (InMemoryEventStoreAdapter) eventStore);
         
-        // Initialize application if needed
-        try {
-            if (!application.isInitialized()) {
-                application.initializeForTesting();
-            }
-        } catch (Exception e) {
-            // Test initialization doesn't require full agent setup
-        }
+        // Application is ready to use after adapter injection
+        // No additional initialization needed for testing
     }
 
     /**
@@ -159,7 +153,7 @@ public abstract class EventDrivenTestSupport {
      * @return BugReproductionStage for bug reproduction testing
      */
     protected BugReproductionStage reproduce(BugReport bugReport) {
-        return new BugReproductionStage(bugReport, context);
+        return new BugReproductionStage(bugReport, context, eventStore, application);
     }
 
     /**

@@ -117,8 +117,8 @@ public class EventCapturingEmitter implements EventEmitterPort, Adapter<EventEmi
     }
 
     @Override
-    public EventEmitterPort adapts() {
-        return this;
+    public Class<EventEmitterPort> adapts() {
+        return EventEmitterPort.class;
     }
 
     /**

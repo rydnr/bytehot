@@ -162,11 +162,11 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
     }
 
     @Override
-    public List<VersionedDomainEvent> getEventsSinceVersion(String aggregateType, String aggregateId, long version) 
+    public List<VersionedDomainEvent> getEventsForAggregateSince(String aggregateType, String aggregateId, long sinceVersion) 
             throws EventStoreException {
         List<VersionedDomainEvent> allEvents = getEventsForAggregate(aggregateType, aggregateId);
         return allEvents.stream()
-            .filter(event -> event.getAggregateVersion() > version)
+            .filter(event -> event.getAggregateVersion() > sinceVersion)
             .collect(Collectors.toList());
     }
 
@@ -178,11 +178,11 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
     }
 
     @Override
-    public List<VersionedDomainEvent> getEventsByTimeRange(Instant start, Instant end) throws EventStoreException {
+    public List<VersionedDomainEvent> getEventsBetween(Instant startTime, Instant endTime) throws EventStoreException {
         return chronologicalEvents.stream()
             .filter(event -> {
                 Instant eventTime = event.getTimestamp();
-                return !eventTime.isBefore(start) && !eventTime.isAfter(end);
+                return !eventTime.isBefore(startTime) && !eventTime.isAfter(endTime);
             })
             .collect(Collectors.toList());
     }
@@ -226,6 +226,21 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
     }
 
     @Override
+    public long getTotalEventCount() throws EventStoreException {
+        return chronologicalEvents.size();
+    }
+
+    @Override
+    public Class<EventStorePort> adapts() {
+        return EventStorePort.class;
+    }
+
+    /**
+     * Gets health status information for debugging.
+     * This is a test-specific method not part of the EventStorePort interface.
+     * 
+     * @return health status map
+     */
     public Map<String, Object> getHealthStatus() {
         Map<String, Object> status = new HashMap<>();
         status.put("healthy", true);
