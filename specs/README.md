@@ -108,7 +108,16 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - Bug report serialization and reproduction
 - Developer-friendly error reporting with complete context
 
-#### [Milestone 6E: Flow Detection](milestone-6e-flow-detection.md) 📋 PLANNED
+#### [Milestone 6E: GitHub Actions CI/CD Pipeline Setup](milestone-6e-github-actions-setup.md) ✅ COMPLETED
+**Objective:** Establish comprehensive GitHub Actions CI/CD pipeline for automated testing, quality checks, and milestone releases
+**Walking Skeleton Value:** Professional development workflow automation with automated testing and release management
+**Key Components:**
+- Continuous Integration workflow with automated testing and quality analysis
+- Documentation generation pipeline with GitHub Pages deployment
+- Security vulnerability scanning with NVD API integration
+- Milestone-based release automation with artifact management
+
+#### [Milestone 6F: Flow Detection](milestone-6f-flow-detection.md) 📋 PLANNED
 **Objective:** Automatically discover business flows from event chains
 **Walking Skeleton Value:** Self-documenting system behavior and process discovery
 **Key Components:**
@@ -117,7 +126,7 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - Flow persistence and visualization
 - Real-time flow documentation generation
 
-#### [Milestone 6F: Java-Commons Refactoring](milestone-6f-java-commons-refactoring.md) 📋 PLANNED
+#### [Milestone 6G: Java-Commons Refactoring](milestone-6g-java-commons-refactoring.md) 📋 PLANNED
 **Objective:** Extract generic components to java-commons for reuse
 **Walking Skeleton Value:** Architecture becomes reusable across projects
 **Key Components:**
@@ -128,15 +137,10 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 
 ### Development Infrastructure (SUPPORTING)
 
-#### [GitHub Actions CI/CD Pipeline](github-actions-cicd.md) ✅ COMPLETED
-**Objective:** Automated testing, quality checks, and milestone-based releases
-**Status:** ✅ Implemented with comprehensive CI/CD workflows
+#### [Legacy GitHub Actions Documentation](github-actions-cicd.md) ✅ COMPLETED
+**Note:** This specification has been superseded by [Milestone 6E: GitHub Actions CI/CD Pipeline Setup](milestone-6e-github-actions-setup.md)
+**Status:** ✅ Implemented and integrated into milestone structure
 **Value:** Professional development workflow with automated testing and release management
-**Key Components:**
-- Continuous Integration workflow with automated testing
-- Release workflow with milestone tag automation
-- Code quality analysis and security scanning
-- Automated release notes and artifact management
 
 ### Advanced Features (FUTURE MILESTONES)
 
@@ -215,14 +219,14 @@ All development follows strict TDD methodology with emoji-based commit conventio
 - **Milestone 4:** Instance Management - 41/41 tests passing
 - **Milestone 5:** Hexagonal Architecture - Complete Ports and Adapters with dynamic discovery
 - **Milestone 6A:** Basic EventSourcing Infrastructure - 10/11 EventStore tests passing
-- **GitHub Actions CI/CD:** Automated testing and milestone releases - Complete workflows
+- **Milestone 6E:** GitHub Actions CI/CD Pipeline Setup - Complete automated workflows
 
 ### 📋 Next Steps (Walking Skeleton Approach)
 - **Milestone 6B:** Event-Driven Testing Framework - Revolutionary testing approach
 - **Milestone 6C:** User Management Domain - User-aware operations
 - **Milestone 6D:** Event-Driven Bug Reporting - Exception-based reproduction
-- **Milestone 6E:** Flow Detection - Automatic business process discovery
-- **Milestone 6F:** Java-Commons Refactoring - Reusable architecture components
+- **Milestone 6F:** Flow Detection - Automatic business process discovery
+- **Milestone 6G:** Java-Commons Refactoring - Reusable architecture components
 
 ## Key Design Decisions
 
@@ -317,10 +321,11 @@ ByteHot understands and documents its own behavior:
 
 ### EventSourcing Success (PARTIALLY COMPLETE)
 - ✅ Complete event persistence and retrieval (Milestone 6A) - 10/11 tests passing
+- ✅ Professional CI/CD pipeline with automated testing (Milestone 6E) - Complete workflows
 - 📋 Event-driven testing framework operational (Milestone 6B)
 - 📋 User-aware operations with auto-discovery (Milestone 6C)
 - 📋 Bug reproduction from event snapshots (Milestone 6D)
-- 📋 Automatic flow detection and documentation (Milestone 6E)
+- 📋 Automatic flow detection and documentation (Milestone 6F)
 
 ### Performance Success
 - ✅ Sub-200ms hot-swap latency (95th percentile)
