@@ -42,6 +42,8 @@ import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -135,6 +137,63 @@ public class ByteHotApplicationIntegrationTest {
                                  java.util.Map<String, java.util.Set<Module>> extraOpens,
                                  java.util.Set<Class<?>> extraUses,
                                  java.util.Map<Class<?>, java.util.List<Class<?>>> extraProvides) {}
+    }
+
+    /**
+     * Set up clean state before each test
+     */
+    @BeforeEach
+    public void setUp() {
+        // Reset the ByteHotApplication state by clearing adapters
+        resetByteHotApplicationState();
+        
+        // Reset the Ports singleton instance
+        resetPortsInstance();
+    }
+
+    /**
+     * Clean up after each test to ensure isolation
+     */
+    @AfterEach
+    public void tearDown() {
+        // Reset the ByteHotApplication state
+        resetByteHotApplicationState();
+        
+        // Reset the Ports singleton instance
+        resetPortsInstance();
+        
+        // Clear system properties that might affect tests
+        System.clearProperty("bytehot.watch.paths");
+    }
+
+    /**
+     * Resets ByteHotApplication state using reflection to access private fields
+     */
+    private void resetByteHotApplicationState() {
+        try {
+            // Reset the adaptersInitialized flag
+            java.lang.reflect.Field adaptersInitializedField = 
+                ByteHotApplication.class.getDeclaredField("adaptersInitialized");
+            adaptersInitializedField.setAccessible(true);
+            adaptersInitializedField.setBoolean(null, false);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not reset ByteHotApplication state: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Resets the Ports singleton instance using reflection
+     */
+    private void resetPortsInstance() {
+        try {
+            // Reset the Ports singleton instance
+            java.lang.reflect.Field instanceField = 
+                org.acmsl.bytehot.domain.Ports.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);
+        } catch (Exception e) {
+            System.err.println("Warning: Could not reset Ports instance: " + e.getMessage());
+        }
     }
 
     /**
