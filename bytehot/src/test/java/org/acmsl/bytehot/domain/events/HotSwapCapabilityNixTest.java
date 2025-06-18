@@ -96,8 +96,11 @@ public class HotSwapCapabilityNixTest {
         
         // First: Build the agent with the target JVM version to avoid UnsupportedClassVersionError
         ProcessBuilder packageBuilder = new ProcessBuilder(
-            "nix", "develop", ".nix/#rydnr-bytehot-" + jvmVersion, "-c",
-            "mvn", "clean", "package", "-DskipTests", "-Dmaven.compiler.source=1.8", "-Dmaven.compiler.target=1.8"
+            "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
+            "mvn", "clean", "package", "-DskipTests", 
+            "-Dmaven.compiler.source=" + (jvmVersion.equals("8") ? "1.8" : jvmVersion),
+            "-Dmaven.compiler.target=" + (jvmVersion.equals("8") ? "1.8" : jvmVersion),
+            "-Dmaven.compiler.release=" + (jvmVersion.equals("8") ? "8" : jvmVersion)
         );
         packageBuilder.directory(Path.of(".").toFile());
         packageBuilder.redirectErrorStream(true);
@@ -131,7 +134,7 @@ public class HotSwapCapabilityNixTest {
 
         // Compile the test class using Nix shell
         ProcessBuilder compileBuilder = new ProcessBuilder(
-            "nix", "develop", ".nix/#rydnr-bytehot-" + jvmVersion, "-c",
+            "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
             "javac", testJavaFile.toString()
         );
         compileBuilder.directory(Path.of(".").toFile());
@@ -145,12 +148,12 @@ public class HotSwapCapabilityNixTest {
         // When: Run the test app with ByteHot agent using Nix shell
         Path agentJar = Path.of(System.getProperty("user.dir") + "/target/bytehot-latest-SNAPSHOT-agent.jar");
         ProcessBuilder runBuilder = new ProcessBuilder(
-            "nix", "develop", ".nix/#rydnr-bytehot-" + jvmVersion, "-c",
-            "java",
-            "-javaagent:" + agentJar.toAbsolutePath(),
-            "-Dbhconfig=" + configFile.toAbsolutePath(),
-            "-cp", tempDir.toString(),
-            "TestApp"
+            "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
+            "sh", "-c", 
+            "echo 'JAVA_HOME='$JAVA_HOME && echo 'Java version:' && java -version && " +
+            "java -javaagent:" + agentJar.toAbsolutePath() + 
+            " -Dbhconfig=" + configFile.toAbsolutePath() + 
+            " -cp " + tempDir.toString() + " TestApp"
         );
         runBuilder.directory(Path.of(".").toFile());
         runBuilder.redirectErrorStream(true);
