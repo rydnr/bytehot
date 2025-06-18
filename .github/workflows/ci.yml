@@ -75,22 +75,51 @@ jobs:
           
     - name: Check for security vulnerabilities (optional)
       run: |
-        echo "Attempting lightweight security scan..."
-        echo "Note: This is optional and will not block the build if it fails."
+        echo "=== Security Vulnerability Check Diagnostics ==="
         
-        # Try a simple dependency tree analysis first
+        # Check if NVD API key is available
+        if [ -n "${{ secrets.NVD_API_KEY }}" ]; then
+          echo "✅ NVD_API_KEY is configured (length: ${#{{ secrets.NVD_API_KEY }}})"
+          echo "🔑 API Key format check: $(echo '${{ secrets.NVD_API_KEY }}' | head -c 20)..."
+        else
+          echo "❌ NVD_API_KEY is not configured"
+        fi
+        
+        # Test NVD API connectivity
+        echo "🌐 Testing NVD API connectivity..."
+        curl -s --max-time 10 "https://services.nvd.nist.gov/rest/json/cves/2.0/?resultsPerPage=1" \
+          -H "Accept: application/json" \
+          && echo "✅ NVD API is reachable" \
+          || echo "❌ NVD API connectivity failed"
+        
+        # Try dependency tree analysis
+        echo "📦 Running dependency tree analysis..."
         mvn dependency:tree -B -q || echo "Dependency tree analysis failed"
         
-        # Skip OWASP dependency check for now due to NVD database issues
-        echo "⚠️  OWASP Dependency Check temporarily disabled due to NVD API issues"
-        echo "📋 Alternative: Check GitHub Security tab for Dependabot alerts"
-        echo "🔗 Security alerts: https://github.com/rydnr/bytehot/security/dependabot"
+        # Attempt OWASP check with diagnostics
+        echo "🛡️ Attempting OWASP Dependency Check..."
+        if [ -n "${{ secrets.NVD_API_KEY }}" ]; then
+          echo "Using API key for OWASP check..."
+          mvn org.owasp:dependency-check-maven:check -B \
+            -Dnvd.api.key=${{ secrets.NVD_API_KEY }} \
+            -Dnvd.api.delay=4000 \
+            -DfailBuildOnCVSS=0 \
+            -X || {
+              echo "❌ OWASP check with API key failed"
+              echo "📋 Alternative: Check GitHub Security tab for Dependabot alerts"
+              echo "🔗 Security alerts: https://github.com/rydnr/bytehot/security/dependabot"
+            }
+        else
+          echo "No API key available, skipping OWASP check"
+          echo "📋 Alternative: Check GitHub Security tab for Dependabot alerts"
+          echo "🔗 Security alerts: https://github.com/rydnr/bytehot/security/dependabot"
+        fi
         
-        # Create a simple report placeholder
+        # Create report
         mkdir -p target
-        echo "<html><body><h1>Security Scan</h1><p>OWASP check temporarily disabled. Check GitHub Dependabot for vulnerability reports.</p></body></html>" > target/security-report.html
+        echo "<html><body><h1>Security Scan</h1><p>Check logs for detailed diagnostics. GitHub Dependabot provides vulnerability reports.</p></body></html>" > target/security-report.html
       continue-on-error: true
-      timeout-minutes: 2
+      timeout-minutes: 8
       
     - name: Upload security report
       uses: actions/upload-artifact@v4
