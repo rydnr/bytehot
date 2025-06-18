@@ -52,23 +52,16 @@ jobs:
 
       - name: Build project and run tests
         run: |
-          cd bytehot
+          # Build the multi-module project from root
           mvn clean compile test-compile
 
       - name: Generate Javadocs
         run: |
-          cd bytehot
-          # Generate Javadocs with proper classpath
-          javadoc -d javadocs \
-            -sourcepath src/main/java \
-            -classpath "target/classes:$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q)" \
-            -subpackages org.acmsl.bytehot \
-            -windowtitle "ByteHot API Documentation" \
-            -doctitle "ByteHot - JVM Bytecode Hot-Swapping Agent" \
-            -header "ByteHot v1.0" \
-            -bottom "Copyright © 2025 ByteHot Project. Licensed under GPL v3." \
-            -use -version -author \
-            -quiet || echo "Javadoc generation completed with warnings"
+          # Generate Javadocs using Maven for the bytehot module
+          mvn javadoc:javadoc -pl bytehot || echo "Javadoc generation completed with warnings"
+          # Copy generated javadocs to expected location
+          cp -r bytehot/target/site/apidocs bytehot/javadocs || echo "Fallback: creating empty javadocs directory"
+          mkdir -p bytehot/javadocs
 
       - name: Create or checkout gh-pages branch
         run: |
