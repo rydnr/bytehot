@@ -95,13 +95,29 @@ public class HotSwapCapabilityNixTest {
             throws IOException, InterruptedException {
         
         // First: Build the agent with the target JVM version to avoid UnsupportedClassVersionError
-        ProcessBuilder packageBuilder = new ProcessBuilder(
-            "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
-            "mvn", "clean", "package", "-DskipTests", 
-            "-Dmaven.compiler.source=" + (jvmVersion.equals("8") ? "1.8" : jvmVersion),
-            "-Dmaven.compiler.target=" + (jvmVersion.equals("8") ? "1.8" : jvmVersion),
-            "-Dmaven.compiler.release=" + (jvmVersion.equals("8") ? "8" : jvmVersion)
-        );
+        ProcessBuilder packageBuilder;
+        if (jvmVersion.equals("8")) {
+            // Java 8 doesn't support --release flag, needs special handling
+            packageBuilder = new ProcessBuilder(
+                "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
+                "mvn", "clean", "package", "-DskipTests", 
+                "-Dmaven.compiler.source=1.8",
+                "-Dmaven.compiler.target=1.8",
+                "-Djavac.source=1.8",
+                "-Djavac.target=1.8",
+                // Override all the hardcoded Java 17 settings from parent POM
+                "-Dmaven.compiler.compilerArgument=-Xlint:all"
+            );
+        } else {
+            packageBuilder = new ProcessBuilder(
+                "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
+                "mvn", "clean", "package", "-DskipTests", 
+                "-Dmaven.compiler.source=" + jvmVersion,
+                "-Dmaven.compiler.target=" + jvmVersion,
+                "-Djavac.source=" + jvmVersion,
+                "-Djavac.target=" + jvmVersion
+            );
+        }
         packageBuilder.directory(Path.of(".").toFile());
         packageBuilder.redirectErrorStream(true);
         Process packageProcess = packageBuilder.start();
