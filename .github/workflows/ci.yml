@@ -73,26 +73,31 @@ jobs:
           **/target/surefire-reports/
           **/target/site/
           
-    - name: Check for security vulnerabilities
+    - name: Check for security vulnerabilities (optional)
       run: |
-        echo "Running OWASP Dependency Check with timeout..."
-        timeout 300 mvn org.owasp:dependency-check-maven:check -B \
-          -DskipSystemScope=true \
-          -DfailBuildOnCVSS=0 \
-          -DsuppressNativeHints=true \
-          -DautoUpdate=false || {
-            echo "Security check timed out or failed, but continuing build..."
-            echo "This is informational only and does not block the build."
-          }
+        echo "Attempting lightweight security scan..."
+        echo "Note: This is optional and will not block the build if it fails."
+        
+        # Try a simple dependency tree analysis first
+        mvn dependency:tree -B -q || echo "Dependency tree analysis failed"
+        
+        # Skip OWASP dependency check for now due to NVD database issues
+        echo "⚠️  OWASP Dependency Check temporarily disabled due to NVD API issues"
+        echo "📋 Alternative: Check GitHub Security tab for Dependabot alerts"
+        echo "🔗 Security alerts: https://github.com/rydnr/bytehot/security/dependabot"
+        
+        # Create a simple report placeholder
+        mkdir -p target
+        echo "<html><body><h1>Security Scan</h1><p>OWASP check temporarily disabled. Check GitHub Dependabot for vulnerability reports.</p></body></html>" > target/security-report.html
       continue-on-error: true
-      timeout-minutes: 8
+      timeout-minutes: 2
       
-    - name: Upload OWASP report
+    - name: Upload security report
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: owasp-report
-        path: '**/target/dependency-check-report.html'
+        name: security-report
+        path: '**/target/security-report.html'
         
   code-quality:
     name: Code Quality Analysis
