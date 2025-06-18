@@ -68,6 +68,16 @@ public class HotSwapCapabilityNixTest {
     }
 
     /**
+     * Tests that minimum supported JVM version (11) works correctly.
+     */
+    @Test
+    public void minimum_supported_jvm_works(@TempDir Path tempDir) throws IOException, InterruptedException {
+        assumeTrue(nixAvailable, "Nix is not available - skipping test");
+        
+        testJvmHotSwapCapability(tempDir, "11", true);
+    }
+
+    /**
      * Tests that newer JVM versions (21+) support hot-swapping capabilities.
      */
     @Test
@@ -78,14 +88,15 @@ public class HotSwapCapabilityNixTest {
     }
 
     /**
-     * Tests that older JVM versions (8) may have limited hot-swapping capabilities.
+     * Tests that older JVM versions (8) are not supported due to modern Java language features.
+     * ByteHot uses Java 10+ features (var keyword) and cannot be compiled with Java 8.
      */
     @Test
-    public void legacy_jvm_may_have_limited_hotswap_capabilities(@TempDir Path tempDir) throws IOException, InterruptedException {
+    public void legacy_jvm_not_supported_due_to_modern_language_features(@TempDir Path tempDir) throws IOException, InterruptedException {
         assumeTrue(nixAvailable, "Nix is not available - skipping test");
         
-        // Java 8 should still support basic hot-swap, but let's test it
-        testJvmHotSwapCapability(tempDir, "8", true);
+        // Expect that Java 8 build fails due to language compatibility
+        testJvmBuildFailure(tempDir, "8", "ByteHot requires Java 11+ due to modern language features");
     }
 
     /**
@@ -198,5 +209,32 @@ public class HotSwapCapabilityNixTest {
             assertFalse(output.contains("HotSwapCapabilityEnabled"), 
                 "JVM " + jvmVersion + " should NOT support HotSwapCapabilityEnabled. Output: " + output);
         }
+    }
+
+    /**
+     * Tests that a specific JVM version fails to build ByteHot due to language compatibility issues.
+     */
+    private void testJvmBuildFailure(@TempDir Path tempDir, String jvmVersion, String expectedReason) 
+            throws IOException, InterruptedException {
+        
+        // Attempt to build with incompatible JVM version - expect failure
+        ProcessBuilder packageBuilder = new ProcessBuilder(
+            "nix", "develop", "./.nix#rydnr-bytehot-" + jvmVersion, "-c",
+            "mvn", "clean", "compile", "-q"
+        );
+        packageBuilder.directory(Path.of(".").toFile());
+        packageBuilder.redirectErrorStream(true);
+        Process packageProcess = packageBuilder.start();
+        
+        String output = new String(packageProcess.getInputStream().readAllBytes());
+        boolean buildFailed = !packageProcess.waitFor(60, TimeUnit.SECONDS) || packageProcess.exitValue() != 0;
+        
+        // Then: Verify that the build failed as expected
+        assertTrue(buildFailed, 
+            "Build should fail for JVM " + jvmVersion + " due to: " + expectedReason + ". Output: " + output);
+        
+        // Verify it's failing for the right reason (compilation error, not environment issue)
+        assertTrue(output.contains("BUILD FAILURE") || output.contains("COMPILATION ERROR"), 
+            "Should fail due to compilation issues. Output: " + output);
     }
 }
