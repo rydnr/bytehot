@@ -34,6 +34,10 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.testing.support.AgentJarBuilder;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -50,6 +54,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @since 2025-06-15
  */
 public class WatchPathConfiguredTest {
+
+    /**
+     * Ensures the agent JAR exists before running tests
+     */
+    @BeforeAll
+    public static void ensureAgentJarExists() {
+        AgentJarBuilder.ensureAgentJarExists();
+    }
 
     /**
      * Tests that ByteHot agent produces WatchPathConfigured event when valid configuration is provided.
@@ -82,7 +94,7 @@ public class WatchPathConfiguredTest {
         compileProcess.waitFor(10, TimeUnit.SECONDS);
 
         // When: Run the test app with ByteHot agent and configuration
-        Path agentJar = Path.of(System.getProperty("user.dir") + "/target/bytehot-latest-SNAPSHOT-agent.jar");
+        Path agentJar = AgentJarBuilder.getAgentJarPath();
         ProcessBuilder runBuilder = new ProcessBuilder(
             "java",
             "-javaagent:" + agentJar.toAbsolutePath(),

@@ -67,13 +67,17 @@ public class ByteHotCLI {
             throw new IllegalStateException("Missing required system property bhconfig");
         }
 
+        // Initialize the application with instrumentation (this will inject all adapters)
+        ByteHotApplication.initialize(inst);
+
         WatchConfiguration config;
         try {
             config = WatchConfiguration.load();
         } catch (final Exception exception) {
             throw new IllegalStateException("Failed to load configuration", exception);
         }
-
+        
+        // Process the attach request
         ByteHotApplication.getInstance().accept(new ByteHotAttachRequested(config, inst));
     }
 

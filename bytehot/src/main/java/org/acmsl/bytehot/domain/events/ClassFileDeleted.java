@@ -36,14 +36,13 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.bytehot.domain.EventMetadata;
 
 import java.nio.file.Path;
 import java.time.Instant;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -51,10 +50,9 @@ import lombok.ToString;
  * @author Claude Code
  * @since 2025-06-16
  */
-@RequiredArgsConstructor
-@EqualsAndHashCode
-@ToString
-public class ClassFileDeleted implements DomainEvent {
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class ClassFileDeleted extends AbstractVersionedDomainEvent {
 
     /**
      * The path to the deleted .class file
@@ -71,9 +69,69 @@ public class ClassFileDeleted implements DomainEvent {
     private final String className;
 
     /**
-     * The timestamp when the deletion was detected
-     * @return the timestamp
+     * When the deletion was detected
+     * @return the detection timestamp
      */
     @Getter
-    private final Instant timestamp;
+    private final Instant detectionTimestamp;
+
+    /**
+     * Constructor with all EventSourcing metadata
+     */
+    public ClassFileDeleted(
+        String eventId,
+        String aggregateType,
+        String aggregateId,
+        long aggregateVersion,
+        Instant timestamp,
+        String previousEventId,
+        int schemaVersion,
+        String userId,
+        String correlationId,
+        Path classFile,
+        String className,
+        Instant detectionTimestamp
+    ) {
+        super(eventId, aggregateType, aggregateId, aggregateVersion, timestamp, 
+              previousEventId, schemaVersion, userId, correlationId);
+        this.classFile = classFile;
+        this.className = className;
+        this.detectionTimestamp = detectionTimestamp;
+    }
+
+    /**
+     * Constructor using EventMetadata
+     */
+    public ClassFileDeleted(
+        EventMetadata metadata,
+        Path classFile,
+        String className,
+        Instant detectionTimestamp
+    ) {
+        super(metadata);
+        this.classFile = classFile;
+        this.className = className;
+        this.detectionTimestamp = detectionTimestamp;
+    }
+
+    /**
+     * Factory method to create a ClassFileDeleted event for a new file monitoring session
+     */
+    public static ClassFileDeleted forNewSession(
+        Path classFile,
+        String className,
+        Instant detectionTimestamp
+    ) {
+        EventMetadata metadata = createMetadataForNewAggregate(
+            "filewatch", 
+            classFile.toString()
+        );
+        
+        return new ClassFileDeleted(
+            metadata,
+            classFile,
+            className,
+            detectionTimestamp
+        );
+    }
 }

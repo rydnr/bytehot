@@ -121,6 +121,6 @@ public class BytecodeValidator {
         
         final Instant timestamp = Instant.now();
         
-        return new BytecodeRejected(classFile, className, false, rejectionReason, timestamp);
+        return BytecodeRejected.forNewSession(classFile, className, rejectionReason, timestamp);
     }
 }

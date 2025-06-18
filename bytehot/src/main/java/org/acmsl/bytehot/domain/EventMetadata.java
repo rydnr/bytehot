@@ -151,6 +151,35 @@ public class EventMetadata {
     }
 
     /**
+     * Creates event metadata for an existing aggregate with custom timestamp
+     * @param aggregateType the type of aggregate
+     * @param aggregateId the unique identifier of the aggregate
+     * @param previousEventId the ID of the previous event
+     * @param currentVersion the current version of the aggregate
+     * @param timestamp the timestamp for this event
+     * @return metadata for the next event
+     */
+    public static EventMetadata forExistingAggregate(
+        String aggregateType,
+        String aggregateId,
+        String previousEventId,
+        long currentVersion,
+        Instant timestamp
+    ) {
+        return new EventMetadata(
+            UUID.randomUUID().toString(),
+            aggregateType,
+            aggregateId,
+            currentVersion + 1,
+            timestamp,
+            previousEventId,
+            1, // Default schema version
+            null, // No user context yet
+            null // No correlation yet
+        );
+    }
+
+    /**
      * Creates event metadata with user context
      * @param aggregateType the type of aggregate
      * @param aggregateId the unique identifier of the aggregate

@@ -34,6 +34,7 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -50,6 +51,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @since 2025-06-15
  */
 public class HotSwapCapabilityEnabledTest {
+
+    /**
+     * Ensures the agent JAR exists before running tests
+     */
+    @BeforeAll
+    public static void ensureAgentJarExists() throws IOException, InterruptedException {
+        Path agentJar = Path.of(System.getProperty("user.dir") + "/target/bytehot-latest-SNAPSHOT-agent.jar");
+        
+        if (!Files.exists(agentJar)) {
+            System.out.println("Building agent JAR for test...");
+            ProcessBuilder builder = new ProcessBuilder("mvn", "package", "-DskipTests=true", "-q");
+            builder.directory(Path.of(System.getProperty("user.dir")).toFile());
+            builder.inheritIO();
+            
+            Process process = builder.start();
+            int exitCode = process.waitFor();
+            
+            if (exitCode != 0) {
+                throw new RuntimeException("Failed to build agent JAR for test. Exit code: " + exitCode);
+            }
+            
+            if (!Files.exists(agentJar)) {
+                throw new RuntimeException("Agent JAR was not created: " + agentJar);
+            }
+            
+            System.out.println("Agent JAR built successfully: " + agentJar);
+        }
+    }
 
     /**
      * Tests that ByteHot agent produces HotSwapCapabilityEnabled event when JVM supports hot-swapping.

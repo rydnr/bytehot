@@ -39,6 +39,7 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.events.BytecodeValidated;
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionFailed;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionSucceeded;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
@@ -75,13 +76,22 @@ public class HotSwapManager {
         final String requestReason = createRequestReason(validation);
         final Instant timestamp = Instant.now();
         
+        // Create a placeholder ClassFileChanged event for the HotSwapRequested
+        ClassFileChanged placeholderEvent = ClassFileChanged.forNewSession(
+            classFile,
+            validation.getClassName(),
+            newBytecode.length,
+            timestamp
+        );
+        
         return new HotSwapRequested(
             classFile,
             validation.getClassName(),
             originalBytecode,
             newBytecode,
             requestReason,
-            timestamp
+            timestamp,
+            placeholderEvent
         );
     }
 

@@ -36,14 +36,13 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.bytehot.domain.EventMetadata;
 
 import java.nio.file.Path;
 import java.time.Instant;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -51,10 +50,9 @@ import lombok.ToString;
  * @author Claude Code
  * @since 2025-06-16
  */
-@RequiredArgsConstructor
-@EqualsAndHashCode
-@ToString
-public class BytecodeRejected implements DomainEvent {
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class BytecodeRejected extends AbstractVersionedDomainEvent {
 
     /**
      * The path to the rejected .class file
@@ -86,8 +84,79 @@ public class BytecodeRejected implements DomainEvent {
 
     /**
      * The timestamp when the rejection occurred
-     * @return the timestamp
+     * @return the detection timestamp
      */
     @Getter
-    private final Instant timestamp;
+    private final Instant detectionTimestamp;
+
+    /**
+     * Constructor with all EventSourcing metadata
+     */
+    public BytecodeRejected(
+        String eventId,
+        String aggregateType,
+        String aggregateId,
+        long aggregateVersion,
+        Instant timestamp,
+        String previousEventId,
+        int schemaVersion,
+        String userId,
+        String correlationId,
+        Path classFile,
+        String className,
+        boolean validForHotSwap,
+        String rejectionReason,
+        Instant detectionTimestamp
+    ) {
+        super(eventId, aggregateType, aggregateId, aggregateVersion, timestamp, 
+              previousEventId, schemaVersion, userId, correlationId);
+        this.classFile = classFile;
+        this.className = className;
+        this.validForHotSwap = validForHotSwap;
+        this.rejectionReason = rejectionReason;
+        this.detectionTimestamp = detectionTimestamp;
+    }
+
+    /**
+     * Constructor using EventMetadata
+     */
+    public BytecodeRejected(
+        EventMetadata metadata,
+        Path classFile,
+        String className,
+        boolean validForHotSwap,
+        String rejectionReason,
+        Instant detectionTimestamp
+    ) {
+        super(metadata);
+        this.classFile = classFile;
+        this.className = className;
+        this.validForHotSwap = validForHotSwap;
+        this.rejectionReason = rejectionReason;
+        this.detectionTimestamp = detectionTimestamp;
+    }
+
+    /**
+     * Factory method to create a BytecodeRejected event for a new validation session
+     */
+    public static BytecodeRejected forNewSession(
+        Path classFile,
+        String className,
+        String rejectionReason,
+        Instant detectionTimestamp
+    ) {
+        EventMetadata metadata = createMetadataForNewAggregate(
+            "validation", 
+            classFile.toString()
+        );
+        
+        return new BytecodeRejected(
+            metadata,
+            classFile,
+            className,
+            false, // Always false for rejected bytecode
+            rejectionReason,
+            detectionTimestamp
+        );
+    }
 }

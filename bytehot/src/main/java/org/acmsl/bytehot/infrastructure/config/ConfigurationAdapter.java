@@ -179,17 +179,24 @@ public class ConfigurationAdapter
         final List<FolderWatch> folders = new ArrayList<>();
         final String[] paths = watchPaths.split(",");
         
-        for (final String pathStr : paths) {
-            final Path path = Paths.get(pathStr.trim());
+        final String watchIntervals = System.getProperty(PROP_PREFIX + "watch.intervals");
+        final String[] intervals = watchIntervals != null ? watchIntervals.split(",") : new String[0];
+        
+        for (int i = 0; i < paths.length; i++) {
+            final Path path = Paths.get(paths[i].trim());
             final List<String> patterns = List.of("*.class");
             final boolean recursive = Boolean.parseBoolean(
                 System.getProperty(PROP_PREFIX + "watch.recursive", "true")
             );
             
-            folders.add(new FolderWatch(path, 1000));
+            final int interval = (intervals.length > i && intervals[i] != null) ? 
+                Integer.parseInt(intervals[i].trim()) : 1000;
+            
+            folders.add(new FolderWatch(path, interval));
         }
 
-        final WatchConfiguration config = new WatchConfiguration(8080);
+        final int port = Integer.parseInt(System.getProperty(PROP_PREFIX + "port", "8080"));
+        final WatchConfiguration config = new WatchConfiguration(port);
         try {
             final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
             foldersField.setAccessible(true);

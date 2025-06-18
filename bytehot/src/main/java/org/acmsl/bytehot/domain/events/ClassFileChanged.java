@@ -159,11 +159,12 @@ public class ClassFileChanged extends AbstractVersionedDomainEvent {
         String previousEventId,
         long currentVersion
     ) {
-        EventMetadata metadata = createMetadataForExistingAggregate(
+        EventMetadata metadata = EventMetadata.forExistingAggregate(
             "filewatch",
             classFile.toString(),
             previousEventId,
-            currentVersion
+            currentVersion,
+            detectionTimestamp
         );
         
         return new ClassFileChanged(

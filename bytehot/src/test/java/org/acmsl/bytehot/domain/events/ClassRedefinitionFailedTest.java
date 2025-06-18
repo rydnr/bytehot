@@ -34,6 +34,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -68,7 +70,8 @@ public class ClassRedefinitionFailedTest {
             createOriginalBytecode("IncompatibleClass"),
             createIncompatibleBytecode("IncompatibleClass"),
             "Bypassed validation - testing JVM rejection",
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            ClassFileChanged.forNewSession(classFile, "IncompatibleClass", createIncompatibleBytecode("IncompatibleClass").length, java.time.Instant.now())
         );
         
         // When: HotSwapManager attempts redefinition and JVM rejects it
@@ -106,7 +109,8 @@ public class ClassRedefinitionFailedTest {
             createOriginalBytecode("SchemaChangeClass"),
             createSchemaChangeBytecode("SchemaChangeClass"),
             "Schema changes detected but attempting redefinition",
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            ClassFileChanged.forNewSession(classFile, "SchemaChangeClass", createSchemaChangeBytecode("SchemaChangeClass").length, java.time.Instant.now())
         );
         
         // When: JVM rejects due to schema changes
@@ -148,7 +152,8 @@ public class ClassRedefinitionFailedTest {
             createOriginalBytecode("NotLoadedClass"),
             createNewBytecode("NotLoadedClass"),
             "Attempting to redefine unloaded class",
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            ClassFileChanged.forNewSession(classFile, "NotLoadedClass", createNewBytecode("NotLoadedClass").length, java.time.Instant.now())
         );
         
         // When: JVM cannot find the class to redefine

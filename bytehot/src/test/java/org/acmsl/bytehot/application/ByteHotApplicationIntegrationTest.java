@@ -174,6 +174,7 @@ public class ByteHotApplicationIntegrationTest {
 
         try {
             // When: Processing the attach request through the application layer
+            ByteHotApplication.initialize(instrumentation);
             ByteHotApplication application = ByteHotApplication.getInstance();
             List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
 
@@ -239,6 +240,7 @@ public class ByteHotApplicationIntegrationTest {
 
         try {
             // When: Processing the attach request
+            ByteHotApplication.initialize(instrumentation);
             ByteHotApplication application = ByteHotApplication.getInstance();
             List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
 

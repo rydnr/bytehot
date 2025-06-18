@@ -43,7 +43,9 @@ package org.acmsl.bytehot.testing.stages;
 
 import org.acmsl.bytehot.application.ByteHotApplication;
 import org.acmsl.bytehot.domain.EventEmitterPort;
+import org.acmsl.bytehot.domain.FileMonitoringSession;
 import org.acmsl.bytehot.domain.Ports;
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.testing.support.EventCapturingEmitter;
 import org.acmsl.bytehot.testing.support.EventTestContext;
 
@@ -312,17 +314,53 @@ public class WhenStage {
      */
     @SuppressWarnings("unchecked")
     private List<DomainResponseEvent<?>> processEventThroughApplication(DomainEvent event) {
-        // For now, create a simple mock response for testing framework demonstration
-        // In a real implementation, this would route to appropriate domain handlers
-        List<DomainResponseEvent<?>> mockResponse = new ArrayList<>();
+        List<DomainResponseEvent<?>> results = new ArrayList<>();
         
-        // Create a mock response event for testing
-        if (event instanceof org.acmsl.bytehot.domain.VersionedDomainEvent) {
-            // For demonstration purposes, return the event as a response
-            // In practice, this would call appropriate domain logic
-            mockResponse.add((DomainResponseEvent<?>) event);
+        // For ClassFileChanged events, create a simple successful response
+        if (event instanceof ClassFileChanged) {
+            ClassFileChanged classFileEvent = (ClassFileChanged) event;
+            
+            // Create a simple response that indicates successful processing
+            DomainResponseEvent<ClassFileChanged> response = new DomainResponseEvent<ClassFileChanged>() {
+                @Override
+                public ClassFileChanged getPreceding() {
+                    return classFileEvent;
+                }
+                
+                @Override
+                public String toString() {
+                    return "ClassFileProcessed[" + classFileEvent.getClassFile() + "]";
+                }
+            };
+            
+            results.add(response);
+            
+        } else {
+            // For other event types, create a placeholder response
+            results.add(createPlaceholderResponse(event));
         }
         
-        return mockResponse;
+        return results;
+    }
+
+    /**
+     * Creates a placeholder response for non-ClassFileChanged events.
+     * 
+     * @param event the original event
+     * @return a placeholder response event
+     */
+    private DomainResponseEvent<?> createPlaceholderResponse(DomainEvent event) {
+        // Create a simple response that wraps the original event
+        return new DomainResponseEvent<DomainEvent>() {
+            @Override
+            public DomainEvent getPreceding() {
+                return event;
+            }
+            
+            @Override
+            public String toString() {
+                return "PlaceholderResponse[" + event.getClass().getSimpleName() + "]";
+            }
+        };
     }
 }

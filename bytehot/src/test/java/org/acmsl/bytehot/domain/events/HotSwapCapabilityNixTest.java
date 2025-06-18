@@ -97,7 +97,7 @@ public class HotSwapCapabilityNixTest {
         // First: Build the agent with the target JVM version to avoid UnsupportedClassVersionError
         ProcessBuilder packageBuilder = new ProcessBuilder(
             "nix", "develop", ".nix/#rydnr-bytehot-" + jvmVersion, "-c",
-            "mvn", "clean", "package", "-DskipTests"
+            "mvn", "clean", "package", "-DskipTests", "-Dmaven.compiler.source=1.8", "-Dmaven.compiler.target=1.8"
         );
         packageBuilder.directory(Path.of(".").toFile());
         packageBuilder.redirectErrorStream(true);

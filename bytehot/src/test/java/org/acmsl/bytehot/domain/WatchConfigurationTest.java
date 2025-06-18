@@ -78,6 +78,8 @@ public class WatchConfigurationTest {
         
         // Set system properties for testing (adapter will read these)
         System.setProperty("bytehot.watch.paths", dir1.toString() + "," + dir2.toString());
+        System.setProperty("bytehot.watch.intervals", "1000,2000");
+        System.setProperty("bytehot.port", "6000");
         WatchConfiguration wc = WatchConfiguration.load();
 
         assertEquals(6000, wc.getPort());

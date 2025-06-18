@@ -34,6 +34,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -69,7 +71,8 @@ public class ClassRedefinitionSucceededTest {
             createOriginalBytecode("UserService"),
             createNewBytecode("UserService"),
             "Validated bytecode ready for redefinition",
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            ClassFileChanged.forNewSession(classFile, "UserService", createNewBytecode("UserService").length, java.time.Instant.now())
         );
         
         // When: HotSwapManager performs successful redefinition
@@ -105,7 +108,8 @@ public class ClassRedefinitionSucceededTest {
             createOriginalBytecode("ComplexService"),
             createComplexBytecode("ComplexService"),
             "Complex class validation passed",
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            ClassFileChanged.forNewSession(classFile, "ComplexService", createComplexBytecode("ComplexService").length, java.time.Instant.now())
         );
         
         // When: Performing redefinition with multiple instances
@@ -138,7 +142,8 @@ public class ClassRedefinitionSucceededTest {
             createOriginalBytecode("ServiceWithInstances"),
             createServiceBytecode("ServiceWithInstances"),
             "Service class redefinition requested",
-            java.time.Instant.now()
+            java.time.Instant.now(),
+            ClassFileChanged.forNewSession(classFile, "ServiceWithInstances", createServiceBytecode("ServiceWithInstances").length, java.time.Instant.now())
         );
         
         // When: Redefinition affects multiple instances

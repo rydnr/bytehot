@@ -193,7 +193,7 @@ public class ClassFileWatcher extends FolderWatch {
         final String className = extractClassName(classFile);
         final Instant timestamp = Instant.now();
         
-        return new ClassFileDeleted(classFile, className, timestamp);
+        return ClassFileDeleted.forNewSession(classFile, className, timestamp);
     }
 
     /**

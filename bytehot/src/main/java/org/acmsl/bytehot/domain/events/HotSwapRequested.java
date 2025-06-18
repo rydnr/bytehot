@@ -37,6 +37,7 @@
 package org.acmsl.bytehot.domain.events;
 
 import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -51,10 +52,9 @@ import lombok.ToString;
  * @author Claude Code
  * @since 2025-06-17
  */
-@RequiredArgsConstructor
 @EqualsAndHashCode
 @ToString
-public class HotSwapRequested implements DomainEvent {
+public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
 
     /**
      * The path to the .class file being hot-swapped
@@ -97,4 +97,64 @@ public class HotSwapRequested implements DomainEvent {
      */
     @Getter
     private final Instant timestamp;
+
+    /**
+     * The original event that triggered this hot-swap request
+     * @return the preceding event
+     */
+    @Getter
+    private final ClassFileChanged preceding;
+
+    /**
+     * Creates a new HotSwapRequested event.
+     * 
+     * @param classFile the path to the class file
+     * @param className the class name
+     * @param originalBytecode the original bytecode
+     * @param newBytecode the new bytecode
+     * @param requestReason the reason for the request
+     * @param timestamp when the request was made
+     * @param preceding the original event that triggered this
+     */
+    public HotSwapRequested(
+            Path classFile,
+            String className,
+            byte[] originalBytecode,
+            byte[] newBytecode,
+            String requestReason,
+            Instant timestamp,
+            ClassFileChanged preceding) {
+        this.classFile = classFile;
+        this.className = className;
+        this.originalBytecode = originalBytecode;
+        this.newBytecode = newBytecode;
+        this.requestReason = requestReason;
+        this.timestamp = timestamp;
+        this.preceding = preceding;
+    }
+
+    /**
+     * Factory method to create a hot-swap request from a file change.
+     * This creates a placeholder bytecode for the hot-swap request.
+     * 
+     * @param fileChangeEvent the original file change event
+     * @param sessionId the monitoring session ID (used as request reason)
+     * @return a new HotSwapRequested event
+     */
+    public static HotSwapRequested fromFileChange(ClassFileChanged fileChangeEvent, String sessionId) {
+        // For the demonstration, create placeholder bytecode
+        // In a real implementation, this would read the actual bytecode
+        byte[] placeholderBytecode = new byte[]{0x01, 0x02, 0x03, 0x04};
+        byte[] newBytecode = new byte[]{0x05, 0x06, 0x07, 0x08};
+        
+        return new HotSwapRequested(
+            fileChangeEvent.getClassFile(),
+            fileChangeEvent.getClassName(),
+            placeholderBytecode,
+            newBytecode,
+            "File change detected in session: " + sessionId,
+            Instant.now(),
+            fileChangeEvent
+        );
+    }
 }
