@@ -57,29 +57,75 @@ jobs:
 
       - name: Generate Javadocs
         run: |
-          # Generate Javadocs using Maven for the bytehot module
-          echo "Attempting to generate Javadocs..."
-          mvn javadoc:javadoc -pl bytehot -e -X || echo "Javadoc generation completed with warnings"
+          # Generate Javadocs using direct javadoc command
+          echo "Attempting to generate Javadocs with direct javadoc command..."
           
-          # Check where javadocs were generated
-          echo "Looking for generated Javadocs..."
-          find . -name "apidocs" -type d
-          find . -name "javadocs" -type d
+          # Create javadocs directory
+          mkdir -p bytehot/target/site/apidocs
           
-          # Try alternative javadoc generation
-          if [ ! -d "bytehot/target/site/apidocs" ]; then
-            echo "Maven javadoc:javadoc failed, trying alternative approach..."
+          # Try Maven approach first
+          echo "Trying Maven javadoc plugin..."
+          mvn javadoc:javadoc -pl bytehot -Dshow=private -Dadditionalparam=-Xdoclint:none || echo "Maven javadoc failed"
+          
+          # If Maven failed, use direct javadoc command
+          if [ ! -d "bytehot/target/site/apidocs" ] || [ -z "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
+            echo "Maven javadoc failed, using direct javadoc command..."
+            
+            # Build classpath from Maven
             cd bytehot
-            mvn site:site -DgenerateReports=false || echo "Site generation failed"
+            CLASSPATH=$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q 2>/dev/null | grep -v '\[')
             cd ..
+            
+            # Generate Javadocs directly
+            javadoc -d bytehot/target/site/apidocs \
+              -sourcepath bytehot/src/main/java \
+              -classpath "bytehot/target/classes:$CLASSPATH" \
+              -subpackages org.acmsl.bytehot \
+              -windowtitle "ByteHot API Documentation" \
+              -doctitle "ByteHot - JVM Bytecode Hot-Swapping Agent" \
+              -header "ByteHot v1.0" \
+              -bottom "Copyright © 2025 ByteHot Project. Licensed under GPL v3." \
+              -use -version -author \
+              -Xdoclint:none \
+              -quiet || echo "Direct javadoc also failed"
           fi
           
-          # List contents to debug
-          echo "Contents of bytehot/target:"
-          ls -la bytehot/target/ || echo "No target directory"
-          if [ -d "bytehot/target/site" ]; then
-            echo "Contents of bytehot/target/site:"
-            ls -la bytehot/target/site/
+          # Check results
+          echo "Final check for generated Javadocs:"
+          if [ -d "bytehot/target/site/apidocs" ] && [ -n "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
+            echo "✅ Javadocs generated successfully!"
+            echo "Files in apidocs:"
+            ls -la bytehot/target/site/apidocs/ | head -10
+          else
+            echo "❌ Javadoc generation failed completely"
+            echo "Creating fallback Javadocs..."
+            mkdir -p bytehot/target/site/apidocs
+            cat > bytehot/target/site/apidocs/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ByteHot API Documentation</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .error { color: #d73027; background: #fee; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>ByteHot API Documentation</h1>
+    <div class="error">
+        <h2>Documentation Generation Failed</h2>
+        <p>The Javadoc generation process encountered issues. This may be due to:</p>
+        <ul>
+            <li>Missing dependencies or classpath issues</li>
+            <li>Java version compatibility</li>
+            <li>Javadoc syntax errors in source code</li>
+        </ul>
+        <p>Please check the GitHub Actions logs for more details.</p>
+    </div>
+    <p><a href="../../../index.html">← Back to Documentation Home</a></p>
+</body>
+</html>
+HTMLEOF
           fi
 
       - name: Configure Git
