@@ -58,14 +58,28 @@ jobs:
       - name: Generate Javadocs
         run: |
           # Generate Javadocs using Maven for the bytehot module
-          mvn javadoc:javadoc -pl bytehot || echo "Javadoc generation completed with warnings"
-          # Copy generated javadocs to expected location
-          if [ -d "bytehot/target/site/apidocs" ]; then
-            cp -r bytehot/target/site/apidocs bytehot/javadocs
-          else
-            echo "Javadocs not found, creating empty directory"
-            mkdir -p bytehot/javadocs
-            echo "<html><body><h1>Javadocs generation failed</h1></body></html>" > bytehot/javadocs/index.html
+          echo "Attempting to generate Javadocs..."
+          mvn javadoc:javadoc -pl bytehot -e -X || echo "Javadoc generation completed with warnings"
+          
+          # Check where javadocs were generated
+          echo "Looking for generated Javadocs..."
+          find . -name "apidocs" -type d
+          find . -name "javadocs" -type d
+          
+          # Try alternative javadoc generation
+          if [ ! -d "bytehot/target/site/apidocs" ]; then
+            echo "Maven javadoc:javadoc failed, trying alternative approach..."
+            cd bytehot
+            mvn site:site -DgenerateReports=false || echo "Site generation failed"
+            cd ..
+          fi
+          
+          # List contents to debug
+          echo "Contents of bytehot/target:"
+          ls -la bytehot/target/ || echo "No target directory"
+          if [ -d "bytehot/target/site" ]; then
+            echo "Contents of bytehot/target/site:"
+            ls -la bytehot/target/site/
           fi
 
       - name: Configure Git
@@ -164,8 +178,13 @@ jobs:
             }
           fi
           
-          # Convert story.org to index.html with navigation
-          pandoc -f org -t html5 -s --css=style.css --toc story.org -o bytehot/index.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
+          # Convert story.org to index.html with navigation (check if file exists in bytehot directory)
+          if [ -f "bytehot/story.org" ]; then
+            pandoc -f org -t html5 -s --css=style.css --toc bytehot/story.org -o bytehot/index.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
+          else
+            echo "story.org not found in bytehot directory, creating fallback index.html"
+            echo "<html><head><title>ByteHot Documentation</title><link rel='stylesheet' href='style.css'></head><body><h1>ByteHot Documentation</h1><p>Documentation generation in progress...</p></body></html>" > bytehot/index.html
+          fi
           
           # Add navigation to index.html if conversion succeeded
           if [ -f bytehot/index.html ]; then
@@ -186,31 +205,40 @@ jobs:
           fi
           
           # Convert journal.org to journal.html
-          pandoc -f org -t html5 -s --css=style.css --toc journal.org -o bytehot/journal.html --metadata title="ByteHot Development Journal" || echo "journal.org conversion failed"
+          if [ -f "bytehot/journal.org" ]; then
+            pandoc -f org -t html5 -s --css=style.css --toc bytehot/journal.org -o bytehot/journal.html --metadata title="ByteHot Development Journal" || echo "journal.org conversion failed"
+          else
+            echo "journal.org not found, creating fallback"
+            echo "<html><head><title>ByteHot Development Journal</title><link rel='stylesheet' href='style.css'></head><body><h1>Development Journal</h1><p>Journal content not available</p></body></html>" > bytehot/journal.html
+          fi
           
           # Convert docs/*.org files if they exist
           mkdir -p bytehot/docs bytehot/docs/flows
           
           # Convert documentation files
-          for file in docs/*.org docs/*.md; do
-            if [ -f "$file" ]; then
-              basename=$(basename "$file" .org)
-              basename=$(basename "$basename" .md)
-              if [[ "$file" == *.org ]]; then
-                pandoc -f org -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
-              else
-                pandoc -f markdown -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
+          if [ -d "bytehot/docs" ]; then
+            for file in bytehot/docs/*.org bytehot/docs/*.md; do
+              if [ -f "$file" ]; then
+                basename=$(basename "$file" .org)
+                basename=$(basename "$basename" .md)
+                if [[ "$file" == *.org ]]; then
+                  pandoc -f org -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
+                else
+                  pandoc -f markdown -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
+                fi
               fi
-            fi
-          done
+            done
+          fi
           
           # Convert flow documentation
-          for file in docs/flows/*.org; do
-            if [ -f "$file" ]; then
-              basename=$(basename "$file" .org)
-              pandoc -f org -t html5 -s --css=../../style.css --toc "$file" -o "bytehot/docs/flows/${basename}.html" || echo "Failed to convert $file"
-            fi
-          done
+          if [ -d "bytehot/docs/flows" ]; then
+            for file in bytehot/docs/flows/*.org; do
+              if [ -f "$file" ]; then
+                basename=$(basename "$file" .org)
+                pandoc -f org -t html5 -s --css=../../style.css --toc "$file" -o "bytehot/docs/flows/${basename}.html" || echo "Failed to convert $file"
+              fi
+            done
+          fi
 
       - name: Create site README
         run: |
