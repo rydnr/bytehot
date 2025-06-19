@@ -64,7 +64,7 @@ public class UserProfileTest {
         // Then
         assertNotNull(profile);
         assertEquals(userId, profile.getUserId());
-        assertEquals("john.doe", profile.getDisplayName());
+        assertEquals("John Doe", profile.getDisplayName());
         assertNotNull(profile.getFullName());
         assertNull(profile.getEmail());
         assertNull(profile.getAvatarUrl());
@@ -88,7 +88,7 @@ public class UserProfileTest {
         
         // Then
         assertEquals(userId, profile.getUserId());
-        assertEquals("jane", profile.getDisplayName());
+        assertEquals("Jane", profile.getDisplayName());
         assertEquals(fullName, profile.getFullName());
         assertEquals(email, profile.getEmail());
         assertEquals(avatarUrl, profile.getAvatarUrl());
@@ -107,8 +107,8 @@ public class UserProfileTest {
         final UserProfile anonymousProfile = UserProfile.defaultProfile(anonymousUser);
         
         // Then
-        assertEquals("john.doe", emailProfile.getDisplayName());
-        assertEquals("johndoe", simpleProfile.getDisplayName());
+        assertEquals("John Doe", emailProfile.getDisplayName());
+        assertEquals("Johndoe", simpleProfile.getDisplayName());
         assertEquals("Anonymous User", anonymousProfile.getDisplayName());
     }
 
@@ -143,7 +143,7 @@ public class UserProfileTest {
         // Then
         assertEquals(UserId.fromGit(gitUser, gitEmail), profile.getUserId());
         assertEquals(gitEmail, profile.getEmail());
-        assertEquals("john.doe", profile.getDisplayName());
+        assertEquals("John Doe", profile.getDisplayName());
     }
 
     @Test

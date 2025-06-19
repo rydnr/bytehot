@@ -124,8 +124,8 @@ public class UserIdTest {
         final UserId anonymousUser = UserId.anonymous();
         
         // When & Then
-        assertEquals("john.doe", emailUser.getDisplayName());
-        assertEquals("johndoe", simpleUser.getDisplayName());
+        assertEquals("John Doe", emailUser.getDisplayName());
+        assertEquals("Johndoe", simpleUser.getDisplayName());
         assertEquals("Anonymous User", anonymousUser.getDisplayName());
     }
 

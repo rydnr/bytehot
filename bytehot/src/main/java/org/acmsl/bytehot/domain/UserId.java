@@ -38,87 +38,201 @@
  */
 package org.acmsl.bytehot.domain;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import org.acmsl.commons.patterns.dao.AbstractId;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import lombok.RequiredArgsConstructor;
+
+import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import java.util.UUID;
 
 /**
- * User identifier value object with auto-discovery capabilities
+ * Type-safe identifier for ByteHot users with intelligent auto-discovery capabilities.
+ * Supports multiple identification sources and provides enhanced user context.
  * @author Claude Code
  * @since 2025-06-18
  */
-@RequiredArgsConstructor(staticName = "of")
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = true)
 @ToString
-public class UserId {
+public final class UserId extends AbstractId<UserId> {
+
+    private UserId(@NonNull final String value) {
+        super(value);
+    }
 
     /**
-     * The user identifier value
+     * Creates a UserId from a string value.
+     * @param value the user identifier value
+     * @return a new UserId instance
      */
-    @Getter
     @NonNull
-    private final String value;
+    public static UserId of(@NonNull final String value) {
+        return new UserId(value);
+    }
 
     /**
-     * Creates an anonymous user ID
-     * @return anonymous user ID
+     * Creates an anonymous user ID for unknown users.
+     * @return a new anonymous UserId instance
      */
     @NonNull
     public static UserId anonymous() {
-        return UserId.of("anonymous-" + UUID.randomUUID().toString());
+        return new UserId("anonymous-" + UUID.randomUUID().toString());
     }
 
     /**
-     * Creates a user ID from email, normalizing to lowercase
+     * Creates a user ID from an email address.
      * @param email the email address
-     * @return user ID based on email
+     * @return a new UserId instance based on the email
      */
     @NonNull
     public static UserId fromEmail(@NonNull final String email) {
-        return UserId.of(email.toLowerCase());
+        return new UserId(email.toLowerCase().trim());
     }
 
     /**
-     * Creates a user ID from Git configuration
+     * Creates a user ID from Git configuration.
+     * Prefers email over username for better identification.
      * @param gitUser the Git username
-     * @param gitEmail the Git email (may be null)
-     * @return user ID from Git config
+     * @param gitEmail the Git email (can be null)
+     * @return a new UserId instance based on Git config
      */
     @NonNull
     public static UserId fromGit(@NonNull final String gitUser, @Nullable final String gitEmail) {
-        if (gitEmail != null && !gitEmail.isEmpty()) {
+        if (gitEmail != null && !gitEmail.trim().isEmpty()) {
             return fromEmail(gitEmail);
         }
-        return UserId.of(gitUser);
+        return new UserId(gitUser.trim());
     }
 
     /**
-     * Checks if this is an anonymous user
-     * @return true if anonymous user
+     * Creates a user ID from system information.
+     * @param systemUser the system username
+     * @param hostname the hostname (can be null)
+     * @return a new UserId instance based on system info
+     */
+    @NonNull
+    public static UserId fromSystem(@NonNull final String systemUser, @Nullable final String hostname) {
+        if (hostname != null && !hostname.trim().isEmpty()) {
+            return new UserId(systemUser.trim() + "@" + hostname.trim());
+        }
+        return new UserId(systemUser.trim());
+    }
+
+    /**
+     * Auto-discovers a user ID from available sources.
+     * Uses UserIdentificationStrategy to find the best available identifier.
+     * @return a new UserId instance from auto-discovery
+     */
+    @NonNull
+    public static UserId autoDiscover() {
+        return UserIdentificationStrategy.getInstance().identifyUser();
+    }
+
+    /**
+     * Checks if this represents an anonymous user.
+     * @return true if this is an anonymous user ID
      */
     public boolean isAnonymous() {
-        return value.startsWith("anonymous-");
+        return getValue().startsWith("anonymous-");
     }
 
     /**
-     * Gets a display name for the user
-     * @return human-readable display name
+     * Checks if this appears to be an email-based user ID.
+     * @return true if the value contains an @ symbol
+     */
+    public boolean isEmailBased() {
+        return getValue().contains("@") && !getValue().startsWith("anonymous-");
+    }
+
+    /**
+     * Gets a human-readable display name for the user.
+     * Extracts meaningful names from email addresses or returns the raw value.
+     * @return a display-friendly name for the user
      */
     @NonNull
     public String getDisplayName() {
         if (isAnonymous()) {
             return "Anonymous User";
         }
+
+        String value = getValue();
         
-        if (value.contains("@")) {
-            return value.substring(0, value.indexOf("@"));
+        // Extract name from email addresses
+        if (isEmailBased()) {
+            String localPart = value.substring(0, value.indexOf("@"));
+            // Convert common patterns like "john.doe" to "John Doe"
+            String cleaned = localPart.replace(".", " ")
+                          .replace("_", " ")
+                          .replace("-", " ")
+                          .toLowerCase();
+            // Capitalize first letter of each word
+            StringBuilder result = new StringBuilder();
+            boolean capitalizeNext = true;
+            for (char c : cleaned.toCharArray()) {
+                if (Character.isWhitespace(c)) {
+                    capitalizeNext = true;
+                    result.append(c);
+                } else if (capitalizeNext) {
+                    result.append(Character.toUpperCase(c));
+                    capitalizeNext = false;
+                } else {
+                    result.append(c);
+                }
+            }
+            return result.toString();
+        }
+
+        // For non-email IDs, return as-is but capitalize first letter
+        return value.substring(0, 1).toUpperCase() + value.substring(1);
+    }
+
+    /**
+     * Gets the domain part of an email-based user ID.
+     * @return the domain part or empty string if not email-based
+     */
+    @NonNull
+    public String getDomain() {
+        if (isEmailBased() && !isAnonymous()) {
+            return getValue().substring(getValue().indexOf("@") + 1);
+        }
+        return "";
+    }
+
+    /**
+     * Gets the local part of an email-based user ID.
+     * @return the local part or the full value if not email-based
+     */
+    @NonNull
+    public String getLocalPart() {
+        if (isEmailBased() && !isAnonymous()) {
+            return getValue().substring(0, getValue().indexOf("@"));
+        }
+        return getValue();
+    }
+
+    /**
+     * Checks if this user ID represents the same user as another.
+     * Performs case-insensitive comparison for email-based IDs.
+     * @param other the other UserId to compare
+     * @return true if they represent the same user
+     */
+    public boolean isSameUser(@Nullable final UserId other) {
+        if (other == null) {
+            return false;
         }
         
-        return value;
+        // Anonymous users are never the same
+        if (this.isAnonymous() || other.isAnonymous()) {
+            return false;
+        }
+        
+        // Case-insensitive comparison for email-based IDs
+        if (this.isEmailBased() && other.isEmailBased()) {
+            return this.getValue().equalsIgnoreCase(other.getValue());
+        }
+        
+        // Exact comparison for other types
+        return this.getValue().equals(other.getValue());
     }
 }
