@@ -166,7 +166,16 @@ public class ErrorHandlerTest {
         // Then: Should preserve all context information
         assertEquals(className, result.getClassName(), "Should preserve class name");
         assertEquals(operation, result.getOperation(), "Should preserve operation");
-        assertEquals(originalError, result.getCause(), "Should preserve original exception");
+        
+        // The cause should now be an EventSnapshotException that wraps the original
+        Throwable cause = result.getCause();
+        if (cause instanceof EventSnapshotException) {
+            EventSnapshotException enhanced = (EventSnapshotException) cause;
+            assertEquals(originalError, enhanced.getOriginalException(), "Should preserve original exception in enhanced wrapper");
+        } else {
+            assertEquals(originalError, cause, "Should preserve original exception");
+        }
+        
         assertNotNull(result.getTimestamp(), "Should have timestamp");
         assertNotNull(result.getErrorId(), "Should have unique error ID");
     }

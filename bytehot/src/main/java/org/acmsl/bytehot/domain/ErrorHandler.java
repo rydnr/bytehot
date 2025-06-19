@@ -152,19 +152,29 @@ public class ErrorHandler {
      * @return severity level
      */
     public ErrorSeverity assessSeverity(final Throwable error) {
-        if (error instanceof OutOfMemoryError || error instanceof StackOverflowError) {
+        // If this is an enhanced exception, check the original exception
+        Throwable actualError = error;
+        if (error instanceof EventSnapshotException) {
+            EventSnapshotException enhanced = (EventSnapshotException) error;
+            actualError = enhanced.getOriginalException();
+            if (actualError == null) {
+                actualError = error;
+            }
+        }
+        
+        if (actualError instanceof OutOfMemoryError || actualError instanceof StackOverflowError) {
             return ErrorSeverity.CRITICAL;
         }
         
-        if (error instanceof SecurityException) {
+        if (actualError instanceof SecurityException) {
             return ErrorSeverity.ERROR;
         }
         
-        if (error instanceof IllegalArgumentException || error instanceof IllegalStateException) {
+        if (actualError instanceof IllegalArgumentException || actualError instanceof IllegalStateException) {
             return ErrorSeverity.WARNING;
         }
         
-        if (error instanceof RuntimeException) {
+        if (actualError instanceof RuntimeException) {
             return ErrorSeverity.ERROR;
         }
         
@@ -196,28 +206,38 @@ public class ErrorHandler {
      * @return error type classification
      */
     protected ErrorType classifyError(final Throwable error) {
-        if (error instanceof BytecodeValidationException) {
+        // If this is an enhanced exception, check the original exception
+        Throwable actualError = error;
+        if (error instanceof EventSnapshotException) {
+            EventSnapshotException enhanced = (EventSnapshotException) error;
+            actualError = enhanced.getOriginalException();
+            if (actualError == null) {
+                actualError = error;
+            }
+        }
+        
+        if (actualError instanceof BytecodeValidationException) {
             return ErrorType.VALIDATION_ERROR;
         }
         
-        if (error instanceof InstanceUpdateException) {
+        if (actualError instanceof InstanceUpdateException) {
             return ErrorType.INSTANCE_UPDATE_ERROR;
         }
         
-        if (error instanceof HotSwapException) {
+        if (actualError instanceof HotSwapException) {
             return ErrorType.REDEFINITION_FAILURE;
         }
         
-        if (error instanceof SecurityException) {
+        if (actualError instanceof SecurityException) {
             return ErrorType.SECURITY_ERROR;
         }
         
-        if (error instanceof OutOfMemoryError || error instanceof StackOverflowError) {
+        if (actualError instanceof OutOfMemoryError || actualError instanceof StackOverflowError) {
             return ErrorType.CRITICAL_SYSTEM_ERROR;
         }
         
-        if (error instanceof java.nio.file.NoSuchFileException || 
-            error instanceof java.nio.file.AccessDeniedException) {
+        if (actualError instanceof java.nio.file.NoSuchFileException || 
+            actualError instanceof java.nio.file.AccessDeniedException) {
             return ErrorType.FILE_SYSTEM_ERROR;
         }
         
