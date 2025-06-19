@@ -117,19 +117,29 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - Security vulnerability scanning with NVD API integration
 - Milestone-based release automation with artifact management
 
-#### [Milestone 6F: Flow Detection](milestone-6f-flow-detection.md) 📋 PLANNED
+#### [Milestone 6F: Flow Detection](milestone-6f-flow-detection.md) ✅ COMPLETED
 **Objective:** Automatically discover business flows from event chains
+**Status:** ✅ Implemented with comprehensive flow detection capabilities and java-commons extraction
 **Walking Skeleton Value:** Self-documenting system behavior and process discovery
 **Key Components:**
-- `FlowDetector` - Analyze event sequences for patterns
-- `Flow` value object representing discovered processes
-- Flow persistence and visualization
-- Real-time flow documentation generation
+- `FlowDetector` - Analyze event sequences for patterns with confidence scoring
+- `Flow` value object representing discovered processes with validation logic
+- Flow persistence and visualization with JSON-based storage
+- Real-time flow documentation generation and pattern recognition
+- **Bonus:** Complete framework extraction to java-commons for cross-domain reusability
 
-#### [Milestone 6G: Java-Commons Refactoring](milestone-6g-java-commons-refactoring.md) 📋 PLANNED
+#### [Milestone 6G: Java-Commons Refactoring](milestone-6g-java-commons-refactoring.md) ✅ PARTIALLY COMPLETED
 **Objective:** Extract generic components to java-commons for reuse
+**Status:** ✅ Major frameworks extracted during Milestone 6F implementation
 **Walking Skeleton Value:** Architecture becomes reusable across projects
-**Key Components:**
+**Completed Components:**
+- **Event Sourcing Framework:** `VersionedDomainEvent`, `EventMetadata`, `AbstractVersionedDomainEvent`
+- **Result Pattern Framework:** `OperationResult`, `SimpleOperationResult` with rich metadata
+- **Error Handling Framework:** `ErrorSeverity`, `RecoveryStrategy`, `ErrorCategory`
+- **ID Framework:** `AbstractId<T>` with factory methods and validation
+- **Time Utilities:** `TimeWindow` for temporal analysis
+- **Revolutionary Testing Framework:** Event-driven testing support for any domain
+**Remaining Components:**
 - Generic `Application` class moved to java-commons
 - `EventBus`, `CommandBus` abstractions
 - `AggregateRepository<T>` with EventSourcing
@@ -220,13 +230,14 @@ All development follows strict TDD methodology with emoji-based commit conventio
 - **Milestone 5:** Hexagonal Architecture - Complete Ports and Adapters with dynamic discovery
 - **Milestone 6A:** Basic EventSourcing Infrastructure - 10/11 EventStore tests passing
 - **Milestone 6E:** GitHub Actions CI/CD Pipeline Setup - Complete automated workflows
+- **Milestone 6F:** Flow Detection - Complete flow detection with java-commons framework extraction
+- **Milestone 6G:** Java-Commons Refactoring - ✅ Partially complete (major frameworks extracted)
 
 ### 📋 Next Steps (Walking Skeleton Approach)
-- **Milestone 6B:** Event-Driven Testing Framework - Revolutionary testing approach
+- **Milestone 6B:** Event-Driven Testing Framework - Revolutionary testing approach (Framework extracted, integration pending)
 - **Milestone 6C:** User Management Domain - User-aware operations
 - **Milestone 6D:** Event-Driven Bug Reporting - Exception-based reproduction
-- **Milestone 6F:** Flow Detection - Automatic business process discovery
-- **Milestone 6G:** Java-Commons Refactoring - Reusable architecture components
+- **Milestone 6G:** Complete Java-Commons Refactoring - Remaining architecture components
 
 ## Key Design Decisions
 
@@ -319,13 +330,14 @@ ByteHot understands and documents its own behavior:
 - ✅ JVM agent deployment working with comprehensive error handling
 - ✅ Thread-safe concurrent programming throughout
 
-### EventSourcing Success (PARTIALLY COMPLETE)
+### EventSourcing Success (LARGELY COMPLETE)
 - ✅ Complete event persistence and retrieval (Milestone 6A) - 10/11 tests passing
 - ✅ Professional CI/CD pipeline with automated testing (Milestone 6E) - Complete workflows
-- 📋 Event-driven testing framework operational (Milestone 6B)
+- ✅ Automatic flow detection and documentation (Milestone 6F) - Complete with comprehensive pattern recognition
+- ✅ Generic event sourcing framework extracted to java-commons - Reusable across domains
+- 📋 Event-driven testing framework operational (Milestone 6B) - Framework extracted, integration pending
 - 📋 User-aware operations with auto-discovery (Milestone 6C)
 - 📋 Bug reproduction from event snapshots (Milestone 6D)
-- 📋 Automatic flow detection and documentation (Milestone 6F)
 
 ### Performance Success
 - ✅ Sub-200ms hot-swap latency (95th percentile)

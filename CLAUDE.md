@@ -313,3 +313,19 @@ The Inversion of Control / Dependency Injection is responsibility of the applica
 
 ## Memories
 - `var` declarations are not allowed.
+- All packages must have their Javadoc documentation.
+
+## Memories
+- `story.org` should include one section with as many prompts as necessary to create a storyline in video, in fragments of 8 seconds top. Those prompts would all respect the general guidelines and style defined in the very `story.org` file. The length of the final video should me about 2 minutes.
+
+## Memories
+- Every milestone should create a tag in git, and upload a release to github.
+
+## Memories
+- prompts for the storyline in `story.org` must be very detailed, about 200 words long.
+
+## Memories
+- The prompts in the storyline must not include text captions.
+
+## Memories
+- Methods should not include more than two `instanceof` checks. Instead, use the double dispatch idiom.
