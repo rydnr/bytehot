@@ -74,7 +74,7 @@ public class CachingPortResolver {
      * @param port such port.
      * @return A list of implementations.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "unchecked"})
     @NonNull
     protected <P extends Port> List<Adapter<P>> _resolveAll(@NonNull final Class<P> port) {
         return (List<Adapter<P>>) (List<?>) this.implementations.getOrDefault(port, List.of());

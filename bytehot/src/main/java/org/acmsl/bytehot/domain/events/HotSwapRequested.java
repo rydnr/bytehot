@@ -102,7 +102,6 @@ public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
      * The original event that triggered this hot-swap request
      * @return the preceding event
      */
-    @Getter
     private final ClassFileChanged preceding;
 
     /**

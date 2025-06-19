@@ -444,7 +444,7 @@ public class ToStringUtils
          * Retrieves the file class.
          * @return such class.
          */
-        @SuppressWarnings("unused, unchecked")
+        @SuppressWarnings({"unused", "unchecked"})
         public Class<T> getFileClass()
         {
             return (Class<T>) this.arg.getClass();

@@ -164,6 +164,7 @@ public final class FlowSearchCriteria implements ValueObject {
      * @return Search criteria for event type matching
      */
     @SafeVarargs
+    @SuppressWarnings("varargs")
     @NonNull
     public static FlowSearchCriteria containingEventTypes(
         @NonNull final Class<? extends DomainEvent>... eventTypes

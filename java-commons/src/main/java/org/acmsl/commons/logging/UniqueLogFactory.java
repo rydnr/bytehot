@@ -156,7 +156,7 @@ public class UniqueLogFactory
      */
     @SuppressWarnings("unchecked")
     @Nullable
-    public static Log getLog(@NotNull @SuppressWarnings("unused") final Class clazz)
+    public static Log getLog(@NotNull @SuppressWarnings("unused") final Class<?> clazz)
     {
         return getLog();
     }
@@ -213,7 +213,7 @@ public class UniqueLogFactory
     @Nullable
     @Override
     @SuppressWarnings("unchecked")
-    public Log getInstance(@NotNull final Class clazz)
+    public Log getInstance(@NotNull final Class<?> clazz)
         throws LogConfigurationException
     {
         return getInstance((Class<Object>) clazz, getLog());
