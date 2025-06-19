@@ -1,0 +1,697 @@
+#+TITLE: Milestone 4 Instance Management
+#+AUTHOR: ByteHot Project  
+#+DATE: 2025-06-19
+
+* Milestone 4: Instance Management
+:PROPERTIES:
+:CUSTOM_ID: milestone-4-instance-management
+:END:
+** Overview
+:PROPERTIES:
+:CUSTOM_ID: overview
+:END:
+This milestone focuses on managing existing object instances when
+classes are redefined through hot-swapping. When a class is successfully
+redefined, existing instances of that class need to be updated to
+reflect the new behavior, ensuring consistency throughout the
+application.
+
+** Objectives
+:PROPERTIES:
+:CUSTOM_ID: objectives
+:END:
+- *Track existing instances* of classes being hot-swapped
+- *Update instance behavior* to reflect new class definitions
+- *Maintain object identity and state* during updates
+- *Handle instance update failures* gracefully
+- *Provide visibility* into instance update operations
+
+** Domain Events
+:PROPERTIES:
+:CUSTOM_ID: domain-events
+:END:
+*** 1. InstancesUpdated
+:PROPERTIES:
+:CUSTOM_ID: instancesupdated
+:END:
+*Trigger:* When existing instances are updated with new behavior after
+successful class redefinition *Use Case:* Ensuring all objects reflect
+the latest class definition
+
+*Event Properties:* - =className= (String) - Fully qualified name of the
+updated class - =updatedInstances= (int) - Number of instances that were
+updated - =totalInstances= (int) - Total number of instances found -
+=updateMethod= (InstanceUpdateMethod) - How instances were updated -
+=failedUpdates= (int) - Number of instances that failed to update -
+=updateDetails= (String) - Technical details about the update process -
+=duration= (Duration) - Time taken for instance updates - =timestamp=
+(Instant) - When instance update completed
+
+*Instance Update Methods:*
+
+#+begin_src java
+public enum InstanceUpdateMethod {
+    AUTOMATIC,      // JVM automatically updates instances
+    REFLECTION,     // Manual update via reflection
+    PROXY_REFRESH,  // Refresh dynamic proxies
+    FACTORY_RESET,  // Re-create instances through factories
+    NO_UPDATE       // No instances or update not needed
+}
+#+end_src
+
+*Example Scenarios:*
+
+#+begin_src java
+// Successful automatic update
+InstancesUpdated event = new InstancesUpdated(
+    "com.example.UserService",
+    5,  // 5 instances updated
+    5,  // 5 total instances found
+    InstanceUpdateMethod.AUTOMATIC,
+    0,  // no failures
+    "JVM automatically updated all instances with new method implementations",
+    Duration.ofMillis(3),
+    Instant.now()
+);
+
+// Partial update with failures
+InstancesUpdated event = new InstancesUpdated(
+    "com.example.ComplexService",
+    8,  // 8 instances updated
+    10, // 10 total instances found
+    InstanceUpdateMethod.REFLECTION,
+    2,  // 2 failures
+    "2 instances failed to update due to state inconsistencies",
+    Duration.ofMillis(45),
+    Instant.now()
+);
+#+end_src
+
+** Implementation Components
+:PROPERTIES:
+:CUSTOM_ID: implementation-components
+:END:
+*** InstanceTracker
+:PROPERTIES:
+:CUSTOM_ID: instancetracker
+:END:
+*Responsibility:* Track and enumerate existing instances of classes
+
+*Key Methods:*
+
+#+begin_src java
+public Set<Object> findInstances(Class<?> clazz)
+public int countInstances(Class<?> clazz)
+public boolean isTrackingEnabled()
+public void enableTracking(Class<?> clazz)
+public void disableTracking(Class<?> clazz)
+#+end_src
+
+*Tracking Strategies:* 1. *Weak Reference Registry*
+=java    private final Map<Class<?>, Set<WeakReference<Object>>> instanceRegistry =         new ConcurrentHashMap<>();=
+
+2. [@2] *JVM Heap Analysis* (Advanced)
+
+   #+begin_src java
+   public Set<Object> findInstancesViaHeap(Class<?> clazz) {
+       // Use JVMTI or similar for heap walking
+   }
+   #+end_src
+
+3. *Factory Pattern Integration*
+
+   #+begin_src java
+   public <T> T createAndTrack(Class<T> clazz) {
+       T instance = factory.create(clazz);
+       trackInstance(instance);
+       return instance;
+   }
+   #+end_src
+
+*** InstanceUpdater
+:PROPERTIES:
+:CUSTOM_ID: instanceupdater
+:END:
+*Responsibility:* Update existing instances with new class behavior
+
+*Key Methods:*
+
+#+begin_src java
+public InstancesUpdated updateInstances(ClassRedefinitionSucceeded redefinition)
+public boolean canUpdateInstances(Class<?> clazz)
+public InstanceUpdateMethod determineUpdateMethod(Class<?> clazz)
+public void refreshProxies(Object instance)
+#+end_src
+
+*Update Strategies:*
+
+1. *Automatic JVM Update* (Default)
+
+   #+begin_src java
+   // JVM automatically updates instance behavior
+   // No manual intervention needed
+   // Works for method body changes
+   #+end_src
+
+2. *Reflection-Based Update*
+
+   #+begin_src java
+   public void updateViaReflection(Object instance, Class<?> newClass) {
+       // Update dynamic proxies
+       if (Proxy.isProxyClass(instance.getClass())) {
+           refreshProxy(instance);
+       }
+
+       // Trigger re-initialization if needed
+       invokePostUpdateMethods(instance);
+   }
+   #+end_src
+
+3. *Factory Re-Creation*
+
+   #+begin_src java
+   public Object recreateInstance(Object oldInstance) {
+       // Save state
+       ObjectState state = extractState(oldInstance);
+
+       // Create new instance
+       Object newInstance = factory.create(oldInstance.getClass());
+
+       // Restore state
+       restoreState(newInstance, state);
+
+       return newInstance;
+   }
+   #+end_src
+
+*** InstanceUpdateException
+:PROPERTIES:
+:CUSTOM_ID: instanceupdateexception
+:END:
+*Responsibility:* Handle instance update failures
+
+*Properties:* - =message= (String) - Exception message -
+=failedInstance= (Object) - Instance that failed to update - =className=
+(String) - Class being updated - =updateMethod= (InstanceUpdateMethod) -
+Update method that failed - =cause= (Throwable) - Original exception
+
+*** StatePreserver
+:PROPERTIES:
+:CUSTOM_ID: statepreserver
+:END:
+*Responsibility:* Preserve and restore object state during updates
+
+*Key Methods:*
+
+#+begin_src java
+public ObjectState captureState(Object instance)
+public void restoreState(Object instance, ObjectState state)
+public boolean isStateCompatible(ObjectState state, Class<?> newClass)
+#+end_src
+
+*State Preservation:*
+
+#+begin_src java
+public class ObjectState {
+    private final Map<String, Object> fieldValues;
+    private final Map<String, Object> transientState;
+    private final String className;
+    private final long captureTime;
+    
+    // Serialization and restoration methods
+}
+#+end_src
+
+** Instance Update Scenarios
+:PROPERTIES:
+:CUSTOM_ID: instance-update-scenarios
+:END:
+*** 1. Method Body Changes (Automatic)
+:PROPERTIES:
+:CUSTOM_ID: method-body-changes-automatic
+:END:
+*Scenario:* Developer modifies method implementation *Update Method:*
+AUTOMATIC *JVM Behavior:* Automatically updates all instances *Instance
+Action:* None required
+
+#+begin_src java
+// Before hot-swap
+userService.calculateDiscount(user); // old implementation
+
+// After hot-swap (automatic)
+userService.calculateDiscount(user); // new implementation
+// Same instance, new behavior
+#+end_src
+
+*** 2. Dynamic Proxy Refresh
+:PROPERTIES:
+:CUSTOM_ID: dynamic-proxy-refresh
+:END:
+*Scenario:* Class with dynamic proxies (AOP, frameworks) *Update
+Method:* PROXY_REFRESH *JVM Behavior:* Updates class, proxies may need
+refresh *Instance Action:* Recreate proxy handlers
+
+#+begin_src java
+// Refresh Spring AOP proxies
+public void refreshProxy(Object proxy) {
+    if (AopUtils.isAopProxy(proxy)) {
+        ((Advised) proxy).getTargetSource().getTarget(); // trigger refresh
+    }
+}
+#+end_src
+
+*** 3. Factory-Managed Instances
+:PROPERTIES:
+:CUSTOM_ID: factory-managed-instances
+:END:
+*Scenario:* Instances created by dependency injection *Update Method:*
+FACTORY_RESET *JVM Behavior:* Class updated, but factory needs to
+recreate instances *Instance Action:* Re-inject dependencies, recreate
+singletons
+
+#+begin_src java
+// Spring Bean refresh
+public void refreshSpringBeans(String className) {
+    ConfigurableApplicationContext context = getApplicationContext();
+    String[] beanNames = context.getBeanNamesForType(Class.forName(className));
+    
+    for (String beanName : beanNames) {
+        context.getBeanFactory().destroySingleton(beanName);
+        // Bean will be recreated on next access
+    }
+}
+#+end_src
+
+*** 4. Stateful Object Updates
+:PROPERTIES:
+:CUSTOM_ID: stateful-object-updates
+:END:
+*Scenario:* Objects with important state that must be preserved *Update
+Method:* REFLECTION *JVM Behavior:* Class updated, but state
+preservation needed *Instance Action:* Capture state, update behavior,
+restore state
+
+#+begin_src java
+public void updateStatefulInstance(Object instance) {
+    // 1. Capture current state
+    ObjectState state = statePreserver.captureState(instance);
+    
+    // 2. Check compatibility
+    if (!statePreserver.isStateCompatible(state, instance.getClass())) {
+        throw new InstanceUpdateException("State incompatible with new class");
+    }
+    
+    // 3. Trigger instance refresh (framework-specific)
+    refreshInstanceBehavior(instance);
+    
+    // 4. Restore state if needed
+    statePreserver.restoreState(instance, state);
+}
+#+end_src
+
+** Integration with Frameworks
+:PROPERTIES:
+:CUSTOM_ID: integration-with-frameworks
+:END:
+*** Spring Framework
+:PROPERTIES:
+:CUSTOM_ID: spring-framework
+:END:
+#+begin_src java
+@Component
+public class SpringInstanceUpdater implements InstanceUpdater {
+    
+    @Autowired
+    private ApplicationContext applicationContext;
+    
+    public InstancesUpdated updateSpringBeans(String className) {
+        // Refresh beans of the updated class
+        refreshBeanDefinitions(className);
+        return createUpdateEvent();
+    }
+}
+#+end_src
+
+*** CDI (Contexts and Dependency Injection)
+:PROPERTIES:
+:CUSTOM_ID: cdi-contexts-and-dependency-injection
+:END:
+#+begin_src java
+@ApplicationScoped
+public class CdiInstanceUpdater implements InstanceUpdater {
+    
+    @Inject
+    private BeanManager beanManager;
+    
+    public void refreshCdiBeans(Class<?> clazz) {
+        // Invalidate CDI beans and force recreation
+    }
+}
+#+end_src
+
+*** Custom Frameworks
+:PROPERTIES:
+:CUSTOM_ID: custom-frameworks
+:END:
+#+begin_src java
+public interface FrameworkIntegration {
+    boolean canHandle(Class<?> clazz);
+    InstancesUpdated updateFrameworkInstances(Class<?> clazz);
+    void registerInstanceFactory(Class<?> clazz, InstanceFactory factory);
+}
+#+end_src
+
+** Technical Challenges
+:PROPERTIES:
+:CUSTOM_ID: technical-challenges
+:END:
+*** Memory Management
+:PROPERTIES:
+:CUSTOM_ID: memory-management
+:END:
+- *Weak References:* Avoid memory leaks in instance tracking
+- *Garbage Collection:* Handle instances being collected during updates
+- *Memory Pressure:* Minimize overhead of instance tracking
+
+*** Concurrency
+:PROPERTIES:
+:CUSTOM_ID: concurrency
+:END:
+- *Thread Safety:* Handle concurrent access to instances during updates
+- *Synchronization:* Coordinate updates across multiple threads
+- *Deadlock Prevention:* Avoid circular dependencies in update order
+
+*** State Consistency
+:PROPERTIES:
+:CUSTOM_ID: state-consistency
+:END:
+- *Partial Updates:* Handle scenarios where some instances fail to
+  update
+- *Transaction Boundaries:* Respect transactional contexts during
+  updates
+- *Data Integrity:* Ensure object state remains valid after updates
+
+** Performance Considerations
+:PROPERTIES:
+:CUSTOM_ID: performance-considerations
+:END:
+*** Instance Discovery Performance
+:PROPERTIES:
+:CUSTOM_ID: instance-discovery-performance
+:END:
+#+begin_src java
+// Optimized instance discovery
+public class OptimizedInstanceTracker {
+    // Use concurrent data structures
+    private final ConcurrentHashMap<Class<?>, Set<WeakReference<Object>>> instances;
+    
+    // Batch cleanup of dead references
+    private final ScheduledExecutorService cleanupService;
+    
+    // Limit tracking to specific classes
+    private final Set<Class<?>> trackedClasses;
+}
+#+end_src
+
+*** Update Batching
+:PROPERTIES:
+:CUSTOM_ID: update-batching
+:END:
+#+begin_src java
+// Batch instance updates for performance
+public InstancesUpdated batchUpdateInstances(List<Object> instances) {
+    CompletableFuture<?>[] updates = instances.stream()
+        .map(instance -> CompletableFuture.runAsync(() -> updateInstance(instance)))
+        .toArray(CompletableFuture[]::new);
+    
+    CompletableFuture.allOf(updates).join();
+    return createBatchUpdateEvent(instances);
+}
+#+end_src
+
+*** Memory Footprint
+:PROPERTIES:
+:CUSTOM_ID: memory-footprint
+:END:
+#+begin_src java
+// Minimize memory usage for tracking
+public class MemoryEfficientTracker {
+    // Use primitive collections where possible
+    private final TObjectIntHashMap<Class<?>> instanceCounts;
+    
+    // Configurable tracking limits
+    private final int maxInstancesPerClass = 1000;
+    
+    // Automatic cleanup policies
+    private final Duration maxTrackingTime = Duration.ofHours(1);
+}
+#+end_src
+
+** Configuration and Policies
+:PROPERTIES:
+:CUSTOM_ID: configuration-and-policies
+:END:
+*** Instance Update Policies
+:PROPERTIES:
+:CUSTOM_ID: instance-update-policies
+:END:
+#+begin_src yaml
+bytehot:
+  instance-management:
+    tracking:
+      enabled: true
+      max-instances-per-class: 1000
+      cleanup-interval: 5m
+    
+    update-strategies:
+      default: AUTOMATIC
+      spring-beans: FACTORY_RESET
+      stateful-services: REFLECTION
+    
+    failover:
+      max-failures: 3
+      fallback-strategy: NO_UPDATE
+      notification: LOG_AND_CONTINUE
+#+end_src
+
+*** Class-Specific Configuration
+:PROPERTIES:
+:CUSTOM_ID: class-specific-configuration
+:END:
+#+begin_src java
+@HotSwapConfig(
+    instanceTracking = true,
+    updateMethod = InstanceUpdateMethod.REFLECTION,
+    statePreservation = true
+)
+public class CriticalService {
+    // Service implementation
+}
+#+end_src
+
+** Monitoring and Observability
+:PROPERTIES:
+:CUSTOM_ID: monitoring-and-observability
+:END:
+*** Metrics Collection
+:PROPERTIES:
+:CUSTOM_ID: metrics-collection
+:END:
+#+begin_src java
+public class InstanceUpdateMetrics {
+    private final Counter updatedInstances;
+    private final Counter failedUpdates;
+    private final Timer updateDuration;
+    private final Gauge trackedClasses;
+}
+#+end_src
+
+*** Health Checks
+:PROPERTIES:
+:CUSTOM_ID: health-checks
+:END:
+#+begin_src java
+@Component
+public class InstanceManagementHealthCheck {
+    
+    public Health checkInstanceTrackingHealth() {
+        boolean trackingWorking = instanceTracker.isHealthy();
+        int trackedClasses = instanceTracker.getTrackedClassCount();
+        
+        return Health.status(trackingWorking ? "UP" : "DOWN")
+            .withDetail("tracked-classes", trackedClasses)
+            .build();
+    }
+}
+#+end_src
+
+** Integration Points
+:PROPERTIES:
+:CUSTOM_ID: integration-points
+:END:
+*** Input
+:PROPERTIES:
+:CUSTOM_ID: input
+:END:
+- *Class redefinition events* from Milestone 3
+  (ClassRedefinitionSucceeded)
+- *Existing instances* discovered through tracking or heap analysis
+- *Framework integration* points for managed instances
+
+*** Output
+:PROPERTIES:
+:CUSTOM_ID: output
+:END:
+- *Instance update events* (InstancesUpdated)
+- *Updated object behavior* for existing instances
+- *Error notifications* for failed instance updates
+
+*** Dependencies
+:PROPERTIES:
+:CUSTOM_ID: dependencies
+:END:
+- JVM Instrumentation API (from Milestone 3)
+- Framework integration points (Spring, CDI, etc.)
+- Memory management utilities
+- Concurrency utilities
+
+** Testing Strategy
+:PROPERTIES:
+:CUSTOM_ID: testing-strategy
+:END:
+*** Unit Tests
+:PROPERTIES:
+:CUSTOM_ID: unit-tests
+:END:
+- *Instance tracking:* Verify discovery and enumeration
+- *Update methods:* Test different update strategies
+- *State preservation:* Verify state capture and restoration
+- *Error handling:* Test failure scenarios
+
+*** Integration Tests
+:PROPERTIES:
+:CUSTOM_ID: integration-tests
+:END:
+- *Framework integration:* Test with Spring, CDI
+- *Concurrent updates:* Multiple threads updating instances
+- *Memory management:* Test weak reference cleanup
+- *Performance testing:* Large numbers of instances
+
+*** Test Scenarios
+:PROPERTIES:
+:CUSTOM_ID: test-scenarios
+:END:
+#+begin_src java
+// Successful instance update
+@Test
+public void testAutomaticInstanceUpdate() {
+    // Create instances
+    UserService service1 = new UserService();
+    UserService service2 = new UserService();
+    
+    // Track instances
+    instanceTracker.trackInstance(service1);
+    instanceTracker.trackInstance(service2);
+    
+    // Simulate class redefinition
+    ClassRedefinitionSucceeded redefinition = createRedefinitionEvent();
+    
+    // Update instances
+    InstancesUpdated result = instanceUpdater.updateInstances(redefinition);
+    
+    // Verify results
+    assertEquals(2, result.getUpdatedInstances());
+    assertEquals(0, result.getFailedUpdates());
+    assertEquals(InstanceUpdateMethod.AUTOMATIC, result.getUpdateMethod());
+}
+
+// Failed instance update
+@Test
+public void testInstanceUpdateFailure() {
+    // Setup problematic instance
+    ProblematicService service = new ProblematicService();
+    instanceTracker.trackInstance(service);
+    
+    // Attempt update
+    InstancesUpdated result = instanceUpdater.updateInstances(redefinition);
+    
+    // Verify partial failure
+    assertEquals(0, result.getUpdatedInstances());
+    assertEquals(1, result.getFailedUpdates());
+    assertNotNull(result.getUpdateDetails());
+}
+#+end_src
+
+** Success Criteria
+:PROPERTIES:
+:CUSTOM_ID: success-criteria
+:END:
+*** Functional
+:PROPERTIES:
+:CUSTOM_ID: functional
+:END:
+- ✅ *InstancesUpdated events* generated after successful class
+  redefinition
+- ✅ *Instance discovery* working for tracked classes
+- ✅ *Automatic updates* for method body changes
+- ✅ *Framework integration* for managed instances (Spring, CDI)
+
+*** Technical
+:PROPERTIES:
+:CUSTOM_ID: technical
+:END:
+- ✅ *Memory efficiency* - minimal overhead for instance tracking
+- ✅ *Concurrency safety* - thread-safe instance updates
+- ✅ *Performance* - fast instance discovery and updates
+- ✅ *Error handling* - graceful failure recovery
+
+*** Quality
+:PROPERTIES:
+:CUSTOM_ID: quality
+:END:
+- ✅ *Test coverage* - comprehensive test suite
+- ✅ *Documentation* - clear configuration and integration guides
+- ✅ *Monitoring* - observable instance management metrics
+
+** Future Enhancements
+:PROPERTIES:
+:CUSTOM_ID: future-enhancements
+:END:
+*** Advanced Instance Management
+:PROPERTIES:
+:CUSTOM_ID: advanced-instance-management
+:END:
+- *Smart State Migration:* Automatically handle state schema changes
+- *Instance Versioning:* Track instance versions and compatibility
+- *Rollback Support:* Revert instance updates if needed
+- *Cross-JVM Updates:* Coordinate updates across multiple JVM instances
+
+*** Framework Enhancements
+:PROPERTIES:
+:CUSTOM_ID: framework-enhancements
+:END:
+- *Auto-Detection:* Automatically detect framework types and choose
+  update strategies
+- *Plugin Architecture:* Extensible framework integration system
+- *Configuration Hot-Reload:* Update instance management policies at
+  runtime
+
+*** Enterprise Features
+:PROPERTIES:
+:CUSTOM_ID: enterprise-features
+:END:
+- *Audit Trail:* Track all instance update operations
+- *Impact Analysis:* Predict instance update effects before execution
+- *A/B Testing:* Gradual rollout of updates to subset of instances
+- *Performance Profiling:* Detailed analysis of update performance
+
+** Completion Status: 📋 PLANNED
+:PROPERTIES:
+:CUSTOM_ID: completion-status-planned
+:END:
+*Dependencies:* Requires completion of Milestone 3 (Hot-Swap Operations)
+
+*Next Tasks:* 1. Implement InstanceTracker with weak reference
+registry 2. Create InstanceUpdater with multiple update strategies 3.
+Build framework integration for Spring/CDI 4. Implement InstancesUpdated
+event and testing 5. Add monitoring and configuration support
