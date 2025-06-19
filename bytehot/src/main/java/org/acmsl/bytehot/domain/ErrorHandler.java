@@ -66,6 +66,16 @@ public class ErrorHandler {
     private static final int ERROR_PATTERN_THRESHOLD = 3;
 
     /**
+     * Error classifier for double dispatch pattern
+     */
+    private final ErrorClassifier errorClassifier = DefaultErrorClassifier.getInstance();
+
+    /**
+     * Error severity assessor for double dispatch pattern
+     */
+    private final ErrorSeverityAssessor severityAssessor = DefaultErrorSeverityAssessor.getInstance();
+
+    /**
      * Handles a general error and determines recovery strategy
      * @param error the exception that occurred
      * @param className the class name where error occurred
@@ -152,33 +162,7 @@ public class ErrorHandler {
      * @return severity level
      */
     public ErrorSeverity assessSeverity(final Throwable error) {
-        // If this is an enhanced exception, check the original exception
-        Throwable actualError = error;
-        if (error instanceof EventSnapshotException) {
-            EventSnapshotException enhanced = (EventSnapshotException) error;
-            actualError = enhanced.getOriginalException();
-            if (actualError == null) {
-                actualError = error;
-            }
-        }
-        
-        if (actualError instanceof OutOfMemoryError || actualError instanceof StackOverflowError) {
-            return ErrorSeverity.CRITICAL;
-        }
-        
-        if (actualError instanceof SecurityException) {
-            return ErrorSeverity.ERROR;
-        }
-        
-        if (actualError instanceof IllegalArgumentException || actualError instanceof IllegalStateException) {
-            return ErrorSeverity.WARNING;
-        }
-        
-        if (actualError instanceof RuntimeException) {
-            return ErrorSeverity.ERROR;
-        }
-        
-        return ErrorSeverity.ERROR; // Default severity
+        return severityAssessor.assessThrowable(error);
     }
 
     /**
@@ -206,42 +190,7 @@ public class ErrorHandler {
      * @return error type classification
      */
     protected ErrorType classifyError(final Throwable error) {
-        // If this is an enhanced exception, check the original exception
-        Throwable actualError = error;
-        if (error instanceof EventSnapshotException) {
-            EventSnapshotException enhanced = (EventSnapshotException) error;
-            actualError = enhanced.getOriginalException();
-            if (actualError == null) {
-                actualError = error;
-            }
-        }
-        
-        if (actualError instanceof BytecodeValidationException) {
-            return ErrorType.VALIDATION_ERROR;
-        }
-        
-        if (actualError instanceof InstanceUpdateException) {
-            return ErrorType.INSTANCE_UPDATE_ERROR;
-        }
-        
-        if (actualError instanceof HotSwapException) {
-            return ErrorType.REDEFINITION_FAILURE;
-        }
-        
-        if (actualError instanceof SecurityException) {
-            return ErrorType.SECURITY_ERROR;
-        }
-        
-        if (actualError instanceof OutOfMemoryError || actualError instanceof StackOverflowError) {
-            return ErrorType.CRITICAL_SYSTEM_ERROR;
-        }
-        
-        if (actualError instanceof java.nio.file.NoSuchFileException || 
-            actualError instanceof java.nio.file.AccessDeniedException) {
-            return ErrorType.FILE_SYSTEM_ERROR;
-        }
-        
-        return ErrorType.UNKNOWN_ERROR; // Default classification
+        return errorClassifier.classifyThrowable(error);
     }
 
     /**

@@ -45,7 +45,8 @@ import lombok.Getter;
  * @author Claude Code
  * @since 2025-06-17
  */
-public class HotSwapException extends Exception {
+public class HotSwapException extends Exception
+    implements ErrorClassifiable {
 
     /**
      * Serial version UID for serialization
@@ -86,5 +87,25 @@ public class HotSwapException extends Exception {
     public HotSwapException(final ClassRedefinitionFailed failureEvent, final Throwable cause) {
         super("Hot-swap operation failed: " + failureEvent.getFailureReason(), cause);
         this.failureEvent = failureEvent;
+    }
+
+    /**
+     * Accepts an error classifier and returns the appropriate error type.
+     * @param classifier the error classifier visitor
+     * @return the error type for hot-swap exceptions
+     */
+    @Override
+    public ErrorType acceptClassifier(final ErrorClassifier classifier) {
+        return classifier.classifyHotSwapException(this);
+    }
+
+    /**
+     * Accepts an error severity assessor and returns the appropriate severity.
+     * @param assessor the error severity assessor visitor
+     * @return the error severity for hot-swap exceptions
+     */
+    @Override
+    public ErrorSeverity acceptSeverityAssessor(final ErrorSeverityAssessor assessor) {
+        return assessor.assessHotSwapException(this);
     }
 }

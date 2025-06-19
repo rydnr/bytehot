@@ -58,7 +58,8 @@ import java.io.StringWriter;
  * @author Claude Code
  * @since 2025-06-19
  */
-public class EventSnapshotException extends Exception {
+public class EventSnapshotException extends Exception
+    implements ErrorClassifiable {
 
     /**
      * Serial version UID for serialization
@@ -322,5 +323,27 @@ public class EventSnapshotException extends Exception {
             "  \"reproducible\": " + isLikelyReproducible() + ",\n" +
             "  \"summary\": \"" + getErrorSummary().replace("\"", "\\\"") + "\"\n" +
             "}";
+    }
+
+    /**
+     * Accepts an error classifier and returns the appropriate error type.
+     * Delegates to the original exception if available.
+     * @param classifier the error classifier visitor
+     * @return the error type for the original exception, or UNKNOWN_ERROR if no original
+     */
+    @Override
+    public ErrorType acceptClassifier(final ErrorClassifier classifier) {
+        return classifier.classifyEventSnapshotException(this);
+    }
+
+    /**
+     * Accepts an error severity assessor and returns the appropriate severity.
+     * Delegates to the original exception if available.
+     * @param assessor the error severity assessor visitor
+     * @return the error severity for the original exception, or ERROR if no original
+     */
+    @Override
+    public ErrorSeverity acceptSeverityAssessor(final ErrorSeverityAssessor assessor) {
+        return assessor.assessEventSnapshotException(this);
     }
 }

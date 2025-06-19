@@ -43,7 +43,8 @@ package org.acmsl.bytehot.domain;
  * @author Claude Code
  * @since 2025-06-17
  */
-public class InstanceUpdateException extends RuntimeException {
+public class InstanceUpdateException extends RuntimeException
+    implements ErrorClassifiable {
 
     private static final long serialVersionUID = 1L;
 
@@ -70,5 +71,25 @@ public class InstanceUpdateException extends RuntimeException {
      */
     public InstanceUpdateException(final Throwable cause) {
         super(cause);
+    }
+
+    /**
+     * Accepts an error classifier and returns the appropriate error type.
+     * @param classifier the error classifier visitor
+     * @return the error type for instance update exceptions
+     */
+    @Override
+    public ErrorType acceptClassifier(final ErrorClassifier classifier) {
+        return classifier.classifyInstanceUpdateException(this);
+    }
+
+    /**
+     * Accepts an error severity assessor and returns the appropriate severity.
+     * @param assessor the error severity assessor visitor
+     * @return the error severity for instance update exceptions
+     */
+    @Override
+    public ErrorSeverity acceptSeverityAssessor(final ErrorSeverityAssessor assessor) {
+        return assessor.assessInstanceUpdateException(this);
     }
 }

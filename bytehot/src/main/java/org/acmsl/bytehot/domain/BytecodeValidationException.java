@@ -45,7 +45,8 @@ import lombok.Getter;
  * @author Claude Code
  * @since 2025-06-16
  */
-public class BytecodeValidationException extends Exception {
+public class BytecodeValidationException extends Exception
+    implements ErrorClassifiable {
 
     /**
      * Serial version UID for serialization
@@ -76,5 +77,25 @@ public class BytecodeValidationException extends Exception {
     public BytecodeValidationException(final String message, final BytecodeRejected rejectionEvent) {
         super(message);
         this.rejectionEvent = rejectionEvent;
+    }
+
+    /**
+     * Accepts an error classifier and returns the appropriate error type.
+     * @param classifier the error classifier visitor
+     * @return the error type for bytecode validation exceptions
+     */
+    @Override
+    public ErrorType acceptClassifier(final ErrorClassifier classifier) {
+        return classifier.classifyBytecodeValidationException(this);
+    }
+
+    /**
+     * Accepts an error severity assessor and returns the appropriate severity.
+     * @param assessor the error severity assessor visitor
+     * @return the error severity for bytecode validation exceptions
+     */
+    @Override
+    public ErrorSeverity acceptSeverityAssessor(final ErrorSeverityAssessor assessor) {
+        return assessor.assessBytecodeValidationException(this);
     }
 }
