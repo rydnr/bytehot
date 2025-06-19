@@ -41,7 +41,7 @@
  */
 package org.acmsl.bytehot.testing.support;
 
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

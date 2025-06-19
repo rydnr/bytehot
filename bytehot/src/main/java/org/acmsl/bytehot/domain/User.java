@@ -53,6 +53,7 @@ import org.acmsl.bytehot.domain.events.UserSessionStartRequested;
 import org.acmsl.bytehot.domain.events.UserSessionStarted;
 
 import org.acmsl.commons.patterns.DomainResponseEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

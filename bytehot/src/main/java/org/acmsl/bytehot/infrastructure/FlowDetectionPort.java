@@ -39,7 +39,7 @@ import org.acmsl.bytehot.domain.FlowId;
 import org.acmsl.bytehot.domain.FlowSearchCriteria;
 import org.acmsl.bytehot.domain.FlowStatistics;
 import org.acmsl.bytehot.domain.FlowStorageResult;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.acmsl.commons.patterns.Port;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;

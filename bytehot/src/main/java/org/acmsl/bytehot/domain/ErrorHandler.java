@@ -38,6 +38,8 @@
  *   - ErrorType: Classifies different types of errors
  *   - RecoveryStrategy: Defines recovery approaches
  *   - ClassRedefinitionFailed: Handles hot-swap failures
+ *   - EventSnapshotException: Enhanced exceptions with event context
+ *   - EventSnapshotGenerator: Automatic snapshot generation
  */
 package org.acmsl.bytehot.domain;
 
@@ -74,32 +76,37 @@ public class ErrorHandler {
     }
 
     /**
-     * Handles an error with full context information
+     * Handles an error with full context information, automatically generating event snapshots
      * @param error the exception that occurred
      * @param className the class name where error occurred
      * @param operation the operation being performed
      * @return error handling result with recovery strategy
      */
     public ErrorResult handleErrorWithContext(final Throwable error, final String className, final String operation) {
+        // Generate event snapshot for comprehensive debugging
+        EventSnapshot eventSnapshot = generateEventSnapshot(error);
+        
+        // Create enhanced exception with event context if snapshot was generated
+        Throwable enhancedException = enhanceExceptionWithSnapshot(error, eventSnapshot);
         // Increment error count for this class
         if (className != null) {
             errorCounts.computeIfAbsent(className, k -> new AtomicInteger(0)).incrementAndGet();
         }
 
-        // Classify the error type
-        final ErrorType errorType = classifyError(error);
+        // Classify the error type (use enhanced exception)
+        final ErrorType errorType = classifyError(enhancedException);
         
-        // Assess severity
-        final ErrorSeverity severity = assessSeverity(error);
+        // Assess severity (use enhanced exception)
+        final ErrorSeverity severity = assessSeverity(enhancedException);
         
         // Determine recovery strategy based on error type and context
-        final RecoveryStrategy strategy = determineRecoveryStrategy(errorType, error, operation);
+        final RecoveryStrategy strategy = determineRecoveryStrategy(errorType, enhancedException, operation);
         
         // Determine if error is recoverable
         final boolean recoverable = isRecoverable(errorType, severity);
         
-        // Build error message
-        final String errorMessage = buildErrorMessage(error, className, operation);
+        // Build error message (use enhanced exception)
+        final String errorMessage = buildErrorMessage(enhancedException, className, operation);
 
         return ErrorResult.create(
             errorType,
@@ -109,7 +116,7 @@ public class ErrorHandler {
             errorMessage,
             className,
             operation,
-            error
+            enhancedException
         );
     }
 
@@ -291,5 +298,61 @@ public class ErrorHandler {
         message.append(": ").append(error.getMessage());
         
         return message.toString();
+    }
+
+    /**
+     * Generates an event snapshot for the given error
+     * @param error the exception that occurred
+     * @return event snapshot, or null if generation fails
+     */
+    protected EventSnapshot generateEventSnapshot(final Throwable error) {
+        try {
+            EventSnapshotGenerator generator = EventSnapshotGenerator.getInstance();
+            return generator.generateSnapshotForException(error);
+        } catch (Exception e) {
+            // If snapshot generation fails, don't let it break error handling
+            return null;
+        }
+    }
+
+    /**
+     * Enhances an exception with event snapshot context if available
+     * @param originalError the original exception
+     * @param eventSnapshot the generated snapshot (can be null)
+     * @return enhanced exception or original if enhancement fails
+     */
+    protected Throwable enhanceExceptionWithSnapshot(final Throwable originalError, final EventSnapshot eventSnapshot) {
+        if (eventSnapshot == null) {
+            return originalError;
+        }
+        
+        try {
+            ErrorContext errorContext = ErrorContext.capture();
+            return new EventSnapshotException(originalError, eventSnapshot, errorContext);
+        } catch (Exception e) {
+            // If enhancement fails, return original error
+            return originalError;
+        }
+    }
+
+    /**
+     * Creates an EventSnapshotException from an error and snapshot
+     * @param error the original exception
+     * @param snapshot the event snapshot
+     * @return enhanced exception with complete context
+     */
+    public EventSnapshotException createEventSnapshotException(final Throwable error, final EventSnapshot snapshot) {
+        ErrorContext errorContext = ErrorContext.capture();
+        return new EventSnapshotException(error, snapshot, errorContext);
+    }
+
+    /**
+     * Handles an error with automatic snapshot generation and enhancement
+     * @param error the exception that occurred
+     * @return EventSnapshotException with complete debugging context
+     */
+    public EventSnapshotException handleErrorWithSnapshot(final Throwable error) {
+        EventSnapshot snapshot = generateEventSnapshot(error);
+        return createEventSnapshotException(error, snapshot);
     }
 }

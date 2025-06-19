@@ -54,9 +54,10 @@ import java.util.Optional;
  * @since 2025-06-19
  */
 @RequiredArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @EqualsAndHashCode
 @ToString
+@Getter
 public final class FlowSearchCriteria implements ValueObject {
 
     /**

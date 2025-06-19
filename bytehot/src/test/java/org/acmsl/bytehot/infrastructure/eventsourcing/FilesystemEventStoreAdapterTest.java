@@ -41,7 +41,7 @@ package org.acmsl.bytehot.infrastructure.eventsourcing;
 
 import org.acmsl.bytehot.domain.EventStoreException;
 import org.acmsl.bytehot.domain.EventStorePort;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 
 import org.junit.jupiter.api.BeforeEach;

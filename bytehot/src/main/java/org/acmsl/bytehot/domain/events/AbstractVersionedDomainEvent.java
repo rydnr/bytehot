@@ -40,7 +40,7 @@
 package org.acmsl.bytehot.domain.events;
 
 import org.acmsl.bytehot.domain.EventMetadata;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;

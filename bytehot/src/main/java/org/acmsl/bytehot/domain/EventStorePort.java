@@ -39,7 +39,10 @@
  */
 package org.acmsl.bytehot.domain;
 
+import org.acmsl.bytehot.domain.EventStoreException;
+
 import org.acmsl.commons.patterns.Port;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import java.time.Instant;
 import java.util.List;

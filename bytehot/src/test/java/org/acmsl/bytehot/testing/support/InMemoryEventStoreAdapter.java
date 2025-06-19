@@ -43,7 +43,7 @@ package org.acmsl.bytehot.testing.support;
 
 import org.acmsl.bytehot.domain.EventStoreException;
 import org.acmsl.bytehot.domain.EventStorePort;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import org.acmsl.commons.patterns.Adapter;
 

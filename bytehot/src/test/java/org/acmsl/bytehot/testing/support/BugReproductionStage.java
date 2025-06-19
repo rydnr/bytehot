@@ -48,7 +48,7 @@ import org.acmsl.bytehot.testing.stages.GivenStage;
 import org.acmsl.bytehot.testing.stages.ThenStage;
 import org.acmsl.bytehot.testing.stages.WhenStage;
 
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.acmsl.commons.patterns.DomainEvent;
 
 import java.util.List;

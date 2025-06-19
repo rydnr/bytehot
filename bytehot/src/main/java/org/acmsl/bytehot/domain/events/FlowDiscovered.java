@@ -75,7 +75,7 @@ public final class FlowDiscovered implements DomainResponseEvent<FlowAnalysisReq
      * Events that triggered the flow detection.
      */
     @Getter
-    private final List<org.acmsl.bytehot.domain.VersionedDomainEvent> triggeringEvents;
+    private final List<org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent> triggeringEvents;
 
     /**
      * Confidence level of the discovery.

@@ -39,7 +39,7 @@ package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.events.FlowAnalysisRequested;
 import org.acmsl.bytehot.domain.events.FlowDiscovered;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 import org.checkerframework.checker.nullness.qual.NonNull;

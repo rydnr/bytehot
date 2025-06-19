@@ -42,7 +42,7 @@
 package org.acmsl.bytehot.testing.stages;
 
 import org.acmsl.bytehot.domain.EventStorePort;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.acmsl.bytehot.testing.support.BugReport;
 import org.acmsl.bytehot.testing.support.EventTestContext;
 import org.acmsl.bytehot.testing.support.TestScenarioRepository;

@@ -70,7 +70,7 @@ public final class FlowAnalysisRequested implements DomainEvent {
      * Events to be analyzed for flow detection.
      */
     @Getter
-    private final List<org.acmsl.bytehot.domain.VersionedDomainEvent> eventsToAnalyze;
+    private final List<org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent> eventsToAnalyze;
 
     /**
      * Optional time window for analysis.

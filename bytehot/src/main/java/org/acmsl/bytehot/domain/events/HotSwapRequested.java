@@ -134,6 +134,15 @@ public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
     }
 
     /**
+     * Returns the preceding event that triggered this hot-swap request
+     * @return the preceding ClassFileChanged event
+     */
+    @Override
+    public ClassFileChanged getPreceding() {
+        return preceding;
+    }
+
+    /**
      * Factory method to create a hot-swap request from a file change.
      * This creates a placeholder bytecode for the hot-swap request.
      * 

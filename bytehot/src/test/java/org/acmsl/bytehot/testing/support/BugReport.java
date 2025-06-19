@@ -41,7 +41,7 @@
  */
 package org.acmsl.bytehot.testing.support;
 
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import java.time.Instant;
 import java.util.ArrayList;

@@ -42,7 +42,7 @@ import org.acmsl.bytehot.domain.FlowId;
 import org.acmsl.bytehot.domain.FlowSearchCriteria;
 import org.acmsl.bytehot.domain.FlowStatistics;
 import org.acmsl.bytehot.domain.FlowStorageResult;
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;

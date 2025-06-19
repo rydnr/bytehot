@@ -40,7 +40,7 @@
  */
 package org.acmsl.bytehot.infrastructure.eventsourcing;
 
-import org.acmsl.bytehot.domain.VersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 
 import com.fasterxml.jackson.databind.JsonNode;

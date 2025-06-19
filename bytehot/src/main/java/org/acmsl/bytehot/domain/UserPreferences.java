@@ -53,15 +53,15 @@ import java.util.Map;
  * @since 2025-06-18
  */
 @RequiredArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 @EqualsAndHashCode
 @ToString
+@Getter
 public class UserPreferences {
 
     /**
      * The preferences map
      */
-    @Getter
     private final Map<String, Object> preferences;
 
     /**

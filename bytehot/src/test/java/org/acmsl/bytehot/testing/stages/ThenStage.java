@@ -324,8 +324,8 @@ public class ThenStage {
         Instant deadline = testStart.plusMillis(maxDurationMs);
         
         boolean allWithinWindow = context.getAllEvents().stream()
-            .filter(event -> event instanceof org.acmsl.bytehot.domain.VersionedDomainEvent)
-            .map(event -> ((org.acmsl.bytehot.domain.VersionedDomainEvent) event).getTimestamp())
+            .filter(event -> event instanceof org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent)
+            .map(event -> ((org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent) event).getTimestamp())
             .allMatch(timestamp -> !timestamp.isAfter(deadline));
         
         Assertions.assertThat(allWithinWindow)
