@@ -1,0 +1,365 @@
+#+TITLE: Ports - Domain Dependency Injection Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Overview
+
+The ~Ports~ class represents the critical infrastructure that enables Hexagonal Architecture's dependency inversion principle within ByteHot's domain layer. It serves as the sole mechanism through which domain objects access external capabilities while maintaining complete independence from infrastructure concerns.
+
+* Architectural Significance
+
+** Hexagonal Architecture Implementation
+The Ports class implements the core principle of Hexagonal Architecture by providing a clean separation between domain logic and infrastructure:
+
+#+BEGIN_SRC
+Domain Layer        Application Layer      Infrastructure Layer
+    ↓                      ↓                      ↓
+[Domain Object] → [Port Interface] ← [Adapter Implementation]
+                      ↑
+               [Ports.resolve()]
+#+END_SRC
+
+** Dependency Inversion Principle
+Through the Ports infrastructure, domain objects depend only on abstractions (Port interfaces), never on concrete implementations:
+
+- *High-level modules* (Domain) do not depend on low-level modules (Infrastructure)
+- *Both depend on abstractions* (Port interfaces)
+- *Abstractions do not depend on details* (Infrastructure implementations)
+
+* Class Architecture
+
+** Singleton Pattern with Thread Safety
+The Ports class implements the Singleton pattern with double-checked locking for thread-safe lazy initialization:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/Ports.java
+/**
+ * The singleton instance
+ */
+private static volatile Ports instance;
+
+/**
+ * Returns the singleton instance
+ * @return the Ports instance
+ */
+public static Ports getInstance() {
+    if (instance == null) {
+        synchronized (Ports.class) {
+            if (instance == null) {
+                instance = new Ports();
+            }
+        }
+    }
+    return instance;
+}
+#+END_SRC
+
+*Design Rationale*: Global singleton ensures consistent port resolution across the entire domain layer while maintaining thread safety in concurrent environments.
+
+** Inheritance from CachingPortResolver  
+Extends the java-commons ~CachingPortResolver~ to leverage caching capabilities:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/Ports.java
+public class Ports
+    extends CachingPortResolver {
+#+END_SRC
+
+*Benefits*:
+- Performance optimization through adapter caching
+- Consistent resolution behavior across multiple calls
+- Memory efficiency by reusing adapter instances
+
+* Core Resolution Mechanism
+
+** Static Port Resolution
+The primary interface for domain objects to access infrastructure capabilities:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/Ports.java
+/**
+ * Resolves a port implementation
+ * @param port the port interface class
+ * @return the port implementation
+ * @throws RuntimeException if no implementation is found
+ */
+@SuppressWarnings("unchecked")
+public static <P extends Port> P resolve(final Class<P> port) {
+    final Ports instance = getInstance();
+    final java.util.Optional<Adapter<P>> adapter = instance._resolve(port);
+    
+    if (adapter.isEmpty()) {
+        throw new RuntimeException("No implementation found for port: " + port.getName());
+    }
+    
+    return (P) adapter.get();
+}
+#+END_SRC
+
+** Resolution Process
+1. *Instance Acquisition*: Obtains singleton Ports instance
+2. *Adapter Lookup*: Searches for registered adapter using inherited ~_resolve~ method
+3. *Validation*: Ensures an implementation exists for the requested port
+4. *Type-Safe Return*: Returns properly typed port implementation
+5. *Error Handling*: Throws descriptive exception if no adapter found
+
+** Type Safety and Generics
+The resolution mechanism maintains type safety through generic parameters:
+- Input: ~Class<P extends Port>~ ensures only valid port interfaces
+- Output: ~P~ guarantees returned implementation matches requested type
+- Casting: Safely casts adapter to port interface
+
+* Injection Mechanism
+
+** Adapter Registration
+The application layer uses the injection mechanism to register infrastructure adapters:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/Ports.java
+/**
+ * Do not call! It's used by the application layer.
+ */
+@SuppressWarnings("unchecked")
+public <P extends Port> void inject(final Class<P> port, final Adapter<P> adapter) {
+    final Map<Class<? extends Port>, List<Adapter<? extends Port>>> implementations = getImplementations();
+
+    List<Adapter<P>> adapters = (List<Adapter<P>>) (List<?>) implementations.get(port);
+
+    if (adapters == null) {
+        adapters = new ArrayList<>();
+        implementations.put(port, (List<Adapter<? extends Port>>) (List<?>) adapters);
+    }
+    if (!adapters.contains(adapter)) {
+        adapters.add(adapter);
+    }
+}
+#+END_SRC
+
+** Injection Process
+1. *Implementation Map Access*: Retrieves the internal adapter registry
+2. *Adapter List Creation*: Creates new list if first adapter for this port
+3. *Duplicate Prevention*: Avoids registering the same adapter multiple times
+4. *Registration*: Adds adapter to the port's implementation list
+
+** Access Control
+The method documentation explicitly warns against direct usage: "Do not call! It's used by the application layer."
+
+*Design Intent*: Restricts injection to the application layer, maintaining clean architectural boundaries.
+
+* Usage Patterns in Domain Layer
+
+** Typical Domain Usage
+Domain objects access infrastructure through simple, clean port resolution:
+
+#+BEGIN_SRC java
+// In a domain aggregate or service
+public void performFileOperation() {
+    final FileWatcherPort fileWatcher = Ports.resolve(FileWatcherPort.class);
+    fileWatcher.startWatching("/path/to/files");
+}
+
+// In an event handler
+public void emitEvent(DomainEvent event) {
+    final EventEmitterPort emitter = Ports.resolve(EventEmitterPort.class);
+    emitter.emit(event);
+}
+#+END_SRC
+
+** Error Handling in Domain
+When ports cannot be resolved, the domain receives clear error information:
+
+#+BEGIN_SRC java
+try {
+    final ConfigurationPort config = Ports.resolve(ConfigurationPort.class);
+    return config.getWatchPaths();
+} catch (RuntimeException e) {
+    // Handle missing infrastructure gracefully
+    log.error("Configuration port not available: " + e.getMessage());
+    return defaultPaths();
+}
+#+END_SRC
+
+* Infrastructure Integration Points
+
+** Supported Port Types
+The Ports infrastructure supports all ByteHot port interfaces:
+
+- *ConfigurationPort*: System configuration access
+- *EventEmitterPort*: Domain event publication
+- *FileWatcherPort*: File system monitoring
+- *InstrumentationPort*: JVM instrumentation capabilities
+- *FlowDetectionPort*: Flow analysis and detection
+- *EventStorePort*: Event persistence for event sourcing
+
+** Adapter Registration Flow
+The typical registration flow during application initialization:
+
+#+BEGIN_SRC
+Application Layer:
+1. Creates infrastructure adapters
+2. Calls Ports.getInstance().inject(PortClass, adapter)
+3. Repeats for all required adapters
+
+Domain Layer:
+1. Calls Ports.resolve(PortClass) when needed
+2. Receives properly configured adapter
+3. Uses adapter through port interface
+#+END_SRC
+
+* Thread Safety and Concurrency
+
+** Concurrent Access Safety
+The Ports class handles concurrent access through multiple mechanisms:
+
+- *Volatile singleton instance*: Ensures visibility across threads
+- *Double-checked locking*: Prevents race conditions during initialization  
+- *Inherited caching*: Thread-safe adapter caching from CachingPortResolver
+- *Immutable resolution*: Port resolution doesn't modify state
+
+** Performance Characteristics
+- *First access*: May require synchronization for singleton creation
+- *Subsequent access*: Lock-free singleton access
+- *Port resolution*: Cached for optimal performance
+- *Injection operations*: Synchronized at implementation map level
+
+* Testing Support
+
+** Test-Friendly Design
+The Ports infrastructure supports comprehensive testing strategies:
+
+#+BEGIN_SRC java
+// Unit testing with mock adapters
+@Test
+void shouldProcessEventSuccessfully() {
+    // Given: Mock adapter injected
+    EventEmitterPort mockEmitter = mock(EventEmitterPort.class);
+    Ports.getInstance().inject(EventEmitterPort.class, mockEmitter);
+    
+    // When: Domain logic executes
+    domainService.processEvent(event);
+    
+    // Then: Verify interactions
+    verify(mockEmitter).emit(any(DomainEvent.class));
+}
+#+END_SRC
+
+** Test Isolation
+Tests can inject specific adapters for isolated testing:
+- Mock adapters for unit tests
+- In-memory adapters for integration tests  
+- Test-specific adapters for scenario testing
+
+* Error Handling and Diagnostics
+
+** Runtime Exception Strategy
+When port resolution fails, the system provides clear diagnostic information:
+
+#+BEGIN_SRC java
+throw new RuntimeException("No implementation found for port: " + port.getName());
+#+END_SRC
+
+** Common Resolution Failures
+- *Missing Adapter*: Application layer failed to register required adapter
+- *Initialization Order*: Port accessed before application initialization
+- *Configuration Issues*: Adapter instantiation or injection failures
+
+** Diagnostic Information
+Error messages include:
+- Exact port interface class name
+- Clear indication that no implementation was found
+- Stack trace showing resolution attempt location
+
+* Architectural Benefits
+
+** Domain Purity
+The Ports infrastructure enables pure domain design:
+- Domain objects contain no infrastructure dependencies
+- Business logic remains technology-agnostic  
+- Testing requires no infrastructure setup
+- Domain can evolve independently of infrastructure
+
+** Infrastructure Flexibility
+Infrastructure can be modified without domain changes:
+- Swap file system monitoring implementations
+- Change event storage mechanisms
+- Upgrade instrumentation approaches
+- Add new infrastructure capabilities
+
+** Testing Excellence
+Clean separation enables superior testing:
+- Unit tests run without infrastructure
+- Integration tests use real or test adapters
+- End-to-end tests exercise full stack
+- Performance tests can isolate layers
+
+* Configuration and Extensibility
+
+** Dynamic Adapter Registration
+New adapters can be registered at runtime:
+
+#+BEGIN_SRC java
+// Custom adapter registration
+final CustomPort customAdapter = new CustomPortAdapter();
+Ports.getInstance().inject(CustomPort.class, customAdapter);
+
+// Domain can immediately use new capability
+final CustomPort custom = Ports.resolve(CustomPort.class);
+#+END_SRC
+
+** Multiple Adapter Support
+The infrastructure supports multiple adapters per port:
+- First registered adapter becomes primary
+- Additional adapters available through ~_resolveAll~ method
+- Enables adapter composition and fallback strategies
+
+* Performance Optimization
+
+** Caching Strategy
+Inherited from CachingPortResolver:
+- Adapter instances cached after first resolution
+- No repeated instantiation overhead
+- Memory-efficient adapter reuse
+- Configurable cache eviction policies
+
+** Resolution Efficiency
+Optimized for high-frequency domain usage:
+- Minimal overhead after initialization
+- Type-safe casting with compile-time verification
+- Exception-based error handling for fail-fast behavior
+
+* Future Evolution
+
+** Anticipated Enhancements
+- Configuration-driven adapter selection
+- Plugin architecture for dynamic adapter loading
+- Metrics and monitoring for port usage
+- Health checks for adapter availability
+
+** Backwards Compatibility
+The static resolution interface ensures:
+- Domain code remains unchanged during infrastructure evolution
+- New port types can be added without affecting existing functionality
+- Adapter improvements don't require domain modifications
+
+* Related Documentation
+
+- [[../java-commons/docs/CachingPortResolver.org][CachingPortResolver]]: Base caching implementation
+- [[./ports/ConfigurationPort.org][ConfigurationPort]]: Configuration access interface
+- [[./ports/EventEmitterPort.org][EventEmitterPort]]: Event emission interface
+- [[./ByteHotApplication.org][ByteHotApplication]]: Adapter discovery and injection
+- [[../flows/port-resolution-flow.org][Port Resolution Flow]]: Complete resolution process
+
+* Invariants and Constraints
+
+** Resolution Invariants
+- Port resolution must be deterministic for the same port interface
+- Registered adapters must implement the requested port interface
+- Resolution must succeed for all adapters registered by the application layer
+
+** Injection Constraints
+- Only the application layer should perform adapter injection
+- Adapters must be properly configured before injection
+- Duplicate adapter registration should be prevented
+
+** Thread Safety Guarantees
+- Singleton instance creation is thread-safe
+- Port resolution is safe for concurrent access
+- Adapter injection should occur during application initialization only
+
+The Ports class represents the foundational infrastructure that makes ByteHot's clean architecture possible, enabling domain purity while providing access to essential infrastructure capabilities.

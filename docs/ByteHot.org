@@ -1,0 +1,286 @@
+#+TITLE: ByteHot Domain Aggregate
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Overview
+
+The ~ByteHot~ class represents the core domain aggregate of the ByteHot system, embodying the central business logic for runtime bytecode hot-swapping. This aggregate serves as the primary entry point for hot-swap operations and orchestrates the initialization of the ByteHot runtime environment.
+
+* Domain Responsibilities
+
+The ByteHot aggregate encapsulates the following essential domain responsibilities:
+
+** Primary Responsibilities
+- *Hot-swap Orchestration*: Coordinates runtime bytecode modification operations
+- *Runtime Initialization*: Manages the startup sequence of the ByteHot agent
+- *Configuration Management*: Maintains and validates system configuration
+- *Instrumentation Coordination*: Interfaces with JVM instrumentation capabilities
+
+** Secondary Responsibilities  
+- *Event Emission*: Triggers domain events to communicate state changes
+- *Capability Detection*: Verifies JVM support for hot-swap operations
+- *Error Handling*: Manages startup failures and error conditions
+
+* Architectural Role
+
+Within the Domain-Driven Design and Hexagonal Architecture framework:
+
+** Domain Layer Position
+The ByteHot aggregate sits at the heart of the domain layer, implementing pure business logic without dependencies on external technologies. It represents the core concept that gives the system its name and primary value proposition.
+
+** Event-Driven Behavior
+As a primary port in the hexagonal architecture, ByteHot accepts incoming domain events and produces resulting events. It follows the pattern:
+
+#+BEGIN_SRC
+External Trigger → Domain Event → ByteHot.accept() → Response Events
+#+END_SRC
+
+** Invariants Maintained
+- Configuration must be valid and non-null
+- Instrumentation must be available and support required operations
+- State transitions must be event-driven and auditable
+
+* Class Structure
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: ByteHot.java
+ *
+ * Author: rydnr
+ *
+ * Class name: ByteHot
+ *
+ * Responsibilities:
+ *   - Hot-swap bytecode at runtime.
+ *   - Receive callbacks when watched classes change.
+ *
+ * Collaborators:
+ *   - ByteHotAttachRequested: the event that triggers ByteHot agent attachment.
+ *   - FolderWatch: the domain object that represents a folder to watch for changes.
+ *   - Defaults: the default configuration values for ByteHot.
+ */
+package org.acmsl.bytehot.domain;
+#+END_SRC
+
+* Core Attributes
+
+** Configuration Management
+The aggregate maintains a ~WatchConfiguration~ that encapsulates all behavioral parameters:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java
+/**
+ * Retrieves the ByteHot configuration.
+ * @return the configuration.
+ */
+@Getter
+private final WatchConfiguration configuration;
+#+END_SRC
+
+*Invariant*: Configuration must always be non-null and valid. This represents the behavioral contract that ByteHot will honor during its lifetime.
+
+** Instrumentation Interface
+Direct access to JVM instrumentation capabilities:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java
+/**
+ * The Instrumentation instance used for bytecode manipulation.
+ * @return the Instrumentation instance.
+ */
+@Getter
+private final Instrumentation instrumentation;
+#+END_SRC
+
+*Invariant*: Instrumentation must support class redefinition and retransformation for hot-swap operations to succeed.
+
+* Constructor Logic
+
+The constructor enforces domain invariants through defensive programming:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java
+/**
+ * Creates a new ByteHot instance with the specified port.
+ * @param instrumentation the Instrumentation instance for the JVM.
+ * @param config the configuration for ByteHot.
+ */
+public ByteHot(final Instrumentation instrumentation, final WatchConfiguration config) {
+    this.instrumentation = Objects.requireNonNull(instrumentation);
+    this.configuration = Objects.requireNonNull(config);
+}
+#+END_SRC
+
+*Design Rationale*: Fail-fast construction ensures that invalid aggregates cannot exist, maintaining system integrity from the moment of creation.
+
+* Primary Port: Event Acceptance
+
+** Accept Method Pattern
+The ~accept~ method implements the primary port pattern, serving as the entry point for domain event processing:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java
+/**
+ * Accepts a ByteHotAttachRequested event and starts the ByteHot runtime.
+ * @param event the event containing the configuration to attach ByteHot.
+ * @return an event representing ByteHot agent has been attached and started or
+ * an error occurred during the attachment.
+ */
+public static DomainResponseEvent<ByteHotAttachRequested> accept(final ByteHotAttachRequested event) {
+    DomainResponseEvent<ByteHotAttachRequested> result = null;
+    try {
+        new ByteHot(event.getInstrumentation(), event.getConfiguration())
+            .start(event);
+        result = new ByteHotAgentAttached(event, event.getConfiguration());
+    } catch (final Throwable t) {
+        result = new ByteHotNotStarted(event, t);
+    }
+    return result;
+}
+#+END_SRC
+
+** Event Processing Flow
+1. *Event Reception*: Receives ~ByteHotAttachRequested~ containing initialization parameters
+2. *Aggregate Creation*: Instantiates new ByteHot aggregate with event data
+3. *Startup Execution*: Triggers the startup sequence
+4. *Result Production*: Returns either success (~ByteHotAgentAttached~) or failure (~ByteHotNotStarted~) event
+
+** Error Handling Strategy
+The aggregate implements comprehensive error handling that transforms exceptions into domain events, maintaining the event-driven contract even in failure scenarios.
+
+* Startup Orchestration
+
+** Start Method Logic
+The startup sequence coordinates multiple domain operations:
+
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java
+/**
+ * Starts ByteHot with the provided configuration.
+ * @param precedingEvent the event that triggered this startup
+ */
+public void start(final ByteHotAttachRequested precedingEvent) {
+    try {
+        final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+        
+        // Configure watch paths
+        final WatchPathConfigured watchEvent = new WatchPathConfigured(configuration, precedingEvent);
+        eventEmitter.emit(watchEvent);
+        
+        // Check and emit hot-swap capability
+        if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
+            final HotSwapCapabilityEnabled capabilityEvent = new HotSwapCapabilityEnabled(instrumentation, precedingEvent);
+            eventEmitter.emit(capabilityEvent);
+        }
+        
+    } catch (final Exception e) {
+        System.err.println("Failed to emit domain events during startup: " + e.getMessage());
+        // Continue with startup even if event emission fails
+    }
+}
+#+END_SRC
+
+** Startup Event Sequence
+1. *Port Resolution*: Obtains event emitter through ports infrastructure
+2. *Watch Configuration*: Emits ~WatchPathConfigured~ event to establish file monitoring
+3. *Capability Detection*: Verifies JVM hot-swap support and emits ~HotSwapCapabilityEnabled~ if available
+4. *Error Resilience*: Continues startup even if event emission fails, ensuring system robustness
+
+* Domain Event Collaborations
+
+** Incoming Events
+- ~ByteHotAttachRequested~: Triggers aggregate initialization and startup
+
+** Outgoing Events  
+- ~ByteHotAgentAttached~: Successful startup completion
+- ~ByteHotNotStarted~: Startup failure with error context
+- ~WatchPathConfigured~: File monitoring establishment
+- ~HotSwapCapabilityEnabled~: JVM capability confirmation
+
+* Ports Integration
+
+The aggregate demonstrates proper hexagonal architecture by resolving ports through the domain's port resolution mechanism:
+
+#+BEGIN_SRC java
+final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+#+END_SRC
+
+This pattern ensures:
+- *Dependency Inversion*: Domain depends on abstractions, not implementations
+- *Technology Independence*: Infrastructure adapters can be swapped without domain changes
+- *Testability*: Ports can be mocked or stubbed for testing
+
+* Invariants and Constraints
+
+** State Invariants
+- Configuration and instrumentation must always be non-null
+- Event causality must be preserved through preceding event references
+- Error conditions must be represented as domain events, not exceptions
+
+** Behavioral Constraints
+- Startup must be idempotent - multiple calls should not cause issues
+- Event emission failures should not prevent core functionality
+- JVM capabilities must be verified before attempting hot-swap operations
+
+* Testing Strategy
+
+** Unit Testing Approach
+#+BEGIN_SRC java
+// Example test structure
+@Test
+void should_accept_attach_request_and_return_agent_attached() {
+    // Given: Valid attach request event
+    ByteHotAttachRequested request = createValidAttachRequest();
+    
+    // When: Event is accepted
+    DomainResponseEvent<ByteHotAttachRequested> result = ByteHot.accept(request);
+    
+    // Then: Success event is returned
+    assertThat(result).isInstanceOf(ByteHotAgentAttached.class);
+}
+#+END_SRC
+
+** Integration Testing Considerations
+- Test with actual JVM instrumentation
+- Verify event emission through real port implementations
+- Validate configuration edge cases and error scenarios
+
+* Future Evolution
+
+** Anticipated Extensions
+- Support for additional JVM languages (Kotlin, Scala)
+- Enhanced configuration validation and migration
+- Distributed hot-swap coordination for microservices
+- Advanced capability detection and feature toggling
+
+** Architectural Flexibility
+The event-driven design enables extension without modification:
+- New events can be added to the processing flow
+- Additional startup steps can be inserted via event handlers
+- Configuration can be enhanced without changing core logic
+
+* Related Documentation
+
+- [[./WatchConfiguration.org][WatchConfiguration]]: Configuration management
+- [[./Ports.org][Ports]]: Dependency injection infrastructure  
+- [[./events/ByteHotAttachRequested.org][ByteHotAttachRequested]]: Primary input event
+- [[./events/ByteHotAgentAttached.org][ByteHotAgentAttached]]: Success response event
+- [[../flows/bytehot-startup-flow.org][ByteHot Startup Flow]]: Complete startup sequence documentation
