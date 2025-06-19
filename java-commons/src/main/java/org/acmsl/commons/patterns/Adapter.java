@@ -35,6 +35,8 @@ package org.acmsl.commons.patterns;
 
 import org.acmsl.commons.patterns.Port;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Marks all classes acting as Adapters.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
@@ -42,5 +44,6 @@ import org.acmsl.commons.patterns.Port;
  */
 @SuppressWarnings("unused")
 public interface Adapter<P extends Port> {
+    @NonNull
     Class<P> adapts();
 }

@@ -78,21 +78,20 @@ final class FlowTest {
     }
 
     @Test
-    void should_identify_invalid_flow_with_null_fields() {
-        // Given: Flow with null required fields
-        Flow flow = Flow.builder()
+    void should_reject_flow_creation_with_null_fields() {
+        // Given/When/Then: Flow creation with null required fields should throw NullPointerException
+        assertThatThrownBy(() -> Flow.builder()
             .flowId(null)
-            .name(null)
-            .description(null)
-            .eventSequence(null)
-            .minimumEventCount(0)
-            .maximumTimeWindow(null)
-            .confidence(-1.0)
+            .name("Valid name")
+            .description("Valid description")
+            .eventSequence(List.of(ClassFileChanged.class))
+            .minimumEventCount(1)
+            .maximumTimeWindow(Duration.ofMinutes(5))
+            .confidence(0.8)
             .conditions(Optional.empty())
-            .build();
-
-        // When/Then: Flow should be invalid
-        assertThat(flow.isValid()).isFalse();
+            .build())
+            .isInstanceOf(NullPointerException.class)
+            .hasMessageContaining("flowId is marked non-null but is null");
     }
 
     @Test

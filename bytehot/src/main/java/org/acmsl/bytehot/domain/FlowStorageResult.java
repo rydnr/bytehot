@@ -34,6 +34,8 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.commons.patterns.dao.ValueObject;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -58,6 +60,7 @@ public final class FlowStorageResult implements ValueObject {
      * The ID of the flow that was operated on.
      */
     @Getter
+    @NonNull
     private final FlowId flowId;
 
     /**
@@ -70,12 +73,14 @@ public final class FlowStorageResult implements ValueObject {
      * Optional error message if operation failed.
      */
     @Getter
+    @NonNull
     private final Optional<String> errorMessage;
 
     /**
      * Optional details about the operation.
      */
     @Getter
+    @NonNull
     private final Optional<String> details;
 
     /**
@@ -83,7 +88,8 @@ public final class FlowStorageResult implements ValueObject {
      * @param flowId The ID of the flow that was successfully operated on
      * @return A successful FlowStorageResult
      */
-    public static FlowStorageResult success(final FlowId flowId) {
+    @NonNull
+    public static FlowStorageResult success(@NonNull final FlowId flowId) {
         return FlowStorageResult.builder()
             .flowId(flowId)
             .success(true)
@@ -98,7 +104,8 @@ public final class FlowStorageResult implements ValueObject {
      * @param details Additional details about the operation
      * @return A successful FlowStorageResult with details
      */
-    public static FlowStorageResult success(final FlowId flowId, final String details) {
+    @NonNull
+    public static FlowStorageResult success(@NonNull final FlowId flowId, @Nullable final String details) {
         return FlowStorageResult.builder()
             .flowId(flowId)
             .success(true)
@@ -113,7 +120,8 @@ public final class FlowStorageResult implements ValueObject {
      * @param errorMessage The error message describing the failure
      * @return A failed FlowStorageResult
      */
-    public static FlowStorageResult failure(final FlowId flowId, final String errorMessage) {
+    @NonNull
+    public static FlowStorageResult failure(@NonNull final FlowId flowId, @Nullable final String errorMessage) {
         return FlowStorageResult.builder()
             .flowId(flowId)
             .success(false)
@@ -129,10 +137,11 @@ public final class FlowStorageResult implements ValueObject {
      * @param details Additional details about the failure
      * @return A failed FlowStorageResult with details
      */
+    @NonNull
     public static FlowStorageResult failure(
-        final FlowId flowId,
-        final String errorMessage,
-        final String details
+        @NonNull final FlowId flowId,
+        @Nullable final String errorMessage,
+        @Nullable final String details
     ) {
         return FlowStorageResult.builder()
             .flowId(flowId)
@@ -142,13 +151,6 @@ public final class FlowStorageResult implements ValueObject {
             .build();
     }
 
-    /**
-     * Checks if the operation was successful.
-     * @return true if the operation succeeded
-     */
-    public boolean isSuccess() {
-        return success;
-    }
 
     /**
      * Checks if the operation failed.
@@ -162,6 +164,7 @@ public final class FlowStorageResult implements ValueObject {
      * Gets the error message if the operation failed.
      * @return The error message, or empty string if successful
      */
+    @NonNull
     public String getErrorMessageOrEmpty() {
         return errorMessage.orElse("");
     }
@@ -170,6 +173,7 @@ public final class FlowStorageResult implements ValueObject {
      * Gets the details if present.
      * @return The details, or empty string if not present
      */
+    @NonNull
     public String getDetailsOrEmpty() {
         return details.orElse("");
     }

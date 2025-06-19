@@ -42,6 +42,8 @@ import org.acmsl.bytehot.domain.events.FlowDiscovered;
 import org.acmsl.bytehot.domain.VersionedDomainEvent;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.RequiredArgsConstructor;
 
@@ -63,8 +65,9 @@ public final class FlowDetector {
      * @param event The flow analysis request containing events to analyze
      * @return Flow discovery events for any flows found, or empty list if none detected
      */
+    @NonNull
     public static List<DomainResponseEvent<FlowAnalysisRequested>> analyzeEventSequence(
-        final FlowAnalysisRequested event
+        @Nullable final FlowAnalysisRequested event
     ) {
         if (event == null || event.getEventsToAnalyze() == null || event.getEventsToAnalyze().isEmpty()) {
             return List.of();
@@ -97,6 +100,7 @@ public final class FlowDetector {
      * Gets the list of known flow patterns for analysis.
      * @return List of predefined flow patterns
      */
+    @NonNull
     private static List<Flow> getKnownFlowPatterns() {
         List<Flow> patterns = new ArrayList<>();
         
@@ -116,6 +120,7 @@ public final class FlowDetector {
      * Creates the Hot-Swap Complete Flow pattern.
      * @return Flow pattern for complete hot-swap operations
      */
+    @NonNull
     private static Flow createHotSwapCompleteFlow() {
         return Flow.builder()
             .flowId(FlowId.fromName("hot-swap-complete"))
@@ -140,6 +145,7 @@ public final class FlowDetector {
      * Creates the User Session Flow pattern.
      * @return Flow pattern for user authentication and session management
      */
+    @NonNull
     private static Flow createUserSessionFlow() {
         return Flow.builder()
             .flowId(FlowId.fromName("user-session"))
@@ -161,6 +167,7 @@ public final class FlowDetector {
      * Creates the Error Recovery Flow pattern.
      * @return Flow pattern for system error detection and recovery
      */
+    @NonNull
     private static Flow createErrorRecoveryFlow() {
         return Flow.builder()
             .flowId(FlowId.fromName("error-recovery"))
@@ -184,8 +191,8 @@ public final class FlowDetector {
      * @return true if the events match the pattern with sufficient confidence
      */
     private static boolean matchesPattern(
-        final List<VersionedDomainEvent> events,
-        final Flow pattern,
+        @NonNull final List<VersionedDomainEvent> events,
+        @NonNull final Flow pattern,
         final double minimumConfidence
     ) {
         if (events.size() < pattern.getMinimumEventCount()) {
@@ -217,8 +224,8 @@ public final class FlowDetector {
      * @return Confidence level between 0.0 and 1.0
      */
     private static double calculateConfidence(
-        final List<VersionedDomainEvent> events,
-        final Flow pattern
+        @NonNull final List<VersionedDomainEvent> events,
+        @NonNull final Flow pattern
     ) {
         // Start with the pattern's base confidence
         double confidence = pattern.getConfidence();

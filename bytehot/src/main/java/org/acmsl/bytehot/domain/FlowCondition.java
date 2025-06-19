@@ -35,6 +35,8 @@ package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.VersionedDomainEvent;
 import org.acmsl.commons.patterns.dao.ValueObject;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -60,18 +62,21 @@ public final class FlowCondition implements ValueObject {
      * Name of the condition for identification.
      */
     @Getter
+    @NonNull
     private final String name;
 
     /**
      * Description of what this condition checks.
      */
     @Getter
+    @NonNull
     private final String description;
 
     /**
      * Predicate function that evaluates the condition.
      */
     @Getter
+    @NonNull
     private final Predicate<List<VersionedDomainEvent>> condition;
 
     /**
@@ -79,7 +84,8 @@ public final class FlowCondition implements ValueObject {
      * @param userId The user ID to check for
      * @return A condition that ensures all events belong to the specified user
      */
-    public static FlowCondition sameUser(final UserId userId) {
+    @NonNull
+    public static FlowCondition sameUser(@NonNull final UserId userId) {
         return FlowCondition.builder()
             .name("Same User")
             .description("All events must belong to user: " + userId.getValue())
@@ -93,6 +99,7 @@ public final class FlowCondition implements ValueObject {
      * @param maxDurationMillis Maximum duration between first and last event
      * @return A condition that ensures events are within the time window
      */
+    @NonNull
     public static FlowCondition withinTimeWindow(final long maxDurationMillis) {
         return FlowCondition.builder()
             .name("Time Window")
@@ -114,6 +121,7 @@ public final class FlowCondition implements ValueObject {
      * Creates a condition that checks for sequential order of events.
      * @return A condition that ensures events are in chronological order
      */
+    @NonNull
     public static FlowCondition sequentialOrder() {
         return FlowCondition.builder()
             .name("Sequential Order")
@@ -134,7 +142,8 @@ public final class FlowCondition implements ValueObject {
      * @param conditions The conditions that must all be met
      * @return A condition that is satisfied only if all input conditions are satisfied
      */
-    public static FlowCondition allOf(final FlowCondition... conditions) {
+    @NonNull
+    public static FlowCondition allOf(@NonNull final FlowCondition... conditions) {
         return FlowCondition.builder()
             .name("All Of")
             .description("All conditions must be met")
@@ -154,7 +163,7 @@ public final class FlowCondition implements ValueObject {
      * @param events The events to evaluate
      * @return true if the condition is satisfied, false otherwise
      */
-    public boolean evaluate(final List<VersionedDomainEvent> events) {
+    public boolean evaluate(@Nullable final List<VersionedDomainEvent> events) {
         if (condition == null) {
             return true;
         }

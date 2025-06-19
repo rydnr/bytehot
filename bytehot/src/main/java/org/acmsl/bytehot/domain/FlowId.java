@@ -33,6 +33,8 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.commons.patterns.dao.ValueObject;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -55,12 +57,14 @@ public final class FlowId implements ValueObject {
      * The unique identifier value.
      */
     @Getter
+    @NonNull
     private final String value;
 
     /**
      * Creates a new random FlowId.
      * @return A new FlowId with a random UUID
      */
+    @NonNull
     public static FlowId random() {
         return new FlowId(UUID.randomUUID().toString());
     }
@@ -70,7 +74,8 @@ public final class FlowId implements ValueObject {
      * @param value The string value for the flow ID
      * @return A FlowId with the specified value
      */
-    public static FlowId of(final String value) {
+    @NonNull
+    public static FlowId of(@Nullable final String value) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException("FlowId value cannot be null or empty");
         }
@@ -82,7 +87,8 @@ public final class FlowId implements ValueObject {
      * @param flowName The name of the flow
      * @return A FlowId based on the flow name
      */
-    public static FlowId fromName(final String flowName) {
+    @NonNull
+    public static FlowId fromName(@Nullable final String flowName) {
         if (flowName == null || flowName.trim().isEmpty()) {
             throw new IllegalArgumentException("Flow name cannot be null or empty");
         }

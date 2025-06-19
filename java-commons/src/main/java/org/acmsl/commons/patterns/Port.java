@@ -33,6 +33,8 @@
  */
 package org.acmsl.commons.patterns;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 /**
  * Marks all classes acting as Ports.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>

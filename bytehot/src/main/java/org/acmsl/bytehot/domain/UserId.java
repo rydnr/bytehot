@@ -40,6 +40,8 @@ package org.acmsl.bytehot.domain;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
@@ -59,12 +61,14 @@ public class UserId {
      * The user identifier value
      */
     @Getter
+    @NonNull
     private final String value;
 
     /**
      * Creates an anonymous user ID
      * @return anonymous user ID
      */
+    @NonNull
     public static UserId anonymous() {
         return UserId.of("anonymous-" + UUID.randomUUID().toString());
     }
@@ -74,7 +78,8 @@ public class UserId {
      * @param email the email address
      * @return user ID based on email
      */
-    public static UserId fromEmail(final String email) {
+    @NonNull
+    public static UserId fromEmail(@NonNull final String email) {
         return UserId.of(email.toLowerCase());
     }
 
@@ -84,7 +89,8 @@ public class UserId {
      * @param gitEmail the Git email (may be null)
      * @return user ID from Git config
      */
-    public static UserId fromGit(final String gitUser, final String gitEmail) {
+    @NonNull
+    public static UserId fromGit(@NonNull final String gitUser, @Nullable final String gitEmail) {
         if (gitEmail != null && !gitEmail.isEmpty()) {
             return fromEmail(gitEmail);
         }
@@ -103,6 +109,7 @@ public class UserId {
      * Gets a display name for the user
      * @return human-readable display name
      */
+    @NonNull
     public String getDisplayName() {
         if (isAnonymous()) {
             return "Anonymous User";

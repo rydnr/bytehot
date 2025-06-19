@@ -34,6 +34,9 @@
 package org.acmsl.commons.patterns;
 
 import org.acmsl.commons.patterns.Port;
+
+import org.checkerframework.checker.nullness.qual.NonNull;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -50,12 +53,14 @@ public interface PortResolver<P extends Port> {
      * @param port such port.
      * @return A list of implementations.
      */
-    List<? extends P> resolveAll(final P port);
+    @NonNull
+    List<? extends P> resolveAll(@NonNull final P port);
 
     /**
      * Resolves the main implementation of a given port.
      * @param port such port.
      * @return The port implementation, if any.
      */
-    Optional<? extends P> resolv(final P port);
+    @NonNull
+    Optional<? extends P> resolv(@NonNull final P port);
 }

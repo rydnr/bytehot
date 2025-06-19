@@ -35,6 +35,8 @@ package org.acmsl.bytehot.domain;
 
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.dao.ValueObject;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -61,48 +63,56 @@ public final class FlowSearchCriteria implements ValueObject {
      * Optional name pattern to match (supports wildcards).
      */
     @Getter
+    @NonNull
     private final Optional<String> namePattern;
 
     /**
      * Optional description pattern to match (supports wildcards).
      */
     @Getter
+    @NonNull
     private final Optional<String> descriptionPattern;
 
     /**
      * Minimum confidence level for flows.
      */
     @Getter
+    @NonNull
     private final Optional<Double> minimumConfidence;
 
     /**
      * Maximum confidence level for flows.
      */
     @Getter
+    @NonNull
     private final Optional<Double> maximumConfidence;
 
     /**
      * Minimum number of events in flow sequence.
      */
     @Getter
+    @NonNull
     private final Optional<Integer> minimumEventCount;
 
     /**
      * Maximum time window for flows.
      */
     @Getter
+    @NonNull
     private final Optional<Duration> maximumTimeWindow;
 
     /**
      * Event types that must be present in the flow.
      */
     @Getter
+    @NonNull
     private final List<Class<? extends DomainEvent>> requiredEventTypes;
 
     /**
      * Event types that must not be present in the flow.
      */
     @Getter
+    @NonNull
     private final List<Class<? extends DomainEvent>> excludedEventTypes;
 
     /**
@@ -110,7 +120,8 @@ public final class FlowSearchCriteria implements ValueObject {
      * @param namePattern The name pattern (supports * wildcards)
      * @return Search criteria for name matching
      */
-    public static FlowSearchCriteria byNamePattern(final String namePattern) {
+    @NonNull
+    public static FlowSearchCriteria byNamePattern(@Nullable final String namePattern) {
         return FlowSearchCriteria.builder()
             .namePattern(Optional.ofNullable(namePattern))
             .descriptionPattern(Optional.empty())
@@ -129,6 +140,7 @@ public final class FlowSearchCriteria implements ValueObject {
      * @param maximumConfidence The maximum confidence level
      * @return Search criteria for confidence matching
      */
+    @NonNull
     public static FlowSearchCriteria byConfidenceRange(
         final double minimumConfidence,
         final double maximumConfidence
@@ -151,8 +163,9 @@ public final class FlowSearchCriteria implements ValueObject {
      * @return Search criteria for event type matching
      */
     @SafeVarargs
+    @NonNull
     public static FlowSearchCriteria containingEventTypes(
-        final Class<? extends DomainEvent>... eventTypes
+        @NonNull final Class<? extends DomainEvent>... eventTypes
     ) {
         return FlowSearchCriteria.builder()
             .namePattern(Optional.empty())
@@ -170,6 +183,7 @@ public final class FlowSearchCriteria implements ValueObject {
      * Creates criteria that matches all flows (no filtering).
      * @return Search criteria that matches everything
      */
+    @NonNull
     public static FlowSearchCriteria all() {
         return FlowSearchCriteria.builder()
             .namePattern(Optional.empty())
@@ -188,7 +202,7 @@ public final class FlowSearchCriteria implements ValueObject {
      * @param flow The flow to test
      * @return true if the flow matches all criteria
      */
-    public boolean matches(final Flow flow) {
+    public boolean matches(@Nullable final Flow flow) {
         if (flow == null) {
             return false;
         }
@@ -239,7 +253,7 @@ public final class FlowSearchCriteria implements ValueObject {
         return true;
     }
 
-    private boolean matchesPattern(final String text, final String pattern) {
+    private boolean matchesPattern(@Nullable final String text, @Nullable final String pattern) {
         if (text == null || pattern == null) {
             return false;
         }

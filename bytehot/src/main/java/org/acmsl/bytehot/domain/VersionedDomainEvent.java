@@ -40,6 +40,8 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.commons.patterns.DomainEvent;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.time.Instant;
 
@@ -54,18 +56,21 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Unique identifier for this event instance
      * @return the event ID (typically a UUID)
      */
+    @NonNull
     String getEventId();
 
     /**
      * Type of aggregate this event belongs to
      * @return the aggregate type (e.g., "user", "hotswap", "bytehot")
      */
+    @NonNull
     String getAggregateType();
 
     /**
      * Unique identifier of the aggregate instance
      * @return the aggregate ID (typically a UUID or meaningful identifier)
      */
+    @NonNull
     String getAggregateId();
 
     /**
@@ -78,12 +83,14 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Timestamp when the event occurred
      * @return the event timestamp
      */
+    @NonNull
     Instant getTimestamp();
 
     /**
      * ID of the previous event in this aggregate's history (for causality)
      * @return the previous event ID, or null if this is the first event
      */
+    @Nullable
     String getPreviousEventId();
 
     /**
@@ -96,18 +103,21 @@ public interface VersionedDomainEvent extends DomainEvent {
      * User who triggered this event (if applicable)
      * @return the user ID, or null if not user-triggered
      */
+    @Nullable
     String getUserId();
 
     /**
      * Correlation ID for tracing related events across aggregates
      * @return the correlation ID, or null if not part of a correlation
      */
+    @Nullable
     String getCorrelationId();
 
     /**
      * Gets the simple class name of this event for type identification
      * @return the event type name
      */
+    @NonNull
     default String getEventType() {
         return this.getClass().getSimpleName();
     }

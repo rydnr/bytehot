@@ -36,6 +36,8 @@ package org.acmsl.bytehot.domain;
 
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.dao.ValueObject;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -62,24 +64,28 @@ public final class Flow implements ValueObject {
      * Unique identifier for the flow.
      */
     @Getter
+    @NonNull
     private final FlowId flowId;
 
     /**
      * Human-readable name for the flow.
      */
     @Getter
+    @NonNull
     private final String name;
 
     /**
      * Description of what this flow represents.
      */
     @Getter
+    @NonNull
     private final String description;
 
     /**
      * Sequence of event types that form this flow.
      */
     @Getter
+    @NonNull
     private final List<Class<? extends DomainEvent>> eventSequence;
 
     /**
@@ -92,6 +98,7 @@ public final class Flow implements ValueObject {
      * Maximum time window for events to be considered part of the same flow.
      */
     @Getter
+    @NonNull
     private final Duration maximumTimeWindow;
 
     /**
@@ -104,6 +111,7 @@ public final class Flow implements ValueObject {
      * Optional conditions that must be met for flow detection.
      */
     @Getter
+    @NonNull
     private final Optional<FlowCondition> conditions;
 
     /**
@@ -126,7 +134,7 @@ public final class Flow implements ValueObject {
      * @param events The event sequence to check
      * @return true if the event sequence matches this flow pattern
      */
-    public boolean matches(final List<Class<? extends DomainEvent>> events) {
+    public boolean matches(@Nullable final List<Class<? extends DomainEvent>> events) {
         if (events == null || events.size() < minimumEventCount) {
             return false;
         }
@@ -139,6 +147,7 @@ public final class Flow implements ValueObject {
      * Gets the event types that can start this flow.
      * @return List of event types that can initiate this flow
      */
+    @NonNull
     public List<Class<? extends DomainEvent>> getStartingEventTypes() {
         return eventSequence.isEmpty() 
             ? List.of() 
@@ -149,6 +158,7 @@ public final class Flow implements ValueObject {
      * Gets the event types that can end this flow.
      * @return List of event types that can complete this flow
      */
+    @NonNull
     public List<Class<? extends DomainEvent>> getEndingEventTypes() {
         return eventSequence.isEmpty() 
             ? List.of() 
@@ -160,6 +170,7 @@ public final class Flow implements ValueObject {
      * @param newConfidence The new confidence level
      * @return A new Flow instance with updated confidence
      */
+    @NonNull
     public Flow withConfidence(final double newConfidence) {
         if (newConfidence < 0.0 || newConfidence > 1.0) {
             throw new IllegalArgumentException("Confidence must be between 0.0 and 1.0");
@@ -178,8 +189,8 @@ public final class Flow implements ValueObject {
     }
 
     private boolean containsPattern(
-        final List<Class<? extends DomainEvent>> events,
-        final List<Class<? extends DomainEvent>> pattern
+        @NonNull final List<Class<? extends DomainEvent>> events,
+        @NonNull final List<Class<? extends DomainEvent>> pattern
     ) {
         if (pattern.isEmpty()) {
             return true;
@@ -206,7 +217,7 @@ public final class Flow implements ValueObject {
      * @param eventTypeNames The event type names to check
      * @return true if the event sequence matches this flow pattern
      */
-    public boolean matchesByName(final List<String> eventTypeNames) {
+    public boolean matchesByName(@Nullable final List<String> eventTypeNames) {
         if (eventTypeNames == null || eventTypeNames.size() < minimumEventCount) {
             return false;
         }
@@ -221,8 +232,8 @@ public final class Flow implements ValueObject {
     }
 
     private boolean containsPatternByName(
-        final List<String> eventTypeNames,
-        final List<String> patternNames
+        @NonNull final List<String> eventTypeNames,
+        @NonNull final List<String> patternNames
     ) {
         if (patternNames.isEmpty()) {
             return true;

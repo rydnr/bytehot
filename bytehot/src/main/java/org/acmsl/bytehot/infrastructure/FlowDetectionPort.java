@@ -35,10 +35,14 @@
 package org.acmsl.bytehot.infrastructure;
 
 import org.acmsl.bytehot.domain.Flow;
+import org.acmsl.bytehot.domain.FlowId;
 import org.acmsl.bytehot.domain.FlowSearchCriteria;
+import org.acmsl.bytehot.domain.FlowStatistics;
 import org.acmsl.bytehot.domain.FlowStorageResult;
 import org.acmsl.bytehot.domain.VersionedDomainEvent;
 import org.acmsl.commons.patterns.Port;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -55,19 +59,22 @@ public interface FlowDetectionPort extends Port {
      * @param events The events to analyze
      * @return Detected flows with confidence levels
      */
-    CompletableFuture<List<Flow>> detectFlows(List<VersionedDomainEvent> events);
+    @NonNull
+    CompletableFuture<List<Flow>> detectFlows(@NonNull List<VersionedDomainEvent> events);
 
     /**
      * Stores a discovered flow for future reference.
      * @param flow The flow to store
      * @return Success or failure result with details
      */
-    CompletableFuture<FlowStorageResult> storeFlow(Flow flow);
+    @NonNull
+    CompletableFuture<FlowStorageResult> storeFlow(@NonNull Flow flow);
 
     /**
      * Retrieves all known flows.
      * @return All stored flows
      */
+    @NonNull
     CompletableFuture<List<Flow>> getAllFlows();
 
     /**
@@ -75,13 +82,15 @@ public interface FlowDetectionPort extends Port {
      * @param criteria The search criteria
      * @return Matching flows
      */
-    CompletableFuture<List<Flow>> searchFlows(FlowSearchCriteria criteria);
+    @NonNull
+    CompletableFuture<List<Flow>> searchFlows(@NonNull FlowSearchCriteria criteria);
 
     /**
      * Retrieves flows by their confidence level.
      * @param minimumConfidence The minimum confidence level
      * @return Flows with confidence above the threshold
      */
+    @NonNull
     CompletableFuture<List<Flow>> getFlowsByConfidence(double minimumConfidence);
 
     /**
@@ -89,18 +98,21 @@ public interface FlowDetectionPort extends Port {
      * @param flowId The ID of the flow to delete
      * @return Success or failure result
      */
-    CompletableFuture<FlowStorageResult> deleteFlow(org.acmsl.bytehot.domain.FlowId flowId);
+    @NonNull
+    CompletableFuture<FlowStorageResult> deleteFlow(@NonNull FlowId flowId);
 
     /**
      * Updates an existing flow with new information.
      * @param flow The updated flow
      * @return Success or failure result
      */
-    CompletableFuture<FlowStorageResult> updateFlow(Flow flow);
+    @NonNull
+    CompletableFuture<FlowStorageResult> updateFlow(@NonNull Flow flow);
 
     /**
      * Gets statistics about stored flows.
      * @return Flow statistics including counts and confidence distributions
      */
-    CompletableFuture<org.acmsl.bytehot.domain.FlowStatistics> getFlowStatistics();
+    @NonNull
+    CompletableFuture<FlowStatistics> getFlowStatistics();
 }

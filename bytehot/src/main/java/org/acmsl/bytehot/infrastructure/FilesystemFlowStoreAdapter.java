@@ -48,6 +48,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import lombok.RequiredArgsConstructor;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,7 +71,9 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
 
+    @NonNull
     private final Path flowStorePath;
+    @NonNull
     private final ObjectMapper objectMapper;
 
     /**
@@ -90,7 +95,7 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
      * Constructor with custom storage path.
      * @param flowStorePath Custom path for flow storage
      */
-    public FilesystemFlowStoreAdapter(final Path flowStorePath) {
+    public FilesystemFlowStoreAdapter(@NonNull final Path flowStorePath) {
         this.flowStorePath = flowStorePath;
         this.objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         
@@ -102,7 +107,8 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
-    public CompletableFuture<List<Flow>> detectFlows(final List<VersionedDomainEvent> events) {
+    @NonNull
+    public CompletableFuture<List<Flow>> detectFlows(@NonNull final List<VersionedDomainEvent> events) {
         return CompletableFuture.supplyAsync(() -> {
             // Use the FlowDetector to analyze events against known patterns
             List<Flow> detectedFlows = new ArrayList<>();
@@ -132,7 +138,8 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
-    public CompletableFuture<FlowStorageResult> storeFlow(final Flow flow) {
+    @NonNull
+    public CompletableFuture<FlowStorageResult> storeFlow(@NonNull final Flow flow) {
         return CompletableFuture.supplyAsync(() -> {
             if (flow == null || !flow.isValid()) {
                 return FlowStorageResult.failure(
@@ -162,6 +169,7 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
+    @NonNull
     public CompletableFuture<List<Flow>> getAllFlows() {
         return CompletableFuture.supplyAsync(() -> {
             List<Flow> flows = new ArrayList<>();
@@ -188,7 +196,8 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
-    public CompletableFuture<List<Flow>> searchFlows(final FlowSearchCriteria criteria) {
+    @NonNull
+    public CompletableFuture<List<Flow>> searchFlows(@NonNull final FlowSearchCriteria criteria) {
         return getAllFlows().thenApply(flows -> 
             flows.stream()
                 .filter(criteria::matches)
@@ -197,6 +206,7 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
+    @NonNull
     public CompletableFuture<List<Flow>> getFlowsByConfidence(final double minimumConfidence) {
         return getAllFlows().thenApply(flows ->
             flows.stream()
@@ -206,7 +216,8 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
-    public CompletableFuture<FlowStorageResult> deleteFlow(final FlowId flowId) {
+    @NonNull
+    public CompletableFuture<FlowStorageResult> deleteFlow(@NonNull final FlowId flowId) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 Path flowFile = flowStorePath.resolve(flowId.getValue() + ".json");
@@ -233,12 +244,14 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
     }
 
     @Override
-    public CompletableFuture<FlowStorageResult> updateFlow(final Flow flow) {
+    @NonNull
+    public CompletableFuture<FlowStorageResult> updateFlow(@NonNull final Flow flow) {
         // For filesystem storage, update is the same as store (overwrite)
         return storeFlow(flow);
     }
 
     @Override
+    @NonNull
     public CompletableFuture<FlowStatistics> getFlowStatistics() {
         return getAllFlows().thenApply(flows -> {
             if (flows.isEmpty()) {
@@ -295,7 +308,8 @@ public final class FilesystemFlowStoreAdapter implements FlowDetectionPort {
         });
     }
 
-    private Flow loadFlowFromFile(final Path file) {
+    @Nullable
+    private Flow loadFlowFromFile(@NonNull final Path file) {
         try {
             String jsonContent = Files.readString(file);
             JsonFlow jsonFlow = objectMapper.readValue(jsonContent, JsonFlow.class);
