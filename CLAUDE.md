@@ -329,3 +329,6 @@ The Inversion of Control / Dependency Injection is responsibility of the applica
 
 ## Memories
 - Methods should not include more than two `instanceof` checks. Instead, use the double dispatch idiom.
+
+## Memories
+- All documents, except the README.md and the html for Javadocs, should be written in org-mode syntax.
