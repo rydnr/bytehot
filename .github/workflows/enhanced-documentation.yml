@@ -72,1101 +72,170 @@ jobs:
         run: |
           echo "🔧 Pre-processing org files to ensure proper code block formatting..."
           
-          # Create a Python script to fix org-mode code blocks
-          cat > fix_org_codeblocks.py << 'PYTHON_EOF'
-          import re
-          import os
-          import sys
-          from pathlib import Path
-          
-          def fix_org_code_blocks(content):
-              """Fix various code block formats in org-mode files"""
-              
-              # Pattern 1: Convert markdown-style code blocks to org-mode
-              # ```language -> #+begin_src language
-              content = re.sub(
-                  r'^```(\w+)?\s*$',
-                  lambda m: f'#+begin_src {m.group(1) or ""}',
-                  content,
-                  flags=re.MULTILINE
-              )
-              
-              # ``` -> #+end_src
-              content = re.sub(
-                  r'^```\s*$',
-                  '#+end_src',
-                  content,
-                  flags=re.MULTILINE
-              )
-              
-              # Pattern 2: Fix org-mode code blocks that might be malformed
-              # Ensure proper spacing and casing
-              content = re.sub(
-                  r'^\s*#\+begin_src\s*(\w+)?\s*$',
-                  lambda m: f'#+begin_src {m.group(1) or ""}',
-                  content,
-                  flags=re.MULTILINE | re.IGNORECASE
-              )
-              
-              content = re.sub(
-                  r'^\s*#\+end_src\s*$',
-                  '#+end_src',
-                  content,
-                  flags=re.MULTILINE | re.IGNORECASE
-              )
-              
-              # Pattern 3: Handle inline code with backticks (convert to org-mode style)
-              # Single backticks to = signs (but preserve existing = signs)
-              content = re.sub(
-                  r'(?<!`)(?<!~)`([^`\n]+)`(?!`)',
-                  r'~\1~',
-                  content
-              )
-              
-              # Pattern 4: Fix example blocks
-              content = re.sub(
-                  r'^#+begin_example\s*$',
-                  '#+begin_example',
-                  content,
-                  flags=re.MULTILINE | re.IGNORECASE
-              )
-              
-              content = re.sub(
-                  r'^#+end_example\s*$',
-                  '#+end_example',
-                  content,
-                  flags=re.MULTILINE | re.IGNORECASE
-              )
-              
-              # Pattern 5: Ensure proper indentation for code blocks
-              lines = content.split('\n')
-              in_code_block = False
-              fixed_lines = []
-              
-              for line in lines:
-                  if line.strip().startswith('#+begin_src'):
-                      in_code_block = True
-                      fixed_lines.append(line.strip())
-                  elif line.strip().startswith('#+end_src'):
-                      in_code_block = False
-                      fixed_lines.append(line.strip())
-                  elif in_code_block:
-                      # Preserve code indentation but ensure it's properly formatted
-                      if line.strip():  # Non-empty lines
-                          fixed_lines.append(line)
-                      else:  # Empty lines
-                          fixed_lines.append('')
-                  else:
-                      fixed_lines.append(line)
-              
-              return '\n'.join(fixed_lines)
-          
-          def process_file(file_path):
-              """Process a single org file"""
-              try:
-                  with open(file_path, 'r', encoding='utf-8') as f:
-                      content = f.read()
-                  
-                  original_content = content
-                  fixed_content = fix_org_code_blocks(content)
-                  
-                  if fixed_content != original_content:
-                      with open(file_path, 'w', encoding='utf-8') as f:
-                          f.write(fixed_content)
-                      print(f"✅ Fixed code blocks in: {file_path}")
-                      return True
-                  else:
-                      print(f"ℹ️  No changes needed: {file_path}")
-                      return False
-                      
-              except Exception as e:
-                  print(f"❌ Error processing {file_path}: {e}")
-                  return False
-          
-          def main():
-              """Main function to process all org files"""
-              fixed_count = 0
-              total_count = 0
-              
-              # Find all .org files
-              for org_file in Path('.').rglob('*.org'):
-                  if org_file.is_file():
-                      total_count += 1
-                      if process_file(org_file):
-                          fixed_count += 1
-              
-              print(f"\n📊 Processing complete:")
-              print(f"   Total org files: {total_count}")
-              print(f"   Files fixed: {fixed_count}")
-              print(f"   Files unchanged: {total_count - fixed_count}")
-              
-              if fixed_count > 0:
-                  print(f"\n🔧 Fixed {fixed_count} files with code block issues")
-              else:
-                  print(f"\n✅ All org files had proper code block formatting")
-          
-          if __name__ == '__main__':
-              main()
-          PYTHON_EOF
-          
-          # Run the code block fix script
-          python3 fix_org_codeblocks.py
-          
-          echo "🔍 Checking for remaining code block issues..."
-          find . -name "*.org" -exec grep -l '```' {} \; | head -5 || echo "No remaining markdown-style code blocks found"
+          # Create a Python script to fix org-mode code blocks without heredoc
+          python3 << 'PYTHON_SCRIPT'
+import re
+import os
+import sys
+from pathlib import Path
 
-      - name: Generate Enhanced Javadocs
+def fix_org_code_blocks(content):
+    """Fix various code block formats in org-mode files"""
+    
+    # Pattern 1: Convert markdown-style code blocks to org-mode
+    # ```language -> #+begin_src language
+    content = re.sub(
+        r'^```(\w+)?\s*$',
+        lambda m: f'#+begin_src {m.group(1) or ""}',
+        content,
+        flags=re.MULTILINE
+    )
+    
+    # ``` -> #+end_src
+    content = re.sub(
+        r'^```\s*$',
+        '#+end_src',
+        content,
+        flags=re.MULTILINE
+    )
+    
+    # Pattern 2: Fix mixed formatting
+    content = re.sub(
+        r'^\s*```(\w+)\s*\n(.*?)\n\s*```\s*$',
+        r'#+begin_src \1\n\2\n#+end_src',
+        content,
+        flags=re.MULTILINE | re.DOTALL
+    )
+    
+    return content
+
+def process_org_files():
+    """Process all .org files in the repository"""
+    processed_count = 0
+    
+    for org_file in Path('.').rglob('*.org'):
+        try:
+            print(f"Processing: {org_file}")
+            
+            with open(org_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Apply fixes
+            fixed_content = fix_org_code_blocks(content)
+            
+            # Only write if content changed
+            if fixed_content != content:
+                with open(org_file, 'w', encoding='utf-8') as f:
+                    f.write(fixed_content)
+                print(f"✅ Fixed code blocks in: {org_file}")
+                processed_count += 1
+            else:
+                print(f"ℹ️ No changes needed: {org_file}")
+                
+        except Exception as e:
+            print(f"❌ Error processing {org_file}: {e}")
+            continue
+    
+    print(f"🎯 Processing complete: {processed_count} files modified")
+
+if __name__ == "__main__":
+    process_org_files()
+PYTHON_SCRIPT
+
+      - name: Generate enhanced Javadocs
         run: |
-          echo "🔧 Generating Javadocs with enhanced settings..."
-          
-          # Create javadocs directory
-          mkdir -p bytehot/target/site/apidocs
-          
-          # Enhanced strategy: Direct javadoc with better error handling
-          echo "📋 Enhanced Javadoc generation..."
-          cd bytehot
-          
-          # Build comprehensive classpath
-          echo "Building enhanced classpath..."
-          CLASSPATH=""
-          
-          # Add target classes
-          if [ -d "target/classes" ]; then
-            CLASSPATH="target/classes"
-          fi
-          
-          # Add dependency JARs
-          if mvn dependency:build-classpath -Dmdep.outputFile=/tmp/cp.txt -q 2>/dev/null; then
-            if [ -f "/tmp/cp.txt" ]; then
-              DEP_CLASSPATH=$(cat /tmp/cp.txt)
-              CLASSPATH="$CLASSPATH:$DEP_CLASSPATH"
-            fi
-          fi
-          
-          # Add parent project if needed
-          if [ -d "../java-commons/target/classes" ]; then
-            CLASSPATH="$CLASSPATH:../java-commons/target/classes"
-          fi
-          
-          echo "Classpath length: ${#CLASSPATH}"
-          cd ..
-          
-          # Generate with enhanced settings
-          javadoc -d bytehot/target/site/apidocs \
-            -sourcepath bytehot/src/main/java \
-            -classpath "$CLASSPATH" \
-            -subpackages org.acmsl.bytehot \
-            -windowtitle "ByteHot API Documentation" \
-            -doctitle "ByteHot - JVM Bytecode Hot-Swapping Agent" \
-            -header "ByteHot v1.1" \
-            -bottom "Copyright © 2025 ByteHot Project. Licensed under GPL v3." \
-            -use -version -author \
-            -Xdoclint:none \
-            -encoding UTF-8 \
-            -charset UTF-8 \
-            -docencoding UTF-8 \
-            -quiet || echo "Javadoc generation had issues, creating enhanced fallback"
+          echo "📚 Generating enhanced Javadocs..."
+          mvn javadoc:aggregate -q || echo "Javadoc generation had issues, creating fallback"
           
           # Enhanced fallback with better content
-          if [ ! -d "bytehot/target/site/apidocs" ] || [ -z "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
+          if [ ! -d "target/site/apidocs" ] || [ -z "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
             echo "🔧 Creating enhanced fallback Javadocs..."
-            mkdir -p bytehot/target/site/apidocs
+            mkdir -p target/site/apidocs
             
-            cat > bytehot/target/site/apidocs/index.html << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByteHot API Documentation</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; text-align: center; }
-        .header h1 { margin: 0; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .header p { margin: 0.5rem 0 0 0; font-size: 1.2rem; opacity: 0.9; }
-        .content { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .status-box { background: #fff3cd; border: 1px solid #ffeaa7; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
-        .info-box { background: #d1ecf1; border: 1px solid #bee5eb; padding: 1.5rem; border-radius: 8px; margin: 1.5rem 0; }
-        .link-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
-        .link-card { background: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 8px; text-decoration: none; color: inherit; transition: all 0.3s ease; }
-        .link-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .link-card h3 { margin: 0 0 0.5rem 0; color: #495057; }
-        .link-card p { margin: 0; color: #6c757d; font-size: 0.9rem; }
-        code { background: #f1f3f4; padding: 0.2rem 0.4rem; border-radius: 4px; font-family: 'Courier New', monospace; }
-        .highlight { color: #dc3545; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🔥 ByteHot API Documentation</h1>
-        <p>Revolutionary JVM Hot-Swapping Agent</p>
-    </div>
-    
-    <div class="content">
-        <div class="status-box">
-            <h2>⚠️ Documentation Generation Status</h2>
-            <p>The automated Javadoc generation encountered issues during the build process. This is typically due to:</p>
-            <ul>
-                <li><strong>Strict documentation linting requirements</strong></li>
-                <li><strong>Missing Javadoc comments</strong> in some classes</li>
-                <li><strong>Classpath resolution complexities</strong> in the multi-module Maven project</li>
-                <li><strong>Build environment limitations</strong> in the CI/CD pipeline</li>
-            </ul>
-        </div>
-        
-        <div class="info-box">
-            <h3>📋 Alternative Documentation Resources</h3>
-            <p>While we work on resolving the automated Javadoc generation, you can explore comprehensive documentation through these resources:</p>
-        </div>
-        
-        <div class="link-grid">
-            <a href="../index.html" class="link-card">
-                <h3>🏠 Documentation Home</h3>
-                <p>Complete project overview, architecture, and development philosophy</p>
-            </a>
-            
-            <a href="https://github.com/rydnr/bytehot/tree/main/bytehot/src/main/java" class="link-card">
-                <h3>📂 Source Code</h3>
-                <p>Browse the complete source code with inline documentation</p>
-            </a>
-            
-            <a href="../docs/configuration.html" class="link-card">
-                <h3>⚙️ Configuration Guide</h3>
-                <p>Complete setup and configuration documentation</p>
-            </a>
-            
-            <a href="../implementation.html" class="link-card">
-                <h3>📚 Literate Documentation</h3>
-                <p>Comprehensive literate programming documentation for all components</p>
-            </a>
-            
-            <a href="../specs/README.html" class="link-card">
-                <h3>📋 Technical Specifications</h3>
-                <p>Detailed specifications for all ByteHot features and milestones</p>
-            </a>
-            
-            <a href="../docs/flows/index.html" class="link-card">
-                <h3>🔄 Process Flows</h3>
-                <p>Interactive documentation of system process flows and interactions</p>
-            </a>
-        </div>
-        
-        <h2>🏗️ Core Architecture Overview</h2>
-        <p>ByteHot follows a <strong>Domain-Driven Design (DDD)</strong> approach with <strong>Hexagonal Architecture</strong> principles:</p>
-        
-        <h3>📦 Package Structure</h3>
-        <ul>
-            <li><code>org.acmsl.bytehot.domain</code> - Core domain logic and aggregates</li>
-            <li><code>org.acmsl.bytehot.application</code> - Application services and coordination</li>
-            <li><code>org.acmsl.bytehot.infrastructure</code> - Infrastructure adapters and implementations</li>
-        </ul>
-        
-        <h3>🎯 Key Components</h3>
-        <ul>
-            <li><strong>ByteHot</strong> - Main domain aggregate</li>
-            <li><strong>ByteHotApplication</strong> - Application layer coordinator</li>
-            <li><strong>ByteHotAgent</strong> - JVM agent implementation</li>
-            <li><strong>User</strong> - User management and session tracking</li>
-            <li><strong>InstanceTracker</strong> - Object instance management</li>
-            <li><strong>ErrorHandler</strong> - Comprehensive error management</li>
-        </ul>
-        
-        <h2>🔗 Quick Links</h2>
-        <div class="link-grid">
-            <a href="https://github.com/rydnr/bytehot/blob/main/GETTING_STARTED.md" class="link-card">
-                <h3>🚀 Getting Started</h3>
-                <p>Step-by-step guide to using ByteHot</p>
-            </a>
-            
-            <a href="https://github.com/rydnr/bytehot/issues" class="link-card">
-                <h3>🐛 Issues & Support</h3>
-                <p>Report bugs or request features</p>
-            </a>
-            
-            <a href="https://github.com/rydnr/bytehot/releases" class="link-card">
-                <h3>📦 Releases</h3>
-                <p>Download the latest ByteHot releases</p>
-            </a>
-            
-            <a href="https://github.com/rydnr/bytehot/actions" class="link-card">
-                <h3>🔄 Build Status</h3>
-                <p>Check the latest build and documentation status</p>
-            </a>
-        </div>
-        
-        <div class="info-box">
-            <h3>📬 Contributing to Documentation</h3>
-            <p>Help improve ByteHot's documentation by:</p>
-            <ul>
-                <li>Adding missing Javadoc comments to classes and methods</li>
-                <li>Improving existing documentation clarity</li>
-                <li>Reporting documentation issues on GitHub</li>
-                <li>Contributing to the literate programming documentation</li>
-            </ul>
-        </div>
-        
-        <p><em>This page was generated automatically during the documentation build process. 
-        Check the <a href="https://github.com/rydnr/bytehot/actions">GitHub Actions logs</a> for detailed information about the documentation generation process.</em></p>
-        
-        <p><strong>Last Updated:</strong> <span class="highlight">$(date -u '+%Y-%m-%d %H:%M:%S UTC')</span></p>
-    </div>
-</body>
-</html>
-EOF
+            # Create fallback HTML using echo to avoid YAML heredoc issues
+            echo "<!DOCTYPE html>" > target/site/apidocs/index.html
+            echo "<html><head><title>ByteHot API Documentation</title>" >> target/site/apidocs/index.html
+            echo "<style>body{font-family:Arial,sans-serif;max-width:1200px;margin:0 auto;padding:2rem}</style>" >> target/site/apidocs/index.html
+            echo "</head><body>" >> target/site/apidocs/index.html
+            echo "<h1>🔥 ByteHot API Documentation</h1>" >> target/site/apidocs/index.html
+            echo "<p>Revolutionary JVM Hot-Swapping Agent</p>" >> target/site/apidocs/index.html
+            echo "<h2>Core Architecture</h2>" >> target/site/apidocs/index.html
+            echo "<ul><li><strong>Domain Layer:</strong> org.acmsl.bytehot.domain</li>" >> target/site/apidocs/index.html
+            echo "<li><strong>Application Layer:</strong> org.acmsl.bytehot.application</li>" >> target/site/apidocs/index.html
+            echo "<li><strong>Infrastructure Layer:</strong> org.acmsl.bytehot.infrastructure</li></ul>" >> target/site/apidocs/index.html
+            echo "<h2>Status</h2><p>Version 1.2.1 - Core Foundation Complete</p>" >> target/site/apidocs/index.html
+            echo "<p>Last Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')</p>" >> target/site/apidocs/index.html
+            echo "</body></html>" >> target/site/apidocs/index.html
             echo "📄 Created enhanced fallback documentation"
           else
             echo "✅ Javadocs generated successfully!"
             echo "Files in apidocs (first 10):"
-            ls -la bytehot/target/site/apidocs/ | head -10
+            ls -la target/site/apidocs/ | head -10
           fi
 
-      - name: Configure Git
+      - name: Organize documentation structure
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Prepare enhanced documentation files
-        run: |
-          echo "📁 Preparing documentation files with enhanced processing..."
+          echo "📁 Organizing documentation structure..."
           
-          # Create enhanced temporary directory
-          mkdir -p /tmp/bytehot-docs-enhanced
+          # Create documentation structure
+          mkdir -p bytehot/{docs,javadocs}
           
-          # Copy Javadocs
-          if [ -d "bytehot/target/site/apidocs" ]; then
-            cp -r bytehot/target/site/apidocs /tmp/bytehot-docs-enhanced/javadocs
-            echo "✅ Javadocs copied"
+          # Copy Javadocs if they exist
+          if [ -d "target/site/apidocs" ]; then
+            cp -r target/site/apidocs/* bytehot/javadocs/ 2>/dev/null || echo "No apidocs to copy"
           fi
           
-          # Copy and validate source files
-          echo "📄 Copying and validating org files..."
-          for file in story.org journal.org; do
-            if [ -f "$file" ]; then
-              # Validate the file before copying
-              if grep -q '#+TITLE\|#+title' "$file" 2>/dev/null; then
-                cp "$file" /tmp/bytehot-docs-enhanced/
-                echo "✅ $file copied and validated"
-              else
-                echo "⚠️ $file exists but may not be a proper org file"
-                cp "$file" /tmp/bytehot-docs-enhanced/
-              fi
+          # Copy other documentation sources
+          find . -name "*.org" -not -path "./.git/*" -not -path "./target/*" | while read file; do
+            rel_path=$(dirname "$file" | sed 's|^\./||')
+            if [ "$rel_path" != "." ]; then
+              mkdir -p "bytehot/docs/$rel_path"
+              cp "$file" "bytehot/docs/$rel_path/"
             else
-              echo "❌ $file not found"
+              cp "$file" "bytehot/"
             fi
           done
           
-          # Copy directories with validation
-          for dir in docs specs; do
-            if [ -d "$dir" ]; then
-              cp -r "$dir" /tmp/bytehot-docs-enhanced/
-              echo "✅ $dir/ directory copied"
-              echo "   Files: $(find /tmp/bytehot-docs-enhanced/$dir -type f | wc -l)"
-            else
-              echo "❌ $dir/ directory not found"
-            fi
-          done
-          
-          echo "📊 Enhanced temp directory contents:"
-          ls -la /tmp/bytehot-docs-enhanced/
+          # List what we have
+          echo "📋 Documentation structure:"
+          find bytehot/ -type f | head -20
 
-      - name: Create or checkout gh-pages branch
+      - name: Convert documentation files to HTML
         run: |
-          # Check if remote gh-pages branch exists
-          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
-            echo "Remote gh-pages branch exists, checking out..."
-            git fetch origin gh-pages
-            git checkout -B gh-pages origin/gh-pages
-          else
-            echo "Creating new gh-pages branch..."
-            git checkout --orphan gh-pages
-            git reset --hard
-            git clean -fd
-            echo "# ByteHot Documentation" > README.md
-            git add README.md
-            git commit -m "📚 Initialize gh-pages branch for documentation"
-          fi
-
-      - name: Enhanced conversion with proper code block handling
-        run: |
-          # Ensure we're on gh-pages branch
-          git checkout gh-pages
+          # Create simple CSS file without heredoc to avoid YAML issues
+          echo "Creating ByteHot CSS styling..."
+          echo "/* ByteHot Documentation Styling */" > bytehot/style.css
+          echo "body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 2rem; }" >> bytehot/style.css
+          echo "h1 { color: #333; border-bottom: 2px solid #007acc; padding-bottom: 0.5rem; }" >> bytehot/style.css
+          echo "h2 { color: #007acc; margin-top: 2rem; }" >> bytehot/style.css
+          echo "code { background: #f5f5f5; padding: 0.2rem 0.4rem; border-radius: 3px; }" >> bytehot/style.css
+          echo "pre { background: #f8f8f8; border: 1px solid #ddd; padding: 1rem; border-radius: 5px; overflow-x: auto; }" >> bytehot/style.css
+          echo "table { border-collapse: collapse; width: 100%; margin: 1rem 0; }" >> bytehot/style.css
+          echo "th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; }" >> bytehot/style.css
+          echo "th { background-color: #f2f2f2; }" >> bytehot/style.css
           
-          # Create bytehot directory
-          mkdir -p bytehot
-          
-          # Copy all prepared documentation
-          cp -r /tmp/bytehot-docs-enhanced/* bytehot/ 2>/dev/null || echo "Some files could not be copied"
-          
-          echo "📋 Files available for enhanced conversion:"
-          find bytehot/ -name "*.org" -o -name "*.md" | head -10
-          
-          # Create enhanced CSS with better code block styling
-          cat > bytehot/style.css << 'CSS_EOF'
-/* Enhanced ByteHot Documentation Styling with Code Block Fixes */
-
-/* Reset and base styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #333;
-    line-height: 1.7;
-    min-height: 100vh;
-}
-
-/* Container */
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    backdrop-filter: blur(10px);
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-}
-
-/* Enhanced navigation */
-.navigation {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem 2rem;
-    border-radius: 12px;
-    margin: -2rem -2rem 3rem -2rem;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-    position: relative;
-    overflow: hidden;
-}
-
-.navigation::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-    pointer-events: none;
-}
-
-.navigation > * {
-    position: relative;
-    z-index: 1;
-}
-
-.navigation strong {
-    font-size: 1.3rem;
-    margin-right: 1.5rem;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.navigation a {
-    color: rgba(255, 255, 255, 0.9);
-    text-decoration: none;
-    margin: 0 0.5rem;
-    padding: 0.6rem 1.2rem;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 25px;
-    transition: all 0.3s ease;
-    font-weight: 500;
-    display: inline-block;
-    margin: 0.25rem;
-    backdrop-filter: blur(5px);
-}
-
-.navigation a:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.navigation a.getting-started {
-    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    border-color: #ff6b6b;
-    color: white !important;
-    font-weight: 600;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(255, 107, 107, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
-}
-
-/* Enhanced headings */
-h1, h2, h3, h4, h5, h6 {
-    color: #2c3e50;
-    margin: 2.5rem 0 1.5rem 0;
-    font-weight: 600;
-    line-height: 1.3;
-}
-
-h1 {
-    font-size: 3rem;
-    text-align: center;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 3rem;
-    position: relative;
-}
-
-h1::after {
-    content: '';
-    position: absolute;
-    bottom: -1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100px;
-    height: 4px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 2px;
-}
-
-h2 {
-    font-size: 2.2rem;
-    border-left: 5px solid #667eea;
-    padding-left: 1.5rem;
-    margin-top: 3rem;
-}
-
-h3 {
-    font-size: 1.6rem;
-    color: #5a67d8;
-}
-
-/* ENHANCED CODE BLOCK STYLING - This fixes the main issue */
-code {
-    background: linear-gradient(135deg, #f7fafc, #edf2f7);
-    color: #2d3748;
-    padding: 0.25rem 0.5rem;
-    border-radius: 6px;
-    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
-    font-size: 0.9em;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    font-weight: 500;
-}
-
-/* Enhanced pre blocks for code */
-pre {
-    background: linear-gradient(135deg, #1a202c, #2d3748);
-    border: 2px solid #4a5568;
-    border-radius: 12px;
-    padding: 2rem;
-    margin: 2rem 0;
-    overflow-x: auto;
-    position: relative;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    backdrop-filter: blur(10px);
-}
-
-pre::before {
-    content: '● ● ●';
-    position: absolute;
-    top: 1rem;
-    left: 1.5rem;
-    color: #718096;
-    font-size: 0.8rem;
-    letter-spacing: 0.3rem;
-}
-
-pre code {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
-    color: #e2e8f0 !important;
-    display: block;
-    margin-top: 1.5rem;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    box-shadow: none !important;
-    font-weight: 400;
-}
-
-/* Syntax highlighting for common languages */
-pre code.language-java,
-pre code.language-bash,
-pre code.language-yaml,
-pre code.language-json {
-    color: #a0aec0;
-}
-
-pre code .keyword { color: #9f7aea; }
-pre code .string { color: #68d391; }
-pre code .comment { color: #718096; font-style: italic; }
-pre code .number { color: #f6ad55; }
-
-/* Fix for org-mode specific elements */
-.org-src-container {
-    margin: 2rem 0;
-}
-
-.org-src-container pre {
-    margin: 0;
-}
-
-/* Enhanced blockquotes */
-blockquote {
-    border-left: 5px solid #667eea;
-    margin: 2rem 0;
-    padding: 1.5rem 2rem;
-    background: linear-gradient(135deg, #f7fafc, #edf2f7);
-    border-radius: 0 12px 12px 0;
-    position: relative;
-    font-style: italic;
-    color: #4a5568;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-blockquote::before {
-    content: '"';
-    font-size: 4rem;
-    color: #667eea;
-    position: absolute;
-    top: -0.5rem;
-    left: 1rem;
-    opacity: 0.3;
-    font-family: serif;
-}
-
-/* Enhanced tables */
-table {
-    border-collapse: separate;
-    border-spacing: 0;
-    width: 100%;
-    margin: 2rem 0;
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-table th {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 1.25rem 1.5rem;
-    text-align: left;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 0.9rem;
-}
-
-table td {
-    padding: 1.25rem 1.5rem;
-    border-bottom: 1px solid #e2e8f0;
-    color: #4a5568;
-}
-
-table tr:hover td {
-    background: #f7fafc;
-}
-
-table tr:last-child td {
-    border-bottom: none;
-}
-
-/* Enhanced links */
-a {
-    color: #667eea;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    border-bottom: 1px solid transparent;
-    font-weight: 500;
-}
-
-a:hover {
-    color: #5a67d8;
-    border-bottom: 1px solid #667eea;
-    text-shadow: 0 1px 2px rgba(102, 126, 234, 0.2);
-}
-
-/* Enhanced lists */
-ul, ol {
-    margin: 1.5rem 0;
-    padding-left: 2rem;
-}
-
-li {
-    margin: 0.75rem 0;
-    line-height: 1.7;
-}
-
-ul li {
-    position: relative;
-}
-
-ul li::before {
-    content: '▶';
-    color: #667eea;
-    font-weight: bold;
-    position: absolute;
-    left: -1.5rem;
-    top: 0;
-}
-
-/* Enhanced paragraphs */
-p {
-    margin: 1.5rem 0;
-    color: #4a5568;
-    line-height: 1.8;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .container {
-        padding: 1rem;
-        margin-top: 1rem;
-        border-radius: 0;
-    }
-    
-    .navigation {
-        margin: -1rem -1rem 2rem -1rem;
-        padding: 1rem;
-        text-align: center;
-    }
-    
-    .navigation a {
-        display: block;
-        margin: 0.5rem auto;
-        text-align: center;
-        max-width: 200px;
-    }
-    
-    h1 { font-size: 2rem; }
-    h2 { font-size: 1.6rem; }
-    
-    pre {
-        padding: 1rem;
-        font-size: 0.8rem;
-        border-radius: 8px;
-    }
-    
-    pre::before {
-        top: 0.5rem;
-        left: 1rem;
-    }
-}
-
-/* Special elements */
-.revolutionary-banner {
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    padding: 2rem;
-    text-align: center;
-    margin: 3rem 0;
-    border-radius: 16px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-}
-
-.revolutionary-banner::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-}
-
-.revolutionary-banner > * {
-    position: relative;
-    z-index: 1;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Flow grid system */
-.flow-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 2rem;
-    margin: 3rem 0;
-}
-
-.flow-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 2rem;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.flow-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.flow-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-    border-color: #667eea;
-}
-
-.flow-card h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #2d3748;
-}
-
-.flow-card h3 a {
-    text-decoration: none;
-    color: inherit;
-}
-
-.flow-card p {
-    color: #718096;
-    line-height: 1.6;
-    margin-bottom: 0;
-}
-CSS_EOF
-          
-          echo "✅ Enhanced CSS created with proper code block styling"
-          
-          # Enhanced conversion function
-          convert_with_enhanced_pandoc() {
-            local input_file="$1"
-            local output_file="$2"
-            local css_path="$3"
-            local title="$4"
-            
-            echo "🔄 Converting: $input_file -> $output_file"
-            
-            # Use enhanced pandoc settings for better org-mode support
-            pandoc \
-              --from=org+smart \
-              --to=html5 \
-              --standalone \
-              --css="$css_path" \
-              --toc \
-              --toc-depth=3 \
-              --template=html5 \
-              --metadata title="$title" \
-              --metadata lang=en \
-              --highlight-style=tango \
-              --email-obfuscation=none \
-              --wrap=preserve \
-              --ascii \
-              "$input_file" \
-              -o "$output_file" || {
-                echo "❌ Pandoc conversion failed for $input_file"
-                return 1
-              }
-            
-            # Post-process the HTML to fix any remaining issues
-            if [ -f "$output_file" ]; then
-              # Fix any remaining triple backticks that might have slipped through
-              sed -i 's/```\([a-zA-Z]*\)/<pre><code class="language-\1">/g' "$output_file"
-              sed -i 's/```/<\/code><\/pre>/g' "$output_file"
-              
-              # Ensure proper code highlighting classes
-              sed -i 's/<code class="language-">/<code>/g' "$output_file"
-              
-              echo "✅ Successfully converted and post-processed: $output_file"
-              return 0
-            else
-              echo "❌ Output file not created: $output_file"
-              return 1
-            fi
-          }
-          
-          # Convert story.org to index.html
+          # Convert story.org to index.html with navigation (check if file exists in bytehot directory)
           if [ -f "bytehot/story.org" ]; then
-            convert_with_enhanced_pandoc "bytehot/story.org" "bytehot/index.html" "style.css" "ByteHot - Revolutionary JVM Hot-Swapping Agent"
+            pandoc -f org -t html5 -s --css=style.css --toc bytehot/story.org -o bytehot/index.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
           else
-            echo "⚠️ story.org not found, creating fallback index.html"
-            cat > bytehot/index.html << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ByteHot Documentation</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container">
-        <h1>ByteHot Documentation</h1>
-        <div class="revolutionary-banner">
-            <h2>🔥 Revolutionary JVM Hot-Swapping Agent</h2>
-            <p>Real-time bytecode modification without application restart</p>
-        </div>
-        <p>Documentation generation in progress...</p>
-        <p><a href="GETTING_STARTED.html">📖 View Getting Started Guide</a></p>
-    </div>
-</body>
-</html>
-EOF
+            echo "ℹ️ No story.org found, creating simple index.html"
+            echo "<h1>ByteHot Documentation</h1><p>Revolutionary JVM Hot-Swapping Agent</p>" > bytehot/index.html
           fi
           
-          # Add enhanced navigation to index.html
-          if [ -f "bytehot/index.html" ]; then
-            # Insert navigation after opening body tag
-            sed -i '/<body>/a <div class="navigation">' bytehot/index.html
-            sed -i '/<div class="navigation">/a <strong>ByteHot Documentation</strong>' bytehot/index.html
-            sed -i '/<strong>ByteHot Documentation<\/strong>/a <a href="index.html">🏠 Home</a>' bytehot/index.html
-            sed -i '/<a href="index.html">🏠 Home<\/a>/a <a href="GETTING_STARTED.html" class="getting-started">🚀 Getting Started</a>' bytehot/index.html
-            sed -i '/<a href="GETTING_STARTED.html".*>/a <a href="implementation.html">⚙️ Implementation</a>' bytehot/index.html
-            sed -i '/<a href="implementation.html">⚙️ Implementation<\/a>/a <a href="specs/README.html">📋 Specifications</a>' bytehot/index.html
-            sed -i '/<a href="specs\/README.html">📋 Specifications<\/a>/a <a href="javadocs/index.html">📖 API Docs</a>' bytehot/index.html
-            sed -i '/<a href="javadocs\/index.html">📖 API Docs<\/a>/a <a href="journal.html">📝 Journal</a>' bytehot/index.html
-            sed -i '/<a href="journal.html">📝 Journal<\/a>/a <a href="docs/configuration.html">🔧 Config</a>' bytehot/index.html
-            sed -i '/<a href="docs\/configuration.html">🔧 Config<\/a>/a <a href="docs/flows/index.html">🔄 Flows</a>' bytehot/index.html
-            sed -i '/<a href="docs\/flows\/index.html">🔄 Flows<\/a>/a <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>' bytehot/index.html
-            sed -i '/<a href="https:\/\/github.com\/rydnr\/bytehot">🔗 GitHub<\/a>/a </div>' bytehot/index.html
-          fi
-          
-          # Convert journal.org
-          if [ -f "bytehot/journal.org" ]; then
-            convert_with_enhanced_pandoc "bytehot/journal.org" "bytehot/journal.html" "style.css" "ByteHot Development Journal"
-          fi
-          
-          # Convert GETTING_STARTED files
-          if [ -f "GETTING_STARTED.md" ]; then
-            pandoc --from=markdown --to=html5 --standalone --css=style.css --toc "GETTING_STARTED.md" -o "bytehot/GETTING_STARTED.html" --metadata title="ByteHot Getting Started Guide" || echo "GETTING_STARTED.md conversion failed"
-          fi
-          
-          # Enhanced conversion for docs directory
-          mkdir -p bytehot/docs bytehot/docs/flows bytehot/specs
-          
-          # Convert docs files with enhanced processing
-          if [ -d "bytehot/docs" ]; then
-            echo "📄 Converting docs files with enhanced processing..."
-            for file in bytehot/docs/*.org bytehot/docs/*.md; do
-              if [ -f "$file" ]; then
-                basename=$(basename "$file" .org)
-                basename=$(basename "$basename" .md)
-                echo "🔄 Enhanced conversion: $file -> bytehot/docs/${basename}.html"
-                
-                # Determine format and convert
-                if [[ "$file" == *.org ]]; then
-                  convert_with_enhanced_pandoc "$file" "bytehot/docs/${basename}.html" "../style.css" "ByteHot Documentation: $basename"
-                else
-                  pandoc --from=markdown --to=html5 --standalone --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" --metadata title="ByteHot Documentation: $basename" || echo "Failed to convert $file"
-                fi
-              fi
-            done
-          fi
-          
-          # Convert flow documentation with enhanced processing
-          if [ -d "bytehot/docs/flows" ]; then
-            echo "📄 Converting flows with enhanced processing..."
-            for file in bytehot/docs/flows/*.org; do
-              if [ -f "$file" ]; then
-                basename=$(basename "$file" .org)
-                echo "🔄 Enhanced flow conversion: $file -> bytehot/docs/flows/${basename}.html"
-                convert_with_enhanced_pandoc "$file" "bytehot/docs/flows/${basename}.html" "../../style.css" "ByteHot Flow: $basename"
-              fi
-            done
-          fi
-          
-          # Convert specs with enhanced processing
-          if [ -d "bytehot/specs" ]; then
-            echo "📄 Converting specs with enhanced processing..."
-            for file in bytehot/specs/*.md bytehot/specs/*.org; do
-              if [ -f "$file" ]; then
-                basename=$(basename "$file" .md)
-                basename=$(basename "$basename" .org)
-                echo "🔄 Enhanced spec conversion: $file -> bytehot/specs/${basename}.html"
-                
-                if [[ "$file" == *.org ]]; then
-                  convert_with_enhanced_pandoc "$file" "bytehot/specs/${basename}.html" "../style.css" "ByteHot Specification: $basename"
-                else
-                  pandoc --from=markdown --to=html5 --standalone --css=../style.css --toc "$file" -o "bytehot/specs/${basename}.html" --metadata title="ByteHot Specification: $basename" || echo "Failed to convert $file"
-                fi
-              fi
-            done
-          fi
-          
-          echo "✅ Enhanced conversion complete with proper code block handling"
-
-      - name: Create enhanced navigation and structure
-        run: |
-          echo "🔧 Creating enhanced site structure and navigation..."
-          
-          # Ensure all HTML files have proper navigation
-          find bytehot/ -name "*.html" -not -path "*/javadocs/*" | while read html_file; do
-            if ! grep -q 'class="navigation"' "$html_file" 2>/dev/null; then
-              echo "🔧 Adding navigation to: $html_file"
-              
-              # Calculate relative path to root
-              depth=$(echo "$html_file" | tr -cd '/' | wc -c)
-              relative_root=""
-              for ((i=1; i<depth; i++)); do
-                relative_root="../$relative_root"
-              done
-              
-              # Create navigation HTML
-              nav_html="<div class=\"navigation\">
-<strong>ByteHot Documentation</strong>
-<a href=\"${relative_root}index.html\">🏠 Home</a>
-<a href=\"${relative_root}GETTING_STARTED.html\" class=\"getting-started\">🚀 Getting Started</a>
-<a href=\"${relative_root}implementation.html\">⚙️ Implementation</a>
-<a href=\"${relative_root}specs/README.html\">📋 Specifications</a>
-<a href=\"${relative_root}javadocs/index.html\">📖 API Docs</a>
-<a href=\"${relative_root}journal.html\">📝 Journal</a>
-<a href=\"${relative_root}docs/configuration.html\">🔧 Config</a>
-<a href=\"${relative_root}docs/flows/index.html\">🔄 Flows</a>
-<a href=\"https://github.com/rydnr/bytehot\">🔗 GitHub</a>
-</div>"
-              
-              # Insert navigation after body tag
-              sed -i "/<body[^>]*>/a $nav_html" "$html_file"
-            fi
+          # Convert other org files
+          find bytehot/ -name "*.org" -type f | while read orgfile; do
+            htmlfile="${orgfile%.org}.html"
+            echo "Converting: $orgfile -> $htmlfile"
+            pandoc -f org -t html5 -s --css=../style.css "$orgfile" -o "$htmlfile" || echo "Failed to convert $orgfile"
           done
-          
-          echo "✅ Enhanced navigation added to all pages"
-
-      - name: Validate enhanced conversion results
-        run: |
-          echo "🔍 Validating enhanced conversion results..."
-          
-          # Check for any remaining triple backticks
-          echo "📋 Checking for remaining code block issues:"
-          if find bytehot/ -name "*.html" -exec grep -l '```' {} \; 2>/dev/null | head -5; then
-            echo "⚠️ Found files with remaining triple backticks (will be fixed in post-processing)"
-          else
-            echo "✅ No remaining triple backticks found"
-          fi
-          
-          # Check conversion results
-          echo "📊 Conversion results:"
-          echo "  HTML files created: $(find bytehot/ -name "*.html" | wc -l)"
-          echo "  Files with navigation: $(find bytehot/ -name "*.html" -exec grep -l 'class="navigation"' {} \; | wc -l)"
-          echo "  Files with enhanced CSS: $(find bytehot/ -name "*.html" -exec grep -l 'style.css' {} \; | wc -l)"
-          
-          # List created files
-          echo "📄 Created documentation files:"
-          find bytehot/ -name "*.html" | head -15
-          
-          echo "✅ Enhanced validation complete"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload enhanced artifact
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './bytehot'
+          path: 'bytehot'
 
   deploy:
     environment:
