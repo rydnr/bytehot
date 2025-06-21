@@ -72,75 +72,33 @@ jobs:
         run: |
           echo "🔧 Pre-processing org files to ensure proper code block formatting..."
           
-          # Create a Python script to fix org-mode code blocks without heredoc
-          python3 << 'PYTHON_SCRIPT'
-import re
-import os
-import sys
-from pathlib import Path
-
-def fix_org_code_blocks(content):
-    """Fix various code block formats in org-mode files"""
-    
-    # Pattern 1: Convert markdown-style code blocks to org-mode
-    # ```language -> #+begin_src language
-    content = re.sub(
-        r'^```(\w+)?\s*$',
-        lambda m: f'#+begin_src {m.group(1) or ""}',
-        content,
-        flags=re.MULTILINE
-    )
-    
-    # ``` -> #+end_src
-    content = re.sub(
-        r'^```\s*$',
-        '#+end_src',
-        content,
-        flags=re.MULTILINE
-    )
-    
-    # Pattern 2: Fix mixed formatting
-    content = re.sub(
-        r'^\s*```(\w+)\s*\n(.*?)\n\s*```\s*$',
-        r'#+begin_src \1\n\2\n#+end_src',
-        content,
-        flags=re.MULTILINE | re.DOTALL
-    )
-    
-    return content
-
-def process_org_files():
-    """Process all .org files in the repository"""
-    processed_count = 0
-    
-    for org_file in Path('.').rglob('*.org'):
-        try:
-            print(f"Processing: {org_file}")
-            
-            with open(org_file, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Apply fixes
-            fixed_content = fix_org_code_blocks(content)
-            
-            # Only write if content changed
-            if fixed_content != content:
-                with open(org_file, 'w', encoding='utf-8') as f:
-                    f.write(fixed_content)
-                print(f"✅ Fixed code blocks in: {org_file}")
-                processed_count += 1
-            else:
-                print(f"ℹ️ No changes needed: {org_file}")
-                
-        except Exception as e:
-            print(f"❌ Error processing {org_file}: {e}")
-            continue
-    
-    print(f"🎯 Processing complete: {processed_count} files modified")
-
-if __name__ == "__main__":
-    process_org_files()
-PYTHON_SCRIPT
+          # Create a simple Python script to fix org-mode code blocks using echo
+          echo "import re" > fix_org.py
+          echo "import os" >> fix_org.py
+          echo "from pathlib import Path" >> fix_org.py
+          echo "" >> fix_org.py
+          echo "def fix_org_code_blocks(content):" >> fix_org.py
+          echo "    content = re.sub(r'^```(\w+)?\s*$', lambda m: f'#+begin_src {m.group(1) or \"\"}', content, flags=re.MULTILINE)" >> fix_org.py
+          echo "    content = re.sub(r'^```\s*$', '#+end_src', content, flags=re.MULTILINE)" >> fix_org.py
+          echo "    return content" >> fix_org.py
+          echo "" >> fix_org.py
+          echo "processed_count = 0" >> fix_org.py
+          echo "for org_file in Path('.').rglob('*.org'):" >> fix_org.py
+          echo "    try:" >> fix_org.py
+          echo "        with open(org_file, 'r', encoding='utf-8') as f:" >> fix_org.py
+          echo "            content = f.read()" >> fix_org.py
+          echo "        fixed_content = fix_org_code_blocks(content)" >> fix_org.py
+          echo "        if fixed_content != content:" >> fix_org.py
+          echo "            with open(org_file, 'w', encoding='utf-8') as f:" >> fix_org.py
+          echo "                f.write(fixed_content)" >> fix_org.py
+          echo "            print(f'Fixed: {org_file}')" >> fix_org.py
+          echo "            processed_count += 1" >> fix_org.py
+          echo "    except Exception as e:" >> fix_org.py
+          echo "        print(f'Error: {org_file}: {e}')" >> fix_org.py
+          echo "print(f'Processed {processed_count} files')" >> fix_org.py
+          
+          # Run the Python script
+          python3 fix_org.py
 
       - name: Generate enhanced Javadocs
         run: |
