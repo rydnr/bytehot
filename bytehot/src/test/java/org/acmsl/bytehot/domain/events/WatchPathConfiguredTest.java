@@ -82,8 +82,11 @@ public class WatchPathConfiguredTest {
         
         Path configFile = tempDir.resolve("bytehot-config.yml");
         Files.writeString(configFile, 
-            "watchPaths:\n" +
-            "  - " + watchDir.toAbsolutePath() + "\n\n");
+            "bytehot:\n" +
+            "  watch:\n" +
+            "    - path: \"" + watchDir.toAbsolutePath() + "\"\n" +
+            "      patterns: [\"*.class\"]\n" +
+            "      recursive: true\n");
 
         // Compile the test class
         ProcessBuilder compileBuilder = new ProcessBuilder("javac", testJavaFile.toString());
