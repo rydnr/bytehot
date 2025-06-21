@@ -1,0 +1,57 @@
+#+TITLE: ByteHot Configuration Examples
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-21
+
+* Configuration Examples
+
+This directory contains sample configuration files for ByteHot. Copy and modify these files according to your project's needs.
+
+** Basic Usage
+
+*** bytehot-simple.yml
+A minimal configuration that watches the standard Maven build output directory:
+
+#+begin_src bash
+java -javaagent:target/bytehot-latest-SNAPSHOT-shaded.jar -Dbhconfig=bytehot-simple.yml MyClass
+#+end_src
+
+*** bytehot.yml  
+A comprehensive configuration that watches multiple build output directories (Maven, Gradle, IntelliJ):
+
+#+begin_src bash
+java -javaagent:target/bytehot-latest-SNAPSHOT-shaded.jar -Dbhconfig=bytehot.yml MyClass
+#+end_src
+
+** Alternative Configuration Methods
+
+*** System Properties
+Instead of YAML files, you can use system properties:
+
+#+begin_src bash
+java -javaagent:target/bytehot-latest-SNAPSHOT-shaded.jar -Dbytehot.watch.paths=target/classes MyClass
+#+end_src
+
+*** Multiple Paths
+Watch multiple directories using comma separation:
+
+#+begin_src bash
+java -javaagent:target/bytehot-latest-SNAPSHOT-shaded.jar -Dbytehot.watch.paths=target/classes,build/classes MyClass
+#+end_src
+
+** Configuration Priority
+
+ByteHot loads configuration in this priority order:
+1. System properties (-Dbytehot.*)
+2. Environment variables (BYTEHOT_*)  
+3. External YAML file (-Dbhconfig=path/to/file.yml)
+4. Classpath YAML files (bytehot.yml, application.yml)
+5. Default configuration
+
+** Troubleshooting
+
+If configuration is not loading correctly:
+
+1. Verify file path: =java -Dbhconfig=$(pwd)/bytehot.yml ...=
+2. Check system properties: =-Dbytehot.watch.paths=target/classes=
+3. Run with debug: =-Dbytehot.debug=true= (if available)
+4. Verify JAR includes all dependencies

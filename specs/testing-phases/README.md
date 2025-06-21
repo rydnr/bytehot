@@ -81,6 +81,17 @@ ByteHot testing follows a systematic approach that validates each component befo
 - [End-to-End Scenarios](phase-9-integration/end-to-end-scenarios.md)
 - [Performance & Reliability](phase-9-integration/performance-reliability.md)
 
+### Phase 10: Documentation Introspection
+**Focus**: Self-documenting capabilities and runtime documentation
+**Duration**: 120-180 minutes
+**Prerequisites**: All previous phases complete
+
+- [Documentation Introspection System](phase-10-documentation-introspection/README.md)
+- DocLinkAvailable interface implementation and testing
+- DocProvider runtime documentation URL generation
+- Flow detection engine integration with documentation
+- Defaults enhancement for comprehensive documentation coverage
+
 ## Quick Start
 
 1. **Environment Setup**:

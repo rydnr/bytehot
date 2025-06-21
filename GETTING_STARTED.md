@@ -115,10 +115,15 @@ javac -d target/classes src/main/java/com/example/HelloWorld.java
 ### 3. Run with ByteHot Agent
 
 ```bash
-# Run with ByteHot agent attached
-java -javaagent:path/to/bytehot-agent.jar \
+# Run with ByteHot agent attached (system properties)
+java -javaagent:target/bytehot-latest-SNAPSHOT-shaded.jar \
      -Dbytehot.watch.paths=target/classes \
-     -Dbytehot.watch.patterns=**/*.class \
+     -cp target/classes \
+     com.example.HelloWorld
+
+# Alternative: Using YAML configuration file
+java -javaagent:target/bytehot-latest-SNAPSHOT-shaded.jar \
+     -Dbhconfig=src/main/resources/examples/bytehot-simple.yml \
      -cp target/classes \
      com.example.HelloWorld
 ```
@@ -144,26 +149,48 @@ javac -d target/classes src/main/java/com/example/HelloWorld.java
 
 ## Configuration
 
-ByteHot can be configured using system properties or environment variables.
+ByteHot supports multiple configuration approaches with a clear priority order.
+
+### Configuration Methods
+
+ByteHot loads configuration in this priority order:
+1. **System Properties** (`-Dbytehot.*`)
+2. **Environment Variables** (`BYTEHOT_*`)
+3. **External YAML file** (`-Dbhconfig=path/to/file.yml`)
+4. **Classpath YAML files** (`bytehot.yml`, `application.yml`)
+5. **Default configuration**
 
 ### System Properties
 
 | Property | Description | Default | Example |
 |----------|-------------|---------|---------|
 | `bytehot.watch.paths` | Directories to watch for changes | `target/classes` | `target/classes,build/classes` |
-| `bytehot.watch.patterns` | File patterns to monitor | `**/*.class` | `**/*.class,**/*.jar` |
-| `bytehot.user.id` | Explicit user identification | Auto-detected | `john.doe@company.com` |
-| `bytehot.session.id` | Session identifier | Auto-generated | `dev-session-123` |
-| `bytehot.logging.level` | Logging verbosity | `INFO` | `DEBUG` |
-| `bytehot.validation.strict` | Strict bytecode validation | `true` | `false` |
+| `bhconfig` | Path to external YAML configuration file | None | `/path/to/bytehot.yml` |
 
 ### Environment Variables
 
 ```bash
 export BYTEHOT_WATCH_PATHS="target/classes,build/classes"
-export BYTEHOT_WATCH_PATTERNS="**/*.class"
-export BYTEHOT_USER_ID="developer@company.com"
-export BYTEHOT_LOGGING_LEVEL="DEBUG"
+```
+
+### YAML Configuration
+
+Create a `bytehot.yml` file and use `-Dbhconfig` to specify its location:
+
+```yaml
+bytehot:
+  watch:
+    - path: "target/classes"
+      patterns: ["*.class"]
+      recursive: true
+    - path: "build/classes"
+      patterns: ["*.class", "*.jar"]
+      recursive: true
+```
+
+Use it with:
+```bash
+java -javaagent:bytehot-agent.jar -Dbhconfig=/path/to/bytehot.yml ...
 ```
 
 ### Configuration Examples
@@ -173,7 +200,6 @@ export BYTEHOT_LOGGING_LEVEL="DEBUG"
 ```bash
 java -javaagent:bytehot-agent.jar \
      -Dbytehot.watch.paths=target/classes \
-     -Dbytehot.user.id=$(git config user.email) \
      -jar target/my-spring-app.jar
 ```
 
@@ -182,7 +208,6 @@ java -javaagent:bytehot-agent.jar \
 ```bash
 java -javaagent:bytehot-agent.jar \
      -Dbytehot.watch.paths=module1/target/classes,module2/target/classes \
-     -Dbytehot.watch.patterns=**/*.class \
      -cp "module1/target/classes:module2/target/classes" \
      com.example.MainApplication
 ```
@@ -192,8 +217,22 @@ java -javaagent:bytehot-agent.jar \
 ```bash
 java -javaagent:bytehot-agent.jar \
      -Dbytehot.watch.paths=build/classes/java/main \
-     -Dbytehot.watch.patterns=**/*.class \
      -cp build/classes/java/main \
+     com.example.Application
+```
+
+#### Using Sample Configuration Files
+
+ByteHot includes sample configuration files you can copy:
+
+```bash
+# Copy sample configuration
+cp src/main/resources/examples/bytehot.yml ./my-bytehot-config.yml
+
+# Use it
+java -javaagent:bytehot-agent.jar \
+     -Dbhconfig=./my-bytehot-config.yml \
+     -cp target/classes \
      com.example.Application
 ```
 
@@ -403,6 +442,40 @@ public void process() {
 
 // Bad: Changing method signature
 // public void process(String param) { ... }  // Don't do this
+```
+
+#### 5. Configuration Not Loading
+
+**Problem**: ByteHot seems to ignore your configuration
+
+**Solutions**:
+```bash
+# Verify system properties syntax
+java -Dbytehot.watch.paths=target/classes ...  # Correct
+java -D bytehot.watch.paths=target/classes ... # Wrong (space after -D)
+
+# Check YAML file path is absolute or relative to working directory
+-Dbhconfig=/absolute/path/to/bytehot.yml        # Absolute path
+-Dbhconfig=./relative/path/to/bytehot.yml       # Relative path
+
+# Verify YAML syntax is correct
+# Use a YAML validator or copy from examples/
+cp src/main/resources/examples/bytehot-simple.yml ./test.yml
+
+# Test with minimal configuration first
+-Dbytehot.watch.paths=target/classes  # Start simple
+```
+
+**Diagnosis**:
+```bash
+# Check if directories exist
+ls -la target/classes
+
+# Verify JAR path is correct
+ls -la target/bytehot-*-shaded.jar
+
+# Test with absolute paths
+-Dbytehot.watch.paths=/full/path/to/target/classes
 ```
 
 ### Debug Mode
