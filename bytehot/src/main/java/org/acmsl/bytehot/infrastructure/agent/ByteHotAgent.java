@@ -68,7 +68,8 @@ public class ByteHotAgent {
         
         // Create and process the agent attachment request through domain logic
         try {
-            final WatchConfiguration config = new WatchConfiguration(8080); // Default port
+            // Load the actual configuration instead of using default
+            final WatchConfiguration config = WatchConfiguration.load();
             final ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, inst);
             final List<DomainResponseEvent<ByteHotAttachRequested>> responses = ByteHotApplication.getInstance().accept(attachRequest);
             
