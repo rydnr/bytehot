@@ -7,6 +7,13 @@ on:
       - 'docs/**'
       - '**.md'
       - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      force_patch:
+        description: 'Force patch release creation'
+        required: false
+        default: 'false'
+        type: boolean
 
 env:
   JAVA_VERSION: '17'
@@ -31,8 +38,15 @@ jobs:
         COMMIT_MSG=$(git log -1 --pretty=%s)
         echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
         
-        # Check if this is a patch-worthy commit
+        # Check if this is a patch-worthy commit or manual dispatch
         PATCH_WORTHY=false
+        
+        # If manually triggered, force patch creation
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          PATCH_WORTHY=true
+          echo "category=manual" >> $GITHUB_OUTPUT
+          echo "🎯 Manual patch release triggered"
+        fi
         
         # Bug fix patterns
         if [[ "$COMMIT_MSG" =~ ^(fix:|🐛|✅.*fix|✅.*Fix) ]] || \
@@ -153,6 +167,8 @@ jobs:
           TAG_MSG="ByteHot $NEW_VERSION - Configuration Fix"$'\n\n'"🔧 **Automated Configuration Patch**"$'\n'"- **Change Type**: Configuration Fix"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on configuration fix commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
         elif [ "$CATEGORY" = "performance" ]; then
           TAG_MSG="ByteHot $NEW_VERSION - Performance Improvement"$'\n\n'"⚡ **Automated Performance Patch**"$'\n'"- **Change Type**: Performance Improvement"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on performance improvement commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
+        elif [ "$CATEGORY" = "manual" ]; then
+          TAG_MSG="ByteHot $NEW_VERSION - Manual Patch Release"$'\n\n'"🎯 **Manual Patch Release**"$'\n'"- **Change Type**: Manual Release"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was manually triggered via GitHub Actions workflow dispatch."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
         else
           TAG_MSG="ByteHot $NEW_VERSION - Automated Patch"$'\n\n'"🔄 **Automated Patch Release**"$'\n'"- **Change Type**: General Fix"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on patch-level commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
         fi
