@@ -100,6 +100,15 @@ public class ConfigurationAdapter
             return envConfig;
         }
 
+        // Try loading from bhconfig system property (file path)
+        final String bhconfigPath = System.getProperty("bhconfig");
+        if (bhconfigPath != null) {
+            final WatchConfiguration bhconfigResult = loadFromFilePath(bhconfigPath);
+            if (bhconfigResult != null) {
+                return bhconfigResult;
+            }
+        }
+
         // Try loading from configuration files
         for (final String configFile : DEFAULT_CONFIG_FILES) {
             final WatchConfiguration fileConfig = loadFromFile(configFile);
@@ -276,18 +285,68 @@ public class ConfigurationAdapter
             }
 
             final WatchConfiguration config = new WatchConfiguration(8080);
-        try {
-            final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
-            foldersField.setAccessible(true);
-            foldersField.set(config, folders);
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
-        }
-        return config;
+            try {
+                final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
+                foldersField.setAccessible(true);
+                foldersField.set(config, folders);
+            } catch (final Exception e) {
+                throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
+            }
+            return config;
             
         } catch (final Exception e) {
             // Log error but don't fail - try next configuration source
             System.err.println("Failed to load configuration from " + filename + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Loads configuration from a file path (for bhconfig parameter)
+     */
+    @SuppressWarnings("unchecked")
+    protected WatchConfiguration loadFromFilePath(final String filePath) {
+        try {
+            final java.io.FileInputStream fileInputStream = new java.io.FileInputStream(filePath);
+            final Yaml yaml = new Yaml();
+            final Map<String, Object> data = yaml.load(fileInputStream);
+            fileInputStream.close();
+            
+            if (data == null || !data.containsKey("bytehot")) {
+                return null;
+            }
+
+            final Map<String, Object> bytehotConfig = (Map<String, Object>) data.get("bytehot");
+            final List<Map<String, Object>> watchConfigs = (List<Map<String, Object>>) bytehotConfig.get("watch");
+            
+            if (watchConfigs == null) {
+                return null;
+            }
+
+            final List<FolderWatch> folders = new ArrayList<>();
+            
+            for (final Map<String, Object> watchConfig : watchConfigs) {
+                final String pathStr = (String) watchConfig.get("path");
+                final List<String> patterns = (List<String>) watchConfig.getOrDefault("patterns", List.of("*.class"));
+                final boolean recursive = (Boolean) watchConfig.getOrDefault("recursive", true);
+                
+                final Path path = Paths.get(pathStr);
+                folders.add(new FolderWatch(path, 1000));
+            }
+
+            final WatchConfiguration config = new WatchConfiguration(8080);
+            try {
+                final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
+                foldersField.setAccessible(true);
+                foldersField.set(config, folders);
+            } catch (final Exception e) {
+                throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
+            }
+            return config;
+            
+        } catch (final Exception e) {
+            // Log error but don't fail - try next configuration source
+            System.err.println("Failed to load configuration from file path " + filePath + ": " + e.getMessage());
             return null;
         }
     }
