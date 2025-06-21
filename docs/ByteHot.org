@@ -180,10 +180,25 @@ The startup sequence coordinates multiple domain operations:
 public void start(final ByteHotAttachRequested precedingEvent) {
     try {
         final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+        final FileWatcherPort fileWatcher = Ports.resolve(FileWatcherPort.class);
         
-        // Configure watch paths
+        // Configure watch paths and start file watching
         final WatchPathConfigured watchEvent = new WatchPathConfigured(configuration, precedingEvent);
         eventEmitter.emit(watchEvent);
+        
+        // Start watching each configured folder
+        for (final FolderWatch folderWatch : configuration.getFolders()) {
+            try {
+                final String watchId = fileWatcher.startWatching(
+                    folderWatch.getFolder(), 
+                    List.of("*.class"), // Default pattern for class files
+                    true // Recursive watching
+                );
+                System.out.println("Started watching folder: " + folderWatch.getFolder() + " (ID: " + watchId + ")");
+            } catch (final Exception e) {
+                System.err.println("Failed to start watching folder " + folderWatch.getFolder() + ": " + e.getMessage());
+            }
+        }
         
         // Check and emit hot-swap capability
         if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
@@ -199,10 +214,32 @@ public void start(final ByteHotAttachRequested precedingEvent) {
 #+END_SRC
 
 ** Startup Event Sequence
-1. *Port Resolution*: Obtains event emitter through ports infrastructure
+1. *Port Resolution*: Obtains event emitter and file watcher through ports infrastructure
 2. *Watch Configuration*: Emits ~WatchPathConfigured~ event to establish file monitoring
-3. *Capability Detection*: Verifies JVM hot-swap support and emits ~HotSwapCapabilityEnabled~ if available
-4. *Error Resilience*: Continues startup even if event emission fails, ensuring system robustness
+3. *File Watching Activation*: Calls ~FileWatcherPort.startWatching()~ for each configured folder
+   - Uses ~*.class~ pattern for Java bytecode files
+   - Enables recursive directory monitoring  
+   - Provides error handling for individual folder watch failures
+   - Logs successful watch registrations with unique IDs
+4. *Capability Detection*: Verifies JVM hot-swap support and emits ~HotSwapCapabilityEnabled~ if available
+5. *Error Resilience*: Continues startup even if event emission fails, ensuring system robustness
+
+** Critical File Watching Integration
+The startup sequence includes essential file watching activation that was missing in earlier versions:
+
+*Previous Behavior (Buggy)*:
+- Generated ~WatchPathConfigured~ events successfully
+- Never called ~FileWatcherPort.startWatching()~
+- File changes were never detected
+- Hot-swapping was impossible
+
+*Current Behavior (Fixed)*:
+- Generates ~WatchPathConfigured~ events for audit trail
+- Actively calls ~FileWatcherPort.startWatching()~ for each folder
+- File system monitoring becomes operational
+- Hot-swapping works as intended
+
+This integration resolves the critical disconnect between event generation and actual file monitoring infrastructure activation.
 
 * Domain Event Collaborations
 
