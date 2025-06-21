@@ -1,0 +1,429 @@
+#+TITLE: Milestone 7: Documentation Introspection System - Runtime Self-Documentation and Flow-Aware Help
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-21]
+#+DESCRIPTION: Revolutionary documentation introspection system enabling runtime Flow detection and contextual documentation access
+
+* Overview: Building Self-Documenting Runtime Capabilities
+
+The Documentation Introspection System represents a revolutionary approach to runtime self-awareness and contextual help in ByteHot. This milestone transforms ByteHot from a hot-swap tool into a self-documenting system that understands its own operational context and provides intelligent, contextual documentation access during development and testing workflows.
+
+** Walking Skeleton Value Proposition
+
+This milestone delivers immediate value through:
+- **Real-time Documentation Access**: Developers get contextual documentation during manual testing
+- **Flow-Aware Help System**: Automatic detection of current operational context (Flow)
+- **Enhanced Testing Experience**: Step-by-step manual testing with live documentation links
+- **Foundation for Interactive Capabilities**: Prepares for future server socket/protocol integration
+
+** Domain Events Architecture
+
+Three new domain events capture the documentation introspection workflow:
+
+*** Primary Documentation Events
+- *DocumentationRequested*: When a component requests its documentation URL
+- *FlowContextDetected*: When runtime Flow context is identified
+- *DocumentationLinkGenerated*: When contextual documentation URL is created
+
+** Core Components and Responsibilities
+
+*** DocLinkAvailable Interface (Domain)
+- Provides documentation access methods with minimal code pollution
+- Default method implementations delegate to centralized DocProvider
+- Methods: ~getDocUrl()~, ~getMethodDocUrl(String)~, ~getRuntimeDocLink()~
+
+*** DocProvider Class (Infrastructure)  
+- Centralized documentation URL generation and Flow detection engine
+- Analyzes runtime context to determine current operational Flow
+- Generates contextual documentation links based on detected Flow
+
+*** Enhanced Defaults Interface (Domain)
+- Documentation base URL constants for GitHub Pages integration
+- Flow documentation path constants
+- Configuration for documentation system behavior
+
+* Technical Architecture and Design Patterns
+
+** Minimal Code Pollution Strategy
+
+The design uses interface default methods to avoid polluting existing classes:
+
+#+BEGIN_SRC java
+public interface DocLinkAvailable {
+    default String getDocUrl() {
+        return DocProvider.getDocumentationUrl(this.getClass());
+    }
+    
+    default String getMethodDocUrl(final String methodName) {
+        return DocProvider.getMethodDocumentationUrl(this.getClass(), methodName);
+    }
+    
+    default String getRuntimeDocLink() {
+        return DocProvider.getRuntimeFlowDocumentationUrl(this);
+    }
+}
+#+END_SRC
+
+** Flow Detection Engine Architecture
+
+*** Runtime Context Analysis
+The Flow detection engine analyzes multiple sources to determine operational context:
+- **Call Stack Analysis**: Examine current execution stack for Flow patterns
+- **Domain Event Context**: Track recent domain events to identify active Flows
+- **Configuration State**: Determine if configuration management operations are active
+- **File System Operations**: Detect file watching and change detection activities
+
+*** Flow Confidence Scoring
+Each Flow detection includes confidence scoring:
+- **High Confidence (0.8-1.0)**: Clear Flow pattern detected with multiple indicators
+- **Medium Confidence (0.5-0.7)**: Probable Flow with some ambiguity
+- **Low Confidence (0.0-0.4)**: Uncertain or no clear Flow pattern
+
+** Documentation URL Generation Strategy
+
+*** Base URL Configuration
+Documentation URLs built from configurable base paths:
+- ~DOCUMENTATION_BASE_URL~: GitHub Pages documentation root
+- ~FLOWS_BASE_URL~: Flow-specific documentation path
+- ~CLASSES_BASE_URL~: Class documentation path
+
+*** Contextual URL Construction
+URLs generated based on runtime context:
+- **Class Documentation**: Links to literate programming docs for specific classes
+- **Method Documentation**: Deep links to method-specific sections
+- **Flow Documentation**: Contextual links to current operational Flow documentation
+
+* Implementation Phases and Walking Skeleton Approach
+
+** Phase 1: Core Interface Infrastructure (Week 1)
+*** Deliverables
+- ~DocLinkAvailable~ interface with default method implementations
+- Enhanced ~Defaults~ interface with documentation constants
+- Basic ~DocProvider~ class with static URL generation
+
+*** Success Criteria
+- Interface can be implemented by any class without code changes
+- Documentation URLs generate correctly for known classes
+- Default method delegation works properly
+
+*** Tests Required
+- Unit tests for interface default methods
+- URL generation validation tests
+- Documentation constant accessibility tests
+
+** Phase 2: Flow Detection Engine (Week 2)
+*** Deliverables
+- Runtime Flow context detection algorithms
+- Call stack analysis for Flow identification
+- Domain event context tracking
+- Confidence scoring system
+
+*** Success Criteria
+- Accurately detects File Change Detection Flow during file operations
+- Identifies Configuration Management Flow during config loading
+- Provides appropriate confidence scores for different scenarios
+
+*** Tests Required
+- Flow detection accuracy tests with various scenarios
+- Confidence scoring validation
+- Performance tests for detection overhead
+
+** Phase 3: Enhanced Manual Testing Integration (Week 3)
+*** Deliverables
+- Manual testing specifications with documentation integration
+- Step-by-step testing procedures with contextual help
+- Documentation access validation during testing workflows
+
+*** Success Criteria
+- Manual testers can access relevant documentation at each step
+- Flow detection provides correct documentation during testing
+- Testing procedures are enhanced with contextual help
+
+*** Tests Required
+- Manual testing workflow validation
+- Documentation access integration tests
+- User experience validation scenarios
+
+** Phase 4: Documentation Accuracy and Sample Configurations (Week 4)
+*** Deliverables
+- Fixed README.md and GETTING_STARTED.md documentation
+- Working sample configuration files
+- Aligned documentation with actual CLI implementation
+
+*** Success Criteria
+- Documentation accurately reflects ~-Dbhconfig~ requirement
+- Sample configurations work with actual implementation
+- No discrepancies between documentation and code
+
+*** Tests Required
+- Documentation accuracy validation
+- Sample configuration testing
+- CLI parameter requirement verification
+
+* Integration with Existing ByteHot Architecture
+
+** Domain-Driven Design Integration
+*** Domain Layer Purity
+- ~DocLinkAvailable~ interface remains in domain layer
+- No infrastructure dependencies in documentation interfaces
+- Documentation concerns separated from core business logic
+
+*** Application Layer Coordination
+- Documentation requests routed through application layer
+- Integration with existing event routing mechanisms
+- Coordination with adapter discovery and injection
+
+*** Infrastructure Layer Implementation
+- ~DocProvider~ class handles complex URL generation logic
+- Flow detection engine manages technical implementation details
+- Integration with file system monitoring and event emission
+
+** Event-Driven Architecture Enhancement
+*** Documentation Events in Event Flow
+New documentation events integrate with existing event architecture:
+#+BEGIN_SRC
+File Change → ClassFileChanged → DocumentationRequested → FlowContextDetected → DocumentationLinkGenerated
+#+END_SRC
+
+*** Event Sourcing Integration
+Documentation events participate in EventSourcing:
+- Complete audit trail of documentation access patterns
+- User-specific documentation usage analytics
+- Historical analysis of Flow detection accuracy
+
+** Hexagonal Architecture Boundaries
+*** Port-Adapter Pattern for Documentation
+- Documentation access through well-defined ports
+- Multiple adapter implementations possible (GitHub Pages, local docs, etc.)
+- Clean separation between documentation concerns and core functionality
+
+* Advanced Flow Detection Capabilities
+
+** Multi-Source Context Analysis
+
+*** Call Stack Pattern Recognition
+#+BEGIN_SRC java
+// Example Flow detection from call stack
+ConfigurationManagementFlow detected when stack contains:
+- ConfigurationAdapter.loadWatchConfiguration()
+- WatchConfiguration.load()
+- ByteHotCLI.premain()
+#+END_SRC
+
+*** Domain Event Sequence Analysis
+Flow detection analyzes recent domain event sequences:
+- **File Change Flow**: ClassFileChanged → ClassMetadataExtracted → BytecodeValidated
+- **Hot-Swap Flow**: HotSwapRequested → ClassRedefinitionSucceeded → InstancesUpdated
+- **Configuration Flow**: ByteHotAttachRequested → ConfigurationLoaded → WatchPathConfigured
+
+*** Time-Window Analysis
+Flow detection considers temporal context:
+- Recent events within configurable time window (default: 30 seconds)
+- Event sequence patterns indicating specific Flows
+- Concurrent Flow detection when multiple processes active
+
+** Confidence Scoring Algorithm
+
+*** Multi-Factor Confidence Calculation
+#+BEGIN_SRC java
+// Confidence scoring factors
+final double callStackWeight = 0.4;
+final double eventSequenceWeight = 0.3;
+final double temporalWeight = 0.2;
+final double contextWeight = 0.1;
+
+final double confidence = (callStackScore * callStackWeight) +
+                         (eventSequenceScore * eventSequenceWeight) +
+                         (temporalScore * temporalWeight) +
+                         (contextScore * contextWeight);
+#+END_SRC
+
+*** Adaptive Learning Potential
+Framework designed for future machine learning integration:
+- Historical Flow detection accuracy tracking
+- User feedback on documentation relevance
+- Adaptive confidence threshold adjustment
+
+* Manual Testing Enhancement Strategy
+
+** Progressive Testing with Documentation Access
+
+*** Phase-Based Testing with Contextual Help
+Each testing phase enhanced with documentation introspection:
+- **Phase 1 Testing**: Basic infrastructure with core component documentation
+- **Phase 2 Testing**: File monitoring with File Watcher Flow documentation  
+- **Phase 3 Testing**: Hot-swap operations with Hot-Swap Flow documentation
+- **Advanced Phases**: Complex scenarios with multi-Flow documentation
+
+*** Real-Time Documentation Integration
+#+BEGIN_SRC java
+// Example manual testing step with documentation
+public class ManualTestStep {
+    private final String stepDescription;
+    private final String expectedOutcome;
+    private final String relevantDocumentationUrl;
+    
+    public void executeWithDocumentation() {
+        System.out.println("Step: " + stepDescription);
+        System.out.println("Expected: " + expectedOutcome);
+        System.out.println("Documentation: " + relevantDocumentationUrl);
+        // ... execute step
+    }
+}
+#+END_SRC
+
+** Enhanced User Experience Features
+
+*** Contextual Help During Testing
+- Automatic documentation link generation for current test operation
+- Flow-specific help based on detected operational context
+- Progressive documentation complexity matching test phase
+
+*** Documentation Validation Integration
+- Verify documentation links are accessible during testing
+- Validate documentation content matches actual implementation
+- Report documentation accuracy issues during manual testing
+
+* Future Integration Capabilities
+
+** Server Socket/Protocol Foundation
+
+*** Interactive Documentation Server
+Preparation for future HTTP REPL capabilities:
+- Documentation introspection via HTTP endpoints
+- Real-time Flow detection through web interface
+- Interactive documentation exploration during development
+
+*** Protocol Design Considerations
+#+BEGIN_SRC json
+{
+  "action": "getDocumentation",
+  "context": "runtime",
+  "confidence": 0.85,
+  "detectedFlow": "ConfigurationManagementFlow",
+  "documentationUrl": "https://rydnr.github.io/bytehot/docs/flows/configuration-management-flow.html"
+}
+#+END_SRC
+
+** AI-Powered Documentation Enhancement
+
+*** Intelligent Context Recognition
+Future capabilities for advanced context understanding:
+- Natural language processing of current development activities
+- Machine learning-based Flow pattern recognition
+- Predictive documentation suggestions based on development patterns
+
+*** Personalized Documentation Experience
+User-specific documentation enhancement:
+- Learning individual developer documentation preferences
+- Customized documentation depth based on experience level
+- Historical analysis of most useful documentation patterns
+
+* Performance and Reliability Considerations
+
+** Minimal Performance Overhead
+
+*** Lazy Documentation Generation
+- Documentation URLs generated only when requested
+- Caching of frequently accessed documentation links
+- Efficient Flow detection with minimal computational overhead
+
+*** Asynchronous Flow Detection
+- Non-blocking Flow detection to avoid impacting core operations
+- Background analysis of runtime context
+- Graceful degradation when Flow detection is uncertain
+
+** Error Handling and Graceful Degradation
+
+*** Robust Documentation Access
+- Fallback to default documentation when Flow detection fails
+- Graceful handling of network issues accessing documentation
+- Clear error messages when documentation is unavailable
+
+*** Documentation System Resilience
+- System continues functioning even when documentation introspection fails
+- Optional documentation features don't impact core hot-swap functionality
+- Comprehensive error logging for documentation system debugging
+
+* Success Metrics and Validation Criteria
+
+** Technical Success Metrics
+
+*** Documentation Access Performance
+- Documentation URL generation: < 10ms (95th percentile)
+- Flow detection accuracy: > 80% for common scenarios
+- System overhead: < 1% additional CPU, < 5MB memory
+
+*** Integration Success
+- Zero impact on existing hot-swap functionality
+- Seamless integration with existing testing procedures
+- No breaking changes to existing interfaces
+
+** User Experience Success Metrics
+
+*** Manual Testing Enhancement
+- Reduced time to find relevant documentation during testing
+- Improved test procedure comprehension with contextual help
+- Higher success rate in manual testing procedures
+
+*** Documentation Accuracy
+- Zero discrepancies between documentation and implementation
+- 100% working sample configurations
+- Clear and accurate CLI parameter documentation
+
+** Foundation for Future Capabilities
+
+*** Extensibility Validation
+- Clean integration points for future server socket implementation
+- Scalable architecture for additional Flow types
+- Framework ready for AI-powered enhancements
+
+*** Developer Productivity Impact
+- Measurable reduction in context switching during development
+- Improved developer onboarding with contextual documentation
+- Enhanced debugging capabilities with Flow-aware documentation
+
+* Related Documentation and Integration Points
+
+** Existing Milestone Integration
+- [[./milestone-6f-flow-detection.org][Milestone 6F: Flow Detection]] - Builds upon existing Flow detection capabilities
+- [[./testing-phases/README.md][Testing Phases]] - Enhanced with documentation introspection
+- [[../docs/ByteHotApplication.org][ByteHotApplication]] - Integration point for documentation events
+
+** New Technical Specifications
+- [[./technical-specs/doc-link-available-interface.org][DocLinkAvailable Interface]] - Detailed interface specification
+- [[./technical-specs/doc-provider-implementation.org][DocProvider Implementation]] - Flow detection engine details
+- [[./technical-specs/flow-detection-engine.org][Flow Detection Engine]] - Runtime context analysis algorithms
+
+** Documentation Accuracy Specifications
+- [[./documentation-accuracy/readme-fixes.org][README Fixes]] - CLI parameter documentation corrections
+- [[./documentation-accuracy/getting-started-alignment.org][Getting Started Alignment]] - Implementation alignment fixes
+- [[./documentation-accuracy/sample-configurations.org][Sample Configurations]] - Working configuration examples
+
+* Implementation Timeline and Deliverables
+
+** Week 1: Core Infrastructure
+- [ ] Create ~DocLinkAvailable~ interface with default methods
+- [ ] Enhance ~Defaults~ interface with documentation constants
+- [ ] Implement basic ~DocProvider~ class
+- [ ] Unit tests for core documentation interfaces
+
+** Week 2: Flow Detection Engine
+- [ ] Implement runtime Flow context detection
+- [ ] Create call stack analysis algorithms
+- [ ] Add domain event context tracking
+- [ ] Implement confidence scoring system
+- [ ] Performance tests for detection overhead
+
+** Week 3: Manual Testing Integration
+- [ ] Create Phase 10 testing specifications
+- [ ] Integrate documentation access into testing procedures
+- [ ] Implement step-by-step testing with contextual help
+- [ ] User experience validation scenarios
+
+** Week 4: Documentation Accuracy
+- [ ] Fix README.md and GETTING_STARTED.md inaccuracies
+- [ ] Create working sample configuration files
+- [ ] Align all documentation with actual implementation
+- [ ] Comprehensive documentation validation tests
+
+The Documentation Introspection System transforms ByteHot from a powerful hot-swap tool into an intelligent, self-aware development environment that provides contextual help and documentation exactly when developers need it, while establishing the foundation for future interactive capabilities.

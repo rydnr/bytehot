@@ -1,0 +1,995 @@
+#+TITLE: Defaults Enhancement - Documentation Constants and Configuration Base URLs
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-21]
+#+DESCRIPTION: Technical specification for enhancing the Defaults interface with documentation system constants and GitHub Pages integration
+
+* Overview: Foundation for Documentation System Configuration
+
+The Defaults Enhancement extends ByteHot's existing Defaults interface to include comprehensive documentation system configuration constants. This enhancement provides the foundation for the documentation introspection system by establishing centralized configuration for GitHub Pages integration, documentation base URLs, and Flow documentation paths.
+
+** Design Philosophy: Centralized Configuration Constants
+
+*** Single Source of Truth for Documentation Configuration
+The enhanced Defaults interface serves as the authoritative source for all documentation-related configuration:
+- *GitHub Pages Integration*: Centralized base URLs for published documentation
+- *Documentation Structure Constants*: Standardized paths for different documentation types
+- *Flow Documentation Configuration*: Specific constants for Flow-based contextual documentation
+- *Environment Adaptation*: Flexible configuration supporting multiple deployment environments
+
+*** Clean Architecture Integration
+The enhancement maintains strict adherence to ByteHot's architectural principles:
+- *Domain Layer Purity*: Documentation constants remain in domain layer without infrastructure dependencies
+- *Configuration Encapsulation*: All documentation configuration centralized in single interface
+- *Extensibility Framework*: Foundation for future documentation system enhancements
+- *Backward Compatibility*: Existing Defaults interface functionality preserved
+
+* Enhanced Interface Definition and Constants
+
+** Core Documentation Constants
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/Defaults.java
+package org.acmsl.bytehot.domain;
+
+/**
+ * Defines default configuration values for ByteHot, including comprehensive
+ * documentation system constants for GitHub Pages integration and contextual help.
+ * 
+ * Enhanced with documentation introspection system constants:
+ * - GitHub Pages base URLs for published documentation
+ * - Documentation structure paths for different content types
+ * - Flow documentation configuration for contextual help
+ * - Environment-specific documentation configuration
+ * 
+ * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
+ * @since 2025-06-07
+ */
+public interface Defaults {
+
+    /**
+     * The default port on which ByteHot will listen for requests.
+     */
+    int PORT = 62345;
+
+    // === Documentation System Constants ===
+    
+    /**
+     * Base URL for ByteHot documentation hosted on GitHub Pages.
+     * This is the primary documentation source for production environments.
+     */
+    String DOCUMENTATION_BASE_URL = "https://rydnr.github.io/bytehot";
+    
+    /**
+     * Alternative base URL for local development documentation.
+     * Used when GitHub Pages documentation is not accessible.
+     */
+    String LOCAL_DOCUMENTATION_BASE_URL = "file:///docs";
+    
+    /**
+     * Base path for Flow-specific documentation within the documentation structure.
+     * Flows are operational processes that can be detected at runtime.
+     */
+    String FLOWS_DOCUMENTATION_PATH = "docs/flows";
+    
+    /**
+     * Base path for class-specific documentation within the documentation structure.
+     * Includes literate programming documentation for all ByteHot classes.
+     */
+    String CLASSES_DOCUMENTATION_PATH = "docs";
+    
+    /**
+     * Base path for API documentation within the documentation structure.
+     * Contains generated Javadoc and API reference documentation.
+     */
+    String API_DOCUMENTATION_PATH = "javadocs";
+    
+    /**
+     * File extension for HTML documentation files.
+     * Used for constructing complete documentation URLs.
+     */
+    String DOCUMENTATION_FILE_EXTENSION = ".html";
+    
+    /**
+     * Default anchor separator for method-specific documentation links.
+     * Used to create deep links to specific methods within class documentation.
+     */
+    String DOCUMENTATION_ANCHOR_SEPARATOR = "#";
+    
+    // === Flow Detection Configuration ===
+    
+    /**
+     * Default confidence threshold for Flow detection operations.
+     * Flows with confidence below this threshold are not considered reliable.
+     */
+    double FLOW_DETECTION_CONFIDENCE_THRESHOLD = 0.5;
+    
+    /**
+     * Default time window for Flow detection analysis in seconds.
+     * Events and operations within this window are considered for Flow context.
+     */
+    int FLOW_DETECTION_TIME_WINDOW_SECONDS = 30;
+    
+    /**
+     * Maximum number of Flow detection cache entries to maintain.
+     * Prevents unlimited memory growth from Flow detection caching.
+     */
+    int FLOW_DETECTION_CACHE_MAX_SIZE = 1000;
+    
+    /**
+     * Default cache expiration time for Flow detection results in minutes.
+     * Cached Flow detection results expire after this duration.
+     */
+    int FLOW_DETECTION_CACHE_EXPIRATION_MINUTES = 5;
+    
+    // === Documentation URL Construction Templates ===
+    
+    /**
+     * URL template for class documentation.
+     * Parameters: {baseUrl}, {classPath}, {className}
+     */
+    String CLASS_DOCUMENTATION_URL_TEMPLATE = "{baseUrl}/{classPath}/{className}" + DOCUMENTATION_FILE_EXTENSION;
+    
+    /**
+     * URL template for method documentation with anchor links.
+     * Parameters: {baseUrl}, {classPath}, {className}, {methodAnchor}
+     */
+    String METHOD_DOCUMENTATION_URL_TEMPLATE = "{baseUrl}/{classPath}/{className}" + DOCUMENTATION_FILE_EXTENSION + DOCUMENTATION_ANCHOR_SEPARATOR + "{methodAnchor}";
+    
+    /**
+     * URL template for Flow documentation.
+     * Parameters: {baseUrl}, {flowsPath}, {flowName}
+     */
+    String FLOW_DOCUMENTATION_URL_TEMPLATE = "{baseUrl}/{flowsPath}/{flowName}-flow" + DOCUMENTATION_FILE_EXTENSION;
+    
+    /**
+     * URL template for API documentation.
+     * Parameters: {baseUrl}, {apiPath}, {packagePath}, {className}
+     */
+    String API_DOCUMENTATION_URL_TEMPLATE = "{baseUrl}/{apiPath}/{packagePath}/{className}" + DOCUMENTATION_FILE_EXTENSION;
+    
+    // === Environment-Specific Configuration ===
+    
+    /**
+     * System property name for overriding the documentation base URL.
+     * Allows runtime configuration of documentation source.
+     */
+    String DOCUMENTATION_BASE_URL_PROPERTY = "bytehot.docs.baseUrl";
+    
+    /**
+     * Environment variable name for documentation base URL configuration.
+     * Enables deployment-specific documentation configuration.
+     */
+    String DOCUMENTATION_BASE_URL_ENV_VAR = "BYTEHOT_DOCS_BASE_URL";
+    
+    /**
+     * System property name for enabling local documentation mode.
+     * When enabled, documentation system prefers local documentation sources.
+     */
+    String LOCAL_DOCUMENTATION_MODE_PROPERTY = "bytehot.docs.localMode";
+    
+    /**
+     * Environment variable name for local documentation mode.
+     * Deployment-friendly configuration for local documentation preference.
+     */
+    String LOCAL_DOCUMENTATION_MODE_ENV_VAR = "BYTEHOT_DOCS_LOCAL_MODE";
+    
+    // === Documentation Content Configuration ===
+    
+    /**
+     * Default documentation language for internationalization support.
+     * Future enhancement point for multi-language documentation.
+     */
+    String DEFAULT_DOCUMENTATION_LANGUAGE = "en";
+    
+    /**
+     * Documentation version for GitHub Pages deployment.
+     * Enables version-specific documentation access.
+     */
+    String DOCUMENTATION_VERSION = "latest";
+    
+    /**
+     * Default documentation theme for consistent presentation.
+     * Future enhancement point for customizable documentation themes.
+     */
+    String DEFAULT_DOCUMENTATION_THEME = "bytehot-theme";
+    
+    // === Performance and Caching Configuration ===
+    
+    /**
+     * Default timeout for documentation URL accessibility checks in milliseconds.
+     * Prevents long waits when documentation is unavailable.
+     */
+    int DOCUMENTATION_ACCESS_TIMEOUT_MS = 5000;
+    
+    /**
+     * Maximum number of cached documentation URLs to maintain.
+     * Balances memory usage with documentation access performance.
+     */
+    int DOCUMENTATION_URL_CACHE_MAX_SIZE = 500;
+    
+    /**
+     * Cache expiration time for documentation URLs in minutes.
+     * Allows for documentation updates while maintaining performance.
+     */
+    int DOCUMENTATION_URL_CACHE_EXPIRATION_MINUTES = 60;
+    
+    /**
+     * Default retry count for failed documentation access attempts.
+     * Provides resilience against transient network issues.
+     */
+    int DOCUMENTATION_ACCESS_RETRY_COUNT = 3;
+    
+    /**
+     * Retry delay in milliseconds for failed documentation access.
+     * Prevents overwhelming documentation servers with rapid retries.
+     */
+    int DOCUMENTATION_ACCESS_RETRY_DELAY_MS = 1000;
+}
+#+END_SRC
+
+* Configuration Strategy and URL Construction
+
+** Dynamic Base URL Resolution
+
+*** Multi-Source Configuration Strategy
+The documentation system supports flexible base URL configuration through multiple sources:
+
+#+BEGIN_SRC java
+/**
+ * Dynamic base URL resolution with fallback strategy.
+ * Supports runtime configuration, environment variables, and default values.
+ */
+public class DocumentationBaseUrlResolver {
+    
+    public static String resolveDocumentationBaseUrl() {
+        // Priority 1: System property for runtime override
+        String baseUrl = System.getProperty(Defaults.DOCUMENTATION_BASE_URL_PROPERTY);
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            return normalizeBaseUrl(baseUrl);
+        }
+        
+        // Priority 2: Environment variable for deployment configuration
+        baseUrl = System.getenv(Defaults.DOCUMENTATION_BASE_URL_ENV_VAR);
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            return normalizeBaseUrl(baseUrl);
+        }
+        
+        // Priority 3: Local mode check
+        if (isLocalDocumentationMode()) {
+            return Defaults.LOCAL_DOCUMENTATION_BASE_URL;
+        }
+        
+        // Priority 4: Default GitHub Pages URL
+        return Defaults.DOCUMENTATION_BASE_URL;
+    }
+    
+    private static boolean isLocalDocumentationMode() {
+        // Check system property
+        final String localModeProperty = System.getProperty(Defaults.LOCAL_DOCUMENTATION_MODE_PROPERTY);
+        if ("true".equalsIgnoreCase(localModeProperty)) {
+            return true;
+        }
+        
+        // Check environment variable
+        final String localModeEnv = System.getenv(Defaults.LOCAL_DOCUMENTATION_MODE_ENV_VAR);
+        return "true".equalsIgnoreCase(localModeEnv);
+    }
+    
+    private static String normalizeBaseUrl(final String baseUrl) {
+        // Remove trailing slashes for consistent URL construction
+        return baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+    }
+}
+#+END_SRC
+
+** URL Template Processing
+
+*** Template-Based URL Construction
+The documentation system uses template-based URL construction for flexibility and maintainability:
+
+#+BEGIN_SRC java
+/**
+ * Template-based URL construction for documentation links.
+ * Supports parameterized URL generation for different documentation types.
+ */
+public class DocumentationUrlTemplateProcessor {
+    
+    public static String processClassDocumentationTemplate(
+            final String baseUrl,
+            final String className,
+            final String classPath) {
+        
+        return Defaults.CLASS_DOCUMENTATION_URL_TEMPLATE
+            .replace("{baseUrl}", baseUrl)
+            .replace("{classPath}", classPath)
+            .replace("{className}", className);
+    }
+    
+    public static String processMethodDocumentationTemplate(
+            final String baseUrl,
+            final String className,
+            final String classPath,
+            final String methodAnchor) {
+        
+        return Defaults.METHOD_DOCUMENTATION_URL_TEMPLATE
+            .replace("{baseUrl}", baseUrl)
+            .replace("{classPath}", classPath)
+            .replace("{className}", className)
+            .replace("{methodAnchor}", methodAnchor);
+    }
+    
+    public static String processFlowDocumentationTemplate(
+            final String baseUrl,
+            final String flowName) {
+        
+        return Defaults.FLOW_DOCUMENTATION_URL_TEMPLATE
+            .replace("{baseUrl}", baseUrl)
+            .replace("{flowsPath}", Defaults.FLOWS_DOCUMENTATION_PATH)
+            .replace("{flowName}", flowName.toLowerCase().replaceAll("([a-z])([A-Z])", "$1-$2"));
+    }
+    
+    public static String processApiDocumentationTemplate(
+            final String baseUrl,
+            final String packagePath,
+            final String className) {
+        
+        return Defaults.API_DOCUMENTATION_URL_TEMPLATE
+            .replace("{baseUrl}", baseUrl)
+            .replace("{apiPath}", Defaults.API_DOCUMENTATION_PATH)
+            .replace("{packagePath}", packagePath)
+            .replace("{className}", className);
+    }
+}
+#+END_SRC
+
+* Environment-Specific Configuration Support
+
+** Development Environment Integration
+
+*** IDE and Local Development Support
+The enhanced Defaults interface provides comprehensive support for development environments:
+
+#+BEGIN_SRC java
+/**
+ * Development environment detection and configuration.
+ * Adapts documentation configuration for local development workflows.
+ */
+public class DevelopmentEnvironmentConfigurer {
+    
+    public static DocumentationConfiguration configureForDevelopmentEnvironment() {
+        final DocumentationConfiguration config = new DocumentationConfiguration();
+        
+        // Check for local documentation server
+        if (isLocalDocumentationServerRunning()) {
+            config.setBaseUrl("http://localhost:8080/docs");
+            config.setLocalMode(true);
+        } else if (isLocalDocumentationDirectoryAvailable()) {
+            config.setBaseUrl("file://" + getLocalDocumentationPath());
+            config.setLocalMode(true);
+        } else {
+            // Fall back to GitHub Pages for development
+            config.setBaseUrl(Defaults.DOCUMENTATION_BASE_URL);
+            config.setLocalMode(false);
+        }
+        
+        // Development-specific configuration
+        config.setCacheEnabled(false); // Disable caching for fresh documentation
+        config.setAccessTimeout(Defaults.DOCUMENTATION_ACCESS_TIMEOUT_MS * 2); // Longer timeout for local access
+        config.setRetryCount(1); // Fewer retries for development
+        
+        return config;
+    }
+    
+    private static boolean isLocalDocumentationServerRunning() {
+        // Check for local documentation server on common development ports
+        final int[] commonPorts = {8080, 3000, 4000, 8000};
+        
+        for (final int port : commonPorts) {
+            if (isPortAccessible("localhost", port)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private static boolean isLocalDocumentationDirectoryAvailable() {
+        // Check for local documentation directory
+        final String[] commonPaths = {
+            "./docs",
+            "../docs",
+            "./target/site",
+            "./build/docs"
+        };
+        
+        for (final String path : commonPaths) {
+            final File docDir = new File(path);
+            if (docDir.exists() && docDir.isDirectory()) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private static String getLocalDocumentationPath() {
+        // Return the first available local documentation path
+        final String[] commonPaths = {
+            "./docs",
+            "../docs",
+            "./target/site",
+            "./build/docs"
+        };
+        
+        for (final String path : commonPaths) {
+            final File docDir = new File(path);
+            if (docDir.exists() && docDir.isDirectory()) {
+                return docDir.getAbsolutePath();
+            }
+        }
+        
+        return "./docs"; // Default fallback
+    }
+}
+#+END_SRC
+
+** Production Environment Configuration
+
+*** Cloud and Container Deployment Support
+The configuration system adapts to various production deployment environments:
+
+#+BEGIN_SRC java
+/**
+ * Production environment configuration for documentation system.
+ * Handles cloud platforms, containers, and enterprise deployments.
+ */
+public class ProductionEnvironmentConfigurer {
+    
+    public static DocumentationConfiguration configureForProductionEnvironment() {
+        final DocumentationConfiguration config = new DocumentationConfiguration();
+        
+        // Production always uses GitHub Pages unless explicitly overridden
+        config.setBaseUrl(DocumentationBaseUrlResolver.resolveDocumentationBaseUrl());
+        config.setLocalMode(false);
+        
+        // Production-optimized configuration
+        config.setCacheEnabled(true);
+        config.setCacheMaxSize(Defaults.DOCUMENTATION_URL_CACHE_MAX_SIZE);
+        config.setCacheExpirationMinutes(Defaults.DOCUMENTATION_URL_CACHE_EXPIRATION_MINUTES);
+        config.setAccessTimeout(Defaults.DOCUMENTATION_ACCESS_TIMEOUT_MS);
+        config.setRetryCount(Defaults.DOCUMENTATION_ACCESS_RETRY_COUNT);
+        config.setRetryDelay(Defaults.DOCUMENTATION_ACCESS_RETRY_DELAY_MS);
+        
+        // Enterprise-specific configuration
+        if (isEnterpriseEnvironment()) {
+            configureEnterpriseSettings(config);
+        }
+        
+        // Cloud platform-specific configuration
+        if (isCloudEnvironment()) {
+            configureCloudSettings(config);
+        }
+        
+        return config;
+    }
+    
+    private static boolean isEnterpriseEnvironment() {
+        // Detect enterprise environment through environment variables or system properties
+        return System.getenv("ENTERPRISE_MODE") != null ||
+               System.getProperty("bytehot.enterprise.mode") != null;
+    }
+    
+    private static boolean isCloudEnvironment() {
+        // Detect cloud environment through platform-specific indicators
+        return System.getenv("KUBERNETES_SERVICE_HOST") != null ||
+               System.getenv("AWS_REGION") != null ||
+               System.getenv("GOOGLE_CLOUD_PROJECT") != null ||
+               System.getenv("AZURE_RESOURCE_GROUP") != null;
+    }
+    
+    private static void configureEnterpriseSettings(final DocumentationConfiguration config) {
+        // Enterprise-specific documentation configuration
+        config.setAccessTimeout(Defaults.DOCUMENTATION_ACCESS_TIMEOUT_MS * 2); // Longer timeout for enterprise networks
+        config.setRetryCount(Defaults.DOCUMENTATION_ACCESS_RETRY_COUNT + 2); // More retries for enterprise reliability
+        
+        // Check for enterprise documentation proxy
+        final String documentationProxy = System.getenv("DOCUMENTATION_PROXY_URL");
+        if (documentationProxy != null) {
+            config.setProxyUrl(documentationProxy);
+        }
+    }
+    
+    private static void configureCloudSettings(final DocumentationConfiguration config) {
+        // Cloud platform-specific documentation configuration
+        config.setCacheMaxSize(Defaults.DOCUMENTATION_URL_CACHE_MAX_SIZE * 2); // Larger cache for cloud environments
+        config.setAccessTimeout(Defaults.DOCUMENTATION_ACCESS_TIMEOUT_MS / 2); // Faster timeout for cloud networks
+        
+        // Cloud-specific CDN or documentation service integration
+        final String cloudDocumentationService = System.getenv("CLOUD_DOCUMENTATION_SERVICE_URL");
+        if (cloudDocumentationService != null) {
+            config.setBaseUrl(cloudDocumentationService);
+        }
+    }
+}
+#+END_SRC
+
+* Performance and Caching Configuration
+
+** Intelligent Caching Strategy
+
+*** Multi-Level Caching Configuration
+The enhanced Defaults interface provides comprehensive caching configuration:
+
+#+BEGIN_SRC java
+/**
+ * Multi-level caching configuration for documentation system.
+ * Optimizes performance while maintaining documentation freshness.
+ */
+public class DocumentationCacheConfiguration {
+    
+    // Level 1: In-memory cache for frequently accessed URLs
+    private static final Cache<String, String> urlCache = CacheBuilder.newBuilder()
+        .maximumSize(Defaults.DOCUMENTATION_URL_CACHE_MAX_SIZE)
+        .expireAfterWrite(Defaults.DOCUMENTATION_URL_CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+        .recordStats()
+        .build();
+    
+    // Level 2: Flow detection cache with shorter expiration
+    private static final Cache<String, FlowDetectionResult> flowCache = CacheBuilder.newBuilder()
+        .maximumSize(Defaults.FLOW_DETECTION_CACHE_MAX_SIZE)
+        .expireAfterWrite(Defaults.FLOW_DETECTION_CACHE_EXPIRATION_MINUTES, TimeUnit.MINUTES)
+        .recordStats()
+        .build();
+    
+    // Level 3: Configuration cache for environment-specific settings
+    private static final Cache<String, DocumentationConfiguration> configCache = CacheBuilder.newBuilder()
+        .maximumSize(10) // Small cache for configuration objects
+        .expireAfterWrite(30, TimeUnit.MINUTES) // Longer expiration for stable configuration
+        .recordStats()
+        .build();
+    
+    public static Optional<String> getCachedUrl(final String cacheKey) {
+        return Optional.ofNullable(urlCache.getIfPresent(cacheKey));
+    }
+    
+    public static void cacheUrl(final String cacheKey, final String url) {
+        urlCache.put(cacheKey, url);
+    }
+    
+    public static Optional<FlowDetectionResult> getCachedFlowResult(final String cacheKey) {
+        return Optional.ofNullable(flowCache.getIfPresent(cacheKey));
+    }
+    
+    public static void cacheFlowResult(final String cacheKey, final FlowDetectionResult result) {
+        flowCache.put(cacheKey, result);
+    }
+    
+    public static CacheStats getUrlCacheStats() {
+        return urlCache.stats();
+    }
+    
+    public static CacheStats getFlowCacheStats() {
+        return flowCache.stats();
+    }
+    
+    public static void clearAllCaches() {
+        urlCache.invalidateAll();
+        flowCache.invalidateAll();
+        configCache.invalidateAll();
+    }
+}
+#+END_SRC
+
+** Performance Monitoring Configuration
+
+*** Documentation System Performance Metrics
+The configuration includes comprehensive performance monitoring capabilities:
+
+#+BEGIN_SRC java
+/**
+ * Performance monitoring configuration for documentation system.
+ * Tracks access times, cache hit rates, and system performance.
+ */
+public class DocumentationPerformanceMonitoring {
+    
+    private static final Map<String, AtomicLong> performanceCounters = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicLong> timingAccumulators = new ConcurrentHashMap<>();
+    
+    public static void recordDocumentationAccess(final String operation, final long durationMs) {
+        performanceCounters.computeIfAbsent(operation + "_count", k -> new AtomicLong(0)).incrementAndGet();
+        timingAccumulators.computeIfAbsent(operation + "_total_ms", k -> new AtomicLong(0)).addAndGet(durationMs);
+    }
+    
+    public static void recordCacheHit(final String cacheType) {
+        performanceCounters.computeIfAbsent(cacheType + "_hits", k -> new AtomicLong(0)).incrementAndGet();
+    }
+    
+    public static void recordCacheMiss(final String cacheType) {
+        performanceCounters.computeIfAbsent(cacheType + "_misses", k -> new AtomicLong(0)).incrementAndGet();
+    }
+    
+    public static Map<String, Object> getPerformanceReport() {
+        final Map<String, Object> report = new HashMap<>();
+        
+        // Add counter values
+        for (final Map.Entry<String, AtomicLong> entry : performanceCounters.entrySet()) {
+            report.put(entry.getKey(), entry.getValue().get());
+        }
+        
+        // Calculate averages for timing data
+        for (final Map.Entry<String, AtomicLong> entry : timingAccumulators.entrySet()) {
+            if (entry.getKey().endsWith("_total_ms")) {
+                final String operation = entry.getKey().substring(0, entry.getKey().lastIndexOf("_total_ms"));
+                final AtomicLong countCounter = performanceCounters.get(operation + "_count");
+                if (countCounter != null && countCounter.get() > 0) {
+                    final long averageMs = entry.getValue().get() / countCounter.get();
+                    report.put(operation + "_avg_ms", averageMs);
+                }
+            }
+        }
+        
+        // Add cache statistics
+        report.put("url_cache_stats", DocumentationCacheConfiguration.getUrlCacheStats());
+        report.put("flow_cache_stats", DocumentationCacheConfiguration.getFlowCacheStats());
+        
+        return report;
+    }
+    
+    public static boolean isPerformanceWithinThresholds() {
+        final Map<String, Object> report = getPerformanceReport();
+        
+        // Check URL generation performance
+        final Long urlGenAvg = (Long) report.get("url_generation_avg_ms");
+        if (urlGenAvg != null && urlGenAvg > 100) { // 100ms threshold
+            return false;
+        }
+        
+        // Check Flow detection performance
+        final Long flowDetectionAvg = (Long) report.get("flow_detection_avg_ms");
+        if (flowDetectionAvg != null && flowDetectionAvg > 50) { // 50ms threshold
+            return false;
+        }
+        
+        // Check cache hit rates
+        final CacheStats urlCacheStats = (CacheStats) report.get("url_cache_stats");
+        if (urlCacheStats != null && urlCacheStats.hitRate() < 0.7) { // 70% hit rate threshold
+            return false;
+        }
+        
+        return true;
+    }
+}
+#+END_SRC
+
+* Testing Strategy and Validation Framework
+
+** Configuration Testing Implementation
+
+*** Comprehensive Configuration Testing
+#+BEGIN_SRC java
+public class DefaultsEnhancementTest {
+    
+    @Test
+    void should_provide_github_pages_base_url() {
+        // When: Accessing documentation base URL
+        final String baseUrl = Defaults.DOCUMENTATION_BASE_URL;
+        
+        // Then: Should provide valid GitHub Pages URL
+        assertThat(baseUrl).isNotNull();
+        assertThat(baseUrl).isEqualTo("https://rydnr.github.io/bytehot");
+        assertThat(baseUrl).startsWith("https://");
+        assertThat(baseUrl).doesNotEndWith("/");
+    }
+    
+    @Test
+    void should_provide_flow_documentation_configuration() {
+        // When: Accessing Flow documentation constants
+        final String flowsPath = Defaults.FLOWS_DOCUMENTATION_PATH;
+        final String flowTemplate = Defaults.FLOW_DOCUMENTATION_URL_TEMPLATE;
+        
+        // Then: Should provide valid Flow documentation configuration
+        assertThat(flowsPath).isEqualTo("docs/flows");
+        assertThat(flowTemplate).contains("{baseUrl}");
+        assertThat(flowTemplate).contains("{flowsPath}");
+        assertThat(flowTemplate).contains("{flowName}");
+        assertThat(flowTemplate).endsWith("-flow.html");
+    }
+    
+    @Test
+    void should_provide_performance_configuration() {
+        // When: Accessing performance-related constants
+        final double confidenceThreshold = Defaults.FLOW_DETECTION_CONFIDENCE_THRESHOLD;
+        final int timeWindow = Defaults.FLOW_DETECTION_TIME_WINDOW_SECONDS;
+        final int cacheSize = Defaults.DOCUMENTATION_URL_CACHE_MAX_SIZE;
+        
+        // Then: Should provide reasonable performance configuration
+        assertThat(confidenceThreshold).isBetween(0.0, 1.0);
+        assertThat(timeWindow).isPositive();
+        assertThat(cacheSize).isPositive();
+    }
+    
+    @Test
+    void should_support_environment_variable_override() {
+        // Given: Environment variable for documentation base URL
+        final String originalValue = System.getenv(Defaults.DOCUMENTATION_BASE_URL_ENV_VAR);
+        
+        try {
+            // When: Setting custom base URL via environment variable
+            setEnvironmentVariable(Defaults.DOCUMENTATION_BASE_URL_ENV_VAR, "https://custom.docs.com");
+            final String resolvedUrl = DocumentationBaseUrlResolver.resolveDocumentationBaseUrl();
+            
+            // Then: Should use custom URL
+            assertThat(resolvedUrl).isEqualTo("https://custom.docs.com");
+            
+        } finally {
+            // Cleanup: Restore original environment variable
+            if (originalValue != null) {
+                setEnvironmentVariable(Defaults.DOCUMENTATION_BASE_URL_ENV_VAR, originalValue);
+            }
+        }
+    }
+    
+    @Test
+    void should_support_local_documentation_mode() {
+        // Given: Local documentation mode enabled
+        System.setProperty(Defaults.LOCAL_DOCUMENTATION_MODE_PROPERTY, "true");
+        
+        try {
+            // When: Resolving documentation base URL in local mode
+            final String resolvedUrl = DocumentationBaseUrlResolver.resolveDocumentationBaseUrl();
+            
+            // Then: Should use local documentation URL
+            assertThat(resolvedUrl).isEqualTo(Defaults.LOCAL_DOCUMENTATION_BASE_URL);
+            
+        } finally {
+            // Cleanup: Clear local mode property
+            System.clearProperty(Defaults.LOCAL_DOCUMENTATION_MODE_PROPERTY);
+        }
+    }
+}
+#+END_SRC
+
+** URL Template Testing
+
+*** Template Processing Validation
+#+BEGIN_SRC java
+public class DocumentationUrlTemplateTest {
+    
+    @Test
+    void should_process_class_documentation_template() {
+        // Given: Class documentation parameters
+        final String baseUrl = "https://docs.example.com";
+        final String className = "ByteHotApplication";
+        final String classPath = "application";
+        
+        // When: Processing class documentation template
+        final String url = DocumentationUrlTemplateProcessor.processClassDocumentationTemplate(
+            baseUrl, className, classPath);
+        
+        // Then: Should generate correct class documentation URL
+        assertThat(url).isEqualTo("https://docs.example.com/application/ByteHotApplication.html");
+    }
+    
+    @Test
+    void should_process_method_documentation_template() {
+        // Given: Method documentation parameters
+        final String baseUrl = "https://docs.example.com";
+        final String className = "ConfigurationAdapter";
+        final String classPath = "infrastructure";
+        final String methodAnchor = "load-watch-configuration";
+        
+        // When: Processing method documentation template
+        final String url = DocumentationUrlTemplateProcessor.processMethodDocumentationTemplate(
+            baseUrl, className, classPath, methodAnchor);
+        
+        // Then: Should generate correct method documentation URL with anchor
+        assertThat(url).isEqualTo("https://docs.example.com/infrastructure/ConfigurationAdapter.html#load-watch-configuration");
+    }
+    
+    @Test
+    void should_process_flow_documentation_template() {
+        // Given: Flow documentation parameters
+        final String baseUrl = "https://docs.example.com";
+        final String flowName = "ConfigurationManagementFlow";
+        
+        // When: Processing Flow documentation template
+        final String url = DocumentationUrlTemplateProcessor.processFlowDocumentationTemplate(
+            baseUrl, flowName);
+        
+        // Then: Should generate correct Flow documentation URL
+        assertThat(url).isEqualTo("https://docs.example.com/docs/flows/configuration-management-flow-flow.html");
+    }
+}
+#+END_SRC
+
+* Integration with Documentation System
+
+** DocProvider Integration
+
+*** Configuration Constants Usage in DocProvider
+The enhanced Defaults interface provides all necessary constants for the DocProvider implementation:
+
+#+BEGIN_SRC java
+// Example usage in DocProvider class
+public class DocProvider {
+    
+    private static String getDocumentationBaseUrl() {
+        // Use system property override if available
+        String baseUrl = System.getProperty(Defaults.DOCUMENTATION_BASE_URL_PROPERTY);
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            return baseUrl;
+        }
+        
+        // Use environment variable if available
+        baseUrl = System.getenv(Defaults.DOCUMENTATION_BASE_URL_ENV_VAR);
+        if (baseUrl != null && !baseUrl.isBlank()) {
+            return baseUrl;
+        }
+        
+        // Check for local documentation mode
+        if (isLocalDocumentationMode()) {
+            return Defaults.LOCAL_DOCUMENTATION_BASE_URL;
+        }
+        
+        // Fall back to default GitHub Pages URL
+        return Defaults.DOCUMENTATION_BASE_URL;
+    }
+    
+    private static String generateFlowDocumentationUrl(final String flowName) {
+        final String baseUrl = getDocumentationBaseUrl();
+        return DocumentationUrlTemplateProcessor.processFlowDocumentationTemplate(baseUrl, flowName);
+    }
+    
+    private static boolean isLocalDocumentationMode() {
+        return "true".equalsIgnoreCase(System.getProperty(Defaults.LOCAL_DOCUMENTATION_MODE_PROPERTY)) ||
+               "true".equalsIgnoreCase(System.getenv(Defaults.LOCAL_DOCUMENTATION_MODE_ENV_VAR));
+    }
+}
+#+END_SRC
+
+** Flow Detection Integration
+
+*** Configuration for Flow Detection Engine
+The Flow detection engine uses the enhanced configuration constants:
+
+#+BEGIN_SRC java
+// Example usage in Flow detection engine
+public class FlowDetectionEngine {
+    
+    private static final double CONFIDENCE_THRESHOLD = Defaults.FLOW_DETECTION_CONFIDENCE_THRESHOLD;
+    private static final Duration TIME_WINDOW = Duration.ofSeconds(Defaults.FLOW_DETECTION_TIME_WINDOW_SECONDS);
+    
+    public static Optional<FlowDetectionResult> detectFlow(final Object instance) {
+        final FlowDetectionResult result = performFlowDetection(instance);
+        
+        // Use configured confidence threshold
+        if (result != null && result.getConfidence() >= CONFIDENCE_THRESHOLD) {
+            return Optional.of(result);
+        }
+        
+        return Optional.empty();
+    }
+    
+    private static boolean isWithinTimeWindow(final Instant eventTime) {
+        final Instant now = Instant.now();
+        final Instant windowStart = now.minus(TIME_WINDOW);
+        return eventTime.isAfter(windowStart);
+    }
+}
+#+END_SRC
+
+* Future Enhancement Opportunities
+
+** Advanced Configuration Features
+
+*** Dynamic Configuration Updates
+Framework for future dynamic configuration capabilities:
+
+#+BEGIN_SRC java
+/**
+ * Framework for dynamic configuration updates without system restart.
+ * Enables real-time adaptation of documentation system behavior.
+ */
+public class DynamicDocumentationConfiguration {
+    
+    private static final AtomicReference<DocumentationConfiguration> currentConfig = 
+        new AtomicReference<>(loadDefaultConfiguration());
+    
+    private static final List<ConfigurationChangeListener> changeListeners = 
+        Collections.synchronizedList(new ArrayList<>());
+    
+    public static void updateConfiguration(final DocumentationConfiguration newConfig) {
+        final DocumentationConfiguration oldConfig = currentConfig.getAndSet(newConfig);
+        
+        // Notify all listeners of configuration change
+        for (final ConfigurationChangeListener listener : changeListeners) {
+            try {
+                listener.onConfigurationChanged(oldConfig, newConfig);
+            } catch (final Exception e) {
+                System.err.println("Error notifying configuration change listener: " + e.getMessage());
+            }
+        }
+    }
+    
+    public static DocumentationConfiguration getCurrentConfiguration() {
+        return currentConfig.get();
+    }
+    
+    public static void addConfigurationChangeListener(final ConfigurationChangeListener listener) {
+        changeListeners.add(listener);
+    }
+    
+    public static void removeConfigurationChangeListener(final ConfigurationChangeListener listener) {
+        changeListeners.remove(listener);
+    }
+    
+    private static DocumentationConfiguration loadDefaultConfiguration() {
+        // Load default configuration from Defaults interface
+        return new DocumentationConfiguration.Builder()
+            .setBaseUrl(Defaults.DOCUMENTATION_BASE_URL)
+            .setFlowsPath(Defaults.FLOWS_DOCUMENTATION_PATH)
+            .setClassesPath(Defaults.CLASSES_DOCUMENTATION_PATH)
+            .setConfidenceThreshold(Defaults.FLOW_DETECTION_CONFIDENCE_THRESHOLD)
+            .setTimeWindowSeconds(Defaults.FLOW_DETECTION_TIME_WINDOW_SECONDS)
+            .build();
+    }
+}
+#+END_SRC
+
+*** Internationalization Support
+Framework for future multi-language documentation:
+
+#+BEGIN_SRC java
+/**
+ * Internationalization framework for documentation system.
+ * Enables multi-language documentation support.
+ */
+public class DocumentationInternationalization {
+    
+    public static String getLocalizedDocumentationUrl(final String baseUrl, final String documentPath) {
+        final String language = getCurrentLanguage();
+        
+        if (!Defaults.DEFAULT_DOCUMENTATION_LANGUAGE.equals(language)) {
+            // Insert language code into URL path
+            return baseUrl + "/" + language + "/" + documentPath;
+        }
+        
+        return baseUrl + "/" + documentPath;
+    }
+    
+    private static String getCurrentLanguage() {
+        // Check system property for language override
+        String language = System.getProperty("bytehot.docs.language");
+        if (language != null && !language.isBlank()) {
+            return language;
+        }
+        
+        // Check environment variable
+        language = System.getenv("BYTEHOT_DOCS_LANGUAGE");
+        if (language != null && !language.isBlank()) {
+            return language;
+        }
+        
+        // Fall back to system locale
+        return Locale.getDefault().getLanguage();
+    }
+}
+#+END_SRC
+
+* Related Documentation and Integration Points
+
+** Core ByteHot Integration
+- [[./doc-provider-implementation.org][DocProvider Implementation]] - Primary consumer of enhanced Defaults constants
+- [[./doc-link-available-interface.org][DocLinkAvailable Interface]] - Interface that benefits from documentation configuration
+- [[./flow-detection-engine.org][Flow Detection Engine]] - Uses Flow detection configuration constants
+
+** Architecture Integration
+- [[../../docs/Defaults.org][Original Defaults Documentation]] - Existing Defaults interface documentation
+- [[../milestone-7-documentation-introspection.org][Milestone 7 Overview]] - Complete milestone description using these constants
+- [[../testing-phases/phase-10-documentation-introspection/][Phase 10 Testing]] - Testing specifications that validate configuration
+
+** Future Capabilities
+- [[../documentation-accuracy/][Documentation Accuracy]] - Documentation correctness specifications
+- Server Socket/Protocol Integration - Future HTTP-based documentation access
+- AI-Powered Documentation - Machine learning integration points
+
+The Defaults Enhancement provides the essential configuration foundation that enables ByteHot's revolutionary documentation introspection system. Through comprehensive constants, flexible configuration strategies, and intelligent caching configuration, this enhancement transforms simple documentation access into a sophisticated, adaptive system that understands and responds to different deployment environments and user needs.

@@ -1,0 +1,499 @@
+# Phase 9.1: End-to-End Scenarios Testing
+
+## Objective
+Validate complete hot-swap scenarios from initial file change through successful runtime class redefinition, testing the entire ByteHot pipeline under realistic conditions.
+
+## Prerequisites
+- All previous phases (1-8) completed successfully
+- Production-like test environment available
+- Real application classes for testing
+- Understanding of complete ByteHot workflow
+
+## Test Scenarios
+
+### 9.1.1 Simple Method Body Hot-Swap
+
+**Description**: Test the most basic hot-swap scenario - changing a method implementation.
+
+**Test Steps**:
+
+1. **Complete Pipeline Test**
+```bash
+# Create test application
+cat > TestApplication.java << 'EOF'
+public class TestApplication {
+    public static void main(String[] args) throws Exception {
+        TestService service = new TestService();
+        while (true) {
+            System.out.println(service.getMessage());
+            Thread.sleep(2000);
+        }
+    }
+}
+
+public class TestService {
+    public String getMessage() {
+        return "Original message";
+    }
+}
+EOF
+
+# Compile initial version
+javac -d target/test-classes TestApplication.java
+
+# Start application with ByteHot agent
+java -javaagent:target/bytehot-*-agent.jar \
+     -Dbhconfig=test-config.yml \
+     -cp target/test-classes TestApplication &
+APP_PID=$!
+```
+
+2. **Perform Hot-Swap**
+```bash
+# Modify and recompile the service class
+cat > TestService.java << 'EOF'
+public class TestService {
+    public String getMessage() {
+        return "HOT-SWAPPED message!";  // Changed implementation
+    }
+}
+EOF
+
+javac -d target/test-classes TestService.java
+
+# Wait for hot-swap to occur automatically
+sleep 5
+
+# Check output has changed
+```
+
+**Manual Verification**:
+```bash
+# Monitor application output
+tail -f application.log &
+
+# Verify output changes from:
+# "Original message"
+# to:
+# "HOT-SWAPPED message!"
+
+# Clean up
+kill $APP_PID
+```
+
+**Expected Results**:
+- ✅ File change detected within 2 seconds
+- ✅ Bytecode validation passes
+- ✅ Class redefinition succeeds
+- ✅ Running application immediately reflects changes
+- ✅ No application restart required
+- ✅ No exceptions or errors in logs
+
+### 9.1.2 Multi-Class Coordinated Updates
+
+**Description**: Test coordinated updates across multiple related classes.
+
+**Test Steps**:
+
+1. **Multi-Class Setup**
+```bash
+# Create related classes
+cat > UserService.java << 'EOF'
+public class UserService {
+    private EmailService emailService = new EmailService();
+    
+    public void processUser(String name) {
+        String message = "Processing user: " + name;
+        emailService.sendNotification(message);
+    }
+}
+EOF
+
+cat > EmailService.java << 'EOF'
+public class EmailService {
+    public void sendNotification(String message) {
+        System.out.println("[EMAIL] " + message);
+    }
+}
+EOF
+
+javac -d target/test-classes *.java
+```
+
+2. **Coordinated Update Test**
+```bash
+# Start application using both services
+java -javaagent:target/bytehot-*-agent.jar \
+     -Dbhconfig=test-config.yml \
+     -cp target/test-classes MultiServiceApp &
+
+# Update both classes simultaneously
+sed -i 's/Processing user/Handling user/' UserService.java
+sed -i 's/\[EMAIL\]/\[NOTIFICATION\]/' EmailService.java
+
+javac -d target/test-classes UserService.java EmailService.java
+
+# Monitor for coordinated updates
+```
+
+**Expected Results**:
+- ✅ Both classes hot-swapped successfully
+- ✅ Updates coordinate properly
+- ✅ No inconsistent intermediate states
+- ✅ Application continues running smoothly
+
+### 9.1.3 Instance State Preservation
+
+**Description**: Test preservation of object state during hot-swap operations.
+
+**Test Steps**:
+
+1. **Stateful Class Test**
+```bash
+cat > CounterService.java << 'EOF'
+public class CounterService {
+    private int count = 0;
+    private String name = "DefaultCounter";
+    
+    public void increment() {
+        count++;
+        System.out.println(name + " count: " + count);
+    }
+    
+    public int getCount() { return count; }
+    public String getName() { return name; }
+}
+EOF
+
+javac -d target/test-classes CounterService.java
+```
+
+2. **State Preservation Test**
+```bash
+# Start application that builds state
+java -javaagent:target/bytehot-*-agent.jar \
+     -Dbhconfig=test-config.yml \
+     -cp target/test-classes StatefulApp &
+
+# Let application build some state (count to 10)
+sleep 20
+
+# Modify implementation while preserving state
+cat > CounterService.java << 'EOF'
+public class CounterService {
+    private int count = 0;
+    private String name = "DefaultCounter";
+    
+    public void increment() {
+        count++;
+        System.out.println("UPDATED: " + name + " is now at: " + count);  // Changed format
+    }
+    
+    public int getCount() { return count; }
+    public String getName() { return name; }
+}
+EOF
+
+javac -d target/test-classes CounterService.java
+
+# Verify state preservation
+```
+
+**Expected Results**:
+- ✅ Instance state (count, name) preserved
+- ✅ Existing objects continue with preserved data
+- ✅ New behavior applied to existing instances
+- ✅ No data loss during hot-swap
+
+### 9.1.4 Framework Integration Scenarios
+
+**Description**: Test hot-swap with dependency injection frameworks.
+
+**Test Steps**:
+
+1. **Spring-like DI Test** (if Spring available)
+```bash
+# Create service with dependency injection patterns
+cat > DITestService.java << 'EOF'
+@Component
+public class DITestService {
+    @Autowired
+    private Repository repository;
+    
+    public String getData() {
+        return "Data from: " + repository.getSource();
+    }
+}
+EOF
+
+# Test hot-swap with DI framework coordination
+mvn -Dtest=*FrameworkIntegrationTest#testSpringHotSwap test
+```
+
+2. **Manual DI Test** (fallback)
+```bash
+# Simulate DI with manual wiring
+cat > ServiceRegistry.java << 'EOF'
+public class ServiceRegistry {
+    private static Map<Class<?>, Object> services = new HashMap<>();
+    
+    public static <T> void register(Class<T> type, T instance) {
+        services.put(type, instance);
+    }
+    
+    public static <T> T get(Class<T> type) {
+        return (T) services.get(type);
+    }
+}
+EOF
+
+# Test hot-swap with service registry
+```
+
+**Expected Results**:
+- ✅ Framework relationships preserved
+- ✅ Dependency injection continues working
+- ✅ Proxy objects updated correctly
+- ✅ Service registrations maintained
+
+### 9.1.5 Error Recovery Scenarios
+
+**Description**: Test complete error recovery and rollback scenarios.
+
+**Test Steps**:
+
+1. **Rollback Scenario Test**
+```bash
+# Create scenario that will cause rollback
+cat > ProblematicService.java << 'EOF'
+public class ProblematicService {
+    public String process() {
+        return "Working fine";
+    }
+}
+EOF
+
+javac -d target/test-classes ProblematicService.java
+
+# Start application
+java -javaagent:target/bytehot-*-agent.jar \
+     -Dbhconfig=test-config.yml \
+     -cp target/test-classes RollbackTestApp &
+
+# Create problematic update
+cat > ProblematicService.java << 'EOF'
+public class ProblematicService {
+    public String process() {
+        throw new RuntimeException("This will cause rollback");  // Problematic change
+    }
+}
+EOF
+
+javac -d target/test-classes ProblematicService.java
+
+# Monitor for rollback behavior
+```
+
+**Expected Results**:
+- ✅ Error detected in new implementation
+- ✅ Automatic rollback to previous version
+- ✅ Application continues with original behavior
+- ✅ Error logged with clear explanation
+- ✅ System remains stable after rollback
+
+### 9.1.6 High-Frequency Change Scenarios
+
+**Description**: Test system behavior under rapid, frequent class changes.
+
+**Test Steps**:
+
+1. **Rapid Change Test**
+```bash
+#!/bin/bash
+# Script to make rapid changes
+for i in {1..20}; do
+    cat > RapidChangeService.java << EOF
+public class RapidChangeService {
+    public String getMessage() {
+        return "Message version $i - $(date)";
+    }
+}
+EOF
+    javac -d target/test-classes RapidChangeService.java
+    sleep 2
+done
+```
+
+2. **Performance Under Load Test**
+```bash
+mvn -Dtest=*PerformanceUnderLoadTest test
+```
+
+**Expected Results**:
+- ✅ All changes processed successfully
+- ✅ No events lost or skipped
+- ✅ Performance remains acceptable
+- ✅ Memory usage remains stable
+- ✅ No threading issues or deadlocks
+
+### 9.1.7 Production-Like Workload
+
+**Description**: Test ByteHot under realistic production conditions.
+
+**Test Steps**:
+
+1. **Realistic Application Test**
+```bash
+# Create more complex application
+cat > WebService.java << 'EOF'
+public class WebService {
+    private UserRepository userRepo = new UserRepository();
+    private EmailService emailService = new EmailService();
+    private MetricsCollector metrics = new MetricsCollector();
+    
+    public Response handleRequest(Request request) {
+        metrics.increment("requests");
+        User user = userRepo.findById(request.getUserId());
+        
+        if (user == null) {
+            metrics.increment("user_not_found");
+            return Response.error("User not found");
+        }
+        
+        emailService.sendWelcome(user.getEmail());
+        metrics.increment("emails_sent");
+        
+        return Response.success("Welcome " + user.getName());
+    }
+}
+EOF
+
+# Test with realistic load
+java -javaagent:target/bytehot-*-agent.jar \
+     -Dbhconfig=production-test-config.yml \
+     -Xmx1G -Xms512M \
+     -cp target/test-classes ProductionSimulator
+```
+
+2. **Memory and Performance Monitoring**
+```bash
+# Monitor during realistic load
+jstat -gc $(pgrep java) 5s &
+top -p $(pgrep java) &
+
+# Make changes during load
+# Monitor impact on performance
+```
+
+**Expected Results**:
+- ✅ Hot-swap works under realistic load
+- ✅ Performance impact minimal (< 5%)
+- ✅ Memory usage stable
+- ✅ No service interruption during updates
+- ✅ Response times remain acceptable
+
+## Success Criteria
+
+### Automated Tests
+- [ ] All end-to-end scenario tests pass
+- [ ] Multi-class coordination tests pass
+- [ ] Instance state preservation tests pass
+- [ ] Framework integration tests pass
+- [ ] Error recovery tests pass
+- [ ] Performance under load tests pass
+
+### Manual Verification
+- [ ] Complete hot-swap workflows work end-to-end
+- [ ] State preservation verified manually
+- [ ] Framework integration functional
+- [ ] Error recovery and rollback work correctly
+- [ ] Performance acceptable under realistic conditions
+- [ ] No data loss or corruption observed
+
+### Performance Criteria
+- [ ] End-to-end hot-swap latency < 5 seconds
+- [ ] Performance impact < 5% during normal operation
+- [ ] Memory overhead < 50MB for typical applications
+- [ ] Success rate > 95% for compatible changes
+- [ ] Recovery time < 10 seconds for rollback scenarios
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue**: Hot-swap not triggering
+**Solution**:
+- Verify file watcher is monitoring correct directories
+- Check file patterns match modified files
+- Ensure agent is properly attached and initialized
+- Test with simpler changes first
+
+**Issue**: State loss during hot-swap
+**Solution**:
+- Check instance tracking is working
+- Verify state preservation logic
+- Test with simpler state structures
+- Review memory references and GC behavior
+
+**Issue**: Framework integration problems
+**Solution**:
+- Verify framework version compatibility
+- Check proxy update mechanisms
+- Test with framework-specific test cases
+- Review dependency injection configuration
+
+**Issue**: Poor performance during hot-swap
+**Solution**:
+- Profile hot-swap operations
+- Check for resource contention
+- Optimize validation and redefinition steps
+- Monitor thread pool utilization
+
+### Debug Commands
+
+```bash
+# Monitor complete hot-swap pipeline
+export BYTEHOT_PIPELINE_DEBUG=true
+java -javaagent:target/bytehot-*-agent.jar \
+     -Djava.util.logging.level=FINEST \
+     -cp target/test-classes TestApplication
+
+# Profile hot-swap performance
+java -XX:+FlightRecorder \
+     -XX:StartFlightRecording=duration=60s,filename=hotswap.jfr \
+     -javaagent:target/bytehot-*-agent.jar \
+     -cp target/test-classes TestApplication
+
+# Monitor memory during hot-swap
+jcmd $(pgrep java) GC.run
+jmap -histo $(pgrep java) | head -20
+
+# Check thread activity
+jstack $(pgrep java) | grep -A 5 -B 5 ByteHot
+```
+
+### Production Testing Configuration
+
+```yaml
+# production-test-config.yml
+bytehot:
+  performance:
+    max-validation-time: 100ms
+    max-redefinition-time: 500ms
+    thread-pool-size: 4
+  monitoring:
+    metrics-enabled: true
+    performance-logging: true
+  error-handling:
+    auto-rollback: true
+    max-retry-attempts: 3
+```
+
+## Next Steps
+
+Once Phase 9.1 passes completely:
+1. Proceed to [Performance & Reliability](performance-reliability.md)
+2. Test with real production applications
+3. Conduct user acceptance testing
+4. Prepare for production deployment
+5. Document operational procedures and best practices

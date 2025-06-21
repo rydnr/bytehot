@@ -40,8 +40,13 @@ package org.acmsl.bytehot.infrastructure.agent;
 
 import org.acmsl.bytehot.application.ByteHotApplication;
 import org.acmsl.bytehot.domain.InstrumentationProvider;
+import org.acmsl.bytehot.domain.WatchConfiguration;
+import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
+
+import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import java.lang.instrument.Instrumentation;
+import java.util.List;
 
 /**
  * JVM agent entry point for ByteHot instrumentation setup
@@ -60,6 +65,22 @@ public class ByteHotAgent {
         
         // Initialize ByteHot hexagonal architecture
         ByteHotApplication.initialize(inst);
+        
+        // Create and process the agent attachment request through domain logic
+        try {
+            final WatchConfiguration config = new WatchConfiguration(8080); // Default port
+            final ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, inst);
+            final List<DomainResponseEvent<ByteHotAttachRequested>> responses = ByteHotApplication.getInstance().accept(attachRequest);
+            
+            // Print the response events to stdout for testing verification
+            for (final DomainResponseEvent<ByteHotAttachRequested> response : responses) {
+                System.out.println(response.getClass().getSimpleName());
+            }
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to process agent attachment: " + e.getMessage());
+            e.printStackTrace();
+        }
         
         System.out.println("ByteHot agent initialized successfully");
     }

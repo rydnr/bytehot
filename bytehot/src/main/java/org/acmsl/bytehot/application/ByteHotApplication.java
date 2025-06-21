@@ -43,6 +43,7 @@ import org.acmsl.bytehot.domain.InstrumentationPort;
 import org.acmsl.bytehot.domain.Ports;
 import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter;
 import org.acmsl.bytehot.infrastructure.events.EventEmitterAdapter;
 import org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter;
@@ -53,6 +54,7 @@ import org.acmsl.commons.patterns.Application;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 import org.acmsl.commons.patterns.Port;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -145,6 +147,31 @@ public class ByteHotApplication
         }
         
         return responseEvents;
+    }
+
+    /**
+     * Processes a ClassFileChanged event from file monitoring
+     * @param event the class file changed event
+     */
+    public void processClassFileChanged(final ClassFileChanged event) {
+        try {
+            // Ensure adapters are initialized
+            if (!adaptersInitialized) {
+                System.err.println("Application not initialized - cannot process ClassFileChanged event");
+                return;
+            }
+            
+            // For now, just log the event and emit it
+            System.out.println("Processing ClassFileChanged: " + event.getClassName() + " at " + event.getClassFile());
+            
+            // For now, just log the event since ClassFileChanged is not a DomainResponseEvent
+            // In a full implementation, this would trigger the hot-swap pipeline
+            System.out.println("ClassFileChanged event received: " + event.getClassName());
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to process ClassFileChanged event: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**

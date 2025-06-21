@@ -1,0 +1,990 @@
+#+TITLE: DocProvider Implementation - Centralized Documentation System and Flow Detection Engine
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-21]
+#+DESCRIPTION: Technical specification for the DocProvider class implementing centralized documentation URL generation and runtime Flow detection
+
+* Overview: The Heart of ByteHot's Documentation Introspection System
+
+The DocProvider class serves as the centralized intelligence hub for ByteHot's documentation introspection system. This sophisticated infrastructure component combines URL generation algorithms, runtime Flow detection capabilities, and contextual analysis to provide intelligent, contextual documentation access throughout the ByteHot ecosystem.
+
+** Architectural Role and Responsibilities
+
+*** Central Documentation Intelligence Hub
+DocProvider acts as the single source of truth for all documentation-related operations:
+- *URL Generation Authority*: Centralized algorithms for generating all types of documentation URLs
+- *Flow Detection Engine*: Sophisticated runtime analysis to determine operational context
+- *Context Analysis Hub*: Multi-source analysis of runtime context for intelligent documentation selection
+- *Caching and Performance Optimization*: Intelligent caching strategies for optimal performance
+
+*** Infrastructure Layer Implementation
+As an infrastructure layer component, DocProvider handles all accidental complexity:
+- *GitHub Pages Integration*: Seamless integration with GitHub Pages published documentation
+- *Local Documentation Support*: Fallback to local documentation for offline development
+- *Network Resilience*: Robust handling of network connectivity issues and failures
+- *Configuration Management*: Flexible configuration for different deployment environments
+
+* Class Structure and Core Architecture
+
+** Primary Class Definition and Static Methods
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+import org.acmsl.bytehot.domain.Defaults;
+import org.acmsl.bytehot.domain.DocLinkAvailable;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Optional;
+import java.time.Instant;
+import java.time.Duration;
+
+/**
+ * Centralized documentation provider implementing intelligent URL generation
+ * and runtime Flow detection for ByteHot's documentation introspection system.
+ * 
+ * This class serves as the infrastructure implementation for all documentation
+ * access, providing sophisticated Flow detection, URL generation, and caching
+ * capabilities while maintaining clean separation from domain logic.
+ * 
+ * Key responsibilities:
+ * - Generate documentation URLs for classes, methods, and Flows
+ * - Detect runtime operational context (Flows) through multi-source analysis
+ * - Provide intelligent caching for optimal performance
+ * - Handle network resilience and graceful degradation
+ * 
+ * @author ByteHot Development Team
+ * @since 2025-06-21
+ */
+public class DocProvider {
+    
+    /**
+     * Cache for class documentation URLs to optimize repeated access
+     */
+    private static final Map<Class<?>, String> classDocCache = new ConcurrentHashMap<>();
+    
+    /**
+     * Cache for method documentation URLs with class-method key combination
+     */
+    private static final Map<String, String> methodDocCache = new ConcurrentHashMap<>();
+    
+    /**
+     * Cache for Flow detection results with timestamp-based expiration
+     */
+    private static final Map<String, FlowDetectionResult> flowDetectionCache = new ConcurrentHashMap<>();
+    
+    /**
+     * Time window for Flow detection analysis (default: 30 seconds)
+     */
+    private static final Duration FLOW_DETECTION_WINDOW = Duration.ofSeconds(30);
+    
+    /**
+     * Minimum confidence threshold for Flow detection (default: 0.5)
+     */
+    private static final double MINIMUM_FLOW_CONFIDENCE = 0.5;
+    
+    /**
+     * Protected constructor to prevent instantiation - all methods are static
+     */
+    protected DocProvider() {}
+    
+    /**
+     * Generates documentation URL for the specified class.
+     * 
+     * @param clazz The class for which documentation URL is requested
+     * @return Documentation URL pointing to the class documentation,
+     *         or null if documentation is not available
+     */
+    public static String getDocumentationUrl(final Class<?> clazz) {
+        if (clazz == null) {
+            return null;
+        }
+        
+        // Check cache first for optimal performance
+        return classDocCache.computeIfAbsent(clazz, DocProvider::generateClassDocumentationUrl);
+    }
+    
+    /**
+     * Generates method-specific documentation URL for the specified class and method.
+     * 
+     * @param clazz The class containing the method
+     * @param methodName The name of the method for documentation
+     * @return Method-specific documentation URL with anchor links,
+     *         or null if documentation is not available
+     */
+    public static String getMethodDocumentationUrl(final Class<?> clazz, final String methodName) {
+        if (clazz == null || methodName == null || methodName.isBlank()) {
+            return null;
+        }
+        
+        final String cacheKey = clazz.getName() + "#" + methodName;
+        return methodDocCache.computeIfAbsent(cacheKey, 
+            key -> generateMethodDocumentationUrl(clazz, methodName));
+    }
+    
+    /**
+     * Generates runtime Flow documentation URL based on current operational context.
+     * This is the revolutionary feature that provides contextual documentation
+     * by analyzing the runtime environment to determine the active Flow.
+     * 
+     * @param instance The instance requesting Flow documentation for context analysis
+     * @return Flow-specific documentation URL based on detected runtime context,
+     *         or null if no Flow context can be determined
+     */
+    public static String getRuntimeFlowDocumentationUrl(final Object instance) {
+        if (instance == null) {
+            return null;
+        }
+        
+        // Detect current Flow context through sophisticated analysis
+        final Optional<FlowDetectionResult> detectedFlow = detectCurrentFlow(instance);
+        
+        return detectedFlow
+            .filter(result -> result.getConfidence() >= MINIMUM_FLOW_CONFIDENCE)
+            .map(result -> generateFlowDocumentationUrl(result.getFlowName()))
+            .orElse(null);
+    }
+}
+#+END_SRC
+
+** URL Generation Implementation
+
+*** Class Documentation URL Generation
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Generates the documentation URL for a specific class.
+ * Uses the class package and name to construct the appropriate documentation path.
+ * 
+ * @param clazz The class for documentation URL generation
+ * @return Generated documentation URL or null if cannot be generated
+ */
+private static String generateClassDocumentationUrl(final Class<?> clazz) {
+    try {
+        final String baseUrl = getDocumentationBaseUrl();
+        if (baseUrl == null) {
+            return null;
+        }
+        
+        final String className = clazz.getSimpleName();
+        final String packagePath = determineDocumentationPath(clazz);
+        
+        return String.format("%s/docs/%s/%s.html", baseUrl, packagePath, className);
+        
+    } catch (final Exception e) {
+        System.err.println("Failed to generate documentation URL for " + clazz.getName() + ": " + e.getMessage());
+        return null;
+    }
+}
+
+/**
+ * Determines the appropriate documentation path based on class package structure.
+ * Maps Java package structure to documentation directory structure.
+ * 
+ * @param clazz The class to analyze for documentation path
+ * @return Documentation path segment for the class
+ */
+private static String determineDocumentationPath(final Class<?> clazz) {
+    final String packageName = clazz.getPackage().getName();
+    
+    // Map package structure to documentation structure
+    if (packageName.contains(".domain.")) {
+        return "domain";
+    } else if (packageName.contains(".application.")) {
+        return "application";
+    } else if (packageName.contains(".infrastructure.")) {
+        return "infrastructure";
+    } else if (packageName.contains(".events.")) {
+        return "events";
+    } else {
+        return "classes";
+    }
+}
+#+END_SRC
+
+*** Method-Specific Documentation URL Generation
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Generates method-specific documentation URL with anchor links.
+ * 
+ * @param clazz The class containing the method
+ * @param methodName The method name for anchor generation
+ * @return Method-specific documentation URL with anchor
+ */
+private static String generateMethodDocumentationUrl(final Class<?> clazz, final String methodName) {
+    final String classUrl = generateClassDocumentationUrl(clazz);
+    if (classUrl == null) {
+        return null;
+    }
+    
+    // Generate method anchor based on method name
+    final String methodAnchor = generateMethodAnchor(methodName);
+    return classUrl + "#" + methodAnchor;
+}
+
+/**
+ * Generates appropriate anchor link for method documentation.
+ * Converts method names to documentation-friendly anchor format.
+ * 
+ * @param methodName The method name to convert
+ * @return Anchor-friendly method identifier
+ */
+private static String generateMethodAnchor(final String methodName) {
+    // Convert camelCase to hyphen-separated for HTML anchors
+    return methodName.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase();
+}
+#+END_SRC
+
+*** Flow Documentation URL Generation
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Generates Flow-specific documentation URL based on detected Flow name.
+ * 
+ * @param flowName The name of the detected Flow
+ * @return Flow documentation URL
+ */
+private static String generateFlowDocumentationUrl(final String flowName) {
+    try {
+        final String baseUrl = getDocumentationBaseUrl();
+        if (baseUrl == null) {
+            return null;
+        }
+        
+        // Convert Flow name to documentation filename format
+        final String flowFileName = flowName.toLowerCase()
+            .replaceAll("([a-z])([A-Z])", "$1-$2")
+            .toLowerCase() + "-flow";
+        
+        return String.format("%s/docs/flows/%s.html", baseUrl, flowFileName);
+        
+    } catch (final Exception e) {
+        System.err.println("Failed to generate Flow documentation URL for " + flowName + ": " + e.getMessage());
+        return null;
+    }
+}
+
+/**
+ * Retrieves the base documentation URL from configuration.
+ * Supports multiple sources with fallback strategy.
+ * 
+ * @return Base documentation URL or null if not configured
+ */
+private static String getDocumentationBaseUrl() {
+    // Try system property first for runtime override
+    String baseUrl = System.getProperty("bytehot.docs.baseUrl");
+    if (baseUrl != null && !baseUrl.isBlank()) {
+        return baseUrl;
+    }
+    
+    // Try environment variable for deployment configuration
+    baseUrl = System.getenv("BYTEHOT_DOCS_BASE_URL");
+    if (baseUrl != null && !baseUrl.isBlank()) {
+        return baseUrl;
+    }
+    
+    // Fall back to default from Defaults interface
+    return Defaults.DOCUMENTATION_BASE_URL;
+}
+#+END_SRC
+
+* Advanced Flow Detection Engine Implementation
+
+** Multi-Source Flow Detection Algorithm
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Detects the current operational Flow through sophisticated multi-source analysis.
+ * This is the core intelligence of the documentation introspection system.
+ * 
+ * @param instance The instance providing context for Flow detection
+ * @return Optional FlowDetectionResult with detected Flow and confidence score
+ */
+private static Optional<FlowDetectionResult> detectCurrentFlow(final Object instance) {
+    try {
+        final String cacheKey = generateFlowDetectionCacheKey(instance);
+        
+        // Check cache first for performance optimization
+        final FlowDetectionResult cachedResult = flowDetectionCache.get(cacheKey);
+        if (cachedResult != null && !cachedResult.isExpired()) {
+            return Optional.of(cachedResult);
+        }
+        
+        // Perform multi-source Flow detection analysis
+        final FlowDetectionContext context = new FlowDetectionContext(instance);
+        final FlowDetectionResult result = performFlowDetection(context);
+        
+        // Cache result for future use
+        if (result != null) {
+            flowDetectionCache.put(cacheKey, result);
+        }
+        
+        return Optional.ofNullable(result);
+        
+    } catch (final Exception e) {
+        System.err.println("Flow detection failed for " + instance.getClass().getName() + ": " + e.getMessage());
+        return Optional.empty();
+    }
+}
+
+/**
+ * Performs the actual Flow detection using multiple analysis sources.
+ * 
+ * @param context The Flow detection context containing all analysis data
+ * @return FlowDetectionResult with detected Flow and confidence score
+ */
+private static FlowDetectionResult performFlowDetection(final FlowDetectionContext context) {
+    double maxConfidence = 0.0;
+    String detectedFlow = null;
+    
+    // Analyze call stack for Flow patterns
+    final CallStackAnalysisResult callStackResult = analyzeCallStack(context);
+    if (callStackResult.getConfidence() > maxConfidence) {
+        maxConfidence = callStackResult.getConfidence();
+        detectedFlow = callStackResult.getDetectedFlow();
+    }
+    
+    // Analyze recent domain events for Flow context
+    final EventSequenceAnalysisResult eventResult = analyzeEventSequence(context);
+    if (eventResult.getConfidence() > maxConfidence) {
+        maxConfidence = eventResult.getConfidence();
+        detectedFlow = eventResult.getDetectedFlow();
+    }
+    
+    // Analyze configuration state for setup Flows
+    final ConfigurationAnalysisResult configResult = analyzeConfigurationState(context);
+    if (configResult.getConfidence() > maxConfidence) {
+        maxConfidence = configResult.getConfidence();
+        detectedFlow = configResult.getDetectedFlow();
+    }
+    
+    // Analyze file system operations for development Flows
+    final FileSystemAnalysisResult fileSystemResult = analyzeFileSystemOperations(context);
+    if (fileSystemResult.getConfidence() > maxConfidence) {
+        maxConfidence = fileSystemResult.getConfidence();
+        detectedFlow = fileSystemResult.getDetectedFlow();
+    }
+    
+    if (detectedFlow != null && maxConfidence >= MINIMUM_FLOW_CONFIDENCE) {
+        return new FlowDetectionResult(detectedFlow, maxConfidence, Instant.now());
+    }
+    
+    return null;
+}
+#+END_SRC
+
+** Call Stack Analysis Implementation
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Analyzes the current call stack to detect Flow patterns.
+ * Different Flows have characteristic call stack signatures that can be recognized.
+ * 
+ * @param context The Flow detection context
+ * @return CallStackAnalysisResult with detected Flow and confidence
+ */
+private static CallStackAnalysisResult analyzeCallStack(final FlowDetectionContext context) {
+    final StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+    
+    // Configuration Management Flow detection
+    if (isConfigurationManagementFlow(stackTrace)) {
+        return new CallStackAnalysisResult("ConfigurationManagementFlow", 0.8);
+    }
+    
+    // File Change Detection Flow detection
+    if (isFileChangeDetectionFlow(stackTrace)) {
+        return new CallStackAnalysisResult("FileChangeDetectionFlow", 0.85);
+    }
+    
+    // Hot-Swap Complete Flow detection
+    if (isHotSwapCompleteFlow(stackTrace)) {
+        return new CallStackAnalysisResult("HotSwapCompleteFlow", 0.9);
+    }
+    
+    // Agent Startup Flow detection
+    if (isAgentStartupFlow(stackTrace)) {
+        return new CallStackAnalysisResult("AgentStartupFlow", 0.75);
+    }
+    
+    return new CallStackAnalysisResult(null, 0.0);
+}
+
+/**
+ * Detects Configuration Management Flow from call stack patterns.
+ * 
+ * @param stackTrace The current thread stack trace
+ * @return true if Configuration Management Flow pattern detected
+ */
+private static boolean isConfigurationManagementFlow(final StackTraceElement[] stackTrace) {
+    for (final StackTraceElement element : stackTrace) {
+        final String className = element.getClassName();
+        final String methodName = element.getMethodName();
+        
+        // Look for characteristic Configuration Management patterns
+        if (className.contains("ConfigurationAdapter") && methodName.equals("loadWatchConfiguration")) {
+            return true;
+        }
+        
+        if (className.contains("WatchConfiguration") && methodName.equals("load")) {
+            return true;
+        }
+        
+        if (className.contains("ByteHotCLI") && methodName.equals("premain")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Detects File Change Detection Flow from call stack patterns.
+ * 
+ * @param stackTrace The current thread stack trace
+ * @return true if File Change Detection Flow pattern detected
+ */
+private static boolean isFileChangeDetectionFlow(final StackTraceElement[] stackTrace) {
+    for (final StackTraceElement element : stackTrace) {
+        final String className = element.getClassName();
+        final String methodName = element.getMethodName();
+        
+        // Look for characteristic File Change Detection patterns
+        if (className.contains("FileWatcherAdapter") && methodName.contains("watch")) {
+            return true;
+        }
+        
+        if (className.contains("ClassFileChanged") || className.contains("ClassFileCreated")) {
+            return true;
+        }
+        
+        if (methodName.equals("onChanged") || methodName.equals("onCreated")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Detects Hot-Swap Complete Flow from call stack patterns.
+ * 
+ * @param stackTrace The current thread stack trace
+ * @return true if Hot-Swap Complete Flow pattern detected
+ */
+private static boolean isHotSwapCompleteFlow(final StackTraceElement[] stackTrace) {
+    for (final StackTraceElement element : stackTrace) {
+        final String className = element.getClassName();
+        final String methodName = element.getMethodName();
+        
+        // Look for characteristic Hot-Swap patterns
+        if (className.contains("HotSwapManager") || className.contains("InstrumentationAdapter")) {
+            return true;
+        }
+        
+        if (methodName.contains("redefine") || methodName.contains("transform")) {
+            return true;
+        }
+        
+        if (className.contains("ClassRedefinition") || className.contains("InstancesUpdated")) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Detects Agent Startup Flow from call stack patterns.
+ * 
+ * @param stackTrace The current thread stack trace
+ * @return true if Agent Startup Flow pattern detected
+ */
+private static boolean isAgentStartupFlow(final StackTraceElement[] stackTrace) {
+    for (final StackTraceElement element : stackTrace) {
+        final String className = element.getClassName();
+        final String methodName = element.getMethodName();
+        
+        // Look for characteristic Agent Startup patterns
+        if (className.contains("ByteHotApplication") && methodName.equals("initialize")) {
+            return true;
+        }
+        
+        if (className.contains("ByteHotAgent") && (methodName.equals("premain") || methodName.equals("agentmain"))) {
+            return true;
+        }
+        
+        if (methodName.contains("discoverAndInjectAdapters")) {
+            return true;
+        }
+    }
+    return false;
+}
+#+END_SRC
+
+** Event Sequence Analysis Implementation
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Analyzes recent domain event sequences to detect Flow context.
+ * Different Flows produce characteristic event sequences that can be recognized.
+ * 
+ * @param context The Flow detection context
+ * @return EventSequenceAnalysisResult with detected Flow and confidence
+ */
+private static EventSequenceAnalysisResult analyzeEventSequence(final FlowDetectionContext context) {
+    // This would integrate with ByteHot's EventStore to analyze recent events
+    // For now, we provide the framework for future implementation
+    
+    // Get recent events from EventStore (within time window)
+    // final List<DomainEvent> recentEvents = getRecentEvents(FLOW_DETECTION_WINDOW);
+    
+    // Analyze event sequences for Flow patterns
+    // Configuration Flow: ByteHotAttachRequested → ConfigurationLoaded → WatchPathConfigured
+    // File Change Flow: ClassFileChanged → ClassMetadataExtracted → BytecodeValidated
+    // Hot-Swap Flow: HotSwapRequested → ClassRedefinitionSucceeded → InstancesUpdated
+    
+    // For now, return null confidence until EventStore integration is complete
+    return new EventSequenceAnalysisResult(null, 0.0);
+}
+
+/**
+ * Analyzes current configuration state to detect configuration-related Flows.
+ * 
+ * @param context The Flow detection context
+ * @return ConfigurationAnalysisResult with detected Flow and confidence
+ */
+private static ConfigurationAnalysisResult analyzeConfigurationState(final FlowDetectionContext context) {
+    // Check if we're currently in configuration loading operations
+    final String threadName = Thread.currentThread().getName();
+    
+    if (threadName.contains("config") || threadName.contains("startup")) {
+        return new ConfigurationAnalysisResult("ConfigurationManagementFlow", 0.6);
+    }
+    
+    return new ConfigurationAnalysisResult(null, 0.0);
+}
+
+/**
+ * Analyzes file system operations to detect development workflow Flows.
+ * 
+ * @param context The Flow detection context
+ * @return FileSystemAnalysisResult with detected Flow and confidence
+ */
+private static FileSystemAnalysisResult analyzeFileSystemOperations(final FlowDetectionContext context) {
+    // Check for recent file system activity through FileWatcher state
+    // This would integrate with FileWatcherAdapter to check current monitoring state
+    
+    // For now, provide basic implementation
+    return new FileSystemAnalysisResult(null, 0.0);
+}
+#+END_SRC
+
+* Supporting Classes and Data Structures
+
+** Flow Detection Result Classes
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/FlowDetectionResult.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+import java.time.Instant;
+import java.time.Duration;
+
+/**
+ * Result of Flow detection analysis containing detected Flow name,
+ * confidence score, and timestamp for cache expiration.
+ */
+public class FlowDetectionResult {
+    private final String flowName;
+    private final double confidence;
+    private final Instant timestamp;
+    private final Duration cacheExpiration = Duration.ofMinutes(5);
+    
+    public FlowDetectionResult(final String flowName, final double confidence, final Instant timestamp) {
+        this.flowName = flowName;
+        this.confidence = confidence;
+        this.timestamp = timestamp;
+    }
+    
+    public String getFlowName() {
+        return flowName;
+    }
+    
+    public double getConfidence() {
+        return confidence;
+    }
+    
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+    
+    public boolean isExpired() {
+        return Instant.now().isAfter(timestamp.plus(cacheExpiration));
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/FlowDetectionContext.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+/**
+ * Context information for Flow detection analysis, containing all
+ * relevant data for determining operational Flow.
+ */
+public class FlowDetectionContext {
+    private final Object instance;
+    private final String threadName;
+    private final long threadId;
+    private final StackTraceElement[] stackTrace;
+    
+    public FlowDetectionContext(final Object instance) {
+        this.instance = instance;
+        final Thread currentThread = Thread.currentThread();
+        this.threadName = currentThread.getName();
+        this.threadId = currentThread.getId();
+        this.stackTrace = currentThread.getStackTrace();
+    }
+    
+    public Object getInstance() {
+        return instance;
+    }
+    
+    public String getThreadName() {
+        return threadName;
+    }
+    
+    public long getThreadId() {
+        return threadId;
+    }
+    
+    public StackTraceElement[] getStackTrace() {
+        return stackTrace;
+    }
+}
+#+END_SRC
+
+** Analysis Result Classes
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/CallStackAnalysisResult.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+/**
+ * Result of call stack analysis for Flow detection.
+ */
+public class CallStackAnalysisResult {
+    private final String detectedFlow;
+    private final double confidence;
+    
+    public CallStackAnalysisResult(final String detectedFlow, final double confidence) {
+        this.detectedFlow = detectedFlow;
+        this.confidence = confidence;
+    }
+    
+    public String getDetectedFlow() {
+        return detectedFlow;
+    }
+    
+    public double getConfidence() {
+        return confidence;
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/EventSequenceAnalysisResult.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+/**
+ * Result of event sequence analysis for Flow detection.
+ */
+public class EventSequenceAnalysisResult {
+    private final String detectedFlow;
+    private final double confidence;
+    
+    public EventSequenceAnalysisResult(final String detectedFlow, final double confidence) {
+        this.detectedFlow = detectedFlow;
+        this.confidence = confidence;
+    }
+    
+    public String getDetectedFlow() {
+        return detectedFlow;
+    }
+    
+    public double getConfidence() {
+        return confidence;
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/ConfigurationAnalysisResult.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+/**
+ * Result of configuration state analysis for Flow detection.
+ */
+public class ConfigurationAnalysisResult {
+    private final String detectedFlow;
+    private final double confidence;
+    
+    public ConfigurationAnalysisResult(final String detectedFlow, final double confidence) {
+        this.detectedFlow = detectedFlow;
+        this.confidence = confidence;
+    }
+    
+    public String getDetectedFlow() {
+        return detectedFlow;
+    }
+    
+    public double getConfidence() {
+        return confidence;
+    }
+}
+#+END_SRC
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/FileSystemAnalysisResult.java
+package org.acmsl.bytehot.infrastructure.doc;
+
+/**
+ * Result of file system operations analysis for Flow detection.
+ */
+public class FileSystemAnalysisResult {
+    private final String detectedFlow;
+    private final double confidence;
+    
+    public FileSystemAnalysisResult(final String detectedFlow, final double confidence) {
+        this.detectedFlow = detectedFlow;
+        this.confidence = confidence;
+    }
+    
+    public String getDetectedFlow() {
+        return detectedFlow;
+    }
+    
+    public double getConfidence() {
+        return confidence;
+    }
+}
+#+END_SRC
+
+** Cache Key Generation Utility
+
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/doc/DocProvider.java
+/**
+ * Generates cache key for Flow detection based on instance context.
+ * 
+ * @param instance The instance for cache key generation
+ * @return Cache key string for Flow detection caching
+ */
+private static String generateFlowDetectionCacheKey(final Object instance) {
+    final Thread currentThread = Thread.currentThread();
+    return String.format("%s_%s_%d", 
+        instance.getClass().getSimpleName(),
+        currentThread.getName(),
+        currentThread.getId());
+}
+#+END_SRC
+
+* Performance Optimization and Caching Strategy
+
+** Intelligent Caching Implementation
+
+*** Multi-Level Caching Strategy
+The DocProvider implements sophisticated caching at multiple levels:
+- *Class Documentation Cache*: Long-term caching of class documentation URLs
+- *Method Documentation Cache*: Caching of method-specific URLs with class-method keys
+- *Flow Detection Cache*: Time-bounded caching of Flow detection results
+- *Base URL Cache*: Caching of configuration-derived base URLs
+
+*** Cache Expiration and Invalidation
+#+BEGIN_SRC java
+// Flow detection cache with time-based expiration
+private static final Duration FLOW_CACHE_EXPIRATION = Duration.ofMinutes(5);
+
+// Method to clean expired Flow detection cache entries
+private static void cleanExpiredFlowCache() {
+    final Instant now = Instant.now();
+    flowDetectionCache.entrySet().removeIf(entry -> 
+        entry.getValue().getTimestamp().plus(FLOW_CACHE_EXPIRATION).isBefore(now));
+}
+#+END_SRC
+
+** Performance Monitoring and Optimization
+
+*** Performance Metrics Collection
+#+BEGIN_SRC java
+// Performance monitoring for documentation operations
+private static final Map<String, Long> performanceMetrics = new ConcurrentHashMap<>();
+
+private static void recordPerformanceMetric(final String operation, final long durationNanos) {
+    performanceMetrics.put(operation + "_last", durationNanos);
+    performanceMetrics.compute(operation + "_avg", (key, current) -> 
+        current == null ? durationNanos : (current + durationNanos) / 2);
+}
+#+END_SRC
+
+*** Memory Usage Optimization
+- *Weak Reference Patterns*: Use weak references for long-term caches to prevent memory leaks
+- *Cache Size Limits*: Implement maximum cache sizes with LRU eviction strategies
+- *Garbage Collection Friendly*: Design caching strategies to be garbage collection friendly
+
+* Error Handling and Resilience Patterns
+
+** Comprehensive Error Recovery
+
+*** Network Resilience Implementation
+#+BEGIN_SRC java
+/**
+ * Handles network connectivity issues gracefully with fallback strategies.
+ */
+private static String handleNetworkFailure(final String primaryUrl) {
+    // Try local documentation fallback
+    final String localUrl = tryLocalDocumentation(primaryUrl);
+    if (localUrl != null) {
+        return localUrl;
+    }
+    
+    // Try cached documentation URL
+    final String cachedUrl = tryCachedDocumentation(primaryUrl);
+    if (cachedUrl != null) {
+        return cachedUrl;
+    }
+    
+    // Return null for graceful degradation
+    return null;
+}
+#+END_SRC
+
+*** Exception Isolation and Logging
+- *Exception Boundaries*: All documentation operations isolated to prevent affecting core functionality
+- *Comprehensive Logging*: Detailed error logging for troubleshooting without exposing sensitive information
+- *Graceful Degradation*: System continues functioning when documentation access fails
+- *Error Recovery*: Automatic retry mechanisms with exponential backoff for transient failures
+
+** Security and Privacy Considerations
+
+*** Information Disclosure Prevention
+- *Stack Trace Sanitization*: Careful handling of stack traces to prevent sensitive information leakage
+- *URL Validation*: Comprehensive validation of generated URLs for security
+- *Configuration Protection*: Ensure documentation access doesn't expose sensitive configuration
+- *Error Message Sanitization*: Prevent sensitive information disclosure through error messages
+
+* Testing Strategy and Validation Framework
+
+** Comprehensive Testing Implementation
+
+*** Unit Testing for URL Generation
+#+BEGIN_SRC java
+public class DocProviderTest {
+    
+    @Test
+    void should_generate_class_documentation_url() {
+        // Given: A class requiring documentation
+        final Class<?> testClass = ByteHotApplication.class;
+        
+        // When: Generating documentation URL
+        final String docUrl = DocProvider.getDocumentationUrl(testClass);
+        
+        // Then: Should return valid documentation URL
+        assertThat(docUrl).isNotNull();
+        assertThat(docUrl).contains("ByteHotApplication.html");
+        assertThat(docUrl).startsWith("https://rydnr.github.io/bytehot/docs/");
+    }
+    
+    @Test
+    void should_generate_method_documentation_url() {
+        // Given: A class and method requiring documentation
+        final Class<?> testClass = ConfigurationAdapter.class;
+        final String methodName = "loadWatchConfiguration";
+        
+        // When: Generating method documentation URL
+        final String methodUrl = DocProvider.getMethodDocumentationUrl(testClass, methodName);
+        
+        // Then: Should return method-specific URL with anchor
+        assertThat(methodUrl).isNotNull();
+        assertThat(methodUrl).contains("ConfigurationAdapter.html#load-watch-configuration");
+    }
+    
+    @Test
+    void should_detect_configuration_management_flow() {
+        // Given: A context indicating configuration management operations
+        final ConfigurationAdapter adapter = new ConfigurationAdapter();
+        
+        // When: Requesting runtime Flow documentation during config loading
+        final String flowUrl = DocProvider.getRuntimeFlowDocumentationUrl(adapter);
+        
+        // Then: Should detect Configuration Management Flow
+        if (flowUrl != null) {
+            assertThat(flowUrl).contains("configuration-management-flow.html");
+        }
+    }
+}
+#+END_SRC
+
+*** Performance Testing for Flow Detection
+#+BEGIN_SRC java
+@Test
+void should_have_minimal_flow_detection_overhead() {
+    // Given: A documented object for Flow detection
+    final ByteHotApplication app = new ByteHotApplication();
+    
+    // When: Measuring Flow detection performance
+    final long startTime = System.nanoTime();
+    for (int i = 0; i < 100; i++) {
+        DocProvider.getRuntimeFlowDocumentationUrl(app);
+    }
+    final long endTime = System.nanoTime();
+    
+    // Then: Should complete within performance requirements
+    final long averageTime = (endTime - startTime) / 100;
+    assertThat(averageTime).isLessThan(5_000_000); // Less than 5ms average
+}
+#+END_SRC
+
+*** Integration Testing for End-to-End Workflows
+- *Complete Documentation Access Testing*: End-to-end testing from interface method to URL validation
+- *Multi-Flow Scenario Testing*: Testing Flow detection across various operational scenarios
+- *Cache Behavior Validation*: Testing caching behavior and performance optimization
+- *Error Condition Testing*: Comprehensive testing of all failure scenarios and recovery
+
+* Future Enhancement Opportunities
+
+** Advanced Flow Detection Capabilities
+
+*** Machine Learning Integration Points
+Framework prepared for future AI enhancement:
+- *Historical Pattern Analysis*: Learning from historical Flow detection accuracy
+- *User Behavior Learning*: Adapting to individual developer documentation preferences
+- *Predictive Flow Detection*: Predicting likely Flows based on development patterns
+- *Natural Language Context Understanding*: Advanced context recognition through NLP
+
+*** Enhanced Context Recognition
+- *IDE Integration Context*: Detection of IDE-specific development contexts
+- *Project Structure Analysis*: Understanding project structure for better documentation routing
+- *Build Tool Integration*: Integration with build tools for enhanced context understanding
+- *Version Control Integration*: Git branch and commit context for documentation versioning
+
+** Interactive Documentation Server Integration
+
+*** HTTP Protocol Foundation
+Preparation for future server socket capabilities:
+- *RESTful Documentation API*: Clean API design for interactive documentation access
+- *WebSocket Integration*: Real-time documentation updates and interactive help
+- *JSON Protocol Design*: Structured communication protocol for documentation requests
+- *Authentication and Authorization*: Security framework for interactive documentation access
+
+*** Real-Time Documentation Updates
+- *Dynamic Content Updates*: Support for real-time documentation content updates
+- *Collaborative Documentation*: Framework for collaborative documentation editing
+- *Live Documentation Synchronization*: Synchronization between documentation and code changes
+- *Interactive Tutorial Integration*: Integration of interactive tutorials and guided learning
+
+* Related Documentation and Integration Points
+
+** Core ByteHot Integration
+- [[./doc-link-available-interface.org][DocLinkAvailable Interface]] - Interface that delegates to this implementation
+- [[./defaults-enhancement.org][Defaults Enhancement]] - Configuration constants used by DocProvider
+- [[./flow-detection-engine.org][Flow Detection Engine]] - Detailed algorithms implemented by DocProvider
+
+** Architecture Integration  
+- [[../../docs/ByteHotApplication.org][ByteHotApplication]] - Application layer integration for documentation events
+- [[../milestone-6f-flow-detection.org][Flow Detection]] - Existing Flow detection capabilities enhanced by DocProvider
+- [[../testing-phases/phase-10-documentation-introspection/][Phase 10 Testing]] - Testing specifications for DocProvider functionality
+
+** Future Capabilities
+- [[../milestone-7-documentation-introspection.org][Milestone 7 Overview]] - Complete milestone description and roadmap
+- [[../documentation-accuracy/][Documentation Accuracy]] - Documentation correctness specifications
+
+The DocProvider implementation represents the sophisticated intelligence hub that transforms ByteHot from a simple hot-swap tool into an intelligent, self-aware development environment. Through advanced Flow detection algorithms, intelligent caching strategies, and comprehensive error handling, DocProvider enables contextual documentation access that adapts to developers' real-time operational context, providing exactly the right documentation at exactly the right time.

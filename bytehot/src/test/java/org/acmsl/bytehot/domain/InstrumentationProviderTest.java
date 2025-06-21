@@ -154,22 +154,55 @@ public class InstrumentationProviderTest {
      * Fake instrumentation implementation that supports redefinition
      */
     private static class FakeInstrumentationWithRedefinition implements Instrumentation {
+        @Override
         public void addTransformer(ClassFileTransformer transformer, boolean canRetransform) {}
+        
+        @Override
         public void addTransformer(ClassFileTransformer transformer) {}
+        
+        @Override
         public boolean removeTransformer(ClassFileTransformer transformer) { return false; }
+        
+        @Override
         public boolean isRetransformClassesSupported() { return false; }
+        
+        @Override
         public void retransformClasses(Class<?>... classes) throws UnmodifiableClassException {}
+        
+        @Override
         public boolean isRedefineClassesSupported() { return true; } // This one matters
+        
+        @Override
         public void redefineClasses(ClassDefinition... definitions) {}
+        
+        @Override
         public boolean isModifiableClass(Class<?> theClass) { return false; }
+        
+        @Override
         public Class<?>[] getAllLoadedClasses() { return new Class[0]; }
+        
+        @Override
         public Class<?>[] getInitiatedClasses(ClassLoader loader) { return new Class[0]; }
+        
+        @Override
         public long getObjectSize(Object objectToSize) { return 0; }
+        
+        @Override
         public void appendToBootstrapClassLoaderSearch(JarFile jarfile) {}
+        
+        @Override
         public void appendToSystemClassLoaderSearch(JarFile jarfile) {}
+        
+        @Override
         public boolean isNativeMethodPrefixSupported() { return false; }
+        
+        @Override
         public void setNativeMethodPrefix(ClassFileTransformer transformer, String prefix) {}
+        
+        @Override
         public boolean isModifiableModule(java.lang.Module module) { return false; }
+        
+        @Override
         public void redefineModule(java.lang.Module module, Set<java.lang.Module> extraReads, 
                                    Map<String, Set<java.lang.Module>> extraExports, 
                                    Map<String, Set<java.lang.Module>> extraOpens, 
@@ -181,22 +214,55 @@ public class InstrumentationProviderTest {
      * Fake instrumentation implementation that does NOT support redefinition
      */
     private static class FakeInstrumentationWithoutRedefinition implements Instrumentation {
+        @Override
         public void addTransformer(ClassFileTransformer transformer, boolean canRetransform) {}
+        
+        @Override
         public void addTransformer(ClassFileTransformer transformer) {}
+        
+        @Override
         public boolean removeTransformer(ClassFileTransformer transformer) { return false; }
+        
+        @Override
         public boolean isRetransformClassesSupported() { return false; }
+        
+        @Override
         public void retransformClasses(Class<?>... classes) throws UnmodifiableClassException {}
+        
+        @Override
         public boolean isRedefineClassesSupported() { return false; } // This one matters
+        
+        @Override
         public void redefineClasses(ClassDefinition... definitions) {}
+        
+        @Override
         public boolean isModifiableClass(Class<?> theClass) { return false; }
+        
+        @Override
         public Class<?>[] getAllLoadedClasses() { return new Class[0]; }
+        
+        @Override
         public Class<?>[] getInitiatedClasses(ClassLoader loader) { return new Class[0]; }
+        
+        @Override
         public long getObjectSize(Object objectToSize) { return 0; }
+        
+        @Override
         public void appendToBootstrapClassLoaderSearch(JarFile jarfile) {}
+        
+        @Override
         public void appendToSystemClassLoaderSearch(JarFile jarfile) {}
+        
+        @Override
         public boolean isNativeMethodPrefixSupported() { return false; }
+        
+        @Override
         public void setNativeMethodPrefix(ClassFileTransformer transformer, String prefix) {}
+        
+        @Override
         public boolean isModifiableModule(java.lang.Module module) { return false; }
+        
+        @Override
         public void redefineModule(java.lang.Module module, Set<java.lang.Module> extraReads, 
                                    Map<String, Set<java.lang.Module>> extraExports, 
                                    Map<String, Set<java.lang.Module>> extraOpens, 

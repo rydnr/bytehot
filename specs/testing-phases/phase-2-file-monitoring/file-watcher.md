@@ -1,0 +1,359 @@
+# Phase 2.1: File Watcher Testing
+
+## Objective
+Validate ByteHot's file system monitoring capabilities, including directory watching, pattern matching, recursive monitoring, and file change detection using Java NIO WatchService.
+
+## Prerequisites
+- Phase 1 (Basic Infrastructure) completed successfully
+- File system with write permissions for test directories
+- Understanding of NIO WatchService behavior
+- Test .class files available for monitoring
+
+## Test Scenarios
+
+### 2.1.1 Single Directory Watching
+
+**Description**: Test basic file watching functionality for a single directory.
+
+**Test Steps**:
+
+1. **Basic Directory Watch Setup**
+```bash
+# Create test directory structure
+mkdir -p target/test-classes/monitoring-test
+echo "Test class content" > target/test-classes/monitoring-test/TestClass.class
+
+mvn -Dtest=org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapterTest test
+```
+
+2. **Watch Start/Stop Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testStartStopWatching test
+```
+
+**Manual Verification**:
+```java
+FileWatcherAdapter watcher = new FileWatcherAdapter();
+Path testDir = Paths.get("target/test-classes/monitoring-test");
+List<String> patterns = Arrays.asList("*.class");
+
+String watchId = watcher.startWatching(testDir, patterns, false);
+assert watchId != null;
+assert watcher.isWatching(testDir);
+
+watcher.stopWatching(watchId);
+assert !watcher.isWatching(testDir);
+```
+
+**Expected Results**:
+- ✅ Directory watch starts successfully
+- ✅ Watch ID returned for management
+- ✅ `isWatching()` returns correct status
+- ✅ Watch stops cleanly without errors
+
+### 2.1.2 Pattern Matching
+
+**Description**: Test file pattern matching with various glob patterns.
+
+**Test Steps**:
+
+1. **Class File Pattern Test**
+```bash
+# Create test files with different extensions
+touch target/test-classes/monitoring-test/TestClass.class
+touch target/test-classes/monitoring-test/TestSource.java
+touch target/test-classes/monitoring-test/TestResource.txt
+
+mvn -Dtest=*FileWatcherAdapterTest#testPatternMatching test
+```
+
+2. **Multiple Pattern Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testMultiplePatterns test
+```
+
+**Manual Verification**:
+```java
+List<String> patterns = Arrays.asList("*.class", "Test*.java");
+FileWatcherAdapter watcher = new FileWatcherAdapter();
+
+// Test pattern matching logic
+assert watcher.matchesPatterns(Paths.get("TestClass.class"), compiledPatterns);
+assert watcher.matchesPatterns(Paths.get("TestSource.java"), compiledPatterns);
+assert !watcher.matchesPatterns(Paths.get("Resource.txt"), compiledPatterns);
+```
+
+**Expected Results**:
+- ✅ `*.class` pattern matches .class files only
+- ✅ Complex patterns work correctly
+- ✅ Multiple patterns combined with OR logic
+- ✅ Non-matching files ignored
+
+### 2.1.3 Recursive Directory Watching
+
+**Description**: Test watching nested directory structures recursively.
+
+**Test Steps**:
+
+1. **Nested Directory Setup**
+```bash
+# Create nested test structure
+mkdir -p target/test-classes/recursive-test/com/example/service
+mkdir -p target/test-classes/recursive-test/com/example/model
+echo "Service class" > target/test-classes/recursive-test/com/example/service/UserService.class
+echo "Model class" > target/test-classes/recursive-test/com/example/model/User.class
+
+mvn -Dtest=*FileWatcherAdapterTest#testRecursiveWatching test
+```
+
+2. **Deep Nesting Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testDeepRecursion test
+```
+
+**Manual Verification**:
+```java
+FileWatcherAdapter watcher = new FileWatcherAdapter();
+Path rootDir = Paths.get("target/test-classes/recursive-test");
+List<String> patterns = Arrays.asList("*.class");
+
+String watchId = watcher.startWatching(rootDir, patterns, true);
+
+// Verify all subdirectories are watched
+List<Path> watchedPaths = watcher.getWatchedPaths();
+assert watchedPaths.contains(rootDir);
+assert watchedPaths.contains(rootDir.resolve("com/example/service"));
+assert watchedPaths.contains(rootDir.resolve("com/example/model"));
+```
+
+**Expected Results**:
+- ✅ All subdirectories registered for watching
+- ✅ Files in nested directories detected
+- ✅ New subdirectories added automatically
+- ✅ Performance acceptable for deep hierarchies
+
+### 2.1.4 File Change Detection
+
+**Description**: Test detection of file modifications, creations, and deletions.
+
+**Test Steps**:
+
+1. **File Modification Test**
+```bash
+# Create initial file
+echo "Initial content" > target/test-classes/monitoring-test/ModifyTest.class
+
+# Run modification test
+mvn -Dtest=*FileWatcherAdapterTest#testFileModification test
+```
+
+2. **File Creation/Deletion Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testFileCreationDeletion test
+```
+
+**Manual Verification**:
+```bash
+# Manual file change test
+cd target/test-classes/monitoring-test
+
+# Start watcher in background and monitor output
+echo "Modified content" > ModifyTest.class
+touch NewClass.class
+rm OldClass.class
+
+# Check for appropriate events in logs
+```
+
+**Expected Results**:
+- ✅ File modifications detected promptly (< 2 seconds)
+- ✅ File creations trigger appropriate events
+- ✅ File deletions handled gracefully
+- ✅ No false positive events
+
+### 2.1.5 Concurrent Watching
+
+**Description**: Test multiple concurrent watch operations and thread safety.
+
+**Test Steps**:
+
+1. **Multiple Watch Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testMultipleWatchers test
+```
+
+2. **Concurrent Modification Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testConcurrentModifications test
+```
+
+**Manual Verification**:
+```java
+FileWatcherAdapter watcher = new FileWatcherAdapter();
+
+// Start multiple watches
+String watch1 = watcher.startWatching(dir1, patterns, false);
+String watch2 = watcher.startWatching(dir2, patterns, true);
+String watch3 = watcher.startWatching(dir3, patterns, false);
+
+// Verify all working independently
+assert watcher.isWatching(dir1);
+assert watcher.isWatching(dir2);
+assert watcher.isWatching(dir3);
+
+// Test concurrent file changes
+CompletableFuture.allOf(
+    modifyFileAsync(dir1.resolve("Test1.class")),
+    modifyFileAsync(dir2.resolve("Test2.class")),
+    modifyFileAsync(dir3.resolve("Test3.class"))
+).join();
+```
+
+**Expected Results**:
+- ✅ Multiple watches operate independently
+- ✅ No race conditions in event processing
+- ✅ Thread-safe access to watch configurations
+- ✅ Clean shutdown of all watch threads
+
+### 2.1.6 Error Handling
+
+**Description**: Test error handling for invalid paths, permissions, and system limitations.
+
+**Test Steps**:
+
+1. **Invalid Path Test**
+```bash
+mvn -Dtest=*FileWatcherAdapterTest#testInvalidPaths test
+```
+
+2. **Permission Error Test**
+```bash
+# Create directory with no read permissions (Unix/Linux)
+mkdir -p target/test-classes/no-access
+chmod 000 target/test-classes/no-access
+
+mvn -Dtest=*FileWatcherAdapterTest#testPermissionErrors test
+```
+
+**Manual Verification**:
+```java
+FileWatcherAdapter watcher = new FileWatcherAdapter();
+
+// Test invalid paths
+try {
+    watcher.startWatching(Paths.get("/non/existent/path"), patterns, false);
+    fail("Should throw exception for non-existent path");
+} catch (IllegalArgumentException e) {
+    // Expected
+}
+
+// Test file instead of directory
+try {
+    watcher.startWatching(Paths.get("pom.xml"), patterns, false);
+    fail("Should throw exception for file path");
+} catch (IllegalArgumentException e) {
+    // Expected
+}
+```
+
+**Expected Results**:
+- ✅ Appropriate exceptions for invalid paths
+- ✅ Graceful handling of permission errors
+- ✅ System resource limits respected
+- ✅ Clear error messages provided
+
+## Success Criteria
+
+### Automated Tests
+- [ ] Basic directory watching tests pass
+- [ ] Pattern matching tests pass
+- [ ] Recursive watching tests pass
+- [ ] File change detection tests pass
+- [ ] Concurrent watching tests pass
+- [ ] Error handling tests pass
+
+### Manual Verification
+- [ ] File changes detected in real-time
+- [ ] Pattern matching works as expected
+- [ ] Recursive watching covers all subdirectories
+- [ ] No memory leaks with long-running watches
+- [ ] Clean shutdown without hanging threads
+
+### Performance Criteria
+- [ ] Watch startup < 100ms per directory
+- [ ] File change detection < 2 seconds
+- [ ] Memory usage stable over time
+- [ ] CPU usage < 5% for normal file activity
+- [ ] Thread count remains stable
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue**: File changes not detected
+**Solution**:
+- Check file system supports inotify (Linux) or similar
+- Verify patterns match file extensions exactly
+- Ensure sufficient system watch descriptors available
+- Check for buffered file writes
+
+**Issue**: High CPU usage
+**Solution**:
+- Reduce polling frequency if applicable
+- Check for rapid file modification loops
+- Verify pattern efficiency
+- Monitor thread count
+
+**Issue**: Permission denied errors
+**Solution**:
+- Verify read permissions on directories
+- Check parent directory permissions
+- Run with appropriate user privileges
+- Test with different file systems
+
+**Issue**: Thread pool exhaustion
+**Solution**:
+- Monitor active thread count
+- Adjust thread pool size if needed
+- Check for thread leaks in error conditions
+- Verify proper cleanup on shutdown
+
+### Debug Commands
+
+```bash
+# Monitor system file watching limits
+cat /proc/sys/fs/inotify/max_user_watches
+cat /proc/sys/fs/inotify/max_user_instances
+
+# Check active file descriptors
+lsof -p $(pgrep java) | grep inotify
+
+# Monitor file system events
+sudo strace -e inotify_add_watch,inotify_rm_watch -p $(pgrep java)
+
+# Test file watching manually
+inotifywait -m -r target/test-classes/monitoring-test
+
+# Check thread activity
+jstack $(pgrep java) | grep FileWatcher
+```
+
+### Configuration Tuning
+
+```yaml
+# bytehot.yml tuning options
+bytehot:
+  file-watcher:
+    thread-pool-size: 4
+    buffer-size: 8192
+    polling-interval: 1000ms
+    max-watch-descriptors: 8192
+```
+
+## Next Steps
+
+Once Phase 2.1 passes completely:
+1. Proceed to [Event Processing](event-processing.md)
+2. Test with larger directory structures
+3. Benchmark performance with realistic workloads
+4. Document optimal configuration for different use cases

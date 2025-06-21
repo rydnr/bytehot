@@ -39,7 +39,9 @@
  */
 package org.acmsl.bytehot.infrastructure.filesystem;
 
+import org.acmsl.bytehot.application.ByteHotApplication;
 import org.acmsl.bytehot.domain.FileWatcherPort;
+import org.acmsl.bytehot.domain.events.ClassFileChanged;
 
 import org.acmsl.commons.patterns.Adapter;
 
@@ -54,6 +56,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -276,11 +279,54 @@ public class FileWatcherAdapter
         // Check if any watch configuration matches this file
         for (final WatchConfiguration config : watchConfigurations.values()) {
             if (matchesPatterns(path, config.getPatterns())) {
-                // For now, just log the event - in a real implementation, 
-                // this would emit domain events
+                if (kind == StandardWatchEventKinds.ENTRY_MODIFY && isClassFile(path)) {
+                    emitClassFileChangedEvent(path);
+                }
                 System.out.println("File " + kind.name() + ": " + path);
             }
         }
+    }
+
+    /**
+     * Checks if a path represents a .class file
+     */
+    protected boolean isClassFile(final Path path) {
+        return path.toString().endsWith(".class");
+    }
+
+    /**
+     * Emits a ClassFileChanged domain event
+     */
+    protected void emitClassFileChangedEvent(final Path classFile) {
+        try {
+            final String className = extractClassName(classFile);
+            final long fileSize = Files.size(classFile);
+            final Instant detectionTimestamp = Instant.now();
+            
+            final ClassFileChanged event = ClassFileChanged.forNewSession(
+                classFile,
+                className,
+                fileSize,
+                detectionTimestamp
+            );
+            
+            // Emit the event through the ByteHotApplication
+            ByteHotApplication.getInstance().processClassFileChanged(event);
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to emit ClassFileChanged event for " + classFile + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Extracts the class name from a .class file path
+     */
+    protected String extractClassName(final Path classFile) {
+        final String fileName = classFile.getFileName().toString();
+        if (fileName.endsWith(".class")) {
+            return fileName.substring(0, fileName.length() - 6);
+        }
+        return fileName;
     }
 
     /**
