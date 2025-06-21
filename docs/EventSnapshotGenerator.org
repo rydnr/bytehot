@@ -1,0 +1,679 @@
+#+TITLE: EventSnapshotGenerator - Intelligent Event Snapshot Generation and Debugging Context Service
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~EventSnapshotGenerator~ class serves as ByteHot's sophisticated intelligent event snapshot generation and debugging context service, providing comprehensive snapshot creation, advanced error context capture, and intelligent debugging coordination for precise error analysis and automated debugging intelligence. This critical domain service encapsulates snapshot generation logic, causal analysis mechanisms, and sophisticated context capture that enable precise debugging support and automated error correlation. As the debugging foundation for ByteHot's error management system, it enables comprehensive error context while maintaining clean domain boundaries and supporting advanced debugging analytics, snapshot intelligence, and operational coordination throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Intelligent Snapshot Generation and Debugging Context Foundation
+EventSnapshotGenerator serves as the comprehensive intelligent snapshot generation and debugging context foundation:
+- Provides sophisticated snapshot generation for error analysis and debugging coordination
+- Enables comprehensive debugging context capture and error correlation through advanced snapshot intelligence
+- Supports intelligent debugging coordination and error analysis through domain-driven snapshot patterns
+- Acts as the authoritative foundation for snapshot generation operations and debugging-driven coordination
+
+** Domain Service Design and Snapshot Intelligence Hub
+The class serves as the domain service design and snapshot intelligence hub:
+- Implements sophisticated domain service patterns with configurable snapshot generation and context capture
+- Provides comprehensive snapshot validation and consistency through domain-driven design principles
+- Enables snapshot composition and correlation capabilities for complex debugging scenarios
+- Supports snapshot optimization and performance enhancement through efficient generation patterns
+
+** Error Analysis Intelligence and Automated Debugging Hub
+The implementation provides error analysis intelligence and automated debugging capabilities:
+- Enables sophisticated error analysis intelligence through comprehensive snapshot generation and causal analysis
+- Supports advanced automated debugging and error correlation through snapshot-driven coordination
+- Provides foundation for debugging analytics and operational intelligence through snapshot-driven correlation
+- Enables intelligent error monitoring and optimization through snapshot-driven analysis and assessment
+
+* Event Snapshot Generator Structure and Configuration Management
+
+** Core Configuration and Snapshot Management Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Current configuration for snapshot generation with comprehensive settings
+ */
+@NonNull
+private final SnapshotConfig config;
+
+/**
+ * Singleton instance for global snapshot generation access
+ */
+private static EventSnapshotGenerator instance;
+#+END_SRC
+
+** Snapshot Configuration and Generation Settings
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Configuration for snapshot generation with advanced settings and intelligence
+ */
+@Builder
+@Getter
+public static class SnapshotConfig {
+    /**
+     * Maximum number of events to include in snapshot for performance optimization
+     */
+    @Builder.Default
+    private final int maxEvents = 100;
+
+    /**
+     * Maximum time window to look back for events for context relevance
+     */
+    @Builder.Default
+    private final Duration maxTimeWindow = Duration.ofMinutes(5);
+
+    /**
+     * Whether to include causal analysis for advanced debugging intelligence
+     */
+    @Builder.Default
+    private final boolean includeCausalAnalysis = true;
+
+    /**
+     * Whether to include performance metrics for system analysis
+     */
+    @Builder.Default
+    private final boolean includePerformanceMetrics = true;
+
+    /**
+     * Custom event filter (null means no filtering) for selective snapshot generation
+     */
+    @Nullable
+    private final Predicate<VersionedDomainEvent> eventFilter;
+
+    /**
+     * Minimum confidence level for causal analysis for quality assurance
+     */
+    @Builder.Default
+    private final double minCausalConfidence = 0.3;
+}
+
+/**
+ * Default configuration for snapshot generation with balanced settings
+ */
+private static final SnapshotConfig DEFAULT_CONFIG = SnapshotConfig.builder().build();
+#+END_SRC
+
+** Core Construction and Singleton Management Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Creates a new generator with the specified configuration
+ * @param config snapshot generation configuration for customized behavior
+ */
+public EventSnapshotGenerator(@NonNull final SnapshotConfig config) {
+    this.config = config;
+}
+
+/**
+ * Gets the singleton instance with default configuration for standard operations
+ * @return singleton instance with thread-safe initialization
+ */
+@NonNull
+public static EventSnapshotGenerator getInstance() {
+    if (instance == null) {
+        synchronized (EventSnapshotGenerator.class) {
+            if (instance == null) {
+                instance = new EventSnapshotGenerator(DEFAULT_CONFIG);
+            }
+        }
+    }
+    return instance;
+}
+
+/**
+ * Creates a new instance with custom configuration for specialized snapshot generation
+ * @param config custom configuration for tailored snapshot behavior
+ * @return configured generator instance with custom settings
+ */
+@NonNull
+public static EventSnapshotGenerator withConfig(@NonNull final SnapshotConfig config) {
+    return new EventSnapshotGenerator(config);
+}
+#+END_SRC
+
+* Snapshot Generation and Context Capture Operations
+
+** Primary Snapshot Generation and Error Context Capture
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Generates a complete event snapshot for the current error context
+ * @return comprehensive event snapshot with error context and causal analysis
+ */
+@NonNull
+public EventSnapshot generateSnapshot() {
+    return generateSnapshot(null);
+}
+
+/**
+ * Generates an event snapshot with optional additional context for enhanced debugging
+ * @param additionalContext extra context to include for specialized snapshot generation
+ * @return comprehensive event snapshot with enriched context and analysis
+ */
+@NonNull
+public EventSnapshot generateSnapshot(@Nullable final Map<String, Object> additionalContext) {
+    try {
+        // Capture current error context
+        ErrorContext errorContext = ErrorContext.capture();
+        
+        // Get event store
+        EventStorePort eventStore = Ports.resolve(EventStorePort.class);
+        
+        // Calculate time window for event retrieval
+        Instant cutoffTime = errorContext.getCapturedAt().minus(config.getMaxTimeWindow());
+        
+        // Retrieve relevant events
+        List<VersionedDomainEvent> recentEvents = eventStore.getEventsBetween(cutoffTime, errorContext.getCapturedAt());
+        
+        // Apply filtering if configured
+        List<VersionedDomainEvent> filteredEvents = filterEvents(recentEvents);
+        
+        // Limit to max events (keep most recent)
+        List<VersionedDomainEvent> limitedEvents = limitEvents(filteredEvents);
+        
+        // Generate causal analysis if enabled
+        CausalChain causalChain = null;
+        if (config.isIncludeCausalAnalysis() && !limitedEvents.isEmpty()) {
+            causalChain = analyzeCausalChain(limitedEvents);
+        }
+        
+        // Capture performance metrics
+        Map<String, Object> performanceMetrics = config.isIncludePerformanceMetrics() ?
+            capturePerformanceMetrics() : Map.of();
+        
+        // Add additional context if provided
+        Map<String, String> environmentContext = captureEnvironmentContext();
+        if (additionalContext != null) {
+            Map<String, String> extendedContext = new java.util.HashMap<>(environmentContext);
+            additionalContext.forEach((key, value) -> 
+                extendedContext.put(key, String.valueOf(value))
+            );
+            environmentContext = extendedContext;
+        }
+        
+        // Create the snapshot
+        return EventSnapshot.create(
+            limitedEvents,
+            errorContext.getUserId(),
+            environmentContext,
+            errorContext.getThreadName(),
+            errorContext.getSystemProperties(),
+            causalChain,
+            performanceMetrics
+        );
+        
+    } catch (Exception e) {
+        // Fallback: create minimal snapshot even if something goes wrong
+        return createFallbackSnapshot(e);
+    }
+}
+
+/**
+ * Generates a snapshot specifically for an exception with exception-specific context
+ * @param exception the exception that occurred for specialized snapshot generation
+ * @return event snapshot with exception context and analysis
+ */
+@NonNull
+public EventSnapshot generateSnapshotForException(@NonNull final Throwable exception) {
+    Map<String, Object> exceptionContext = Map.of(
+        "exceptionType", exception.getClass().getName(),
+        "exceptionMessage", exception.getMessage() != null ? exception.getMessage() : "",
+        "stackTraceLength", exception.getStackTrace().length
+    );
+    
+    return generateSnapshot(exceptionContext);
+}
+#+END_SRC
+
+** Event Processing and Filtering Intelligence Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Filters events based on configured criteria for selective snapshot generation
+ * @param events the events to filter for relevance and performance optimization
+ * @return filtered events based on configuration criteria
+ */
+@NonNull
+private List<VersionedDomainEvent> filterEvents(@NonNull final List<VersionedDomainEvent> events) {
+    if (config.getEventFilter() == null) {
+        return events;
+    }
+    
+    return events.stream()
+        .filter(config.getEventFilter())
+        .toList();
+}
+
+/**
+ * Limits events to the configured maximum, keeping the most recent for performance optimization
+ * @param events the events to limit for performance and relevance
+ * @return limited events maintaining most recent for context relevance
+ */
+@NonNull
+private List<VersionedDomainEvent> limitEvents(@NonNull final List<VersionedDomainEvent> events) {
+    if (events.size() <= config.getMaxEvents()) {
+        return events;
+    }
+    
+    // Keep the most recent events
+    return events.subList(
+        events.size() - config.getMaxEvents(),
+        events.size()
+    );
+}
+#+END_SRC
+
+** Causal Analysis and Root Cause Intelligence Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Analyzes causal relationships in the event sequence for debugging intelligence
+ * @param events the events to analyze for causal relationships and patterns
+ * @return causal chain analysis with confidence levels and contributing factors
+ */
+@Nullable
+private CausalChain analyzeCausalChain(@NonNull final List<VersionedDomainEvent> events) {
+    try {
+        // Simple causal analysis - can be enhanced with more sophisticated algorithms
+        if (events.size() < 2) {
+            return null;
+        }
+        
+        // Look for patterns and timing relationships
+        VersionedDomainEvent lastEvent = events.get(events.size() - 1);
+        
+        // Find potential root cause (simplified heuristic)
+        VersionedDomainEvent potentialRootCause = findPotentialRootCause(events);
+        
+        if (potentialRootCause != null) {
+            double confidence = calculateCausalConfidence(events, potentialRootCause);
+            
+            if (confidence >= config.getMinCausalConfidence()) {
+                return CausalChain.fromRootCause(potentialRootCause, confidence)
+                    .addContributingFactor("Event sequence analysis");
+            }
+        }
+        
+        return CausalChain.empty();
+        
+    } catch (Exception e) {
+        // If causal analysis fails, return empty chain
+        return CausalChain.empty();
+    }
+}
+
+/**
+ * Finds potential root cause using simple heuristics for error analysis
+ * @param events the events to analyze for root cause identification
+ * @return potential root cause event or null if none identified
+ */
+@Nullable
+private VersionedDomainEvent findPotentialRootCause(@NonNull final List<VersionedDomainEvent> events) {
+    // Simple heuristic: look for error-related events or unusual patterns
+    for (VersionedDomainEvent event : events) {
+        String eventType = event.getEventType().toLowerCase();
+        if (eventType.contains("error") || 
+            eventType.contains("fail") || 
+            eventType.contains("reject")) {
+            return event;
+        }
+    }
+    
+    // If no obvious error events, return the first event as potential root cause
+    return events.isEmpty() ? null : events.get(0);
+}
+
+/**
+ * Calculates confidence in causal relationship for analysis quality assessment
+ * @param events the event sequence for confidence calculation
+ * @param rootCause the potential root cause for confidence evaluation
+ * @return confidence level from 0.0 to 1.0 for analysis quality
+ */
+private double calculateCausalConfidence(
+        @NonNull final List<VersionedDomainEvent> events,
+        @NonNull final VersionedDomainEvent rootCause) {
+    // Simplified confidence calculation based on timing and sequence
+    long rootCauseIndex = events.indexOf(rootCause);
+    if (rootCauseIndex == -1) {
+        return 0.0;
+    }
+    
+    // Higher confidence if root cause is earlier in sequence
+    double positionFactor = 1.0 - (double) rootCauseIndex / events.size();
+    
+    // Higher confidence if there are clear temporal relationships
+    double timingFactor = 0.7; // Default moderate confidence
+    
+    return Math.min(1.0, positionFactor * 0.6 + timingFactor * 0.4);
+}
+#+END_SRC
+
+* Context Capture and Performance Intelligence Operations
+
+** Performance Metrics and System Context Capture
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Captures current performance metrics for system analysis and debugging context
+ * @return performance metrics with system resource information and timing data
+ */
+@NonNull
+private Map<String, Object> capturePerformanceMetrics() {
+    Runtime runtime = Runtime.getRuntime();
+    Map<String, Object> metrics = new java.util.HashMap<>();
+    
+    metrics.put("freeMemory", runtime.freeMemory());
+    metrics.put("totalMemory", runtime.totalMemory());
+    metrics.put("maxMemory", runtime.maxMemory());
+    metrics.put("availableProcessors", runtime.availableProcessors());
+    metrics.put("currentTimeMillis", System.currentTimeMillis());
+    metrics.put("nanoTime", System.nanoTime());
+    
+    return metrics;
+}
+
+/**
+ * Captures environment context for the snapshot with system information
+ * @return environment context with system properties and runtime information
+ */
+@NonNull
+private Map<String, String> captureEnvironmentContext() {
+    Map<String, String> context = new java.util.HashMap<>();
+    
+    context.put("timestamp", Instant.now().toString());
+    context.put("javaVersion", System.getProperty("java.version", "unknown"));
+    context.put("osName", System.getProperty("os.name", "unknown"));
+    context.put("osVersion", System.getProperty("os.version", "unknown"));
+    context.put("userTimezone", System.getProperty("user.timezone", "unknown"));
+    
+    return context;
+}
+#+END_SRC
+
+** Fallback and Error Recovery Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Creates a minimal fallback snapshot if generation fails for error resilience
+ * @param generationError the error that occurred during snapshot generation
+ * @return minimal fallback snapshot with basic context and error information
+ */
+@NonNull
+private EventSnapshot createFallbackSnapshot(@NonNull final Exception generationError) {
+    return EventSnapshot.create(
+        List.of(), // Empty event history
+        null, // No user context
+        Map.of("fallback", "true", "error", generationError.getMessage()),
+        Thread.currentThread().getName(),
+        Map.of("java.version", System.getProperty("java.version", "unknown")),
+        null, // No causal analysis
+        Map.of("fallbackGeneration", true)
+    );
+}
+
+/**
+ * Gets the current configuration for snapshot generation settings access
+ * @return snapshot generation configuration with current settings
+ */
+@NonNull
+public SnapshotConfig getConfig() {
+    return config;
+}
+#+END_SRC
+
+* Enhanced Snapshot Intelligence and Advanced Analysis Operations
+
+** Advanced Configuration and Optimization Features
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Creates optimized configuration for high-performance snapshot generation
+ * @return optimized configuration with reduced overhead and focused analysis
+ */
+@NonNull
+public static SnapshotConfig createOptimizedConfig() {
+    return SnapshotConfig.builder()
+        .maxEvents(50)  // Reduced for performance
+        .maxTimeWindow(Duration.ofMinutes(2))  // Shorter window
+        .includeCausalAnalysis(false)  // Skip expensive analysis
+        .includePerformanceMetrics(true)  // Keep for optimization insights
+        .minCausalConfidence(0.5)  // Higher confidence threshold
+        .build();
+}
+
+/**
+ * Creates comprehensive configuration for detailed debugging analysis
+ * @return comprehensive configuration with maximum detail and analysis
+ */
+@NonNull
+public static SnapshotConfig createComprehensiveConfig() {
+    return SnapshotConfig.builder()
+        .maxEvents(500)  // Extended for comprehensive analysis
+        .maxTimeWindow(Duration.ofMinutes(15))  // Longer history
+        .includeCausalAnalysis(true)  // Full causal analysis
+        .includePerformanceMetrics(true)  // Complete metrics
+        .minCausalConfidence(0.1)  // Lower threshold for more insights
+        .build();
+}
+
+/**
+ * Creates configuration specifically for error scenarios
+ * @return error-focused configuration optimized for error analysis
+ */
+@NonNull
+public static SnapshotConfig createErrorFocusedConfig() {
+    return SnapshotConfig.builder()
+        .maxEvents(200)
+        .maxTimeWindow(Duration.ofMinutes(10))
+        .includeCausalAnalysis(true)
+        .includePerformanceMetrics(true)
+        .eventFilter(event -> {
+            String eventType = event.getEventType().toLowerCase();
+            return eventType.contains("error") || 
+                   eventType.contains("fail") || 
+                   eventType.contains("reject") ||
+                   eventType.contains("exception");
+        })
+        .minCausalConfidence(0.2)
+        .build();
+}
+
+/**
+ * Validates snapshot configuration for correctness and optimization
+ * @param config the configuration to validate
+ * @return validation result with recommendations and warnings
+ */
+@NonNull
+public static ConfigValidationResult validateConfig(@NonNull final SnapshotConfig config) {
+    java.util.List<String> warnings = new java.util.ArrayList<>();
+    java.util.List<String> recommendations = new java.util.ArrayList<>();
+    
+    if (config.getMaxEvents() > 1000) {
+        warnings.add("Large maxEvents may impact performance");
+        recommendations.add("Consider reducing maxEvents for better performance");
+    }
+    
+    if (config.getMaxTimeWindow().toMinutes() > 30) {
+        warnings.add("Large time window may retrieve excessive events");
+        recommendations.add("Consider shorter time window for focused analysis");
+    }
+    
+    if (config.getMinCausalConfidence() < 0.1) {
+        warnings.add("Very low confidence threshold may produce unreliable analysis");
+        recommendations.add("Consider higher confidence threshold for quality");
+    }
+    
+    if (config.isIncludeCausalAnalysis() && config.getMaxEvents() < 10) {
+        warnings.add("Causal analysis may be ineffective with few events");
+        recommendations.add("Increase maxEvents or disable causal analysis");
+    }
+    
+    return ConfigValidationResult.builder()
+        .isValid(warnings.isEmpty())
+        .warnings(warnings)
+        .recommendations(recommendations)
+        .estimatedPerformanceImpact(estimatePerformanceImpact(config))
+        .build();
+}
+
+/**
+ * Estimates performance impact of configuration settings
+ * @param config the configuration to analyze
+ * @return performance impact assessment
+ */
+@NonNull
+private static PerformanceImpact estimatePerformanceImpact(@NonNull final SnapshotConfig config) {
+    int score = 0;
+    
+    score += config.getMaxEvents() / 100;  // Events impact
+    score += config.getMaxTimeWindow().toMinutes() / 5;  // Time window impact
+    score += config.isIncludeCausalAnalysis() ? 3 : 0;  // Causal analysis impact
+    score += config.isIncludePerformanceMetrics() ? 1 : 0;  // Metrics impact
+    
+    if (score <= 3) return PerformanceImpact.LOW;
+    if (score <= 8) return PerformanceImpact.MEDIUM;
+    return PerformanceImpact.HIGH;
+}
+#+END_SRC
+
+** Snapshot Analytics and Validation Value Objects
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotGenerator.java
+/**
+ * Performance impact levels for snapshot generation
+ */
+public enum PerformanceImpact {
+    LOW("Minimal performance impact"),
+    MEDIUM("Moderate performance impact"), 
+    HIGH("Significant performance impact");
+    
+    private final String description;
+    
+    PerformanceImpact(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Configuration validation result for setup optimization
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class ConfigValidationResult {
+    /**
+     * Whether configuration is valid
+     */
+    private final boolean isValid;
+    
+    /**
+     * Configuration warnings
+     */
+    private final java.util.List<String> warnings;
+    
+    /**
+     * Configuration recommendations
+     */
+    private final java.util.List<String> recommendations;
+    
+    /**
+     * Estimated performance impact
+     */
+    private final PerformanceImpact estimatedPerformanceImpact;
+}
+#+END_SRC
+
+* Testing and Validation Strategies
+
+** Snapshot Generation Testing
+```java
+@Test
+void shouldGenerateComprehensiveSnapshots() {
+    // Given: Configured snapshot generator
+    SnapshotConfig config = SnapshotConfig.builder()
+        .maxEvents(50)
+        .maxTimeWindow(Duration.ofMinutes(5))
+        .includeCausalAnalysis(true)
+        .includePerformanceMetrics(true)
+        .build();
+    
+    EventSnapshotGenerator generator = EventSnapshotGenerator.withConfig(config);
+    
+    // When: Generating snapshot
+    EventSnapshot snapshot = generator.generateSnapshot();
+    
+    // Then: Should contain comprehensive context
+    assertThat(snapshot).isNotNull();
+    assertThat(snapshot.getEvents()).isNotNull();
+    assertThat(snapshot.getEnvironmentContext()).isNotEmpty();
+    assertThat(snapshot.getPerformanceMetrics()).isNotEmpty();
+}
+```
+
+** Configuration Validation Testing
+```java
+@Test
+void shouldValidateConfigurationCorrectly() {
+    // Given: Different configuration scenarios
+    SnapshotConfig optimizedConfig = EventSnapshotGenerator.createOptimizedConfig();
+    SnapshotConfig comprehensiveConfig = EventSnapshotGenerator.createComprehensiveConfig();
+    
+    // When: Validating configurations
+    ConfigValidationResult optimizedResult = EventSnapshotGenerator.validateConfig(optimizedConfig);
+    ConfigValidationResult comprehensiveResult = EventSnapshotGenerator.validateConfig(comprehensiveConfig);
+    
+    // Then: Should provide appropriate validation results
+    assertThat(optimizedResult.getEstimatedPerformanceImpact()).isEqualTo(PerformanceImpact.LOW);
+    assertThat(comprehensiveResult.getEstimatedPerformanceImpact()).isEqualTo(PerformanceImpact.HIGH);
+}
+```
+
+** Exception Snapshot Testing
+```java
+@Test
+void shouldGenerateExceptionSpecificSnapshots() {
+    // Given: Exception scenario
+    EventSnapshotGenerator generator = EventSnapshotGenerator.getInstance();
+    RuntimeException testException = new RuntimeException("Test error");
+    
+    // When: Generating exception snapshot
+    EventSnapshot exceptionSnapshot = generator.generateSnapshotForException(testException);
+    
+    // Then: Should include exception context
+    assertThat(exceptionSnapshot.getEnvironmentContext()).containsKey("exceptionType");
+    assertThat(exceptionSnapshot.getEnvironmentContext()).containsKey("exceptionMessage");
+}
+```
+
+* Related Documentation
+
+- [[EventSnapshot.org][EventSnapshot]]: Snapshots created by this generator
+- [[ErrorContext.org][ErrorContext]]: Error context captured in snapshots
+- [[CausalChain.org][CausalChain]]: Causal analysis included in snapshots  
+- [[EventStorePort.org][EventStorePort]]: Event store providing events for snapshots
+- [[../flows/error-analysis-flow.org][Error Analysis Flow]]: Flow using snapshot generation
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Singleton Pattern**: Global snapshot generator with configurable instances
+- **Builder Pattern**: Flexible configuration construction with validation
+- **Strategy Pattern**: Different snapshot generation strategies based on configuration
+- **Template Method Pattern**: Common snapshot generation with configurable steps
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Services**: Comprehensive snapshot generation beyond simple data capture
+- **Domain Intelligence**: Built-in intelligence for causal analysis and context optimization
+- **Infrastructure Independence**: Pure domain logic with minimal infrastructure dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Machine Learning Analysis**: AI-driven causal analysis and pattern recognition
+- **Real-Time Snapshot Streaming**: Real-time snapshot generation and analysis
+- **Advanced Correlation Analysis**: Sophisticated event correlation and pattern detection
+- **Enterprise Debugging Integration**: Enterprise debugging tool integration and workflow
+
+The EventSnapshotGenerator class provides ByteHot's essential intelligent event snapshot generation foundation while maintaining comprehensive debugging capabilities, sophisticated causal analysis intelligence, and extensibility for advanced debugging scenarios throughout the entire intelligent hot-swap system lifecycle.

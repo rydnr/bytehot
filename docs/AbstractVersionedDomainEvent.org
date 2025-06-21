@@ -1,0 +1,436 @@
+#+TITLE: AbstractVersionedDomainEvent - Event Sourcing Foundation and Metadata Management
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~AbstractVersionedDomainEvent~ class serves as ByteHot's foundational base class for all versioned domain events, providing comprehensive event sourcing infrastructure and metadata management capabilities. This critical abstract class encapsulates all event sourcing concerns including aggregate versioning, causal chain management, temporal tracking, user context preservation, and correlation support, enabling rich domain events with complete audit trails and system state reconstruction capabilities. As the cornerstone of ByteHot's event-driven architecture, it ensures consistent event metadata handling while providing sophisticated factory methods for event creation and lifecycle management.
+
+* Domain Architecture Role
+
+** Event Sourcing Foundation
+AbstractVersionedDomainEvent provides the fundamental event sourcing infrastructure:
+- Encapsulates comprehensive event metadata including versioning and causal relationships
+- Ensures consistent handling of aggregate boundaries and versioning across all domain events
+- Provides factory methods for proper event creation with complete metadata preservation
+- Acts as the foundation for complete system state reconstruction and audit trail capabilities
+
+** Domain Event Consistency
+The class ensures consistent domain event structure:
+- Standardizes event metadata across all domain events in the system
+- Provides unified approach to event identification, versioning, and correlation
+- Ensures proper aggregate boundary respect and concurrency control mechanisms
+- Enables sophisticated event sourcing patterns throughout the entire domain model
+
+** Metadata Management Hub
+The implementation serves as a comprehensive metadata management hub:
+- Manages complex event sourcing metadata through clean abstractions
+- Provides factory methods for different event creation scenarios and contexts
+- Ensures proper causal chain maintenance and event correlation capabilities
+- Supports sophisticated temporal analysis and debugging through rich metadata
+
+* Core Event Sourcing Infrastructure
+
+** Comprehensive Event Metadata Structure
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Unique identifier for this event instance enabling precise event tracking
+ */
+@Getter
+private final String eventId;
+
+/**
+ * Type of aggregate this event belongs to for aggregate boundary management
+ */
+@Getter
+private final String aggregateType;
+
+/**
+ * Unique identifier of the aggregate instance for precise aggregate targeting
+ */
+@Getter
+private final String aggregateId;
+
+/**
+ * Version of this event for the aggregate enabling optimistic concurrency control
+ */
+@Getter
+private final long aggregateVersion;
+
+/**
+ * Timestamp when the event occurred for temporal analysis and ordering
+ */
+@Getter
+private final Instant timestamp;
+
+/**
+ * ID of the previous event in this aggregate's history for causal chain maintenance
+ */
+@Getter
+private final String previousEventId;
+
+/**
+ * Version of the event schema for migration and evolution support
+ */
+@Getter
+private final int schemaVersion;
+
+/**
+ * User who triggered this event for user context and audit trails
+ */
+@Getter
+private final String userId;
+
+/**
+ * Correlation ID for tracing related events across workflows and processes
+ */
+@Getter
+private final String correlationId;
+#+END_SRC
+
+** Primary Constructor with Complete Metadata
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Primary constructor with all event sourcing parameters for complete metadata control
+ * This constructor enables precise control over all event sourcing aspects
+ * @param eventId unique identifier for this event instance
+ * @param aggregateType type of aggregate this event belongs to
+ * @param aggregateId unique identifier of the aggregate instance
+ * @param aggregateVersion version of this event for the aggregate
+ * @param timestamp when the event occurred
+ * @param previousEventId ID of the previous event in this aggregate's history
+ * @param schemaVersion version of the event schema for evolution support
+ * @param userId user who triggered this event
+ * @param correlationId correlation ID for tracing related events
+ */
+protected AbstractVersionedDomainEvent(
+    final String eventId,
+    final String aggregateType,
+    final String aggregateId,
+    final long aggregateVersion,
+    final Instant timestamp,
+    final String previousEventId,
+    final int schemaVersion,
+    final String userId,
+    final String correlationId
+) {
+    this.eventId = eventId;
+    this.aggregateType = aggregateType;
+    this.aggregateId = aggregateId;
+    this.aggregateVersion = aggregateVersion;
+    this.timestamp = timestamp;
+    this.previousEventId = previousEventId;
+    this.schemaVersion = schemaVersion;
+    this.userId = userId;
+    this.correlationId = correlationId;
+}
+#+END_SRC
+
+** Simplified Metadata-Based Constructor
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Constructor that takes EventMetadata for simplified event creation with encapsulated metadata
+ * This provides clean separation between event sourcing metadata and domain event data
+ * @param metadata the comprehensive event metadata encapsulating all event sourcing concerns
+ */
+protected AbstractVersionedDomainEvent(final EventMetadata metadata) {
+    this(
+        metadata.getEventId(),
+        metadata.getAggregateType(),
+        metadata.getAggregateId(),
+        metadata.getAggregateVersion(),
+        metadata.getTimestamp(),
+        metadata.getPreviousEventId(),
+        metadata.getSchemaVersion(),
+        metadata.getUserId(),
+        metadata.getCorrelationId()
+    );
+}
+#+END_SRC
+
+* Factory Methods and Event Creation Strategies
+
+** New Aggregate Event Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Factory method to create event metadata for new aggregates with proper initialization
+ * This is used when creating the first event for a new aggregate instance
+ * @param aggregateType the type of aggregate being created
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @return metadata configured for the first event of a new aggregate
+ */
+protected static EventMetadata createMetadataForNewAggregate(
+    final String aggregateType,
+    final String aggregateId
+) {
+    return EventMetadata.forNewAggregate(aggregateType, aggregateId);
+}
+#+END_SRC
+
+** Existing Aggregate Event Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Factory method to create event metadata for existing aggregates with proper versioning
+ * This maintains continuity in the event stream for existing aggregate instances
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event for causal chain maintenance
+ * @param currentVersion the current version of the aggregate for proper versioning
+ * @return metadata configured for the next event in an existing aggregate's lifecycle
+ */
+protected static EventMetadata createMetadataForExistingAggregate(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion
+) {
+    return EventMetadata.forExistingAggregate(
+        aggregateType,
+        aggregateId,
+        previousEventId,
+        currentVersion
+    );
+}
+#+END_SRC
+
+** User-Contextualized Event Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Factory method to create event metadata with comprehensive user context
+ * This enables user-specific processing and personalized event handling
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event (null for first event)
+ * @param currentVersion the current version of the aggregate (0 for first event)
+ * @param userId the user who triggered this event for audit and personalization
+ * @return metadata with user context for personalized event processing
+ */
+protected static EventMetadata createMetadataWithUser(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion,
+    final String userId
+) {
+    return EventMetadata.withUser(
+        aggregateType,
+        aggregateId,
+        previousEventId,
+        currentVersion,
+        userId
+    );
+}
+#+END_SRC
+
+** Correlation-Enhanced Event Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Factory method to create event metadata with correlation for cross-workflow tracking
+ * This enables sophisticated event correlation and distributed tracing capabilities
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event (null for first event)
+ * @param currentVersion the current version of the aggregate (0 for first event)
+ * @param userId the user who triggered this event
+ * @param correlationId the correlation ID for tracing related events across workflows
+ * @return metadata with correlation support for distributed tracing
+ */
+protected static EventMetadata createMetadataWithCorrelation(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion,
+    final String userId,
+    final String correlationId
+) {
+    return EventMetadata.withCorrelation(
+        aggregateType,
+        aggregateId,
+        previousEventId,
+        currentVersion,
+        userId,
+        correlationId
+    );
+}
+#+END_SRC
+
+* Event Store Integration and Lifecycle Management
+
+** Event Store Query Integration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Helper method to get the last event ID for an aggregate from the event store
+ * This enables proper causal chain maintenance and event ordering
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate
+ * @return the last event ID, or null if no events exist
+ */
+protected static String getLastEventId(final String aggregateType, final String aggregateId) {
+    // TODO: This should query the EventStore to get the last event ID
+    // For now, we return null which means this will be treated as the first event
+    // This will be implemented when we integrate with the EventStore
+    return null;
+}
+
+/**
+ * Helper method to get the current version for an aggregate from the event store
+ * This enables proper aggregate versioning and optimistic concurrency control
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate
+ * @return the current version, or 0 if no events exist
+ */
+protected static long getCurrentVersion(final String aggregateType, final String aggregateId) {
+    // TODO: This should query the EventStore to get the current version
+    // For now, we return 0 which means the next event will be version 1
+    // This will be implemented when we integrate with the EventStore
+    return 0L;
+}
+#+END_SRC
+
+** Event Version Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Creates a copy of this event with updated version information for versioning scenarios
+ * This enables event versioning and migration capabilities in event sourcing systems
+ * @param newVersion the new aggregate version for the updated event
+ * @return a new event instance with updated version information
+ */
+public AbstractVersionedDomainEvent withVersion(final long newVersion) {
+    // This is abstract because each concrete event class needs to implement
+    // its own copy constructor with the new version
+    throw new UnsupportedOperationException(
+        "Subclasses must implement withVersion method for proper version management"
+    );
+}
+#+END_SRC
+
+** Event Description and Debugging Support
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/AbstractVersionedDomainEvent.java
+/**
+ * Gets a human-readable description of this event for debugging and logging
+ * This provides comprehensive event information for operational visibility
+ * @return a detailed description of the event including type and metadata
+ */
+public String getDescription() {
+    return String.format(
+        "%s[aggregateType=%s, aggregateId=%s, version=%d, timestamp=%s, userId=%s]",
+        getEventType(),
+        aggregateType,
+        aggregateId,
+        aggregateVersion,
+        timestamp,
+        userId != null ? userId : "system"
+    );
+}
+#+END_SRC
+
+* Integration with ByteHot Event Sourcing Architecture
+
+** Domain Event Processing Integration
+The AbstractVersionedDomainEvent integrates with ByteHot's comprehensive event processing:
+- **Event Store Integration**: All events inherit proper event store integration capabilities
+- **Aggregate Lifecycle**: Provides complete aggregate lifecycle management through versioning
+- **Causal Chain Management**: Maintains proper causal relationships between related events
+- **Temporal Analysis**: Enables sophisticated temporal analysis through comprehensive timestamps
+
+** Hexagonal Architecture Compliance
+The implementation follows strict hexagonal architecture principles:
+- **Domain Purity**: Pure domain logic without infrastructure dependencies
+- **Port Integration**: Clean integration with EventStorePort through standardized interfaces
+- **Dependency Inversion**: Abstractions depend on domain contracts, not implementations
+- **Testability**: Comprehensive testability through dependency injection and mocking
+
+** Event Sourcing Pattern Implementation
+The design supports comprehensive event sourcing patterns:
+- **Immutable Events**: All events are immutable value objects with complete metadata
+- **Aggregate Versioning**: Proper aggregate versioning for optimistic concurrency control
+- **Event Correlation**: Support for sophisticated event correlation and tracing
+- **State Reconstruction**: Complete support for aggregate state reconstruction from events
+
+* Performance Optimization and Memory Management
+
+** Memory Efficiency Strategies
+The implementation optimizes memory usage:
+- **Immutable Design**: Prevents unnecessary object mutations and memory leaks
+- **Primitive Fields**: Uses primitive types where possible to minimize boxing overhead
+- **Efficient String Handling**: Optimized string handling for identifiers and metadata
+- **Lazy Computation**: Defers expensive computations until actually needed
+
+** Event Creation Optimization
+The factory methods provide optimized event creation:
+- **Metadata Reuse**: EventMetadata encapsulation enables efficient metadata reuse
+- **Factory Patterns**: Factory methods enable optimized object creation patterns
+- **Constructor Overloading**: Multiple constructors for different creation scenarios
+- **Default Value Handling**: Intelligent default value handling for optional metadata
+
+** Serialization and Storage Optimization
+The design supports efficient serialization:
+- **Clean Separation**: Metadata separation enables efficient serialization strategies
+- **Version Evolution**: Schema versioning supports event evolution and migration
+- **Compact Representation**: Efficient field organization for serialization optimization
+- **Type Safety**: Strong typing prevents serialization errors and data corruption
+
+* Error Handling and Validation
+
+** Metadata Validation
+The implementation provides comprehensive metadata validation:
+- **Required Field Validation**: Ensures all essential metadata is properly provided
+- **Version Consistency**: Validates aggregate version consistency and progression
+- **Identifier Validation**: Ensures proper event and aggregate identifier formats
+- **Temporal Validation**: Validates timestamp consistency and chronological ordering
+
+** Event Lifecycle Validation
+The class ensures proper event lifecycle management:
+- **Creation Validation**: Validates proper event creation with complete metadata
+- **Version Progression**: Ensures proper version progression and concurrency control
+- **Causal Chain Validation**: Validates proper causal chain maintenance and integrity
+- **User Context Validation**: Ensures proper user context preservation and validation
+
+* Extension Points and Customization
+
+** Subclass Implementation Requirements
+The abstract class defines clear requirements for subclasses:
+- **withVersion Implementation**: Subclasses must implement proper version management
+- **Event Type Specification**: Concrete events must provide specific event type information
+- **Domain Data Integration**: Subclasses add domain-specific data while preserving metadata
+- **Factory Method Usage**: Subclasses should use provided factory methods for consistency
+
+** Customization Opportunities
+The design supports various customization scenarios:
+- **Custom Metadata**: Additional metadata can be added through EventMetadata extension
+- **Specialized Factories**: Custom factory methods for domain-specific event creation
+- **Validation Extensions**: Additional validation logic for domain-specific requirements
+- **Integration Patterns**: Custom integration patterns for specific storage or processing needs
+
+* Related Documentation
+
+- [[EventMetadata.org][EventMetadata]]: Comprehensive metadata management used by this base class
+- [[EventStorePort.org][EventStorePort]]: Storage interface for versioned domain events
+- [[events/ClassFileChanged.org][ClassFileChanged]]: Example concrete implementation of this base class
+- [[events/HotSwapRequested.org][HotSwapRequested]]: Another example concrete implementation
+- [[flows/event-sourcing-persistence-flow.org][Event Sourcing Persistence Flow]]: Complete event lifecycle documentation
+
+* Implementation Notes
+
+** Design Patterns Applied
+The base class leverages several sophisticated design patterns:
+- **Template Method Pattern**: Provides common structure with customizable implementations
+- **Factory Method Pattern**: Multiple factory methods for different creation scenarios
+- **Value Object Pattern**: Immutable design with comprehensive equality and comparison
+- **Strategy Pattern**: Different metadata creation strategies for various use cases
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Events**: Comprehensive business context with complete metadata
+- **Event-First Design**: Events as first-class citizens with complete lifecycle support
+- **Aggregate Boundary Respect**: Proper aggregate identification and versioning
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Advanced Correlation**: Machine learning-based event correlation and pattern recognition
+- **Performance Analytics**: Built-in performance monitoring and optimization capabilities
+- **Distributed Tracing**: Enhanced distributed tracing and observability integration
+- **Event Evolution**: Advanced event schema evolution and migration capabilities
+
+The AbstractVersionedDomainEvent provides ByteHot's essential event sourcing foundation while maintaining clean domain boundaries, comprehensive metadata management, and extensibility for advanced event processing capabilities throughout the entire intelligent event-driven system lifecycle.

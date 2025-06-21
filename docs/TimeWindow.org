@@ -1,0 +1,573 @@
+#+TITLE: TimeWindow - Temporal Analysis and Flow Time Boundary Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~TimeWindow~ class serves as ByteHot's sophisticated temporal analysis and flow time boundary value object, providing comprehensive time range management, temporal validation capabilities, and sophisticated temporal correlation mechanisms for flow analysis and event processing. This critical domain value object encapsulates temporal logic, time boundary validation, and sophisticated temporal operations that enable precise temporal analysis and time-sensitive flow processing. As the temporal foundation for ByteHot's flow intelligence system, it enables comprehensive temporal analysis while maintaining clean domain boundaries and supporting advanced temporal analytics, time-based correlation, and operational intelligence throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Temporal Analysis and Time Boundary Management Foundation
+TimeWindow serves as the comprehensive temporal analysis and time boundary management foundation:
+- Provides sophisticated temporal boundary management for flow analysis and event processing operations
+- Enables comprehensive time range validation and temporal consistency through domain-driven temporal logic
+- Supports advanced temporal correlation and time-sensitive analysis through precise time boundary management
+- Acts as the authoritative foundation for temporal operations and time-based flow intelligence
+
+** Value Object Design and Immutable Temporal Context
+The class serves as the value object design and immutable temporal context:
+- Implements sophisticated value object patterns with immutable temporal boundary encapsulation and validation
+- Provides comprehensive temporal validation and consistency through domain-driven design principles
+- Enables temporal composition and correlation capabilities for complex time-based analysis scenarios
+- Supports temporal optimization and performance enhancement through efficient value object design
+
+** Flow Analysis Temporal Coordination and Event Time Management
+The implementation provides flow analysis temporal coordination and event time management:
+- Enables sophisticated temporal coordination for flow analysis and event sequence processing
+- Supports advanced temporal correlation and time-sensitive pattern recognition through boundary management
+- Provides foundation for temporal analytics and time-based business intelligence through temporal operations
+- Enables intelligent temporal monitoring and optimization through time window analysis and assessment
+
+* Temporal Structure and Time Boundary Context
+
+** Core Temporal Boundaries and Time Range Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Start time of the window for temporal boundary definition and analysis
+ */
+@Getter
+private final Instant startTime;
+
+/**
+ * End time of the window for temporal boundary completion and validation
+ */
+@Getter
+private final Instant endTime;
+#+END_SRC
+
+** Factory Methods and Time Window Construction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Creates a time window from start time and duration with validation
+ * @param startTime The start time for temporal boundary definition
+ * @param duration The duration of the window for temporal span calculation
+ * @return A TimeWindow spanning the specified duration from start time with validation
+ */
+public static TimeWindow of(final Instant startTime, final Duration duration) {
+    if (startTime == null) {
+        throw new IllegalArgumentException("Start time cannot be null");
+    }
+    if (duration == null || duration.isNegative()) {
+        throw new IllegalArgumentException("Duration must be positive");
+    }
+    
+    return new TimeWindow(startTime, startTime.plus(duration));
+}
+
+/**
+ * Creates a time window from start and end times with comprehensive validation
+ * @param startTime The start time for temporal boundary definition
+ * @param endTime The end time for temporal boundary completion
+ * @return A TimeWindow spanning from start to end time with temporal validation
+ */
+public static TimeWindow between(final Instant startTime, final Instant endTime) {
+    if (startTime == null || endTime == null) {
+        throw new IllegalArgumentException("Start and end times cannot be null");
+    }
+    if (endTime.isBefore(startTime)) {
+        throw new IllegalArgumentException("End time must be after start time");
+    }
+    
+    return new TimeWindow(startTime, endTime);
+}
+
+/**
+ * Creates a time window representing the last specified duration from now
+ * @param duration The duration to look back from now for temporal analysis
+ * @return A TimeWindow ending at the current time for recent temporal analysis
+ */
+public static TimeWindow lastDuration(final Duration duration) {
+    if (duration == null || duration.isNegative()) {
+        throw new IllegalArgumentException("Duration must be positive");
+    }
+    
+    Instant now = Instant.now();
+    return new TimeWindow(now.minus(duration), now);
+}
+#+END_SRC
+
+** Enhanced Factory Methods and Temporal Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Creates a time window for the next specified duration from now
+ * @param duration The duration to look forward from now for future temporal analysis
+ * @return A TimeWindow starting at the current time for future temporal analysis
+ */
+public static TimeWindow nextDuration(final Duration duration) {
+    if (duration == null || duration.isNegative()) {
+        throw new IllegalArgumentException("Duration must be positive");
+    }
+    
+    Instant now = Instant.now();
+    return new TimeWindow(now, now.plus(duration));
+}
+
+/**
+ * Creates a time window for today (current day) for daily temporal analysis
+ * @return A TimeWindow spanning the current day for daily analysis operations
+ */
+public static TimeWindow today() {
+    Instant now = Instant.now();
+    Instant startOfDay = now.truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+    Instant endOfDay = startOfDay.plus(Duration.ofDays(1)).minus(Duration.ofNanos(1));
+    return new TimeWindow(startOfDay, endOfDay);
+}
+
+/**
+ * Creates a time window for the current hour for hourly temporal analysis
+ * @return A TimeWindow spanning the current hour for hourly analysis operations
+ */
+public static TimeWindow currentHour() {
+    Instant now = Instant.now();
+    Instant startOfHour = now.truncatedTo(java.time.temporal.ChronoUnit.HOURS);
+    Instant endOfHour = startOfHour.plus(Duration.ofHours(1)).minus(Duration.ofNanos(1));
+    return new TimeWindow(startOfHour, endOfHour);
+}
+
+/**
+ * Creates a time window with specified minutes for minute-based temporal analysis
+ * @param minutes The number of minutes for temporal window duration
+ * @return A TimeWindow with specified minute duration for temporal analysis
+ */
+public static TimeWindow ofMinutes(final long minutes) {
+    if (minutes <= 0) {
+        throw new IllegalArgumentException("Minutes must be positive");
+    }
+    return lastDuration(Duration.ofMinutes(minutes));
+}
+
+/**
+ * Creates a time window with specified seconds for second-based temporal analysis
+ * @param seconds The number of seconds for temporal window duration
+ * @return A TimeWindow with specified second duration for temporal analysis
+ */
+public static TimeWindow ofSeconds(final long seconds) {
+    if (seconds <= 0) {
+        throw new IllegalArgumentException("Seconds must be positive");
+    }
+    return lastDuration(Duration.ofSeconds(seconds));
+}
+#+END_SRC
+
+* Temporal Operations and Time Analysis Intelligence
+
+** Duration and Time Span Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Gets the duration of this time window for temporal span analysis
+ * @return The duration between start and end times for temporal analysis
+ */
+public Duration getDuration() {
+    return Duration.between(startTime, endTime);
+}
+
+/**
+ * Gets the duration in milliseconds for performance and efficiency analysis
+ * @return The duration in milliseconds for performance temporal analysis
+ */
+public long getDurationInMillis() {
+    return getDuration().toMillis();
+}
+
+/**
+ * Gets the duration in seconds for human-readable temporal analysis
+ * @return The duration in seconds for human-readable temporal information
+ */
+public long getDurationInSeconds() {
+    return getDuration().getSeconds();
+}
+#+END_SRC
+
+** Temporal Containment and Boundary Validation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Checks if the specified instant falls within this time window
+ * @param instant The instant to check for temporal containment validation
+ * @return true if the instant is within the window (inclusive of boundaries)
+ */
+public boolean contains(final Instant instant) {
+    if (instant == null) {
+        return false;
+    }
+    
+    return !instant.isBefore(startTime) && !instant.isAfter(endTime);
+}
+
+/**
+ * Checks if this entire time window falls within another time window
+ * @param other The other time window for containment validation
+ * @return true if this window is completely contained within the other window
+ */
+public boolean isContainedBy(final TimeWindow other) {
+    if (other == null) {
+        return false;
+    }
+    
+    return !startTime.isBefore(other.startTime) && !endTime.isAfter(other.endTime);
+}
+
+/**
+ * Checks if this time window completely contains another time window
+ * @param other The other time window for containment validation
+ * @return true if this window completely contains the other window
+ */
+public boolean contains(final TimeWindow other) {
+    if (other == null) {
+        return false;
+    }
+    
+    return !other.startTime.isBefore(startTime) && !other.endTime.isAfter(endTime);
+}
+#+END_SRC
+
+** Temporal Overlap and Intersection Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Checks if this time window overlaps with another time window
+ * @param other The other time window for overlap validation and analysis
+ * @return true if the windows overlap with any temporal intersection
+ */
+public boolean overlaps(final TimeWindow other) {
+    if (other == null) {
+        return false;
+    }
+    
+    return !endTime.isBefore(other.startTime) && !startTime.isAfter(other.endTime);
+}
+
+/**
+ * Gets the intersection of this time window with another time window
+ * @param other The other time window for intersection calculation
+ * @return The intersecting time window, or null if no intersection exists
+ */
+public TimeWindow getIntersection(final TimeWindow other) {
+    if (!overlaps(other)) {
+        return null;
+    }
+    
+    Instant intersectionStart = startTime.isAfter(other.startTime) ? startTime : other.startTime;
+    Instant intersectionEnd = endTime.isBefore(other.endTime) ? endTime : other.endTime;
+    
+    return new TimeWindow(intersectionStart, intersectionEnd);
+}
+
+/**
+ * Gets the union of this time window with another time window
+ * @param other The other time window for union calculation
+ * @return The combined time window spanning both windows
+ */
+public TimeWindow getUnion(final TimeWindow other) {
+    if (other == null) {
+        return this;
+    }
+    
+    Instant unionStart = startTime.isBefore(other.startTime) ? startTime : other.startTime;
+    Instant unionEnd = endTime.isAfter(other.endTime) ? endTime : other.endTime;
+    
+    return new TimeWindow(unionStart, unionEnd);
+}
+#+END_SRC
+
+* Advanced Temporal Intelligence and Analysis Operations
+
+** Temporal Expansion and Window Manipulation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Expands this time window by the specified duration on both sides
+ * @param expansion The duration to expand the window on both start and end
+ * @return A new TimeWindow expanded by the specified duration
+ */
+public TimeWindow expand(final Duration expansion) {
+    if (expansion == null || expansion.isNegative()) {
+        throw new IllegalArgumentException("Expansion duration must be positive");
+    }
+    
+    return new TimeWindow(startTime.minus(expansion), endTime.plus(expansion));
+}
+
+/**
+ * Contracts this time window by the specified duration on both sides
+ * @param contraction The duration to contract the window on both start and end
+ * @return A new TimeWindow contracted by the specified duration
+ */
+public TimeWindow contract(final Duration contraction) {
+    if (contraction == null || contraction.isNegative()) {
+        throw new IllegalArgumentException("Contraction duration must be positive");
+    }
+    
+    Instant newStart = startTime.plus(contraction);
+    Instant newEnd = endTime.minus(contraction);
+    
+    if (newEnd.isBefore(newStart) || newEnd.equals(newStart)) {
+        throw new IllegalArgumentException("Contraction would result in invalid time window");
+    }
+    
+    return new TimeWindow(newStart, newEnd);
+}
+
+/**
+ * Shifts this time window by the specified duration
+ * @param shift The duration to shift the window (positive for forward, negative for backward)
+ * @return A new TimeWindow shifted by the specified duration
+ */
+public TimeWindow shift(final Duration shift) {
+    if (shift == null) {
+        throw new IllegalArgumentException("Shift duration cannot be null");
+    }
+    
+    return new TimeWindow(startTime.plus(shift), endTime.plus(shift));
+}
+#+END_SRC
+
+** Temporal Validation and Business Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/TimeWindow.java
+/**
+ * Checks if this time window is in the past relative to current time
+ * @return true if the entire window is before the current time
+ */
+public boolean isInPast() {
+    return endTime.isBefore(Instant.now());
+}
+
+/**
+ * Checks if this time window is in the future relative to current time
+ * @return true if the entire window is after the current time
+ */
+public boolean isInFuture() {
+    return startTime.isAfter(Instant.now());
+}
+
+/**
+ * Checks if this time window includes the current time
+ * @return true if the current time falls within this window
+ */
+public boolean includesNow() {
+    return contains(Instant.now());
+}
+
+/**
+ * Gets the percentage of this window that has elapsed relative to current time
+ * @return percentage from 0.0 to 1.0, or values outside range if window is in past/future
+ */
+public double getElapsedPercentage() {
+    Instant now = Instant.now();
+    if (now.isBefore(startTime)) {
+        return 0.0;
+    }
+    if (now.isAfter(endTime)) {
+        return 1.0;
+    }
+    
+    long totalDuration = getDurationInMillis();
+    long elapsedDuration = Duration.between(startTime, now).toMillis();
+    
+    return (double) elapsedDuration / totalDuration;
+}
+#+END_SRC
+
+* Temporal Intelligence and Flow Analysis Integration
+
+** Flow Analysis Temporal Coordination
+The TimeWindow enables sophisticated flow analysis temporal coordination:
+- **Event Sequence Timing**: Event sequence timing validation for flow pattern recognition
+- **Temporal Pattern Recognition**: Temporal pattern recognition for time-sensitive business flows
+- **Flow Duration Analysis**: Flow duration analysis for performance and efficiency assessment
+- **Temporal Correlation**: Temporal correlation analysis for related flow identification
+
+** Performance and Efficiency Intelligence
+The temporal operations support performance analysis:
+- **Timing Performance**: Timing performance analysis for flow execution efficiency
+- **Temporal Bottlenecks**: Temporal bottleneck identification through time window analysis
+- **Duration Optimization**: Duration optimization for improved flow performance and efficiency
+- **Temporal Metrics**: Temporal metrics collection for performance monitoring and optimization
+
+** Business Process Temporal Intelligence
+The time window provides business process intelligence:
+- **Process Timing**: Business process timing analysis for operational efficiency
+- **SLA Monitoring**: Service Level Agreement monitoring through temporal boundary validation
+- **Temporal Compliance**: Temporal compliance verification for business process requirements
+- **Time-Based Analytics**: Time-based analytics for business intelligence and process optimization
+
+* Integration with ByteHot Temporal Infrastructure
+
+** Flow Analysis Temporal Integration
+TimeWindow integrates with ByteHot's flow analysis systems:
+- Provide comprehensive temporal boundary management for flow analysis operations
+- Enable sophisticated temporal correlation and time-sensitive flow pattern recognition
+- Support advanced temporal analytics and time-based business intelligence
+- Provide foundation for temporal optimization and flow performance enhancement
+
+** Event Processing Temporal Coordination
+The class coordinates with event processing systems:
+- **Event Timing**: Event timing validation and temporal sequence analysis
+- **Temporal Filtering**: Temporal filtering for time-based event processing and analysis
+- **Event Correlation**: Event correlation through temporal boundary management and validation
+- **Time-Series Analysis**: Time-series analysis integration for temporal event intelligence
+
+** Analytics and Monitoring Integration
+The implementation supports analytics integration:
+- **Temporal Analytics**: Temporal analytics integration for time-based performance analysis
+- **Monitoring Windows**: Monitoring window management for system health and performance tracking
+- **Real-Time Analysis**: Real-time analysis integration with temporal boundary management
+- **Historical Analysis**: Historical analysis through temporal window management and correlation
+
+* Advanced Temporal Features and Intelligence
+
+** Distributed System Temporal Coordination
+The time window enables distributed temporal coordination:
+- **Cross-System Timing**: Cross-system timing coordination through temporal boundary synchronization
+- **Distributed Analysis**: Distributed temporal analysis across multiple system components
+- **Temporal Synchronization**: Temporal synchronization for coordinated system operations
+- **Global Time Windows**: Global time window management for distributed system coordination
+
+** Machine Learning Temporal Integration
+The implementation supports machine learning integration:
+- **Temporal Features**: Temporal features extraction for machine learning model training
+- **Time-Series Prediction**: Time-series prediction through temporal window analysis
+- **Temporal Patterns**: Temporal pattern learning for intelligent flow analysis
+- **Predictive Timing**: Predictive timing analysis for proactive system optimization
+
+** Advanced Analytics and Forecasting
+The class provides advanced analytics capabilities:
+- **Temporal Trends**: Temporal trend analysis for business intelligence and forecasting
+- **Seasonal Analysis**: Seasonal analysis through temporal window patterns and cycles
+- **Forecast Windows**: Forecast window management for predictive analytics and planning
+- **Temporal Optimization**: Temporal optimization for enhanced system performance and efficiency
+
+* Testing and Validation Strategies
+
+** Time Window Creation Testing
+```java
+@Test
+void shouldCreateValidTimeWindows() {
+    // Given: Valid time parameters
+    Instant start = Instant.now();
+    Duration duration = Duration.ofMinutes(30);
+    Instant end = start.plus(duration);
+    
+    // When: Creating time windows
+    TimeWindow fromDuration = TimeWindow.of(start, duration);
+    TimeWindow fromRange = TimeWindow.between(start, end);
+    TimeWindow lastHour = TimeWindow.ofMinutes(60);
+    
+    // Then: Should create valid time windows
+    assertThat(fromDuration.getDuration()).isEqualTo(duration);
+    assertThat(fromRange.getStartTime()).isEqualTo(start);
+    assertThat(fromRange.getEndTime()).isEqualTo(end);
+    assertThat(lastHour.getDuration()).isEqualTo(Duration.ofHours(1));
+}
+```
+
+** Temporal Validation Testing
+```java
+@Test
+void shouldValidateTemporalBoundaries() {
+    // Given: Time window and test instants
+    Instant start = Instant.parse("2025-01-01T10:00:00Z");
+    Instant end = Instant.parse("2025-01-01T12:00:00Z");
+    TimeWindow window = TimeWindow.between(start, end);
+    
+    Instant inside = Instant.parse("2025-01-01T11:00:00Z");
+    Instant outside = Instant.parse("2025-01-01T13:00:00Z");
+    
+    // When/Then: Should validate containment correctly
+    assertThat(window.contains(inside)).isTrue();
+    assertThat(window.contains(outside)).isFalse();
+    assertThat(window.contains(start)).isTrue(); // Inclusive boundaries
+    assertThat(window.contains(end)).isTrue();
+}
+```
+
+** Temporal Operations Testing
+```java
+@Test
+void shouldPerformTemporalOperations() {
+    // Given: Overlapping time windows
+    TimeWindow window1 = TimeWindow.between(
+        Instant.parse("2025-01-01T10:00:00Z"),
+        Instant.parse("2025-01-01T12:00:00Z")
+    );
+    TimeWindow window2 = TimeWindow.between(
+        Instant.parse("2025-01-01T11:00:00Z"),
+        Instant.parse("2025-01-01T13:00:00Z")
+    );
+    
+    // When: Performing temporal operations
+    boolean overlaps = window1.overlaps(window2);
+    TimeWindow intersection = window1.getIntersection(window2);
+    TimeWindow union = window1.getUnion(window2);
+    
+    // Then: Should perform operations correctly
+    assertThat(overlaps).isTrue();
+    assertThat(intersection).isNotNull();
+    assertThat(intersection.getDuration()).isEqualTo(Duration.ofHours(1));
+    assertThat(union.getDuration()).isEqualTo(Duration.ofHours(3));
+}
+```
+
+* Integration with Temporal and Analytics Systems
+
+** Time-Series Database Integration
+The class integrates with time-series databases:
+- **Temporal Querying**: Temporal querying through time window boundary specification
+- **Data Retention**: Data retention policies through time window lifecycle management
+- **Aggregation Windows**: Aggregation window specification for time-series analytics
+- **Temporal Indexing**: Temporal indexing optimization through time window boundaries
+
+** Scheduling and Workflow Integration
+The implementation supports scheduling integration:
+- **Task Scheduling**: Task scheduling through time window specification and validation
+- **Workflow Timing**: Workflow timing coordination through temporal boundary management
+- **Deadline Management**: Deadline management and validation through time window analysis
+- **Temporal Constraints**: Temporal constraints enforcement for process coordination
+
+** External System Integration
+The class coordinates with external systems:
+- **API Rate Limiting**: API rate limiting through time window management and validation
+- **Cache Expiration**: Cache expiration management through temporal boundary specification
+- **Session Management**: Session management through time window lifecycle tracking
+- **Audit Trail Windows**: Audit trail window management for compliance and monitoring
+
+* Related Documentation
+
+- [[AnalysisId.org][AnalysisId]]: Analysis identifier for temporal correlation and tracking
+- [[FlowAnalysisRequested.org][FlowAnalysisRequested]]: Flow analysis request using time windows
+- [[FlowDetector.org][FlowDetector]]: Flow detection with temporal pattern recognition
+- [[Flow.org][Flow]]: Flow domain entity with temporal constraints and validation
+- [[../flows/flow-intelligence-learning-flow.org][Flow Intelligence Learning Flow]]: Temporal flow analysis workflow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable temporal boundaries with comprehensive validation and operations
+- **Factory Method Pattern**: Static factory methods for different time window creation strategies
+- **Strategy Pattern**: Support for different temporal validation and analysis strategies
+- **Template Method Pattern**: Template method for temporal operations and boundary management
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive temporal behavior and intelligence beyond simple data containers
+- **Domain Intelligence**: Built-in domain intelligence for temporal validation and correlation
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Timezone Intelligence**: Advanced timezone handling and cross-timezone temporal analysis
+- **Temporal Machine Learning**: AI-driven temporal pattern recognition and predictive timing
+- **Distributed Time Coordination**: Advanced distributed system temporal coordination and synchronization
+- **Quantum Temporal Analysis**: Quantum-enhanced temporal analysis for ultra-precise timing requirements
+
+The TimeWindow class provides ByteHot's essential temporal analysis and flow time boundary foundation while maintaining comprehensive temporal capabilities, sophisticated validation intelligence, and extensibility for advanced temporal scenarios throughout the entire intelligent hot-swap system lifecycle.

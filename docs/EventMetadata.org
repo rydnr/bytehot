@@ -1,0 +1,535 @@
+#+TITLE: EventMetadata - Event Sourcing Metadata Management and Factory Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~EventMetadata~ class serves as ByteHot's comprehensive event sourcing metadata management value object, encapsulating all essential metadata required for versioned domain events including aggregate versioning, causal chain tracking, user context preservation, and correlation support. This critical value object provides sophisticated factory methods for consistent metadata generation across different event creation scenarios while maintaining immutability and complete audit trail capabilities. As the foundational metadata infrastructure for ByteHot's event-driven architecture, it ensures consistent event sourcing implementation, enables complete system state reconstruction, and provides comprehensive support for debugging, analytics, and compliance requirements throughout the intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Event Sourcing Metadata Foundation
+EventMetadata serves as the foundational metadata infrastructure for event sourcing:
+- Encapsulates all essential event sourcing metadata in a cohesive, immutable value object
+- Provides consistent metadata generation across all domain events in the system
+- Enables complete audit trails and system state reconstruction through comprehensive versioning
+- Acts as the cornerstone for event sourcing compliance and best practices
+
+** Value Object Pattern Implementation
+The class exemplifies sophisticated value object design:
+- Immutable design with comprehensive equality and comparison semantics
+- Rich factory methods for different metadata creation scenarios and use cases
+- Copy-with-modification methods for safe metadata evolution and updates
+- Behavioral methods for metadata analysis and validation
+
+** Domain Event Integration Hub
+The implementation serves as the integration hub for domain events:
+- Used by AbstractVersionedDomainEvent for consistent metadata management
+- Provides standardized metadata across all ByteHot domain events
+- Enables sophisticated event correlation and causal chain management
+- Supports comprehensive temporal analysis and debugging capabilities
+
+* Core Metadata Structure and Properties
+
+** Essential Event Sourcing Properties
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Unique identifier for this event instance enabling precise event tracking
+ */
+@Getter
+private final String eventId;
+
+/**
+ * Type of aggregate this event belongs to for aggregate boundary management
+ */
+@Getter
+private final String aggregateType;
+
+/**
+ * Unique identifier of the aggregate instance for precise aggregate targeting
+ */
+@Getter
+private final String aggregateId;
+
+/**
+ * Version of this event for the aggregate enabling optimistic concurrency control
+ */
+@Getter
+private final long aggregateVersion;
+
+/**
+ * Timestamp when the event occurred for temporal analysis and ordering
+ */
+@Getter
+private final Instant timestamp;
+#+END_SRC
+
+** Advanced Event Sourcing Metadata
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * ID of the previous event in this aggregate's history for causal chain maintenance
+ */
+@Getter
+private final String previousEventId;
+
+/**
+ * Version of the event schema for migration and evolution support
+ */
+@Getter
+private final int schemaVersion;
+
+/**
+ * User who triggered this event for user context and audit trails
+ */
+@Getter
+private final String userId;
+
+/**
+ * Correlation ID for tracing related events across workflows and processes
+ */
+@Getter
+private final String correlationId;
+#+END_SRC
+
+** Comprehensive Value Object Constructor
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Primary constructor with all event sourcing metadata for complete control
+ * This constructor enables precise control over all event sourcing aspects
+ * @param eventId unique identifier for this event instance
+ * @param aggregateType type of aggregate this event belongs to
+ * @param aggregateId unique identifier of the aggregate instance
+ * @param aggregateVersion version of this event for the aggregate
+ * @param timestamp when the event occurred
+ * @param previousEventId ID of the previous event in this aggregate's history
+ * @param schemaVersion version of the event schema for evolution support
+ * @param userId user who triggered this event
+ * @param correlationId correlation ID for tracing related events
+ */
+@RequiredArgsConstructor
+public EventMetadata(
+    final String eventId,
+    final String aggregateType,
+    final String aggregateId,
+    final long aggregateVersion,
+    final Instant timestamp,
+    final String previousEventId,
+    final int schemaVersion,
+    final String userId,
+    final String correlationId
+) {
+    this.eventId = eventId;
+    this.aggregateType = aggregateType;
+    this.aggregateId = aggregateId;
+    this.aggregateVersion = aggregateVersion;
+    this.timestamp = timestamp;
+    this.previousEventId = previousEventId;
+    this.schemaVersion = schemaVersion;
+    this.userId = userId;
+    this.correlationId = correlationId;
+}
+#+END_SRC
+
+* Factory Methods and Metadata Creation Strategies
+
+** New Aggregate Metadata Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates event metadata for a new aggregate with proper initialization for first events
+ * This is used when creating the first event for a new aggregate instance
+ * @param aggregateType the type of aggregate being created
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @return metadata configured for the first event of a new aggregate
+ */
+public static EventMetadata forNewAggregate(final String aggregateType, final String aggregateId) {
+    return new EventMetadata(
+        UUID.randomUUID().toString(),  // Generate unique event ID
+        aggregateType,
+        aggregateId,
+        1L,                           // First version starts at 1
+        Instant.now(),               // Current timestamp
+        null,                        // No previous event for first event
+        1,                           // Default schema version
+        null,                        // No user context initially
+        null                         // No correlation initially
+    );
+}
+#+END_SRC
+
+** Existing Aggregate Metadata Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates event metadata for an existing aggregate with proper versioning continuity
+ * This maintains continuity in the event stream for existing aggregate instances
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event for causal chain maintenance
+ * @param currentVersion the current version of the aggregate for proper versioning
+ * @return metadata configured for the next event in an existing aggregate's lifecycle
+ */
+public static EventMetadata forExistingAggregate(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion
+) {
+    return new EventMetadata(
+        UUID.randomUUID().toString(),    // Generate unique event ID
+        aggregateType,
+        aggregateId,
+        currentVersion + 1,              // Increment version for next event
+        Instant.now(),                   // Current timestamp
+        previousEventId,                 // Link to previous event
+        1,                               // Default schema version
+        null,                            // No user context initially
+        null                             // No correlation initially
+    );
+}
+#+END_SRC
+
+** Custom Timestamp Metadata Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates event metadata for an existing aggregate with custom timestamp for precise timing
+ * This enables precise temporal control for specific timing requirements
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event for causal chain maintenance
+ * @param currentVersion the current version of the aggregate
+ * @param timestamp the specific timestamp for this event
+ * @return metadata configured with custom timing information
+ */
+public static EventMetadata forExistingAggregate(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion,
+    final Instant timestamp
+) {
+    return new EventMetadata(
+        UUID.randomUUID().toString(),    // Generate unique event ID
+        aggregateType,
+        aggregateId,
+        currentVersion + 1,              // Increment version
+        timestamp,                       // Use provided timestamp
+        previousEventId,
+        1,                               // Default schema version
+        null,                            // No user context initially
+        null                             // No correlation initially
+    );
+}
+#+END_SRC
+
+** User-Contextualized Metadata Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates event metadata with comprehensive user context for personalized processing
+ * This enables user-specific processing and personalized event handling
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event (null for first event)
+ * @param currentVersion the current version of the aggregate (0 for first event)
+ * @param userId the user who triggered this event for audit and personalization
+ * @return metadata with user context for personalized event processing
+ */
+public static EventMetadata withUser(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion,
+    final String userId
+) {
+    return new EventMetadata(
+        UUID.randomUUID().toString(),
+        aggregateType,
+        aggregateId,
+        currentVersion + 1,
+        Instant.now(),
+        previousEventId,
+        1,                               // Default schema version
+        userId,                          // Include user context
+        null                             // No correlation yet
+    );
+}
+#+END_SRC
+
+** Correlation-Enhanced Metadata Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates event metadata with correlation for cross-workflow tracking and distributed tracing
+ * This enables sophisticated event correlation and distributed tracing capabilities
+ * @param aggregateType the type of aggregate
+ * @param aggregateId the unique identifier of the aggregate instance
+ * @param previousEventId the ID of the previous event (null for first event)
+ * @param currentVersion the current version of the aggregate (0 for first event)
+ * @param userId the user who triggered this event
+ * @param correlationId the correlation ID for tracing related events across workflows
+ * @return metadata with correlation support for distributed tracing and analysis
+ */
+public static EventMetadata withCorrelation(
+    final String aggregateType,
+    final String aggregateId,
+    final String previousEventId,
+    final long currentVersion,
+    final String userId,
+    final String correlationId
+) {
+    return new EventMetadata(
+        UUID.randomUUID().toString(),
+        aggregateType,
+        aggregateId,
+        currentVersion + 1,
+        Instant.now(),
+        previousEventId,
+        1,                               // Default schema version
+        userId,
+        correlationId                    // Include correlation for tracing
+    );
+}
+#+END_SRC
+
+* Metadata Modification and Evolution Support
+
+** Version Management and Updates
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates a copy of this metadata with a different version for versioning scenarios
+ * This enables event versioning and migration capabilities in event sourcing systems
+ * @param newVersion the new aggregate version for the updated metadata
+ * @return new metadata instance with updated version information
+ */
+public EventMetadata withVersion(final long newVersion) {
+    return new EventMetadata(
+        this.eventId,
+        this.aggregateType,
+        this.aggregateId,
+        newVersion,                      // Updated version
+        this.timestamp,
+        this.previousEventId,
+        this.schemaVersion,
+        this.userId,
+        this.correlationId
+    );
+}
+#+END_SRC
+
+** User Context Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates a copy of this metadata with user context for personalization scenarios
+ * This enables adding user context to existing metadata for audit and personalization
+ * @param userId the user ID to set for user context and audit trails
+ * @return new metadata instance with user context information
+ */
+public EventMetadata withUserId(final String userId) {
+    return new EventMetadata(
+        this.eventId,
+        this.aggregateType,
+        this.aggregateId,
+        this.aggregateVersion,
+        this.timestamp,
+        this.previousEventId,
+        this.schemaVersion,
+        userId,                          // Updated user context
+        this.correlationId
+    );
+}
+#+END_SRC
+
+** Correlation Management for Distributed Tracing
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Creates a copy of this metadata with correlation ID for distributed tracing
+ * This enables adding correlation information for cross-workflow event tracking
+ * @param correlationId the correlation ID to set for distributed tracing and analysis
+ * @return new metadata instance with correlation information
+ */
+public EventMetadata withCorrelationId(final String correlationId) {
+    return new EventMetadata(
+        this.eventId,
+        this.aggregateType,
+        this.aggregateId,
+        this.aggregateVersion,
+        this.timestamp,
+        this.previousEventId,
+        this.schemaVersion,
+        this.userId,
+        correlationId                    // Updated correlation for tracing
+    );
+}
+#+END_SRC
+
+* Metadata Analysis and Validation Methods
+
+** Event Lifecycle Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Checks if this is metadata for the first event of an aggregate lifecycle
+ * This enables special handling for aggregate initialization and first-event scenarios
+ * @return true if this represents the first event in an aggregate's lifecycle
+ */
+public boolean isFirstEvent() {
+    return aggregateVersion == 1L && previousEventId == null;
+}
+#+END_SRC
+
+** Context Availability Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventMetadata.java
+/**
+ * Checks if this metadata has user context for personalization and audit scenarios
+ * This enables conditional processing based on user context availability
+ * @return true if user ID is present and available for processing
+ */
+public boolean hasUser() {
+    return userId != null && !userId.trim().isEmpty();
+}
+
+/**
+ * Checks if this metadata has correlation information for distributed tracing
+ * This enables conditional correlation and tracing based on correlation availability
+ * @return true if correlation ID is present and available for tracing
+ */
+public boolean hasCorrelation() {
+    return correlationId != null && !correlationId.trim().isEmpty();
+}
+#+END_SRC
+
+* Integration with Event Sourcing Architecture
+
+** Aggregate Versioning and Concurrency Control
+The EventMetadata provides comprehensive support for aggregate versioning:
+- **Optimistic Concurrency**: Version numbers enable optimistic concurrency control
+- **Causal Chain Maintenance**: Previous event IDs maintain complete causal relationships
+- **Event Ordering**: Timestamps and versions provide multiple ordering mechanisms
+- **Conflict Detection**: Version conflicts can be detected and resolved appropriately
+
+** Event Store Integration
+The metadata integrates seamlessly with event storage:
+- **Event Identification**: Unique event IDs for precise event storage and retrieval
+- **Aggregate Querying**: Aggregate type and ID enable efficient event querying
+- **Version-Based Retrieval**: Support for version-based event filtering and retrieval
+- **Temporal Querying**: Timestamp-based querying for temporal analysis
+
+** Cross-Cutting Concerns Support
+The implementation supports various cross-cutting concerns:
+- **User Auditing**: User context for comprehensive audit trails and compliance
+- **Distributed Tracing**: Correlation IDs for sophisticated distributed system tracing
+- **Schema Evolution**: Schema versioning for long-term event compatibility
+- **Analytics and Monitoring**: Rich metadata for comprehensive system analytics
+
+* Performance Optimization and Memory Management
+
+** Memory Efficiency Strategies
+The implementation optimizes memory usage:
+- **Immutable Design**: Prevents memory leaks through immutable value object design
+- **Efficient String Storage**: Optimized string storage for identifiers and metadata
+- **Primitive Optimization**: Efficient storage of numeric values to minimize boxing
+- **Copy-on-Write**: Safe copy-with-modification patterns for memory efficiency
+
+** Factory Method Optimization
+The factory methods provide optimized object creation:
+- **UUID Generation**: Efficient UUID generation for unique identifiers
+- **Timestamp Optimization**: Optimized timestamp generation and handling
+- **Default Value Handling**: Intelligent default value management for optional fields
+- **Parameter Validation**: Efficient parameter validation for factory methods
+
+** Serialization and Storage Optimization
+The design supports efficient serialization:
+- **Clean Structure**: Well-organized fields for efficient serialization
+- **Version Compatibility**: Schema versioning supports serialization evolution
+- **Compact Representation**: Efficient field organization for serialization optimization
+- **Type Safety**: Strong typing prevents serialization errors and data corruption
+
+* Testing and Validation Strategies
+
+** Factory Method Testing
+```java
+@Test
+void shouldCreateMetadataForNewAggregate() {
+    // Given: Aggregate type and ID
+    String aggregateType = "filewatch";
+    String aggregateId = "/project/classes/Service.class";
+    
+    // When: Creating metadata for new aggregate
+    EventMetadata metadata = EventMetadata.forNewAggregate(aggregateType, aggregateId);
+    
+    // Then: Should have correct initial values
+    assertThat(metadata.getAggregateType()).isEqualTo(aggregateType);
+    assertThat(metadata.getAggregateId()).isEqualTo(aggregateId);
+    assertThat(metadata.getAggregateVersion()).isEqualTo(1L);
+    assertThat(metadata.getPreviousEventId()).isNull();
+    assertThat(metadata.isFirstEvent()).isTrue();
+}
+```
+
+** Metadata Evolution Testing
+```java
+@Test
+void shouldSupportMetadataEvolution() {
+    // Given: Initial metadata
+    EventMetadata original = EventMetadata.forNewAggregate("test", "id");
+    String userId = "developer123";
+    String correlationId = "trace-456";
+    
+    // When: Adding user and correlation context
+    EventMetadata withUser = original.withUserId(userId);
+    EventMetadata withCorrelation = withUser.withCorrelationId(correlationId);
+    
+    // Then: Should preserve original data while adding new context
+    assertThat(withCorrelation.getEventId()).isEqualTo(original.getEventId());
+    assertThat(withCorrelation.getUserId()).isEqualTo(userId);
+    assertThat(withCorrelation.getCorrelationId()).isEqualTo(correlationId);
+    assertThat(withCorrelation.hasUser()).isTrue();
+    assertThat(withCorrelation.hasCorrelation()).isTrue();
+}
+```
+
+** Causal Chain Testing
+```java
+@Test
+void shouldMaintainCausalChain() {
+    // Given: First event metadata
+    EventMetadata first = EventMetadata.forNewAggregate("test", "id");
+    
+    // When: Creating second event metadata
+    EventMetadata second = EventMetadata.forExistingAggregate(
+        "test", "id", first.getEventId(), first.getAggregateVersion());
+    
+    // Then: Should maintain proper causal chain
+    assertThat(second.getPreviousEventId()).isEqualTo(first.getEventId());
+    assertThat(second.getAggregateVersion()).isEqualTo(2L);
+    assertThat(second.isFirstEvent()).isFalse();
+}
+```
+
+* Related Documentation
+
+- [[AbstractVersionedDomainEvent.org][AbstractVersionedDomainEvent]]: Primary user of EventMetadata for domain events
+- [[EventStorePort.org][EventStorePort]]: Storage interface that works with EventMetadata
+- [[events/ClassFileChanged.org][ClassFileChanged]]: Example domain event using EventMetadata
+- [[flows/event-sourcing-persistence-flow.org][Event Sourcing Persistence Flow]]: Complete metadata lifecycle documentation
+
+* Implementation Notes
+
+** Design Patterns Applied
+The metadata class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable design with comprehensive equality and comparison
+- **Factory Method Pattern**: Multiple factory methods for different creation scenarios
+- **Builder Pattern**: Copy-with-modification methods for safe evolution
+- **Template Method Pattern**: Consistent metadata generation across different scenarios
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Meaningful behavior beyond simple data containers
+- **Immutable Design**: Value object immutability for consistency and safety
+- **Factory Encapsulation**: Complex creation logic encapsulated in factory methods
+- **Domain Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Advanced Correlation**: Machine learning-based event correlation and pattern recognition
+- **Performance Analytics**: Built-in performance monitoring and optimization capabilities
+- **Schema Evolution**: Advanced schema migration and compatibility management
+- **Distributed Metadata**: Enhanced distributed tracing and observability integration
+
+The EventMetadata provides ByteHot's essential event sourcing metadata foundation while maintaining clean value object design, comprehensive functionality, and extensibility for advanced event sourcing scenarios throughout the entire intelligent event-driven system lifecycle.

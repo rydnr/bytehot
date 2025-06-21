@@ -1,0 +1,1466 @@
+#+TITLE: User Management and Session Flow - Intelligent Developer Identity and Personalization
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+#+DESCRIPTION: Comprehensive literate programming documentation of ByteHot's sophisticated user discovery, authentication, session management, and personalization system
+
+* Overview: Building Developer-Centric Intelligence and Personalization
+
+The User Management and Session Flow demonstrates ByteHot's sophisticated approach to understanding and serving individual developers through intelligent user discovery, seamless authentication, comprehensive session management, and deep personalization. This flow shows how ByteHot creates a truly developer-centric experience by automatically identifying users, learning their preferences, tracking their development patterns, and adapting system behavior to optimize individual productivity. Unlike generic user management systems, this flow reveals how ByteHot builds rich developer profiles that enable intelligent assistance and workflow optimization.
+
+** Flow Participants and Their Roles
+
+- **User**: Central user aggregate managing developer identity and lifecycle (Domain)
+- **UserId**: Sophisticated user identification with auto-discovery capabilities (Domain)
+- **UserProfile**: Comprehensive developer profile with skills and preferences (Domain)
+- **UserSession**: Session lifecycle management with activity tracking (Domain)
+- **UserContextResolver**: Intelligent user discovery and environment analysis (Domain)
+- **UserPreferences**: Personalized configuration and behavior preferences (Domain)
+- **UserStatistics**: Development pattern analysis and productivity metrics (Domain)
+- **UserIdentificationStrategy**: Multi-strategy user discovery algorithms (Domain)
+
+** What This Flow Demonstrates
+
+- **Intelligent user auto-discovery** without requiring explicit registration
+- **Seamless authentication and session management** with minimal developer friction
+- **Rich developer profiling** that learns from development patterns and preferences
+- **Adaptive personalization** that optimizes system behavior for individual workflows
+- **Privacy-conscious user tracking** with configurable data collection and retention
+
+** The User Management Pipeline
+
+#+BEGIN_SRC
+Discovery → Authentication → Session Creation → Profile Building → Personalization → Activity Tracking → Learning
+    ↓           ↓               ↓                ↓                ↓               ↓                 ↓
+Environment   Identity        Session         Developer        Behavior        Pattern          Workflow
+  Analysis    Resolution      Management       Profiling        Adaptation      Analysis        Optimization
+#+END_SRC
+
+* Phase 1: Intelligent User Discovery and Identity Resolution
+
+The flow begins with sophisticated user discovery that automatically identifies developers without requiring explicit registration or configuration.
+
+** Step 1.1: Multi-Strategy User Discovery
+
+#+BEGIN_SRC java
+// From: UserDiscoveryEngine.java (Domain Service)
+public class UserDiscoveryEngine {
+    
+    public UserDiscoveryResult discoverUser(final DiscoveryContext context) {
+        final UserDiscoveryBuilder builder = new UserDiscoveryBuilder();
+        
+        // Strategy 1: Explicit user identification
+        tryExplicitUserIdentification(context, builder);  // → Step 1.1a
+        
+        // Strategy 2: System user analysis
+        trySystemUserAnalysis(context, builder);  // → Step 1.1b
+        
+        // Strategy 3: Git-based identification
+        tryGitBasedIdentification(context, builder);  // → Step 1.1c
+        
+        // Strategy 4: IDE integration identification
+        tryIDEIntegrationIdentification(context, builder);  // → Step 1.1d
+        
+        // Strategy 5: Environment pattern analysis
+        tryEnvironmentPatternAnalysis(context, builder);  // → Step 1.1e
+        
+        // Strategy 6: Historical session correlation
+        tryHistoricalSessionCorrelation(context, builder);  // → Step 1.1f
+        
+        return builder.build();
+    }
+    
+    private void tryExplicitUserIdentification(final DiscoveryContext context, 
+                                              final UserDiscoveryBuilder builder) {
+        // Check for explicit user ID in configuration or arguments
+        final String explicitUserId = context.getExplicitUserId();
+        
+        if (explicitUserId != null && !explicitUserId.trim().isEmpty()) {
+            builder.addIdentificationCandidate(new IdentificationCandidate(
+                UserId.explicit(explicitUserId),
+                IdentificationConfidence.HIGHEST,
+                IdentificationStrategy.EXPLICIT,
+                "User explicitly specified in configuration or arguments"
+            ));
+        }
+    }
+    
+    private void tryGitBasedIdentification(final DiscoveryContext context, 
+                                          final UserDiscoveryBuilder builder) {
+        try {
+            // Analyze Git configuration in the project directory
+            final GitUserInfo gitInfo = analyzeGitConfiguration(context.getProjectPath());  // → Step 1.1g
+            
+            if (gitInfo.isValid()) {
+                builder.addIdentificationCandidate(new IdentificationCandidate(
+                    UserId.git(gitInfo.getUserName(), gitInfo.getUserEmail()),
+                    IdentificationConfidence.HIGH,
+                    IdentificationStrategy.GIT_CONFIG,
+                    "Identified from Git configuration: " + gitInfo.getUserEmail()
+                ));
+                
+                // Enhance with Git activity analysis
+                final GitActivityAnalysis activity = analyzeGitActivity(context.getProjectPath(), gitInfo);
+                if (activity.hasRecentActivity()) {
+                    builder.enhanceCandidate(
+                        UserId.git(gitInfo.getUserName(), gitInfo.getUserEmail()),
+                        activity.getActivityConfidenceBoost(),
+                        "Recent Git activity confirms active developer"
+                    );
+                }
+            }
+            
+        } catch (final GitAnalysisException e) {
+            logGitAnalysisFailure(e);
+        }
+    }
+    
+    private GitUserInfo analyzeGitConfiguration(final Path projectPath) throws GitAnalysisException {
+        final GitConfigurationAnalyzer analyzer = new GitConfigurationAnalyzer();
+        
+        // Check for Git repository
+        final Path gitDirectory = findGitDirectory(projectPath);
+        if (gitDirectory == null) {
+            throw new GitAnalysisException("No Git repository found in project path");
+        }
+        
+        // Read Git configuration
+        final Map<String, String> gitConfig = readGitConfiguration(gitDirectory);
+        
+        // Extract user information
+        final String userName = gitConfig.get("user.name");
+        final String userEmail = gitConfig.get("user.email");
+        
+        if (userName == null || userEmail == null) {
+            throw new GitAnalysisException("Git user configuration incomplete");
+        }
+        
+        // Validate email format
+        if (!isValidEmailFormat(userEmail)) {
+            throw new GitAnalysisException("Invalid email format in Git configuration: " + userEmail);
+        }
+        
+        return new GitUserInfo(userName, userEmail, gitDirectory);
+    }
+    
+    private void tryIDEIntegrationIdentification(final DiscoveryContext context, 
+                                                final UserDiscoveryBuilder builder) {
+        // Analyze IDE-specific configuration files and processes
+        final List<IDEDetectionResult> ideResults = detectActiveIDEs(context);  // → Step 1.1h
+        
+        for (final IDEDetectionResult ideResult : ideResults) {
+            try {
+                final IDEUserInfo userInfo = extractUserInfoFromIDE(ideResult);
+                
+                if (userInfo.isValid()) {
+                    builder.addIdentificationCandidate(new IdentificationCandidate(
+                        UserId.ide(userInfo.getUserName(), userInfo.getIDEType()),
+                        IdentificationConfidence.MEDIUM_HIGH,
+                        IdentificationStrategy.IDE_INTEGRATION,
+                        "Identified from " + ideResult.getIDEType() + " configuration"
+                    ));
+                }
+                
+            } catch (final IDEAnalysisException e) {
+                logIDEAnalysisFailure(ideResult.getIDEType(), e);
+            }
+        }
+    }
+    
+    private List<IDEDetectionResult> detectActiveIDEs(final DiscoveryContext context) {
+        final List<IDEDetectionResult> results = new ArrayList<>();
+        
+        // Detect IntelliJ IDEA
+        if (detectIntelliJIDEA(context)) {
+            results.add(new IDEDetectionResult(IDEType.INTELLIJ_IDEA, context.getProjectPath()));
+        }
+        
+        // Detect Eclipse
+        if (detectEclipse(context)) {
+            results.add(new IDEDetectionResult(IDEType.ECLIPSE, context.getProjectPath()));
+        }
+        
+        // Detect Visual Studio Code
+        if (detectVSCode(context)) {
+            results.add(new IDEDetectionResult(IDEType.VSCODE, context.getProjectPath()));
+        }
+        
+        // Detect NetBeans
+        if (detectNetBeans(context)) {
+            results.add(new IDEDetectionResult(IDEType.NETBEANS, context.getProjectPath()));
+        }
+        
+        return results;
+    }
+    
+    private void tryEnvironmentPatternAnalysis(final DiscoveryContext context, 
+                                              final UserDiscoveryBuilder builder) {
+        // Analyze environment patterns to infer user identity
+        final EnvironmentPatternAnalyzer analyzer = new EnvironmentPatternAnalyzer();
+        
+        // Analyze working directory patterns
+        final WorkingDirectoryPattern dirPattern = analyzer.analyzeWorkingDirectory(context.getProjectPath());
+        if (dirPattern.suggestsUserIdentity()) {
+            builder.addIdentificationCandidate(new IdentificationCandidate(
+                UserId.pattern(dirPattern.getSuggestedUserId()),
+                IdentificationConfidence.MEDIUM_LOW,
+                IdentificationStrategy.ENVIRONMENT_PATTERN,
+                "Inferred from working directory pattern: " + dirPattern.getPattern()
+            ));
+        }
+        
+        // Analyze file ownership patterns
+        final FileOwnershipPattern ownershipPattern = analyzer.analyzeFileOwnership(context.getProjectPath());
+        if (ownershipPattern.hasConsistentOwner()) {
+            builder.addIdentificationCandidate(new IdentificationCandidate(
+                UserId.fileOwner(ownershipPattern.getOwnerName()),
+                IdentificationConfidence.MEDIUM,
+                IdentificationStrategy.FILE_OWNERSHIP,
+                "Identified from consistent file ownership pattern"
+            ));
+        }
+        
+        // Analyze recent file modification patterns
+        final ModificationPatternAnalysis modificationAnalysis = analyzer.analyzeModificationPatterns(context.getProjectPath());
+        if (modificationAnalysis.hasActiveUser()) {
+            builder.addIdentificationCandidate(new IdentificationCandidate(
+                UserId.activity(modificationAnalysis.getActiveUserName()),
+                IdentificationConfidence.MEDIUM,
+                IdentificationStrategy.ACTIVITY_PATTERN,
+                "Identified from recent file modification patterns"
+            ));
+        }
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: User discovery employs multiple sophisticated strategies that analyze the development environment comprehensively, creating high-confidence user identification without requiring any explicit registration or configuration from developers.
+
+** Step 1.2: Identity Resolution and Consolidation
+
+#+BEGIN_SRC java
+// From: UserIdentityResolver.java (Domain Service)
+public class UserIdentityResolver {
+    
+    public UserIdentityResolution resolveUserIdentity(final List<IdentificationCandidate> candidates) {
+        // Sort candidates by confidence score
+        final List<IdentificationCandidate> sortedCandidates = candidates.stream()
+            .sorted(Comparator.comparing(IdentificationCandidate::getConfidence).reversed())
+            .collect(Collectors.toList());
+        
+        // Perform identity consolidation analysis
+        final IdentityConsolidationResult consolidation = performIdentityConsolidation(sortedCandidates);  // → Step 1.2a
+        
+        // Resolve identity conflicts
+        final ConflictResolution conflictResolution = resolveIdentityConflicts(consolidation);  // → Step 1.2b
+        
+        // Create final user identity
+        final ResolvedUserIdentity resolvedIdentity = createResolvedIdentity(consolidation, conflictResolution);  // → Step 1.2c
+        
+        return new UserIdentityResolution(resolvedIdentity, consolidation, conflictResolution);
+    }
+    
+    private IdentityConsolidationResult performIdentityConsolidation(final List<IdentificationCandidate> candidates) {
+        final IdentityConsolidationBuilder builder = new IdentityConsolidationBuilder();
+        
+        // Group candidates by similarity
+        final Map<IdentitySimilarityGroup, List<IdentificationCandidate>> similarityGroups = 
+            groupCandidatesBySimilarity(candidates);
+        
+        for (final Map.Entry<IdentitySimilarityGroup, List<IdentificationCandidate>> entry : similarityGroups.entrySet()) {
+            final IdentitySimilarityGroup group = entry.getKey();
+            final List<IdentificationCandidate> groupCandidates = entry.getValue();
+            
+            // Analyze group consistency
+            final GroupConsistencyAnalysis consistency = analyzeGroupConsistency(groupCandidates);
+            
+            if (consistency.isHighlyConsistent()) {
+                // Create consolidated identity from consistent group
+                final ConsolidatedIdentity consolidated = consolidateConsistentGroup(group, groupCandidates);
+                builder.addConsolidatedIdentity(consolidated);
+                
+            } else if (consistency.isPartiallyConsistent()) {
+                // Attempt partial consolidation
+                final PartialConsolidation partial = attemptPartialConsolidation(group, groupCandidates);
+                builder.addPartialConsolidation(partial);
+                
+            } else {
+                // Mark as conflicting identities
+                builder.addConflictingGroup(group, groupCandidates, consistency.getConflictReasons());
+            }
+        }
+        
+        return builder.build();
+    }
+    
+    private Map<IdentitySimilarityGroup, List<IdentificationCandidate>> groupCandidatesBySimilarity(
+            final List<IdentificationCandidate> candidates) {
+        final Map<IdentitySimilarityGroup, List<IdentificationCandidate>> groups = new HashMap<>();
+        
+        for (final IdentificationCandidate candidate : candidates) {
+            boolean addedToGroup = false;
+            
+            // Try to add to existing similarity group
+            for (final IdentitySimilarityGroup existingGroup : groups.keySet()) {
+                if (isSimilarToGroup(candidate, existingGroup)) {
+                    groups.get(existingGroup).add(candidate);
+                    addedToGroup = true;
+                    break;
+                }
+            }
+            
+            // Create new group if no similar group found
+            if (!addedToGroup) {
+                final IdentitySimilarityGroup newGroup = new IdentitySimilarityGroup(candidate);
+                groups.put(newGroup, new ArrayList<>(List.of(candidate)));
+            }
+        }
+        
+        return groups;
+    }
+    
+    private boolean isSimilarToGroup(final IdentificationCandidate candidate, 
+                                    final IdentitySimilarityGroup group) {
+        // Compare email addresses
+        if (candidate.hasEmail() && group.hasEmail()) {
+            if (candidate.getEmail().equalsIgnoreCase(group.getEmail())) {
+                return true;  // Same email = same user
+            }
+        }
+        
+        // Compare user names with fuzzy matching
+        if (candidate.hasUserName() && group.hasUserName()) {
+            final double nameSimiliarity = calculateNameSimilarity(candidate.getUserName(), group.getUserName());
+            if (nameSimiliarity > 0.8) {  // 80% similarity threshold
+                return true;
+            }
+        }
+        
+        // Compare system user accounts
+        if (candidate.hasSystemUser() && group.hasSystemUser()) {
+            if (candidate.getSystemUser().equals(group.getSystemUser())) {
+                return true;  // Same system user
+            }
+        }
+        
+        // Compare working directory patterns
+        if (candidate.hasDirectoryPattern() && group.hasDirectoryPattern()) {
+            if (isCompatibleDirectoryPattern(candidate.getDirectoryPattern(), group.getDirectoryPattern())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    private ConflictResolution resolveIdentityConflicts(final IdentityConsolidationResult consolidation) {
+        final ConflictResolutionBuilder builder = new ConflictResolutionBuilder();
+        
+        // Handle multiple consolidated identities
+        if (consolidation.hasMultipleConsolidatedIdentities()) {
+            final ConflictResolutionStrategy strategy = chooseConflictResolutionStrategy(consolidation);
+            
+            switch (strategy) {
+                case HIGHEST_CONFIDENCE -> {
+                    final ConsolidatedIdentity highestConfidence = consolidation.getHighestConfidenceIdentity();
+                    builder.selectPrimaryIdentity(highestConfidence, "Selected identity with highest confidence score");
+                }
+                case MOST_RECENT_ACTIVITY -> {
+                    final ConsolidatedIdentity mostRecent = consolidation.getMostRecentActivityIdentity();
+                    builder.selectPrimaryIdentity(mostRecent, "Selected identity with most recent development activity");
+                }
+                case MOST_COMPREHENSIVE -> {
+                    final ConsolidatedIdentity mostComprehensive = consolidation.getMostComprehensiveIdentity();
+                    builder.selectPrimaryIdentity(mostComprehensive, "Selected identity with most complete information");
+                }
+                case USER_CHOICE -> {
+                    // Defer to user selection
+                    builder.deferToUserChoice(consolidation.getConsolidatedIdentities());
+                }
+            }
+        }
+        
+        // Handle partial consolidations
+        if (consolidation.hasPartialConsolidations()) {
+            for (final PartialConsolidation partial : consolidation.getPartialConsolidations()) {
+                final PartialResolution resolution = resolvePartialConsolidation(partial);
+                builder.addPartialResolution(resolution);
+            }
+        }
+        
+        return builder.build();
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Identity resolution performs sophisticated analysis to consolidate multiple identification candidates into a coherent user identity, handling conflicts and ambiguities intelligently while maintaining high confidence in the final resolution.
+
+* Phase 2: User Authentication and Session Initialization
+
+Once user identity is resolved, ByteHot creates and manages user sessions with comprehensive activity tracking and context preservation.
+
+** Step 2.1: Seamless Authentication and Session Creation
+
+#+BEGIN_SRC java
+// From: UserSessionManager.java (Domain Service)
+public class UserSessionManager {
+    
+    public UserSessionCreationResult createUserSession(final ResolvedUserIdentity userIdentity) {
+        try {
+            // Create user profile if not exists
+            final UserProfile userProfile = getOrCreateUserProfile(userIdentity);  // → Step 2.1a
+            
+            // Load user preferences
+            final UserPreferences userPreferences = loadUserPreferences(userProfile);  // → Step 2.1b
+            
+            // Create session with enhanced context
+            final UserSession session = createSessionWithContext(userProfile, userPreferences);  // → Step 2.1c
+            
+            // Initialize session tracking
+            initializeSessionTracking(session);  // → Step 2.1d
+            
+            // Emit session started event
+            emitUserSessionStartedEvent(session);  // → Step 2.1e
+            
+            return UserSessionCreationResult.success(session);
+            
+        } catch (final Exception e) {
+            return UserSessionCreationResult.failure(userIdentity, e);
+        }
+    }
+    
+    private UserProfile getOrCreateUserProfile(final ResolvedUserIdentity userIdentity) {
+        // Try to load existing user profile
+        final Optional<UserProfile> existingProfile = findExistingUserProfile(userIdentity);
+        
+        if (existingProfile.isPresent()) {
+            // Update profile with any new identity information
+            return updateUserProfile(existingProfile.get(), userIdentity);
+        } else {
+            // Create new user profile from identity
+            return createNewUserProfile(userIdentity);  // → Step 2.1f
+        }
+    }
+    
+    private UserProfile createNewUserProfile(final ResolvedUserIdentity userIdentity) {
+        final UserProfileBuilder builder = new UserProfileBuilder();
+        
+        // Basic identity information
+        builder.setUserId(userIdentity.getUserId());
+        builder.setDisplayName(userIdentity.getDisplayName());
+        builder.setEmail(userIdentity.getEmail());
+        
+        // Environment analysis for profile enrichment
+        final EnvironmentContext environmentContext = analyzeUserEnvironment(userIdentity);
+        builder.setEnvironmentContext(environmentContext);
+        
+        // Infer development preferences from environment
+        final DevelopmentPreferences devPreferences = inferDevelopmentPreferences(environmentContext);
+        builder.setDevelopmentPreferences(devPreferences);
+        
+        // Initialize activity metrics
+        builder.setActivityMetrics(new UserActivityMetrics());
+        
+        // Set creation metadata
+        builder.setCreatedAt(Instant.now());
+        builder.setCreatedBy(CreationSource.AUTO_DISCOVERY);
+        
+        final UserProfile profile = builder.build();
+        
+        // Store new profile for future sessions
+        storeUserProfile(profile);
+        
+        return profile;
+    }
+    
+    private UserSession createSessionWithContext(final UserProfile userProfile, 
+                                                final UserPreferences userPreferences) {
+        final SessionId sessionId = generateSessionId();
+        
+        // Capture comprehensive session context
+        final SessionContext sessionContext = captureSessionContext(userProfile);  // → Step 2.1g
+        
+        // Initialize session activity tracking
+        final SessionActivityTracker activityTracker = new SessionActivityTracker(sessionId);
+        
+        // Create session configuration
+        final SessionConfiguration sessionConfig = createSessionConfiguration(userProfile, userPreferences);
+        
+        return new UserSession(
+            sessionId,
+            userProfile,
+            userPreferences,
+            sessionContext,
+            activityTracker,
+            sessionConfig,
+            Instant.now()
+        );
+    }
+    
+    private SessionContext captureSessionContext(final UserProfile userProfile) {
+        final SessionContextBuilder builder = new SessionContextBuilder();
+        
+        // System context
+        builder.setSystemContext(captureSystemContext());
+        
+        // Environment context
+        builder.setEnvironmentContext(captureEnvironmentContext());
+        
+        // Project context
+        builder.setProjectContext(captureProjectContext());  // → Step 2.1h
+        
+        // Development context
+        builder.setDevelopmentContext(captureDevelopmentContext());
+        
+        // Performance context
+        builder.setPerformanceContext(capturePerformanceContext());
+        
+        return builder.build();
+    }
+    
+    private ProjectContext captureProjectContext() {
+        final ProjectContextAnalyzer analyzer = new ProjectContextAnalyzer();
+        
+        // Analyze project structure
+        final ProjectStructure structure = analyzer.analyzeProjectStructure(getCurrentProjectPath());
+        
+        // Detect build system
+        final BuildSystem buildSystem = analyzer.detectBuildSystem(getCurrentProjectPath());
+        
+        // Analyze dependencies
+        final DependencyAnalysis dependencies = analyzer.analyzeDependencies(getCurrentProjectPath());
+        
+        // Detect frameworks
+        final List<Framework> frameworks = analyzer.detectFrameworks(getCurrentProjectPath());
+        
+        // Analyze code metrics
+        final CodeMetrics codeMetrics = analyzer.analyzeCodeMetrics(getCurrentProjectPath());
+        
+        return new ProjectContext(
+            getCurrentProjectPath(),
+            structure,
+            buildSystem,
+            dependencies,
+            frameworks,
+            codeMetrics,
+            Instant.now()
+        );
+    }
+    
+    private void initializeSessionTracking(final UserSession session) {
+        // Start activity monitoring
+        final SessionActivityMonitor activityMonitor = new SessionActivityMonitor(session);
+        activityMonitor.start();
+        
+        // Start performance tracking
+        final SessionPerformanceTracker performanceTracker = new SessionPerformanceTracker(session);
+        performanceTracker.start();
+        
+        // Start preference learning
+        final PreferenceLearningEngine learningEngine = new PreferenceLearningEngine(session);
+        learningEngine.start();
+        
+        // Register session event handlers
+        registerSessionEventHandlers(session);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Session creation captures comprehensive context about the user's development environment, project characteristics, and system state, enabling ByteHot to provide highly personalized and context-aware assistance.
+
+** Step 2.2: Dynamic User Preference Discovery and Learning
+
+#+BEGIN_SRC java
+// From: UserPreferenceLearningEngine.java (Domain Service)
+public class UserPreferenceLearningEngine {
+    
+    public void learnFromUserActivity(final UserSession session, final UserActivity activity) {
+        // Analyze activity for preference indicators
+        final List<PreferenceIndicator> indicators = extractPreferenceIndicators(activity);  // → Step 2.2a
+        
+        // Update user preferences based on learned indicators
+        updateUserPreferences(session, indicators);  // → Step 2.2b
+        
+        // Analyze behavior patterns
+        analyzeBehaviorPatterns(session, activity);  // → Step 2.2c
+        
+        // Update user profile with new insights
+        updateUserProfile(session, activity);  // → Step 2.2d
+    }
+    
+    private List<PreferenceIndicator> extractPreferenceIndicators(final UserActivity activity) {
+        final List<PreferenceIndicator> indicators = new ArrayList<>();
+        
+        // Analyze validation strictness preferences
+        if (activity instanceof ValidationActivity validationActivity) {
+            final ValidationStrictnessPreference strictnessPreference = 
+                analyzeValidationStrictnessPreference(validationActivity);
+            indicators.add(strictnessPreference);
+        }
+        
+        // Analyze feedback verbosity preferences
+        if (activity instanceof FeedbackInteraction feedbackActivity) {
+            final FeedbackVerbosityPreference verbosityPreference = 
+                analyzeFeedbackVerbosityPreference(feedbackActivity);
+            indicators.add(verbosityPreference);
+        }
+        
+        // Analyze retry behavior preferences
+        if (activity instanceof RetryActivity retryActivity) {
+            final RetryBehaviorPreference retryPreference = 
+                analyzeRetryBehaviorPreference(retryActivity);
+            indicators.add(retryPreference);
+        }
+        
+        // Analyze timing preferences
+        if (activity instanceof TimingActivity timingActivity) {
+            final TimingPreference timingPreference = 
+                analyzeTimingPreference(timingActivity);
+            indicators.add(timingPreference);
+        }
+        
+        // Analyze workflow preferences
+        if (activity instanceof WorkflowActivity workflowActivity) {
+            final WorkflowPreference workflowPreference = 
+                analyzeWorkflowPreference(workflowActivity);
+            indicators.add(workflowPreference);
+        }
+        
+        return indicators;
+    }
+    
+    private ValidationStrictnessPreference analyzeValidationStrictnessPreference(final ValidationActivity activity) {
+        // Analyze how user responds to different validation strictness levels
+        final ValidationResponse response = activity.getValidationResponse();
+        
+        if (response.bypassedStrictValidation()) {
+            // User bypassed strict validation - prefers lenient
+            return new ValidationStrictnessPreference(
+                ValidationStrictness.LENIENT,
+                PreferenceConfidence.MEDIUM,
+                "User bypassed strict validation " + response.getBypassCount() + " times"
+            );
+        } else if (response.requestedStricterValidation()) {
+            // User requested stricter validation - prefers strict
+            return new ValidationStrictnessPreference(
+                ValidationStrictness.STRICT,
+                PreferenceConfidence.HIGH,
+                "User explicitly requested stricter validation"
+            );
+        } else if (response.acceptedValidationRecommendations()) {
+            // User follows validation recommendations - prefers standard
+            return new ValidationStrictnessPreference(
+                ValidationStrictness.STANDARD,
+                PreferenceConfidence.MEDIUM,
+                "User consistently follows validation recommendations"
+            );
+        }
+        
+        return ValidationStrictnessPreference.neutral();
+    }
+    
+    private FeedbackVerbosityPreference analyzeFeedbackVerbosityPreference(final FeedbackInteraction interaction) {
+        // Analyze user engagement with different levels of feedback detail
+        final FeedbackEngagementMetrics metrics = interaction.getEngagementMetrics();
+        
+        if (metrics.expandedDetailedFeedback() > metrics.collapsedDetailedFeedback()) {
+            // User prefers detailed feedback
+            return new FeedbackVerbosityPreference(
+                FeedbackVerbosity.DETAILED,
+                PreferenceConfidence.HIGH,
+                "User frequently expands detailed feedback information"
+            );
+        } else if (metrics.dismissedDetailedFeedback() > metrics.readDetailedFeedback()) {
+            // User prefers minimal feedback
+            return new FeedbackVerbosityPreference(
+                FeedbackVerbosity.MINIMAL,
+                PreferenceConfidence.HIGH,
+                "User frequently dismisses detailed feedback"
+            );
+        } else if (metrics.requestedMoreDetails() > 0) {
+            // User sometimes wants more details
+            return new FeedbackVerbosityPreference(
+                FeedbackVerbosity.DETAILED,
+                PreferenceConfidence.MEDIUM,
+                "User occasionally requests additional feedback details"
+            );
+        }
+        
+        return FeedbackVerbosityPreference.neutral();
+    }
+    
+    private void updateUserPreferences(final UserSession session, 
+                                      final List<PreferenceIndicator> indicators) {
+        final UserPreferences currentPreferences = session.getUserPreferences();
+        final UserPreferencesBuilder updatedBuilder = new UserPreferencesBuilder(currentPreferences);
+        
+        for (final PreferenceIndicator indicator : indicators) {
+            // Apply preference update if confidence is sufficient
+            if (indicator.getConfidence().isAboveThreshold(PREFERENCE_UPDATE_THRESHOLD)) {
+                updatedBuilder.updatePreference(
+                    indicator.getPreferenceKey(),
+                    indicator.getPreferredValue(),
+                    indicator.getConfidence(),
+                    indicator.getReason()
+                );
+                
+                // Track preference learning for analytics
+                trackPreferenceLearning(session, indicator);
+            }
+        }
+        
+        final UserPreferences updatedPreferences = updatedBuilder.build();
+        
+        // Update session preferences
+        session.updatePreferences(updatedPreferences);
+        
+        // Persist preferences for future sessions
+        persistUserPreferences(session.getUserProfile(), updatedPreferences);
+        
+        // Apply updated preferences to current session
+        applyPreferencesToSession(session, updatedPreferences);
+    }
+    
+    private void analyzeBehaviorPatterns(final UserSession session, final UserActivity activity) {
+        final BehaviorPatternAnalyzer analyzer = new BehaviorPatternAnalyzer();
+        
+        // Analyze development workflow patterns
+        final List<WorkflowPattern> workflowPatterns = analyzer.analyzeWorkflowPatterns(
+            session.getActivityHistory(),
+            activity
+        );
+        
+        // Analyze productivity patterns
+        final List<ProductivityPattern> productivityPatterns = analyzer.analyzeProductivityPatterns(
+            session.getPerformanceMetrics(),
+            activity
+        );
+        
+        // Analyze error handling patterns
+        final List<ErrorHandlingPattern> errorPatterns = analyzer.analyzeErrorHandlingPatterns(
+            session.getErrorHistory(),
+            activity
+        );
+        
+        // Update user profile with identified patterns
+        updateUserProfileWithPatterns(session, workflowPatterns, productivityPatterns, errorPatterns);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Preference learning continuously analyzes user behavior to understand individual development patterns and preferences, enabling ByteHot to adapt its behavior to optimize each developer's productivity and satisfaction.
+
+* Phase 3: Session Activity Tracking and Analytics
+
+ByteHot comprehensively tracks user activity throughout the session to build intelligence about development patterns and productivity.
+
+** Step 3.1: Comprehensive Activity Monitoring
+
+#+BEGIN_SRC java
+// From: SessionActivityTracker.java (Domain Service)
+public class SessionActivityTracker {
+    
+    public void trackActivity(final UserSession session, final DomainEvent event) {
+        // Classify activity type
+        final ActivityClassification classification = classifyActivity(event);  // → Step 3.1a
+        
+        // Extract activity metrics
+        final ActivityMetrics metrics = extractActivityMetrics(event, classification);  // → Step 3.1b
+        
+        // Analyze productivity impact
+        final ProductivityImpact productivity = analyzeProductivityImpact(event, session);  // → Step 3.1c
+        
+        // Track development patterns
+        trackDevelopmentPatterns(session, event, classification);  // → Step 3.1d
+        
+        // Update session statistics
+        updateSessionStatistics(session, metrics, productivity);  // → Step 3.1e
+        
+        // Generate activity insights
+        generateActivityInsights(session, event, classification);  // → Step 3.1f
+    }
+    
+    private ActivityClassification classifyActivity(final DomainEvent event) {
+        // Primary activity classification
+        ActivityType primaryType = classifyPrimaryActivityType(event);
+        
+        // Secondary characteristics
+        final List<ActivityCharacteristic> characteristics = identifyActivityCharacteristics(event);
+        
+        // Productivity category
+        final ProductivityCategory productivity = categorizeProductivity(event);
+        
+        // Complexity level
+        final ComplexityLevel complexity = assessComplexity(event);
+        
+        // User engagement level
+        final EngagementLevel engagement = assessEngagement(event);
+        
+        return new ActivityClassification(
+            primaryType,
+            characteristics,
+            productivity,
+            complexity,
+            engagement
+        );
+    }
+    
+    private ActivityType classifyPrimaryActivityType(final DomainEvent event) {
+        if (event instanceof ClassFileChanged) {
+            return ActivityType.CODE_MODIFICATION;
+        } else if (event instanceof BytecodeValidated) {
+            return ActivityType.VALIDATION_INTERACTION;
+        } else if (event instanceof HotSwapRequested) {
+            return ActivityType.HOT_SWAP_OPERATION;
+        } else if (event instanceof ClassRedefinitionSucceeded) {
+            return ActivityType.SUCCESSFUL_DEPLOYMENT;
+        } else if (event instanceof ClassRedefinitionFailed) {
+            return ActivityType.ERROR_RESOLUTION;
+        } else if (event instanceof UserPreferenceChanged) {
+            return ActivityType.CONFIGURATION_ADJUSTMENT;
+        } else if (event instanceof FlowAnalysisRequested) {
+            return ActivityType.SYSTEM_ANALYSIS;
+        }
+        
+        return ActivityType.GENERAL_SYSTEM_INTERACTION;
+    }
+    
+    private ProductivityImpact analyzeProductivityImpact(final DomainEvent event, final UserSession session) {
+        final ProductivityAnalyzer analyzer = new ProductivityAnalyzer();
+        
+        // Analyze timing impact
+        final TimingImpact timingImpact = analyzer.analyzeTimingImpact(event, session);
+        
+        // Analyze flow disruption
+        final FlowDisruption flowDisruption = analyzer.analyzeFlowDisruption(event, session);
+        
+        // Analyze cognitive load
+        final CognitiveLoad cognitiveLoad = analyzer.analyzeCognitiveLoad(event, session);
+        
+        // Analyze learning opportunity
+        final LearningOpportunity learningOpportunity = analyzer.analyzeLearningOpportunity(event, session);
+        
+        // Calculate overall productivity score
+        final double productivityScore = calculateProductivityScore(
+            timingImpact, 
+            flowDisruption, 
+            cognitiveLoad, 
+            learningOpportunity
+        );
+        
+        return new ProductivityImpact(
+            productivityScore,
+            timingImpact,
+            flowDisruption,
+            cognitiveLoad,
+            learningOpportunity
+        );
+    }
+    
+    private void trackDevelopmentPatterns(final UserSession session, 
+                                         final DomainEvent event, 
+                                         final ActivityClassification classification) {
+        final DevelopmentPatternTracker patternTracker = session.getPatternTracker();
+        
+        // Track temporal patterns
+        patternTracker.trackTemporalPattern(event, classification);
+        
+        // Track sequence patterns
+        patternTracker.trackSequencePattern(event, classification);
+        
+        // Track frequency patterns
+        patternTracker.trackFrequencyPattern(event, classification);
+        
+        // Track complexity patterns
+        patternTracker.trackComplexityPattern(event, classification);
+        
+        // Track success/failure patterns
+        patternTracker.trackOutcomePattern(event, classification);
+        
+        // Analyze emerging patterns
+        final List<EmergingPattern> emergingPatterns = patternTracker.analyzeEmergingPatterns();
+        if (!emergingPatterns.isEmpty()) {
+            updateUserProfileWithEmergingPatterns(session, emergingPatterns);
+        }
+    }
+    
+    private void generateActivityInsights(final UserSession session, 
+                                         final DomainEvent event, 
+                                         final ActivityClassification classification) {
+        final ActivityInsightGenerator generator = new ActivityInsightGenerator();
+        
+        // Generate immediate insights
+        final List<ImmediateInsight> immediateInsights = generator.generateImmediateInsights(
+            event, 
+            classification, 
+            session.getActivityHistory()
+        );
+        
+        // Generate pattern-based insights
+        final List<PatternInsight> patternInsights = generator.generatePatternInsights(
+            session.getPatternTracker().getPatterns(),
+            event
+        );
+        
+        // Generate productivity insights
+        final List<ProductivityInsight> productivityInsights = generator.generateProductivityInsights(
+            session.getProductivityMetrics(),
+            event
+        );
+        
+        // Generate learning insights
+        final List<LearningInsight> learningInsights = generator.generateLearningInsights(
+            session.getLearningHistory(),
+            event
+        );
+        
+        // Store insights for user notification
+        storeSessionInsights(session, immediateInsights, patternInsights, productivityInsights, learningInsights);
+        
+        // Trigger insight notifications if appropriate
+        triggerInsightNotifications(session, immediateInsights);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Activity tracking provides comprehensive analysis of user behavior patterns, productivity impacts, and learning opportunities, enabling ByteHot to build deep understanding of individual developer workflows.
+
+** Step 3.2: Real-Time Performance and Productivity Analytics
+
+#+BEGIN_SRC java
+// From: ProductivityAnalyticsEngine.java (Domain Service)
+public class ProductivityAnalyticsEngine {
+    
+    public ProductivityAnalysis analyzeSessionProductivity(final UserSession session) {
+        final ProductivityAnalysisBuilder builder = new ProductivityAnalysisBuilder();
+        
+        // Analyze development velocity
+        final DevelopmentVelocity velocity = analyzeDevelopmentVelocity(session);  // → Step 3.2a
+        builder.setDevelopmentVelocity(velocity);
+        
+        // Analyze error resolution efficiency
+        final ErrorResolutionEfficiency errorEfficiency = analyzeErrorResolutionEfficiency(session);  // → Step 3.2b
+        builder.setErrorResolutionEfficiency(errorEfficiency);
+        
+        // Analyze hot-swap utilization
+        final HotSwapUtilization hotSwapUsage = analyzeHotSwapUtilization(session);  // → Step 3.2c
+        builder.setHotSwapUtilization(hotSwapUsage);
+        
+        // Analyze flow state maintenance
+        final FlowStateAnalysis flowState = analyzeFlowStateMaintenane(session);  // → Step 3.2d
+        builder.setFlowStateAnalysis(flowState);
+        
+        // Analyze learning progression
+        final LearningProgression learning = analyzeLearningProgression(session);  // → Step 3.2e
+        builder.setLearningProgression(learning);
+        
+        return builder.build();
+    }
+    
+    private DevelopmentVelocity analyzeDevelopmentVelocity(final UserSession session) {
+        final List<ActivityEvent> codeModifications = session.getActivitiesByType(ActivityType.CODE_MODIFICATION);
+        final List<ActivityEvent> successfulDeployments = session.getActivitiesByType(ActivityType.SUCCESSFUL_DEPLOYMENT);
+        
+        // Calculate modification frequency
+        final double modificationsPerHour = calculateActivityFrequency(codeModifications, session.getDuration());
+        
+        // Calculate successful deployment frequency
+        final double deploymentsPerHour = calculateActivityFrequency(successfulDeployments, session.getDuration());
+        
+        // Calculate average time from modification to deployment
+        final Duration averageModificationToDeployment = calculateAverageModificationToDeploymentTime(
+            codeModifications, 
+            successfulDeployments
+        );
+        
+        // Calculate velocity trend
+        final VelocityTrend trend = calculateVelocityTrend(session);
+        
+        // Analyze velocity compared to historical baselines
+        final VelocityComparison comparison = compareToHistoricalVelocity(session, modificationsPerHour, deploymentsPerHour);
+        
+        return new DevelopmentVelocity(
+            modificationsPerHour,
+            deploymentsPerHour,
+            averageModificationToDeployment,
+            trend,
+            comparison
+        );
+    }
+    
+    private ErrorResolutionEfficiency analyzeErrorResolutionEfficiency(final UserSession session) {
+        final List<ActivityEvent> errorEvents = session.getActivitiesByType(ActivityType.ERROR_RESOLUTION);
+        
+        if (errorEvents.isEmpty()) {
+            return ErrorResolutionEfficiency.noErrors();
+        }
+        
+        // Analyze error resolution patterns
+        final List<ErrorResolutionSequence> resolutionSequences = identifyErrorResolutionSequences(errorEvents);
+        
+        // Calculate average resolution time
+        final Duration averageResolutionTime = calculateAverageResolutionTime(resolutionSequences);
+        
+        // Calculate resolution success rate
+        final double resolutionSuccessRate = calculateResolutionSuccessRate(resolutionSequences);
+        
+        // Analyze common error patterns
+        final List<CommonErrorPattern> commonPatterns = identifyCommonErrorPatterns(resolutionSequences);
+        
+        // Analyze learning from errors
+        final ErrorLearningAnalysis learningAnalysis = analyzeErrorLearning(resolutionSequences, session);
+        
+        return new ErrorResolutionEfficiency(
+            averageResolutionTime,
+            resolutionSuccessRate,
+            commonPatterns,
+            learningAnalysis,
+            resolutionSequences.size()
+        );
+    }
+    
+    private HotSwapUtilization analyzeHotSwapUtilization(final UserSession session) {
+        final List<ActivityEvent> hotSwapEvents = session.getActivitiesByType(ActivityType.HOT_SWAP_OPERATION);
+        final List<ActivityEvent> codeModifications = session.getActivitiesByType(ActivityType.CODE_MODIFICATION);
+        
+        // Calculate hot-swap adoption rate
+        final double hotSwapAdoptionRate = (double) hotSwapEvents.size() / codeModifications.size();
+        
+        // Calculate hot-swap success rate
+        final long successfulHotSwaps = hotSwapEvents.stream()
+            .mapToLong(event -> event.wasSuccessful() ? 1 : 0)
+            .sum();
+        final double hotSwapSuccessRate = (double) successfulHotSwaps / hotSwapEvents.size();
+        
+        // Analyze hot-swap timing efficiency
+        final Duration averageHotSwapTime = calculateAverageHotSwapTime(hotSwapEvents);
+        
+        // Analyze time savings from hot-swap usage
+        final Duration timeSavings = calculateTimeSavingsFromHotSwap(hotSwapEvents, session);
+        
+        // Analyze hot-swap complexity patterns
+        final List<HotSwapComplexityPattern> complexityPatterns = analyzeHotSwapComplexityPatterns(hotSwapEvents);
+        
+        return new HotSwapUtilization(
+            hotSwapAdoptionRate,
+            hotSwapSuccessRate,
+            averageHotSwapTime,
+            timeSavings,
+            complexityPatterns,
+            hotSwapEvents.size()
+        );
+    }
+    
+    private FlowStateAnalysis analyzeFlowStateMaintenane(final UserSession session) {
+        final FlowStateDetector flowDetector = new FlowStateDetector();
+        
+        // Identify flow states throughout the session
+        final List<FlowStateSession> flowSessions = flowDetector.identifyFlowSessions(session.getActivityHistory());
+        
+        // Calculate total time in flow state
+        final Duration totalFlowTime = flowSessions.stream()
+            .map(FlowStateSession::getDuration)
+            .reduce(Duration.ZERO, Duration::plus);
+        
+        // Calculate flow state percentage
+        final double flowStatePercentage = (double) totalFlowTime.toSeconds() / session.getDuration().toSeconds();
+        
+        // Analyze flow interruption patterns
+        final List<FlowInterruption> interruptions = analyzeFlowInterruptions(flowSessions, session);
+        
+        // Analyze flow state triggers
+        final List<FlowStateTrigger> triggers = analyzeFlowStateTriggers(flowSessions);
+        
+        // Calculate average flow session duration
+        final Duration averageFlowDuration = flowSessions.isEmpty() ? Duration.ZERO :
+            Duration.ofSeconds(totalFlowTime.toSeconds() / flowSessions.size());
+        
+        return new FlowStateAnalysis(
+            flowStatePercentage,
+            totalFlowTime,
+            averageFlowDuration,
+            interruptions,
+            triggers,
+            flowSessions.size()
+        );
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Productivity analytics provide real-time insights into developer effectiveness, identifying patterns that can be optimized and measuring the actual impact of ByteHot's assistance on development productivity.
+
+* Phase 4: User Profile Evolution and Personalization
+
+ByteHot continuously evolves user profiles based on observed behavior and preferences, enabling increasingly personalized assistance.
+
+** Step 4.1: Dynamic User Profile Enhancement
+
+#+BEGIN_SRC java
+// From: UserProfileEvolutionEngine.java (Domain Service)
+public class UserProfileEvolutionEngine {
+    
+    public UserProfileEvolution evolveUserProfile(final UserSession session) {
+        final UserProfile currentProfile = session.getUserProfile();
+        final UserProfileBuilder evolutionBuilder = new UserProfileBuilder(currentProfile);
+        
+        // Evolve development skills assessment
+        evolveDevelopmentSkills(session, evolutionBuilder);  // → Step 4.1a
+        
+        // Evolve productivity patterns
+        evolveProductivityPatterns(session, evolutionBuilder);  // → Step 4.1b
+        
+        // Evolve learning preferences
+        evolveLearningPreferences(session, evolutionBuilder);  // → Step 4.1c
+        
+        // Evolve workflow preferences
+        evolveWorkflowPreferences(session, evolutionBuilder);  // → Step 4.1d
+        
+        // Evolve technical environment profile
+        evolveTechnicalEnvironment(session, evolutionBuilder);  // → Step 4.1e
+        
+        final UserProfile evolvedProfile = evolutionBuilder.build();
+        final ProfileEvolutionSummary summary = createEvolutionSummary(currentProfile, evolvedProfile);
+        
+        return new UserProfileEvolution(evolvedProfile, summary);
+    }
+    
+    private void evolveDevelopmentSkills(final UserSession session, final UserProfileBuilder builder) {
+        final SkillAssessmentEngine skillEngine = new SkillAssessmentEngine();
+        
+        // Analyze hot-swap proficiency
+        final HotSwapProficiency hotSwapSkill = skillEngine.assessHotSwapProficiency(
+            session.getActivitiesByType(ActivityType.HOT_SWAP_OPERATION)
+        );
+        builder.updateSkill(DevelopmentSkill.HOT_SWAP_USAGE, hotSwapSkill);
+        
+        // Analyze error resolution skills
+        final ErrorResolutionSkill errorSkill = skillEngine.assessErrorResolutionSkill(
+            session.getActivitiesByType(ActivityType.ERROR_RESOLUTION)
+        );
+        builder.updateSkill(DevelopmentSkill.ERROR_RESOLUTION, errorSkill);
+        
+        // Analyze system configuration skills
+        final ConfigurationSkill configSkill = skillEngine.assessConfigurationSkill(
+            session.getActivitiesByType(ActivityType.CONFIGURATION_ADJUSTMENT)
+        );
+        builder.updateSkill(DevelopmentSkill.SYSTEM_CONFIGURATION, configSkill);
+        
+        // Analyze debugging proficiency
+        final DebuggingProficiency debuggingSkill = skillEngine.assessDebuggingProficiency(
+            session.getDebugActivityHistory()
+        );
+        builder.updateSkill(DevelopmentSkill.DEBUGGING, debuggingSkill);
+        
+        // Analyze performance optimization awareness
+        final PerformanceOptimizationAwareness perfSkill = skillEngine.assessPerformanceOptimizationAwareness(
+            session.getPerformanceInteractionHistory()
+        );
+        builder.updateSkill(DevelopmentSkill.PERFORMANCE_OPTIMIZATION, perfSkill);
+    }
+    
+    private void evolveProductivityPatterns(final UserSession session, final UserProfileBuilder builder) {
+        final ProductivityPatternAnalyzer analyzer = new ProductivityPatternAnalyzer();
+        
+        // Analyze peak productivity times
+        final List<ProductivityPeak> productivityPeaks = analyzer.identifyProductivityPeaks(
+            session.getActivityHistory(),
+            session.getProductivityMetrics()
+        );
+        builder.updateProductivityPeaks(productivityPeaks);
+        
+        // Analyze optimal work rhythms
+        final WorkRhythm optimalRhythm = analyzer.identifyOptimalWorkRhythm(
+            session.getActivityHistory()
+        );
+        builder.updateWorkRhythm(optimalRhythm);
+        
+        // Analyze context switching patterns
+        final ContextSwitchingPattern contextSwitching = analyzer.analyzeContextSwitchingPattern(
+            session.getActivityHistory()
+        );
+        builder.updateContextSwitchingPattern(contextSwitching);
+        
+        // Analyze focus duration patterns
+        final FocusDurationPattern focusPattern = analyzer.analyzeFocusDurationPattern(
+            session.getFlowStateHistory()
+        );
+        builder.updateFocusDurationPattern(focusPattern);
+        
+        // Analyze interruption recovery patterns
+        final InterruptionRecoveryPattern recoveryPattern = analyzer.analyzeInterruptionRecoveryPattern(
+            session.getInterruptionHistory()
+        );
+        builder.updateInterruptionRecoveryPattern(recoveryPattern);
+    }
+    
+    private void evolveLearningPreferences(final UserSession session, final UserProfileBuilder builder) {
+        final LearningPreferenceAnalyzer analyzer = new LearningPreferenceAnalyzer();
+        
+        // Analyze feedback engagement patterns
+        final FeedbackEngagementPattern feedbackPattern = analyzer.analyzeFeedbackEngagement(
+            session.getFeedbackInteractionHistory()
+        );
+        builder.updateFeedbackEngagementPattern(feedbackPattern);
+        
+        // Analyze exploration vs. exploitation preferences
+        final ExplorationPreference explorationPref = analyzer.analyzeExplorationPreference(
+            session.getFeatureUsageHistory()
+        );
+        builder.updateExplorationPreference(explorationPref);
+        
+        // Analyze help-seeking behavior
+        final HelpSeekingBehavior helpBehavior = analyzer.analyzeHelpSeekingBehavior(
+            session.getHelpInteractionHistory()
+        );
+        builder.updateHelpSeekingBehavior(helpBehavior);
+        
+        // Analyze learning pace preferences
+        final LearningPacePreference pacePreference = analyzer.analyzeLearningPace(
+            session.getLearningProgressionHistory()
+        );
+        builder.updateLearningPacePreference(pacePreference);
+    }
+    
+    private void evolveWorkflowPreferences(final UserSession session, final UserProfileBuilder builder) {
+        final WorkflowPreferenceAnalyzer analyzer = new WorkflowPreferenceAnalyzer();
+        
+        // Analyze automation preferences
+        final AutomationPreference automationPref = analyzer.analyzeAutomationPreference(
+            session.getAutomationInteractionHistory()
+        );
+        builder.updateAutomationPreference(automationPref);
+        
+        // Analyze validation timing preferences
+        final ValidationTimingPreference validationTiming = analyzer.analyzeValidationTimingPreference(
+            session.getValidationInteractionHistory()
+        );
+        builder.updateValidationTimingPreference(validationTiming);
+        
+        // Analyze notification preferences
+        final NotificationPreference notificationPref = analyzer.analyzeNotificationPreference(
+            session.getNotificationInteractionHistory()
+        );
+        builder.updateNotificationPreference(notificationPref);
+        
+        // Analyze collaboration style
+        final CollaborationStyle collabStyle = analyzer.analyzeCollaborationStyle(
+            session.getCollaborationHistory()
+        );
+        builder.updateCollaborationStyle(collabStyle);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: User profile evolution creates increasingly sophisticated understanding of individual developers, enabling ByteHot to provide more targeted and effective assistance over time.
+
+** Step 4.2: Personalized Experience Adaptation
+
+#+BEGIN_SRC java
+// From: PersonalizationEngine.java (Domain Service)
+public class PersonalizationEngine {
+    
+    public PersonalizationStrategy createPersonalizationStrategy(final UserProfile userProfile) {
+        final PersonalizationStrategyBuilder builder = new PersonalizationStrategyBuilder();
+        
+        // Create interaction personalization
+        final InteractionPersonalization interaction = createInteractionPersonalization(userProfile);  // → Step 4.2a
+        builder.setInteractionPersonalization(interaction);
+        
+        // Create workflow personalization
+        final WorkflowPersonalization workflow = createWorkflowPersonalization(userProfile);  // → Step 4.2b
+        builder.setWorkflowPersonalization(workflow);
+        
+        // Create learning personalization
+        final LearningPersonalization learning = createLearningPersonalization(userProfile);  // → Step 4.2c
+        builder.setLearningPersonalization(learning);
+        
+        // Create performance personalization
+        final PerformancePersonalization performance = createPerformancePersonalization(userProfile);  // → Step 4.2d
+        builder.setPerformancePersonalization(performance);
+        
+        return builder.build();
+    }
+    
+    private InteractionPersonalization createInteractionPersonalization(final UserProfile userProfile) {
+        final InteractionPersonalizationBuilder builder = new InteractionPersonalizationBuilder();
+        
+        // Personalize feedback verbosity
+        final FeedbackVerbosity preferredVerbosity = determinePreferredFeedbackVerbosity(userProfile);
+        builder.setFeedbackVerbosity(preferredVerbosity);
+        
+        // Personalize notification timing
+        final NotificationTiming preferredNotificationTiming = determinePreferredNotificationTiming(userProfile);
+        builder.setNotificationTiming(preferredNotificationTiming);
+        
+        // Personalize help offering strategy
+        final HelpOfferingStrategy helpStrategy = determineHelpOfferingStrategy(userProfile);
+        builder.setHelpOfferingStrategy(helpStrategy);
+        
+        // Personalize error message format
+        final ErrorMessageFormat errorFormat = determinePreferredErrorFormat(userProfile);
+        builder.setErrorMessageFormat(errorFormat);
+        
+        return builder.build();
+    }
+    
+    private WorkflowPersonalization createWorkflowPersonalization(final UserProfile userProfile) {
+        final WorkflowPersonalizationBuilder builder = new WorkflowPersonalizationBuilder();
+        
+        // Personalize validation timing
+        final ValidationTiming validationTiming = determineOptimalValidationTiming(userProfile);
+        builder.setValidationTiming(validationTiming);
+        
+        // Personalize retry behavior
+        final RetryBehavior retryBehavior = determineOptimalRetryBehavior(userProfile);
+        builder.setRetryBehavior(retryBehavior);
+        
+        // Personalize automation level
+        final AutomationLevel automationLevel = determineOptimalAutomationLevel(userProfile);
+        builder.setAutomationLevel(automationLevel);
+        
+        // Personalize interruption handling
+        final InterruptionHandling interruptionHandling = determineOptimalInterruptionHandling(userProfile);
+        builder.setInterruptionHandling(interruptionHandling);
+        
+        return builder.build();
+    }
+    
+    private FeedbackVerbosity determinePreferredFeedbackVerbosity(final UserProfile userProfile) {
+        final FeedbackEngagementPattern pattern = userProfile.getFeedbackEngagementPattern();
+        
+        if (pattern.frequentlyExpandsDetails()) {
+            return FeedbackVerbosity.DETAILED;
+        } else if (pattern.frequentlyDismissesDetails()) {
+            return FeedbackVerbosity.MINIMAL;
+        } else if (pattern.selectivelyEngagesWithDetails()) {
+            return FeedbackVerbosity.CONTEXTUAL;  // Adaptive based on context
+        }
+        
+        return FeedbackVerbosity.STANDARD;
+    }
+    
+    private ValidationTiming determineOptimalValidationTiming(final UserProfile userProfile) {
+        final WorkRhythm workRhythm = userProfile.getWorkRhythm();
+        final ProductivityPattern productivity = userProfile.getProductivityPattern();
+        
+        if (workRhythm.prefersImmediateFeedback() || productivity.isInterruptionTolerant()) {
+            return ValidationTiming.IMMEDIATE;
+        } else if (workRhythm.prefersBatchedInterruptions() || productivity.isFlowStateSensitive()) {
+            return ValidationTiming.BATCHED;
+        } else if (productivity.hasDefinedBreakPoints()) {
+            return ValidationTiming.BREAK_POINTS;
+        }
+        
+        return ValidationTiming.ADAPTIVE;  // Learn from user responses
+    }
+    
+    public void applyPersonalizationToSession(final UserSession session, 
+                                             final PersonalizationStrategy strategy) {
+        // Apply interaction personalization
+        applyInteractionPersonalization(session, strategy.getInteractionPersonalization());
+        
+        // Apply workflow personalization
+        applyWorkflowPersonalization(session, strategy.getWorkflowPersonalization());
+        
+        // Apply learning personalization
+        applyLearningPersonalization(session, strategy.getLearningPersonalization());
+        
+        // Apply performance personalization
+        applyPerformancePersonalization(session, strategy.getPerformancePersonalization());
+        
+        // Update session with personalization metadata
+        session.setPersonalizationStrategy(strategy);
+        session.setPersonalizationAppliedAt(Instant.now());
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Personalization creates adaptive system behavior that optimizes for individual developer preferences and productivity patterns, ensuring that ByteHot becomes more helpful and less intrusive over time.
+
+* Cross-Cutting User Management Patterns
+
+** Privacy-Conscious Data Collection
+
+User data collection respects privacy while enabling personalization:
+
+#+BEGIN_SRC java
+// Pattern for privacy-conscious data collection
+public class PrivacyAwareUserTracking {
+    // Configurable data collection levels
+    // Local-only data storage options
+    // Anonymization for analytics
+    // User control over data retention
+}
+#+END_SRC
+
+** Graceful User Experience Degradation
+
+System provides value even with limited user information:
+
+#+BEGIN_SRC java
+// Pattern for graceful UX degradation
+public class GracefulUserExperience {
+    // Anonymous user support
+    // Generic personalization fallbacks
+    // Progressive enhancement with more data
+    // Explicit permission requests
+}
+#+END_SRC
+
+** Multi-Session Continuity
+
+User experience continues across sessions and devices:
+
+#+BEGIN_SRC java
+// Pattern for multi-session continuity
+public class SessionContinuity {
+    // Session state preservation
+    // Cross-device profile synchronization
+    // Workflow resumption capabilities
+    // Context-aware session restoration
+}
+#+END_SRC
+
+* User Management Intelligence Outcomes
+
+** Personalized Developer Experience
+
+User management creates truly personalized development experience:
+- Learned preferences applied automatically
+- Adaptive system behavior based on individual patterns
+- Context-aware assistance and recommendations
+- Productivity optimization tailored to individual workflows
+
+** Developer Productivity Enhancement
+
+Comprehensive user understanding enables productivity optimization:
+- Workflow pattern recognition and optimization
+- Interruption timing optimization
+- Personalized automation and assistance levels
+- Learning-based system adaptation
+
+** Development Team Intelligence
+
+Aggregate user data (anonymized) provides team-level insights:
+- Team productivity patterns and optimization opportunities
+- Common workflow patterns and best practices
+- Training and onboarding optimization
+- Technology adoption and usage analytics
+
+* Conclusion: Building Developer-Centric Intelligence
+
+ByteHot's User Management and Session Flow demonstrates how sophisticated user management can create truly developer-centric systems that understand, learn from, and adapt to individual developers. By treating user understanding as a first-class architectural concern with intelligent discovery, comprehensive profiling, and adaptive personalization, ByteHot creates a system that becomes more valuable and effective over time.
+
+This flow shows how user management can be implemented with privacy-conscious design, sophisticated learning capabilities, and adaptive personalization to create systems that not only serve developers but actively enhance their productivity and satisfaction.
+
+** Related Flow Documentation
+
+- [[agent-startup-initialization-flow.org][Agent Startup Flow]]: User discovery during system initialization
+- [[configuration-management-flow.org][Configuration Management Flow]]: User preference integration with system configuration
+- [[flow-intelligence-learning-flow.org][Flow Intelligence Learning]]: User behavior analysis for system learning
+
+** Next Steps for User Management Evolution
+
+1. **Collaborative Intelligence**: Multi-developer team learning and knowledge sharing
+2. **Cross-Project Learning**: User preference and pattern transfer across different projects
+3. **Predictive Assistance**: AI-driven prediction of user needs and proactive assistance
+4. **Privacy-Enhanced Learning**: Advanced privacy-preserving machine learning for user modeling

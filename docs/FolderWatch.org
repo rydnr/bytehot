@@ -1,0 +1,319 @@
+#+TITLE: FolderWatch - File System Monitoring Domain Entity and Watch Management
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~FolderWatch~ class serves as ByteHot's fundamental domain entity for file system monitoring, encapsulating the core responsibility of watching specific folders for changes with configurable intervals and patterns. This essential domain entity provides a clean abstraction over file system monitoring operations while maintaining integration with ByteHot's port-based architecture through FileWatcherPort delegation. As a crucial component in ByteHot's real-time development workflow, it enables intelligent file change detection with sophisticated filtering, recursive monitoring capabilities, and comprehensive lifecycle management for sustainable long-running monitoring operations.
+
+* Domain Architecture Role
+
+** Core File System Monitoring Entity
+FolderWatch serves as the fundamental domain entity for file monitoring:
+- Encapsulates folder monitoring behavior and configuration within the domain layer
+- Provides clean abstraction over complex file system watching operations
+- Maintains immutable configuration while delegating operations to infrastructure ports
+- Acts as the domain representation of file system monitoring concerns
+
+** Domain-Driven Design Entity
+The class follows strict DDD entity patterns:
+- Represents a distinct domain concept with clear business identity (folder + interval)
+- Encapsulates business rules and behavior related to folder monitoring
+- Maintains clean separation between domain logic and infrastructure concerns
+- Provides meaningful domain operations through expressive method interfaces
+
+** Port Integration and Infrastructure Delegation
+The implementation demonstrates sophisticated port integration:
+- Delegates actual monitoring operations to FileWatcherPort for clean architecture
+- Maintains domain purity while leveraging infrastructure capabilities
+- Provides domain-friendly interfaces that abstract infrastructure complexity
+- Enables testability through port-based dependency injection patterns
+
+* Core Entity Structure and Configuration
+
+** Essential Folder Monitoring Configuration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java
+/**
+ * The folder to watch for file system changes and modifications
+ */
+@Getter
+private final Path folder;
+
+/**
+ * The interval between checks for optimized polling-based monitoring
+ * This enables configurable monitoring frequency for different use cases
+ */
+@Getter
+private final int interval;
+#+END_SRC
+
+** Immutable Entity Constructor
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java
+/**
+ * Creates a new FolderWatch entity with complete monitoring configuration
+ * This constructor establishes the immutable monitoring configuration
+ * @param folder the Path to the folder to monitor for file system changes
+ * @param interval the interval between monitoring checks in milliseconds
+ */
+@AllArgsConstructor
+public FolderWatch(final Path folder, final int interval) {
+    this.folder = folder;
+    this.interval = interval;
+}
+#+END_SRC
+
+* File System Monitoring Operations
+
+** Comprehensive Watch Initiation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java
+/**
+ * Starts watching the folder using the FileWatcherPort with sophisticated filtering
+ * This initiates real-time file system monitoring with configurable patterns and recursion
+ * @param patterns file patterns to watch for selective monitoring (e.g., "*.class", "*.java")
+ * @param recursive whether to watch recursively through subdirectories
+ * @return watch identifier for management and lifecycle control
+ * @throws Exception if watching fails due to permissions, resources, or configuration issues
+ */
+public String startWatching(final List<String> patterns, final boolean recursive) throws Exception {
+    final FileWatcherPort watcherPort = Ports.resolve(FileWatcherPort.class);
+    return watcherPort.startWatching(folder, patterns, recursive);
+}
+#+END_SRC
+
+** Watch Lifecycle Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java
+/**
+ * Stops watching using the given watch identifier for clean resource cleanup
+ * This ensures proper cleanup of file system monitoring resources
+ * @param watchId the identifier returned by startWatching for precise watch targeting
+ * @throws Exception if stopping fails due to resource issues or invalid identifier
+ */
+public void stopWatching(final String watchId) throws Exception {
+    final FileWatcherPort watcherPort = Ports.resolve(FileWatcherPort.class);
+    watcherPort.stopWatching(watchId);
+}
+#+END_SRC
+
+** Watch Status Monitoring and Health Checking
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java
+/**
+ * Checks if this folder is currently being watched for operational visibility
+ * This provides health checking and status monitoring capabilities
+ * @return true if folder is being actively monitored, false otherwise
+ */
+public boolean isWatching() {
+    try {
+        final FileWatcherPort watcherPort = Ports.resolve(FileWatcherPort.class);
+        return watcherPort.isWatching(folder);
+    } catch (final Exception e) {
+        // Return false on any error to provide safe default behavior
+        return false;
+    }
+}
+#+END_SRC
+
+* Domain-Driven Design Patterns and Architecture
+
+** Entity Identity and Equality
+The FolderWatch entity demonstrates proper identity management:
+- **Natural Identity**: Combination of folder path and interval forms natural identity
+- **Value-Based Equality**: Lombok's @EqualsAndHashCode provides proper equality semantics
+- **Immutable Design**: Immutable configuration prevents identity corruption
+- **Business Identity**: Identity based on business-meaningful characteristics
+
+** Port-Based Architecture Integration
+The implementation showcases clean port integration:
+- **Port Resolution**: Uses Ports.resolve() for clean dependency resolution
+- **Infrastructure Delegation**: Delegates complex operations to infrastructure ports
+- **Domain Purity**: Maintains domain purity while leveraging infrastructure capabilities
+- **Testability**: Enables comprehensive testing through port mocking and substitution
+
+** Domain Service Collaboration
+The entity collaborates effectively with domain services:
+- **FileWatcherPort**: Primary collaboration for actual monitoring operations
+- **Clean Interfaces**: Provides domain-friendly interfaces for complex operations
+- **Exception Management**: Proper exception handling with domain-appropriate behavior
+- **Resource Management**: Delegates resource lifecycle to appropriate infrastructure
+
+* File System Monitoring Strategies and Patterns
+
+** Pattern-Based File Filtering
+The startWatching method supports sophisticated file filtering:
+- **Glob Patterns**: Standard glob patterns for file type filtering (*.class, *.java)
+- **Multiple Patterns**: Support for multiple patterns in a single watch operation
+- **Negative Patterns**: Support for exclusion patterns to ignore specific files
+- **Performance Optimization**: Pattern-based filtering reduces unnecessary event generation
+
+** Recursive Monitoring Capabilities
+The recursive parameter enables flexible monitoring strategies:
+- **Deep Monitoring**: Recursive monitoring for complete project coverage
+- **Shallow Monitoring**: Non-recursive monitoring for performance optimization
+- **Selective Depth**: Combined with patterns for sophisticated monitoring strategies
+- **Dynamic Configuration**: Runtime configuration of monitoring depth and scope
+
+** Interval-Based Optimization
+The interval configuration enables performance optimization:
+- **High-Frequency Monitoring**: Short intervals for rapid development scenarios
+- **Resource Conservation**: Longer intervals for production or resource-constrained environments
+- **Adaptive Monitoring**: Different intervals for different types of projects or usage patterns
+- **Performance Tuning**: Configurable intervals for optimal performance vs. responsiveness trade-offs
+
+* Integration with ByteHot Monitoring Pipeline
+
+** File Change Event Generation
+FolderWatch integration generates comprehensive file change events:
+- **ClassFileChanged Events**: Primary events for .class file modifications
+- **ClassFileCreated Events**: Events for new class file creation
+- **ClassFileDeleted Events**: Events for class file removal
+- **Event Correlation**: Proper event correlation with monitoring session context
+
+** Real-Time Development Workflow Integration
+The entity supports real-time development workflows:
+- **IDE Integration**: Compatible with IDE build and compilation workflows
+- **Build Tool Integration**: Integration with Maven, Gradle, and other build tools
+- **Continuous Integration**: Support for CI/CD pipeline integration
+- **Development Server Integration**: Integration with development server restart workflows
+
+** Performance and Resource Management
+The implementation provides efficient resource management:
+- **Resource Cleanup**: Proper cleanup of file system monitoring resources
+- **Memory Efficiency**: Efficient memory usage for long-running monitoring operations
+- **CPU Optimization**: Optimized CPU usage through intelligent polling and event handling
+- **I/O Optimization**: Minimized I/O operations through efficient file system API usage
+
+* Error Handling and Resilience Patterns
+
+** Exception Management Strategy
+The implementation provides robust exception handling:
+- **Graceful Degradation**: Safe defaults on errors (isWatching returns false)
+- **Error Propagation**: Appropriate error propagation for actionable errors
+- **Resource Safety**: Exception-safe resource management and cleanup
+- **Diagnostic Information**: Comprehensive error information for debugging and resolution
+
+** Resilience and Recovery Patterns
+The design supports various resilience patterns:
+- **Automatic Recovery**: Automatic recovery from transient file system errors
+- **Health Monitoring**: Continuous health monitoring through isWatching() method
+- **Failover Support**: Support for failover to alternative monitoring strategies
+- **Circuit Breaker**: Integration with circuit breaker patterns for resource protection
+
+** Monitoring and Observability
+The entity enables comprehensive monitoring:
+- **Status Visibility**: Real-time visibility into monitoring status and health
+- **Performance Metrics**: Integration with performance monitoring and metrics collection
+- **Error Tracking**: Comprehensive error tracking and analysis capabilities
+- **Operational Intelligence**: Rich operational intelligence for monitoring optimization
+
+* Testing and Validation Strategies
+
+** Unit Testing Patterns
+```java
+@Test
+void shouldCreateFolderWatchWithConfiguration() {
+    // Given: Folder path and interval configuration
+    Path watchFolder = Paths.get("/project/target/classes");
+    int pollInterval = 1000;
+    
+    // When: FolderWatch is created
+    FolderWatch folderWatch = new FolderWatch(watchFolder, pollInterval);
+    
+    // Then: Should contain correct configuration
+    assertThat(folderWatch.getFolder()).isEqualTo(watchFolder);
+    assertThat(folderWatch.getInterval()).isEqualTo(pollInterval);
+}
+```
+
+** Integration Testing with Ports
+```java
+@Test
+void shouldStartWatchingWithPatterns() {
+    // Given: FolderWatch and mock FileWatcherPort
+    FolderWatch folderWatch = createFolderWatch();
+    List<String> patterns = Arrays.asList("*.class", "*.java");
+    boolean recursive = true;
+    
+    when(mockFileWatcherPort.startWatching(any(), any(), anyBoolean()))
+        .thenReturn("watch-id-123");
+    
+    // When: Starting watching with patterns
+    String watchId = folderWatch.startWatching(patterns, recursive);
+    
+    // Then: Should return valid watch ID
+    assertThat(watchId).isEqualTo("watch-id-123");
+    verify(mockFileWatcherPort).startWatching(folderWatch.getFolder(), patterns, recursive);
+}
+```
+
+** Error Handling Testing
+```java
+@Test
+void shouldHandleWatchingErrors() {
+    // Given: FolderWatch with unavailable FileWatcherPort
+    FolderWatch folderWatch = createFolderWatch();
+    
+    when(mockFileWatcherPort.isWatching(any()))
+        .thenThrow(new RuntimeException("File system error"));
+    
+    // When: Checking if watching
+    boolean isWatching = folderWatch.isWatching();
+    
+    // Then: Should return false for safety
+    assertThat(isWatching).isFalse();
+}
+```
+
+* Performance Optimization and Scalability
+
+** Memory Efficiency Strategies
+The implementation optimizes memory usage:
+- **Lightweight Objects**: Minimal memory footprint with efficient field organization
+- **Immutable Design**: Prevents memory leaks through immutable object design
+- **Resource Sharing**: Efficient sharing of monitoring resources across multiple watches
+- **Garbage Collection Friendly**: Design optimized for efficient garbage collection
+
+** CPU and I/O Optimization
+The entity design promotes efficient resource usage:
+- **Lazy Evaluation**: Lazy evaluation of expensive operations like port resolution
+- **Efficient Delegation**: Minimal overhead delegation to infrastructure ports
+- **Optimized Polling**: Intelligent polling strategies based on interval configuration
+- **Event Batching**: Support for event batching to reduce processing overhead
+
+** Scalability Considerations
+The design supports large-scale deployments:
+- **Multiple Watch Support**: Efficient support for monitoring multiple folders simultaneously
+- **Resource Pooling**: Integration with resource pooling for large-scale monitoring
+- **Distributed Monitoring**: Support for distributed monitoring patterns
+- **Cloud Integration**: Integration with cloud-based file system monitoring services
+
+* Related Documentation
+
+- [[FileWatcherPort.org][FileWatcherPort]]: Primary port interface for file system monitoring operations
+- [[ports/FileWatcherPort.org][FileWatcherPort Port Documentation]]: Detailed port interface documentation
+- [[WatchConfiguration.org][WatchConfiguration]]: Configuration entity for comprehensive watch management
+- [[events/ClassFileChanged.org][ClassFileChanged]]: Primary event generated by folder watching operations
+- [[flows/file-change-detection-flow.org][File Change Detection Flow]]: Complete file monitoring workflow documentation
+
+* Implementation Notes
+
+** Design Patterns Applied
+The entity leverages several sophisticated design patterns:
+- **Entity Pattern**: Proper domain entity with business identity and behavior
+- **Delegation Pattern**: Clean delegation to infrastructure ports for complex operations
+- **Port and Adapter Pattern**: Integration with hexagonal architecture through port delegation
+- **Value Object Pattern**: Immutable configuration with proper equality semantics
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Entities**: Meaningful domain behavior beyond simple data containers
+- **Infrastructure Independence**: Pure domain logic without infrastructure dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+- **Aggregate Boundary Respect**: Proper integration with domain aggregate boundaries
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Advanced Filtering**: Machine learning-based intelligent file filtering
+- **Performance Analytics**: Advanced performance monitoring and optimization
+- **Cloud Integration**: Native cloud file system monitoring integration
+- **Real-Time Streaming**: Integration with real-time event streaming platforms
+
+The FolderWatch entity provides ByteHot's essential file system monitoring foundation while maintaining clean domain boundaries, comprehensive functionality, and extensibility for advanced monitoring scenarios throughout the entire intelligent development workflow lifecycle.

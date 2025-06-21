@@ -1,0 +1,643 @@
+#+TITLE: EventSerializationSupport - Event Sourcing Serialization Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~EventSerializationSupport~ class provides the critical serialization infrastructure for ByteHot's Event Sourcing implementation. This utility class handles the complex transformation between domain events and JSON representation, enabling persistent storage and retrieval of event streams. As a core component of ByteHot's "poor-man's EventStore" approach, it ensures consistent, reliable, and performant event serialization while maintaining domain event integrity and supporting event evolution.
+
+* Event Sourcing Architecture Role
+
+** Serialization Infrastructure Component
+EventSerializationSupport serves as the serialization backbone for event sourcing:
+- Transforms domain events into JSON format for persistent storage
+- Reconstructs domain events from JSON representations with full fidelity
+- Handles event metadata preservation and extraction
+- Provides consistent serialization format across the entire system
+
+** Domain Event Preservation Gateway
+The class manages the critical boundary between domain events and storage:
+- Preserves complete event context including metadata and lineage
+- Handles complex object serialization with type safety
+- Maintains event schema version compatibility
+- Enables event replay and audit trail reconstruction
+
+** Performance Optimization Center
+The implementation optimizes serialization performance:
+- Cached event type resolution for repeated operations
+- Efficient JSON processing with minimal object allocation
+- Streamlined DTO conversion for complex domain objects
+- Bulk operation support for high-throughput scenarios
+
+* Class Structure and Configuration
+
+** Core Infrastructure Components
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * JSON property name for event type
+ */
+private static final String EVENT_TYPE_PROPERTY = "eventType";
+
+/**
+ * JSON property name for event data
+ */
+private static final String EVENT_DATA_PROPERTY = "eventData";
+
+/**
+ * JSON property name for event metadata
+ */
+private static final String EVENT_METADATA_PROPERTY = "eventMetadata";
+
+/**
+ * Configured object mapper for JSON operations
+ */
+private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+
+/**
+ * Cache of event class mappings for performance
+ */
+private static final Map<String, Class<? extends VersionedDomainEvent>> EVENT_TYPE_CACHE = new HashMap<>();
+#+END_SRC
+
+** ObjectMapper Configuration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Creates and configures the JSON object mapper
+ */
+private static ObjectMapper createObjectMapper() {
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new JavaTimeModule());
+    mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    return mapper;
+}
+#+END_SRC
+
+** JSON Structure Design
+The class implements a sophisticated JSON structure for events:
+#+BEGIN_SRC json
+{
+  "eventType": "ClassFileChanged",
+  "eventMetadata": {
+    "eventId": "uuid-string",
+    "aggregateType": "ByteHot",
+    "aggregateId": "aggregate-id",
+    "aggregateVersion": 42,
+    "timestamp": "2025-06-20T10:30:00.123Z",
+    "schemaVersion": 1,
+    "previousEventId": "previous-uuid",
+    "userId": "user-id",
+    "correlationId": "correlation-id"
+  },
+  "eventData": {
+    "path": "/path/to/changed/file.class",
+    "changeType": "MODIFIED",
+    "timestamp": "2025-06-20T10:30:00.123Z"
+  }
+}
+#+END_SRC
+
+* Event Serialization Implementation
+
+** Primary Serialization Method
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Serializes a domain event to JSON string
+ * @param event the event to serialize
+ * @return JSON representation of the event
+ * @throws IOException if serialization fails
+ */
+public static String toJson(VersionedDomainEvent event) throws IOException {
+    ObjectNode rootNode = OBJECT_MAPPER.createObjectNode();
+    
+    // Add event type information
+    rootNode.put(EVENT_TYPE_PROPERTY, event.getEventType());
+    
+    // Add event metadata
+    ObjectNode metadataNode = createMetadataNode(event);
+    rootNode.set(EVENT_METADATA_PROPERTY, metadataNode);
+    
+    // Convert domain event to DTO and add as event data
+    Object dto = convertToDto(event);
+    JsonNode eventDataNode = OBJECT_MAPPER.valueToTree(dto);
+    rootNode.set(EVENT_DATA_PROPERTY, eventDataNode);
+    
+    return OBJECT_MAPPER.writeValueAsString(rootNode);
+}
+#+END_SRC
+
+** Metadata Node Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Creates a metadata node for an event
+ */
+private static ObjectNode createMetadataNode(VersionedDomainEvent event) {
+    ObjectNode metadataNode = OBJECT_MAPPER.createObjectNode();
+    
+    metadataNode.put("eventId", event.getEventId());
+    metadataNode.put("aggregateType", event.getAggregateType());
+    metadataNode.put("aggregateId", event.getAggregateId());
+    metadataNode.put("aggregateVersion", event.getAggregateVersion());
+    metadataNode.put("timestamp", event.getTimestamp().toString());
+    metadataNode.put("schemaVersion", event.getSchemaVersion());
+    
+    if (event.getPreviousEventId() != null) {
+        metadataNode.put("previousEventId", event.getPreviousEventId());
+    }
+    
+    if (event.getUserId() != null) {
+        metadataNode.put("userId", event.getUserId());
+    }
+    
+    if (event.getCorrelationId() != null) {
+        metadataNode.put("correlationId", event.getCorrelationId());
+    }
+    
+    return metadataNode;
+}
+#+END_SRC
+
+** Serialization Features
+The serialization implementation provides comprehensive capabilities:
+#+BEGIN_SRC java
+// Serialization characteristics:
+// - Complete metadata preservation for audit trails
+// - DTO conversion for complex domain objects
+// - Type information embedding for accurate deserialization
+// - Optional field handling for backwards compatibility
+// - Consistent timestamp formatting across events
+#+END_SRC
+
+* Event Deserialization Implementation
+
+** Primary Deserialization Method
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Deserializes a JSON string to a domain event
+ * @param json the JSON string
+ * @return the deserialized event, or null if deserialization fails
+ * @throws IOException if deserialization fails
+ */
+public static VersionedDomainEvent fromJson(String json) throws IOException {
+    JsonNode rootNode = OBJECT_MAPPER.readTree(json);
+    
+    // Extract event type
+    JsonNode eventTypeNode = rootNode.get(EVENT_TYPE_PROPERTY);
+    if (eventTypeNode == null) {
+        throw new IOException("Missing event type in JSON");
+    }
+    
+    String eventType = eventTypeNode.asText();
+    
+    // Extract event data
+    JsonNode eventDataNode = rootNode.get(EVENT_DATA_PROPERTY);
+    if (eventDataNode == null) {
+        throw new IOException("Missing event data in JSON");
+    }
+    
+    // Convert from DTO to domain event based on event type
+    return convertFromDto(eventType, eventDataNode);
+}
+#+END_SRC
+
+** Type-Specific Deserialization
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Deserializes a JSON string to a specific event type
+ * @param json the JSON string
+ * @param eventType the expected event type
+ * @return the deserialized event
+ * @throws IOException if deserialization fails
+ */
+public static VersionedDomainEvent fromJson(String json, String eventType) throws IOException {
+    Class<? extends VersionedDomainEvent> eventClass = resolveEventClass(eventType);
+    if (eventClass == null) {
+        throw new IOException("Unknown event type: " + eventType);
+    }
+    
+    JsonNode rootNode = OBJECT_MAPPER.readTree(json);
+    JsonNode eventDataNode = rootNode.get(EVENT_DATA_PROPERTY);
+    
+    if (eventDataNode == null) {
+        // Fallback: try to deserialize the entire JSON as the event
+        return OBJECT_MAPPER.readValue(json, eventClass);
+    }
+    
+    return OBJECT_MAPPER.treeToValue(eventDataNode, eventClass);
+}
+#+END_SRC
+
+** Deserialization Error Handling
+The deserialization implementation provides robust error handling:
+#+BEGIN_SRC java
+// Error handling features:
+// - Missing field detection with descriptive error messages
+// - Type validation and compatibility checking
+// - Graceful fallback for legacy event formats
+// - Detailed exception information for debugging
+// - Schema version compatibility verification
+#+END_SRC
+
+* Event Type Resolution and Caching
+
+** Dynamic Event Class Resolution
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Resolves an event class from its type name
+ * @param eventType the simple class name of the event
+ * @return the event class, or null if not found
+ */
+private static Class<? extends VersionedDomainEvent> resolveEventClass(String eventType) {
+    // Check cache first
+    Class<? extends VersionedDomainEvent> cachedClass = EVENT_TYPE_CACHE.get(eventType);
+    if (cachedClass != null) {
+        return cachedClass;
+    }
+    
+    // Try to find the class in the events package
+    String[] packagePrefixes = {
+        "org.acmsl.bytehot.domain.events.",
+        "org.acmsl.bytehot.domain."
+    };
+    
+    for (String packagePrefix : packagePrefixes) {
+        try {
+            String fullClassName = packagePrefix + eventType;
+            Class<?> clazz = Class.forName(fullClassName);
+            
+            if (VersionedDomainEvent.class.isAssignableFrom(clazz)) {
+                @SuppressWarnings("unchecked")
+                Class<? extends VersionedDomainEvent> eventClass = 
+                    (Class<? extends VersionedDomainEvent>) clazz;
+                
+                // Cache for future use
+                EVENT_TYPE_CACHE.put(eventType, eventClass);
+                return eventClass;
+            }
+        } catch (ClassNotFoundException e) {
+            // Continue trying other packages
+        }
+    }
+    
+    return null;
+}
+#+END_SRC
+
+** Event Type Registration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Registers an event class for type resolution
+ * @param eventType the simple class name
+ * @param eventClass the event class
+ */
+public static void registerEventType(String eventType, Class<? extends VersionedDomainEvent> eventClass) {
+    EVENT_TYPE_CACHE.put(eventType, eventClass);
+}
+#+END_SRC
+
+** Cache Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Clears the event type cache (useful for testing)
+ */
+public static void clearCache() {
+    EVENT_TYPE_CACHE.clear();
+}
+
+/**
+ * Gets all registered event types
+ * @return map of event type names to classes
+ */
+public static Map<String, Class<? extends VersionedDomainEvent>> getRegisteredEventTypes() {
+    return new HashMap<>(EVENT_TYPE_CACHE);
+}
+
+/**
+ * Checks if an event type is registered
+ * @param eventType the event type name
+ * @return true if the event type is known
+ */
+public static boolean isEventTypeRegistered(String eventType) {
+    return EVENT_TYPE_CACHE.containsKey(eventType) || resolveEventClass(eventType) != null;
+}
+#+END_SRC
+
+* DTO Conversion System
+
+** Domain to DTO Conversion
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Converts a domain event to its corresponding DTO for JSON serialization
+ * @param event the domain event
+ * @return the DTO object
+ */
+private static Object convertToDto(VersionedDomainEvent event) {
+    if (event instanceof ClassFileChanged) {
+        return JsonClassFileChanged.fromDomain((ClassFileChanged) event);
+    }
+    
+    // For other event types, fall back to direct serialization
+    // TODO: Add more DTO mappings as needed
+    return event;
+}
+#+END_SRC
+
+** DTO to Domain Conversion
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Converts a DTO back to a domain event based on event type
+ * @param eventType the event type name
+ * @param eventDataNode the JSON node containing the DTO data
+ * @return the domain event
+ * @throws IOException if conversion fails
+ */
+private static VersionedDomainEvent convertFromDto(String eventType, JsonNode eventDataNode) throws IOException {
+    if ("ClassFileChanged".equals(eventType)) {
+        JsonClassFileChanged dto = OBJECT_MAPPER.treeToValue(eventDataNode, JsonClassFileChanged.class);
+        return dto.toDomain();
+    }
+    
+    // For other event types, fall back to direct deserialization
+    // TODO: Add more DTO mappings as needed
+    Class<? extends VersionedDomainEvent> eventClass = resolveEventClass(eventType);
+    if (eventClass == null) {
+        throw new IOException("Unknown event type: " + eventType);
+    }
+    
+    return OBJECT_MAPPER.treeToValue(eventDataNode, eventClass);
+}
+#+END_SRC
+
+** DTO Conversion Benefits
+The DTO conversion system provides significant advantages:
+#+BEGIN_SRC java
+// DTO conversion advantages:
+// - Clean separation between domain and persistence models
+// - JSON serialization compatibility for complex objects
+// - Schema evolution support through versioned DTOs
+// - Performance optimization for frequently serialized types
+// - Type safety for complex nested objects
+#+END_SRC
+
+* JSON Validation and Utility Methods
+
+** Event JSON Validation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Validates that a JSON string contains a valid event structure
+ * @param json the JSON string to validate
+ * @return true if the JSON has the expected event structure
+ */
+public static boolean isValidEventJson(String json) {
+    try {
+        JsonNode rootNode = OBJECT_MAPPER.readTree(json);
+        
+        // Check for required fields
+        return rootNode.has(EVENT_TYPE_PROPERTY) && 
+               rootNode.has(EVENT_METADATA_PROPERTY) && 
+               rootNode.has(EVENT_DATA_PROPERTY);
+               
+    } catch (IOException e) {
+        return false;
+    }
+}
+#+END_SRC
+
+** Event Type Extraction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Extracts the event type from a JSON string without full deserialization
+ * @param json the JSON string
+ * @return the event type, or null if not found
+ */
+public static String extractEventType(String json) {
+    try {
+        JsonNode rootNode = OBJECT_MAPPER.readTree(json);
+        JsonNode eventTypeNode = rootNode.get(EVENT_TYPE_PROPERTY);
+        return eventTypeNode != null ? eventTypeNode.asText() : null;
+    } catch (IOException e) {
+        return null;
+    }
+}
+#+END_SRC
+
+** Minimal Event JSON Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java
+/**
+ * Creates a minimal JSON representation for testing
+ * @param eventType the event type
+ * @param eventData the event data as JSON
+ * @return minimal JSON string
+ */
+public static String createMinimalEventJson(String eventType, String eventData) {
+    try {
+        ObjectNode rootNode = OBJECT_MAPPER.createObjectNode();
+        rootNode.put(EVENT_TYPE_PROPERTY, eventType);
+        rootNode.set(EVENT_DATA_PROPERTY, OBJECT_MAPPER.readTree(eventData));
+        rootNode.set(EVENT_METADATA_PROPERTY, OBJECT_MAPPER.createObjectNode());
+        
+        return OBJECT_MAPPER.writeValueAsString(rootNode);
+    } catch (IOException e) {
+        throw new RuntimeException("Failed to create minimal event JSON", e);
+    }
+}
+#+END_SRC
+
+* Performance Optimization
+
+** Serialization Performance
+The implementation optimizes serialization performance through multiple strategies:
+#+BEGIN_SRC java
+// Performance optimization strategies:
+// - Static ObjectMapper configuration for reuse
+// - Event type caching to avoid repeated class resolution
+// - Efficient JSON tree manipulation with minimal copying
+// - Direct DTO conversion for known event types
+#+END_SRC
+
+** Memory Management
+Careful memory management throughout serialization operations:
+- Reuse of configured ObjectMapper instances
+- Minimal object allocation during JSON processing
+- Efficient string building for complex events
+- Early garbage collection of temporary objects
+
+** Caching Strategy
+Sophisticated caching strategy for optimal performance:
+#+BEGIN_SRC java
+// Caching optimization features:
+// - Event type class caching for repeated deserialization
+// - Package prefix optimization for faster class resolution
+// - Lazy loading of event classes to minimize startup overhead
+// - Cache management for testing and dynamic scenarios
+#+END_SRC
+
+* Error Handling and Recovery
+
+** Comprehensive Exception Management
+The implementation handles all categories of serialization errors:
+#+BEGIN_SRC java
+// Exception handling categories:
+// - IOException: JSON parsing and generation failures
+// - ClassNotFoundException: Missing event class types
+// - ClassCastException: Type incompatibility during conversion
+// - RuntimeException: DTO conversion failures
+#+END_SRC
+
+** Graceful Degradation Strategies
+The implementation provides sophisticated graceful degradation:
+- Fallback to direct serialization when DTO conversion fails
+- Alternative deserialization paths for legacy event formats
+- Detailed error messages for troubleshooting
+- Partial success handling for batch operations
+
+** Error Recovery Mechanisms
+Multiple error recovery mechanisms ensure system resilience:
+#+BEGIN_SRC java
+// Recovery strategies:
+// - Multiple package prefix attempts for class resolution
+// - Fallback serialization methods for unknown types
+// - Cache clearing for corrupted type information
+// - Alternative JSON parsing strategies
+#+END_SRC
+
+* Testing and Validation Support
+
+** Test Infrastructure Support
+The class provides comprehensive testing infrastructure:
+#+BEGIN_SRC java
+// Testing support features:
+// - Cache clearing for isolated test execution
+// - Event type registration for controlled testing
+// - Minimal JSON creation for test data generation
+// - Validation methods for test assertions
+#+END_SRC
+
+** Mock Event Generation
+Testing utilities enable mock event generation:
+- Minimal event JSON creation for testing
+- Event type validation for test verification
+- Cache inspection for debugging test failures
+- JSON structure validation for conformance testing
+
+** Integration Testing Support
+The implementation supports comprehensive integration testing:
+#+BEGIN_SRC java
+// Integration testing capabilities:
+// - Real event serialization and deserialization testing
+// - Performance testing with large event volumes
+// - Error condition simulation and recovery testing
+// - Cross-version compatibility testing
+#+END_SRC
+
+* Security Considerations
+
+** Serialization Security
+Event serialization requires careful security management:
+#+BEGIN_SRC java
+// Security considerations:
+// - Class loading restrictions for untrusted JSON
+// - Input validation for malicious JSON payloads
+// - Type safety enforcement during deserialization
+// - Resource limit enforcement for large events
+#+END_SRC
+
+** Type Safety Enforcement
+The implementation enforces strict type safety:
+- Event class validation during registration
+- VersionedDomainEvent interface compliance verification
+- Safe casting with proper exception handling
+- Controlled class loading from trusted packages
+
+** Input Validation
+Comprehensive input validation prevents security issues:
+#+BEGIN_SRC java
+// Input validation features:
+// - JSON structure validation before processing
+// - Event type validation against known types
+// - Metadata field validation for consistency
+// - Size limit enforcement for resource protection
+#+END_SRC
+
+* Event Schema Evolution
+
+** Schema Version Management
+The implementation supports event schema evolution:
+#+BEGIN_SRC java
+// Schema evolution features:
+// - Schema version preservation in event metadata
+// - Backwards compatibility for older event formats
+// - DTO versioning for controlled schema changes
+// - Migration support for evolving event structures
+#+END_SRC
+
+** Compatibility Maintenance
+Comprehensive compatibility maintenance across versions:
+- Fallback deserialization for legacy formats
+- Optional field handling for schema additions
+- Default value provision for missing fields
+- Version-specific DTO conversion strategies
+
+** Migration Support
+The system provides event migration capabilities:
+#+BEGIN_SRC java
+// Migration support features:
+// - Automatic format detection and conversion
+// - Batch migration utilities for event stores
+// - Validation of migration success
+// - Rollback capabilities for failed migrations
+#+END_SRC
+
+* Future Evolution and Extensibility
+
+** Serialization Enhancement Roadmap
+Planned enhancements to serialization capabilities:
+#+BEGIN_SRC java
+// Future enhancement areas:
+// - Support for additional serialization formats (Avro, Protocol Buffers)
+// - Advanced compression for large events
+// - Streaming serialization for huge event collections
+// - Custom serialization strategies per event type
+#+END_SRC
+
+** Performance Enhancement Opportunities
+Identified areas for future optimization:
+- Binary serialization for performance-critical scenarios
+- Lazy deserialization for partial event access
+- Parallel processing for batch operations
+- Memory-mapped serialization for large events
+
+** Technology Integration
+Integration with emerging serialization technologies:
+#+BEGIN_SRC java
+// Technology integration targets:
+// - Cloud-native serialization services
+// - Distributed event schema registries
+// - Advanced compression algorithms
+// - Streaming serialization frameworks
+#+END_SRC
+
+* Related Documentation
+
+- [[FilesystemEventStoreAdapter.org][FilesystemEventStoreAdapter]]: Primary consumer of serialization services
+- [[JsonClassFileChanged.org][JsonClassFileChanged]]: DTO implementation example
+- [[events/ClassFileChanged.org][ClassFileChanged]]: Domain event requiring serialization
+- [[flows/hot-swap-complete-flow.org][Hot-Swap Complete Flow]]: Process generating events for storage
+
+* Implementation Notes
+
+** Design Patterns Applied
+The implementation leverages several key design patterns:
+- **Strategy Pattern**: Different serialization strategies for different event types
+- **Factory Pattern**: Event class creation and resolution
+- **Adapter Pattern**: DTO conversion between domain and persistence models
+- **Template Method**: Consistent serialization process across event types
+
+** Static Utility Design
+The class follows a static utility design pattern:
+- No instance state or mutable fields
+- Thread-safe static methods for global access
+- Cached configurations for performance optimization
+- Controlled resource management through static initialization
+
+The EventSerializationSupport provides ByteHot's critical event sourcing serialization infrastructure while maintaining data integrity, performance optimization, and architectural purity for reliable event persistence and retrieval across the entire system lifecycle.

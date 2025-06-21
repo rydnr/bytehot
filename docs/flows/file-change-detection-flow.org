@@ -1,0 +1,1013 @@
+#+TITLE: File Change Detection Flow - Real-Time Development Monitoring
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+#+DESCRIPTION: Literate programming documentation of ByteHot's sophisticated file system monitoring and event generation
+
+* Overview: The Foundation of Reactive Hot-Swapping
+
+The File Change Detection Flow represents the foundational capability of ByteHot - the ability to detect, filter, and respond to file system changes in real-time. This flow transforms low-level file system events into rich domain events that drive the entire hot-swap ecosystem. Unlike simple file watching, this flow demonstrates sophisticated event filtering, timing coordination, and domain event generation.
+
+** Flow Participants and Their Roles
+
+- **FolderWatch**: Base file system monitoring infrastructure (Domain)
+- **ClassFileWatcher**: Specialized .class file monitoring (Domain) 
+- **FileWatcherAdapter**: Infrastructure integration (Infrastructure)
+- **WatchConfiguration**: Configuration management (Domain)
+- **FileMonitoringSession**: Session lifecycle management (Domain)
+- **ClassFileChanged/Created/Deleted**: Rich domain events (Domain)
+
+** What This Flow Demonstrates
+
+- **Real-time file system integration** without compromising domain purity
+- **Event filtering and transformation** from technical to business events
+- **Timing coordination** to handle file write completion
+- **Error resilience** during file system operations
+- **Session-aware monitoring** with proper lifecycle management
+
+** The Detection Pipeline
+
+#+BEGIN_SRC
+File System → Java NIO.2 → FolderWatch → ClassFileWatcher → Domain Events → Application
+     ↓              ↓           ↓             ↓               ↓              ↓
+   .class        WatchService   Polling    Event Filter   Rich Events   Hot-Swap Flow
+  Modified                                                                    
+#+END_SRC
+
+* Phase 1: File System Integration Foundation
+
+The flow begins with ByteHot's sophisticated integration with the underlying file system through Java's NIO.2 WatchService API.
+
+** Step 1.1: Monitoring Session Initialization
+
+#+BEGIN_SRC java
+// From: FileMonitoringSession.java (Domain Layer)
+public class FileMonitoringSession {
+    private final String sessionId;
+    private final Path watchPath;
+    private final WatchConfiguration configuration;
+    private final Instant startTime;
+    private volatile boolean isActive;
+    private volatile Thread monitoringThread;
+    
+    public FileMonitoringSession(String sessionId, Path watchPath, WatchConfiguration config) {
+        this.sessionId = sessionId;
+        this.watchPath = watchPath;
+        this.configuration = config;
+        this.startTime = Instant.now();
+        this.isActive = false;
+    }
+    
+    public void start() throws IOException {
+        if (isActive) {
+            throw new IllegalStateException("Session already active: " + sessionId);
+        }
+        
+        // Create the file watcher with session configuration
+        ClassFileWatcher watcher = new ClassFileWatcher(
+            watchPath, 
+            configuration.getPollingInterval()
+        );
+        
+        // Start monitoring in dedicated thread
+        monitoringThread = new Thread(() -> {
+            try {
+                isActive = true;
+                watcher.watchClassFiles(this::handleFileEvent);  // → Step 1.2
+            } catch (IOException e) {
+                handleMonitoringError(e);
+            } finally {
+                isActive = false;
+            }
+        }, "ByteHot-FileMonitor-" + sessionId);
+        
+        monitoringThread.start();
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Each monitoring session maintains its own lifecycle and configuration, enabling multiple concurrent monitoring operations with different parameters and target directories.
+
+** Step 1.2: Core File System Event Loop
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+public void watchClassFiles(final Consumer<Object> onClassFileEvent) throws IOException {
+    final WatchService watchService = java.nio.file.FileSystems.getDefault().newWatchService();
+    getFolder().register(watchService,
+        StandardWatchEventKinds.ENTRY_CREATE,
+        StandardWatchEventKinds.ENTRY_MODIFY,
+        StandardWatchEventKinds.ENTRY_DELETE);
+
+    try {
+        while (!Thread.currentThread().isInterrupted()) {
+            final WatchKey key = watchService.poll(getInterval(), TimeUnit.MILLISECONDS);
+            if (key != null) {
+                processWatchKey(key, onClassFileEvent);  // → Step 1.3
+                key.reset();
+            }
+        }
+    } catch (final InterruptedException ignored) {
+        Thread.currentThread().interrupt();
+    } finally {
+        watchService.close();
+    }
+}
+
+private void processWatchKey(WatchKey key, Consumer<Object> eventHandler) {
+    for (final WatchEvent<?> event : key.pollEvents()) {
+        final Path changedPath = getFolder().resolve((Path) event.context());
+        
+        if (isClassFile(changedPath)) {  // → Step 2.1
+            try {
+                final Object domainEvent = createClassFileEvent(changedPath, event.kind());  // → Step 2.2
+                if (domainEvent != null) {
+                    eventHandler.accept(domainEvent);  // → Phase 3
+                }
+            } catch (final IOException e) {
+                handleFileProcessingError(changedPath, e);  // → Step 1.4
+            }
+        }
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: The core event loop continuously polls the file system using configurable intervals, processing each file system event through a sophisticated filtering and transformation pipeline.
+
+** Step 1.3: Robust Error Handling Strategy
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private void handleFileProcessingError(final Path classFile, final IOException error) {
+    // Create error context for detailed logging
+    final String errorContext = String.format(
+        "File: %s, Error: %s, Thread: %s, Time: %s",
+        classFile,
+        error.getMessage(),
+        Thread.currentThread().getName(),
+        Instant.now()
+    );
+    
+    // Log error but continue monitoring
+    System.err.println("Error processing class file event: " + errorContext);
+    
+    // Optionally emit error event for system monitoring
+    try {
+        final Object errorEvent = createFileProcessingErrorEvent(classFile, error);
+        // Could be handled by error recovery systems
+    } catch (Exception e) {
+        // Prevent error handling from breaking the monitoring loop
+        System.err.println("Failed to create error event: " + e.getMessage());
+    }
+}
+
+private Object createFileProcessingErrorEvent(Path file, IOException error) {
+    return new FileProcessingError(
+        file,
+        error.getMessage(),
+        Instant.now(),
+        Thread.currentThread().getName()
+    );
+}
+#+END_SRC
+
+**Runtime Behavior**: Error handling is designed to be non-disruptive - individual file processing errors don't break the monitoring loop, ensuring continuous operation even when dealing with problematic files.
+
+** Step 1.4: Thread Lifecycle Management
+
+#+BEGIN_SRC java
+// From: FileMonitoringSession.java (Domain Layer)
+public void stop() {
+    if (!isActive) {
+        return;
+    }
+    
+    // Signal monitoring thread to stop
+    if (monitoringThread != null) {
+        monitoringThread.interrupt();
+        
+        try {
+            // Wait for graceful shutdown
+            monitoringThread.join(5000); // 5 second timeout
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+    
+    isActive = false;
+}
+
+public boolean isHealthy() {
+    return isActive && 
+           monitoringThread != null && 
+           monitoringThread.isAlive() &&
+           !monitoringThread.isInterrupted();
+}
+#+END_SRC
+
+**Runtime Behavior**: Session management ensures clean startup and shutdown with proper thread coordination and health monitoring capabilities.
+
+* Phase 2: Intelligent Event Filtering and Classification
+
+This phase transforms raw file system events into classified, business-meaningful domain events through sophisticated filtering logic.
+
+** Step 2.1: Class File Detection and Filtering
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private boolean isClassFile(final Path path) {
+    if (path == null) {
+        return false;
+    }
+    
+    final String fileName = path.getFileName().toString();
+    
+    // Primary filter: .class extension
+    if (!fileName.endsWith(CLASS_FILE_EXTENSION)) {
+        return false;
+    }
+    
+    // Secondary filters for sophisticated detection
+    return !isTemporaryFile(fileName) &&
+           !isBackupFile(fileName) &&
+           !isSystemGeneratedFile(fileName) &&
+           isValidClassFileName(fileName);
+}
+
+private boolean isTemporaryFile(String fileName) {
+    return fileName.startsWith(".") ||           // Hidden files
+           fileName.endsWith(".tmp") ||          // Temporary files
+           fileName.endsWith(".bak") ||          // Backup files
+           fileName.contains("~");               // Editor backup files
+}
+
+private boolean isSystemGeneratedFile(String fileName) {
+    return fileName.startsWith("package-info") ||    // Package info classes
+           fileName.contains("$") &&                  // Inner classes (conditionally)
+           !isRelevantInnerClass(fileName);
+}
+
+private boolean isRelevantInnerClass(String fileName) {
+    // Allow certain inner classes that might be hot-swappable
+    return fileName.matches(".*\\$\\d+\\.class") ||     // Anonymous classes
+           fileName.matches(".*\\$[A-Z].*\\.class");     // Named inner classes
+}
+
+private boolean isValidClassFileName(String fileName) {
+    // Validate Java class naming conventions
+    String className = fileName.substring(0, fileName.length() - CLASS_FILE_EXTENSION.length());
+    return className.matches("^[A-Za-z_$][A-Za-z0-9_$]*(?:\\$[A-Za-z0-9_$]*)*$");
+}
+#+END_SRC
+
+**Runtime Behavior**: The filtering logic implements sophisticated heuristics to identify relevant class files while excluding temporary files, system-generated classes, and invalid file names that would not be hot-swappable.
+
+** Step 2.2: Event Type Classification and Creation
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private Object createClassFileEvent(final Path classFile, final WatchEvent.Kind<?> eventKind) throws IOException {
+    // Classify the file system event type
+    if (eventKind == StandardWatchEventKinds.ENTRY_CREATE) {
+        return createClassFileCreatedEvent(classFile);      // → Step 2.3a
+    } else if (eventKind == StandardWatchEventKinds.ENTRY_MODIFY) {
+        return createClassFileChangedEvent(classFile);      // → Step 2.3b
+    } else if (eventKind == StandardWatchEventKinds.ENTRY_DELETE) {
+        return createClassFileDeletedEvent(classFile);      // → Step 2.3c
+    } else if (eventKind == StandardWatchEventKinds.OVERFLOW) {
+        return createOverflowEvent(classFile);              // → Step 2.3d
+    }
+    
+    // Unknown event type - log and ignore
+    System.err.println("Unknown watch event kind: " + eventKind + " for file: " + classFile);
+    return null;
+}
+#+END_SRC
+
+**Runtime Behavior**: Each file system event type is mapped to a specific domain event creation strategy, ensuring that the appropriate rich domain event is generated with relevant contextual information.
+
+** Step 2.3a: New Class File Creation Handling
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private ClassFileCreated createClassFileCreatedEvent(final Path classFile) throws IOException {
+    final String className = extractClassName(classFile);
+    final long fileSize = waitForFileToBeWritten(classFile);  // → Step 2.4
+    final Instant timestamp = Instant.now();
+    
+    // Analyze the new class for additional context
+    final ClassCreationContext context = analyzeNewClass(classFile);
+    
+    return new ClassFileCreated(
+        classFile,
+        className,
+        fileSize,
+        timestamp,
+        context.getCompilationSource(),     // IDE, Maven, Gradle, etc.
+        context.getClassType(),             // Regular, Anonymous, Inner
+        context.getPackageName()
+    );
+}
+
+private ClassCreationContext analyzeNewClass(Path classFile) {
+    // Analyze file location and naming patterns to determine context
+    String packageName = derivePackageFromPath(classFile);
+    ClassType classType = determineClassType(classFile.getFileName().toString());
+    CompilationSource source = detectCompilationSource(classFile);
+    
+    return new ClassCreationContext(packageName, classType, source);
+}
+
+private CompilationSource detectCompilationSource(Path classFile) {
+    Path parent = classFile.getParent();
+    
+    // Look for IDE-specific patterns
+    if (parent.toString().contains("target/classes")) {
+        return CompilationSource.MAVEN;
+    } else if (parent.toString().contains("build/classes")) {
+        return CompilationSource.GRADLE;
+    } else if (parent.toString().contains("out/production")) {
+        return CompilationSource.INTELLIJ;
+    } else if (parent.toString().contains("bin")) {
+        return CompilationSource.ECLIPSE;
+    }
+    
+    return CompilationSource.UNKNOWN;
+}
+#+END_SRC
+
+**Runtime Behavior**: New class creation events include rich contextual information about the compilation environment, class type, and package structure to enable intelligent hot-swap decisions.
+
+** Step 2.3b: Existing Class Modification Handling
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private ClassFileChanged createClassFileChangedEvent(final Path classFile) throws IOException {
+    final String className = extractClassName(classFile);
+    final long fileSize = Files.size(classFile);
+    final Instant timestamp = Instant.now();
+    
+    // Analyze the nature of the change
+    final ClassChangeAnalysis analysis = analyzeClassChange(classFile);
+    
+    return ClassFileChanged.forNewSession(
+        classFile,
+        className,
+        fileSize,
+        timestamp,
+        analysis.getChangeType(),           // CONTENT, TIMESTAMP, SIZE
+        analysis.getPreviousSize(),         // For change comparison
+        analysis.getChangeSignificance()    // MINOR, MAJOR, STRUCTURAL
+    );
+}
+
+private ClassChangeAnalysis analyzeClassChange(Path classFile) throws IOException {
+    // Compare with previous state if available
+    long currentSize = Files.size(classFile);
+    Instant lastModified = Files.getLastModifiedTime(classFile).toInstant();
+    
+    // Determine change significance based on size difference
+    ChangeSignificance significance;
+    if (Math.abs(currentSize - getPreviousSize(classFile)) < 100) {
+        significance = ChangeSignificance.MINOR;
+    } else if (Math.abs(currentSize - getPreviousSize(classFile)) < 1000) {
+        significance = ChangeSignificance.MAJOR;
+    } else {
+        significance = ChangeSignificance.STRUCTURAL;
+    }
+    
+    return new ClassChangeAnalysis(
+        ChangeType.CONTENT,
+        getPreviousSize(classFile),
+        significance,
+        lastModified
+    );
+}
+#+END_SRC
+
+**Runtime Behavior**: Modification events include analysis of the change characteristics, enabling downstream processors to make informed decisions about hot-swap feasibility and strategy.
+
+** Step 2.3c: Class File Deletion Handling
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private ClassFileDeleted createClassFileDeletedEvent(final Path classFile) {
+    final String className = extractClassName(classFile);
+    final Instant timestamp = Instant.now();
+    
+    // For deleted files, we can't analyze the file content
+    // but we can provide context from the file path
+    final DeletionContext context = analyzeDeletion(classFile);
+    
+    return ClassFileDeleted.forNewSession(
+        classFile,
+        className,
+        timestamp,
+        context.getDeletionReason(),        // USER_ACTION, CLEANUP, BUILD_CLEAN
+        context.getRecoveryStrategy()       // NONE, BACKUP_AVAILABLE, REGENERATE
+    );
+}
+
+private DeletionContext analyzeDeletion(Path classFile) {
+    // Analyze deletion context based on file location and timing
+    DeletionReason reason = DeletionReason.USER_ACTION;
+    RecoveryStrategy recovery = RecoveryStrategy.NONE;
+    
+    // Check if this looks like a build clean operation
+    if (isInBuildDirectory(classFile)) {
+        reason = DeletionReason.BUILD_CLEAN;
+        recovery = RecoveryStrategy.REGENERATE;
+    }
+    
+    // Check if backup files exist
+    if (hasBackupFiles(classFile)) {
+        recovery = RecoveryStrategy.BACKUP_AVAILABLE;
+    }
+    
+    return new DeletionContext(reason, recovery);
+}
+#+END_SRC
+
+**Runtime Behavior**: Deletion events include analysis of the deletion context and potential recovery strategies, enabling intelligent responses to file removal.
+
+** Step 2.4: File Write Completion Detection
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private long waitForFileToBeWritten(final Path classFile) throws IOException {
+    long fileSize = 0;
+    long previousSize = -1;
+    int stableReadings = 0;
+    
+    for (int attempt = 0; attempt < MAX_FILE_SIZE_RETRY_ATTEMPTS; attempt++) {
+        try {
+            fileSize = Files.size(classFile);
+            
+            // Check if file size has stabilized
+            if (fileSize == previousSize) {
+                stableReadings++;
+                if (stableReadings >= REQUIRED_STABLE_READINGS) {
+                    break; // File write appears complete
+                }
+            } else {
+                stableReadings = 0; // Reset stability counter
+                previousSize = fileSize;
+            }
+            
+            if (fileSize > 0 && attempt == 0) {
+                // File has content immediately - likely atomic write
+                break;
+            }
+            
+            Thread.sleep(FILE_SIZE_RETRY_DELAY_MS);
+            
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            break;
+        } catch (final IOException e) {
+            // File might still be being written
+            if (attempt == MAX_FILE_SIZE_RETRY_ATTEMPTS - 1) {
+                throw e; // Re-throw on final attempt
+            }
+            // Wait and retry
+            try {
+                Thread.sleep(FILE_SIZE_RETRY_DELAY_MS * 2);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+    
+    return fileSize;
+}
+#+END_SRC
+
+**Runtime Behavior**: The file write completion detection uses multiple strategies to ensure that file content is fully written before processing, preventing issues with partially written class files.
+
+* Phase 3: Domain Event Enrichment and Context
+
+This phase enriches the basic file system events with rich domain context, creating comprehensive domain events that drive intelligent hot-swap decisions.
+
+** Step 3.1: Class Name and Package Extraction
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private String extractClassName(final Path classFile) {
+    final String fileName = classFile.getFileName().toString();
+    if (fileName.endsWith(CLASS_FILE_EXTENSION)) {
+        return fileName.substring(0, fileName.length() - CLASS_FILE_EXTENSION.length());
+    }
+    return fileName;
+}
+
+private String derivePackageFromPath(Path classFile) {
+    // Work backwards from the class file to find the package structure
+    Path parent = classFile.getParent();
+    StringBuilder packageBuilder = new StringBuilder();
+    
+    // Look for standard Java directory patterns
+    while (parent != null) {
+        String dirName = parent.getFileName().toString();
+        
+        // Stop at known root directories
+        if (isJavaSourceRoot(dirName)) {
+            break;
+        }
+        
+        // Build package name from directory structure
+        if (packageBuilder.length() > 0) {
+            packageBuilder.insert(0, ".");
+        }
+        packageBuilder.insert(0, dirName);
+        
+        parent = parent.getParent();
+    }
+    
+    return packageBuilder.toString();
+}
+
+private boolean isJavaSourceRoot(String dirName) {
+    return dirName.equals("classes") ||     // Maven/Gradle output
+           dirName.equals("java") ||        // Source directory
+           dirName.equals("src") ||         // Source root
+           dirName.equals("main") ||        // Maven structure
+           dirName.equals("production");    // IntelliJ structure
+}
+#+END_SRC
+
+**Runtime Behavior**: The class name extraction goes beyond simple filename parsing to derive full package context from directory structure, enabling package-aware hot-swap decisions.
+
+** Step 3.2: File System Metadata Integration
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private FileSystemMetadata gatherFileSystemMetadata(Path classFile) throws IOException {
+    BasicFileAttributes attributes = Files.readAttributes(classFile, BasicFileAttributes.class);
+    
+    return new FileSystemMetadata(
+        attributes.size(),
+        attributes.creationTime().toInstant(),
+        attributes.lastModifiedTime().toInstant(),
+        attributes.lastAccessTime().toInstant(),
+        calculateFileHash(classFile),          // For change detection
+        detectFileEncoding(classFile),         // For bytecode analysis
+        getFilePermissions(classFile)          // For security analysis
+    );
+}
+
+private String calculateFileHash(Path classFile) throws IOException {
+    try {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] fileBytes = Files.readAllBytes(classFile);
+        byte[] hashBytes = md.digest(fileBytes);
+        
+        // Convert to hex string
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+        
+    } catch (NoSuchAlgorithmException e) {
+        // Fallback to simple checksum
+        return String.valueOf(Files.size(classFile));
+    }
+}
+
+private FileEncoding detectFileEncoding(Path classFile) {
+    // Java .class files have specific bytecode format
+    try {
+        byte[] header = new byte[8];
+        try (InputStream is = Files.newInputStream(classFile)) {
+            int bytesRead = is.read(header);
+            if (bytesRead >= 4) {
+                // Check for Java class file magic number
+                if (header[0] == (byte)0xCA && header[1] == (byte)0xFE && 
+                    header[2] == (byte)0xBA && header[3] == (byte)0xBE) {
+                    return FileEncoding.JAVA_BYTECODE;
+                }
+            }
+        }
+    } catch (IOException e) {
+        // Ignore and return unknown
+    }
+    
+    return FileEncoding.UNKNOWN;
+}
+#+END_SRC
+
+**Runtime Behavior**: File system metadata provides additional context for hot-swap decisions, including file integrity verification through hashing and bytecode format validation.
+
+** Step 3.3: Development Environment Context Detection
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private DevelopmentContext detectDevelopmentContext(Path classFile) {
+    Path projectRoot = findProjectRoot(classFile);
+    BuildSystem buildSystem = detectBuildSystem(projectRoot);
+    IDE ide = detectIDE(projectRoot);
+    
+    return new DevelopmentContext(
+        projectRoot,
+        buildSystem,
+        ide,
+        detectJavaVersion(classFile),
+        isTestClass(classFile),
+        getModuleInfo(classFile)
+    );
+}
+
+private BuildSystem detectBuildSystem(Path projectRoot) {
+    if (projectRoot == null) {
+        return BuildSystem.UNKNOWN;
+    }
+    
+    if (Files.exists(projectRoot.resolve("pom.xml"))) {
+        return BuildSystem.MAVEN;
+    } else if (Files.exists(projectRoot.resolve("build.gradle")) || 
+               Files.exists(projectRoot.resolve("build.gradle.kts"))) {
+        return BuildSystem.GRADLE;
+    } else if (Files.exists(projectRoot.resolve("build.xml"))) {
+        return BuildSystem.ANT;
+    }
+    
+    return BuildSystem.UNKNOWN;
+}
+
+private IDE detectIDE(Path projectRoot) {
+    if (projectRoot == null) {
+        return IDE.UNKNOWN;
+    }
+    
+    if (Files.exists(projectRoot.resolve(".idea"))) {
+        return IDE.INTELLIJ;
+    } else if (Files.exists(projectRoot.resolve(".project")) && 
+               Files.exists(projectRoot.resolve(".classpath"))) {
+        return IDE.ECLIPSE;
+    } else if (Files.exists(projectRoot.resolve(".vscode"))) {
+        return IDE.VSCODE;
+    }
+    
+    return IDE.UNKNOWN;
+}
+
+private JavaVersion detectJavaVersion(Path classFile) {
+    try {
+        byte[] bytecode = Files.readAllBytes(classFile);
+        if (bytecode.length >= 8) {
+            // Java class file version is at bytes 6-7 (major version)
+            int majorVersion = ((bytecode[6] & 0xFF) << 8) | (bytecode[7] & 0xFF);
+            return JavaVersion.fromMajorVersion(majorVersion);
+        }
+    } catch (IOException e) {
+        // Ignore and return unknown
+    }
+    
+    return JavaVersion.UNKNOWN;
+}
+#+END_SRC
+
+**Runtime Behavior**: Development environment detection provides crucial context for hot-swap compatibility decisions, enabling environment-specific optimization and error handling.
+
+* Phase 4: Event Validation and Quality Assurance
+
+Before domain events are passed to the application layer, they undergo validation to ensure completeness and consistency.
+
+** Step 4.1: Domain Event Validation
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private boolean validateDomainEvent(Object domainEvent) {
+    if (domainEvent == null) {
+        return false;
+    }
+    
+    if (domainEvent instanceof ClassFileChanged event) {
+        return validateClassFileChangedEvent(event);
+    } else if (domainEvent instanceof ClassFileCreated event) {
+        return validateClassFileCreatedEvent(event);
+    } else if (domainEvent instanceof ClassFileDeleted event) {
+        return validateClassFileDeletedEvent(event);
+    }
+    
+    return false; // Unknown event type
+}
+
+private boolean validateClassFileChangedEvent(ClassFileChanged event) {
+    return event.getClassFile() != null &&
+           event.getClassName() != null && !event.getClassName().trim().isEmpty() &&
+           event.getFileSize() >= 0 &&
+           event.getDetectionTimestamp() != null &&
+           event.getEventId() != null &&
+           isValidJavaClassName(event.getClassName());
+}
+
+private boolean validateClassFileCreatedEvent(ClassFileCreated event) {
+    return event.getClassFile() != null &&
+           Files.exists(event.getClassFile()) &&     // File must exist for creation events
+           event.getClassName() != null && !event.getClassName().trim().isEmpty() &&
+           event.getFileSize() > 0 &&                // Created files should have content
+           event.getTimestamp() != null &&
+           isValidJavaClassName(event.getClassName());
+}
+
+private boolean validateClassFileDeletedEvent(ClassFileDeleted event) {
+    return event.getClassFile() != null &&
+           event.getClassName() != null && !event.getClassName().trim().isEmpty() &&
+           event.getTimestamp() != null &&
+           isValidJavaClassName(event.getClassName());
+    // Note: File doesn't need to exist for deletion events
+}
+
+private boolean isValidJavaClassName(String className) {
+    // Validate Java class naming conventions
+    if (className == null || className.trim().isEmpty()) {
+        return false;
+    }
+    
+    // Handle inner classes
+    String[] parts = className.split("\\$");
+    for (String part : parts) {
+        if (!part.matches("^[A-Za-z_][A-Za-z0-9_]*$")) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+#+END_SRC
+
+**Runtime Behavior**: Domain event validation ensures that only well-formed, complete events are passed to the application layer, preventing downstream processing errors.
+
+** Step 4.2: Event Consistency Verification
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private void verifyEventConsistency(Object domainEvent, Path originalPath, WatchEvent.Kind<?> eventKind) {
+    if (domainEvent instanceof ClassFileChanged event) {
+        // Verify file still exists and is readable
+        if (!Files.exists(event.getClassFile()) || !Files.isReadable(event.getClassFile())) {
+            throw new EventConsistencyException(
+                "ClassFileChanged event created for non-existent or unreadable file: " + event.getClassFile()
+            );
+        }
+        
+        // Verify file size consistency
+        try {
+            long actualSize = Files.size(event.getClassFile());
+            if (Math.abs(actualSize - event.getFileSize()) > ACCEPTABLE_SIZE_VARIANCE) {
+                System.err.println("Warning: File size changed during event creation. " +
+                    "Expected: " + event.getFileSize() + ", Actual: " + actualSize);
+            }
+        } catch (IOException e) {
+            // File became inaccessible during processing
+            throw new EventConsistencyException("File became inaccessible during event creation", e);
+        }
+    }
+    
+    if (domainEvent instanceof ClassFileCreated event) {
+        // Verify this is actually a creation, not a modification
+        try {
+            BasicFileAttributes attrs = Files.readAttributes(event.getClassFile(), BasicFileAttributes.class);
+            Instant creationTime = attrs.creationTime().toInstant();
+            Instant eventTime = event.getTimestamp();
+            
+            // Allow some tolerance for file system time precision
+            if (Duration.between(creationTime, eventTime).abs().toSeconds() > CREATION_TIME_TOLERANCE_SECONDS) {
+                System.err.println("Warning: Creation event timestamp doesn't match file creation time");
+            }
+        } catch (IOException e) {
+            // File metadata unavailable
+        }
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Consistency verification catches race conditions and timing issues that could result in invalid or misleading domain events.
+
+* Phase 5: Event Enrichment and Intelligence Integration
+
+The final phase adds intelligent analysis and contextual enrichment to create comprehensive domain events that enable sophisticated hot-swap decisions.
+
+** Step 5.1: Historical Context Integration
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private HistoricalContext gatherHistoricalContext(Path classFile, String className) {
+    // Integrate with flow intelligence to understand patterns
+    FlowDetectionPort flowDetector = Ports.resolve(FlowDetectionPort.class);
+    
+    try {
+        // Get recent events for this class
+        List<VersionedDomainEvent> recentEvents = getRecentEventsForClass(className);
+        
+        // Detect patterns in the event history
+        CompletableFuture<List<Flow>> detectedFlows = flowDetector.detectFlows(recentEvents);
+        List<Flow> flows = detectedFlows.get(1, TimeUnit.SECONDS); // Short timeout for real-time processing
+        
+        // Calculate change frequency
+        ChangeFrequency frequency = calculateChangeFrequency(recentEvents);
+        
+        // Determine hot-swap success probability
+        double successProbability = calculateHotSwapSuccessProbability(flows, recentEvents);
+        
+        return new HistoricalContext(
+            recentEvents.size(),
+            frequency,
+            flows,
+            successProbability,
+            getLastSuccessfulHotSwap(recentEvents),
+            getLastFailedHotSwap(recentEvents)
+        );
+        
+    } catch (Exception e) {
+        // Return empty context if intelligence gathering fails
+        return HistoricalContext.empty();
+    }
+}
+
+private ChangeFrequency calculateChangeFrequency(List<VersionedDomainEvent> recentEvents) {
+    if (recentEvents.size() < 2) {
+        return ChangeFrequency.UNKNOWN;
+    }
+    
+    // Calculate average time between changes
+    long totalTimeBetweenChanges = 0;
+    for (int i = 1; i < recentEvents.size(); i++) {
+        Instant current = recentEvents.get(i).getTimestamp();
+        Instant previous = recentEvents.get(i-1).getTimestamp();
+        totalTimeBetweenChanges += Duration.between(previous, current).toMinutes();
+    }
+    
+    double averageMinutes = (double) totalTimeBetweenChanges / (recentEvents.size() - 1);
+    
+    if (averageMinutes < 5) {
+        return ChangeFrequency.VERY_HIGH;
+    } else if (averageMinutes < 30) {
+        return ChangeFrequency.HIGH;
+    } else if (averageMinutes < 120) {
+        return ChangeFrequency.MEDIUM;
+    } else {
+        return ChangeFrequency.LOW;
+    }
+}
+
+private double calculateHotSwapSuccessProbability(List<Flow> flows, List<VersionedDomainEvent> recentEvents) {
+    // Base probability
+    double baseProbability = 0.8;
+    
+    // Adjust based on detected flows
+    double flowConfidenceBonus = flows.stream()
+        .mapToDouble(Flow::getConfidence)
+        .average()
+        .orElse(0.0) * 0.2;
+    
+    // Adjust based on recent success/failure history
+    long recentSuccesses = recentEvents.stream()
+        .filter(event -> event instanceof ClassRedefinitionSucceeded)
+        .count();
+    long recentFailures = recentEvents.stream()
+        .filter(event -> event instanceof ClassRedefinitionFailed)
+        .count();
+    
+    double historicalAdjustment = 0.0;
+    if (recentSuccesses + recentFailures > 0) {
+        double successRate = (double) recentSuccesses / (recentSuccesses + recentFailures);
+        historicalAdjustment = (successRate - 0.8) * 0.3; // Adjust by up to 30%
+    }
+    
+    return Math.max(0.0, Math.min(1.0, baseProbability + flowConfidenceBonus + historicalAdjustment));
+}
+#+END_SRC
+
+**Runtime Behavior**: Historical context integration leverages ByteHot's flow intelligence to predict hot-swap success probability and provide insights for optimization.
+
+** Step 5.2: Final Event Enrichment and Dispatch
+
+#+BEGIN_SRC java
+// From: ClassFileWatcher.java (Domain Layer)
+private Object enrichAndFinalizeEvent(Object baseEvent, HistoricalContext history, DevelopmentContext devContext) {
+    if (baseEvent instanceof ClassFileChanged event) {
+        return new EnrichedClassFileChanged(
+            event,                              // Base event data
+            history,                            // Historical context
+            devContext,                         // Development environment context
+            System.currentTimeMillis(),         // Processing timestamp
+            Thread.currentThread().getName(),   // Processing thread
+            generateEventCorrelationId()       // For event correlation
+        );
+    } else if (baseEvent instanceof ClassFileCreated event) {
+        return new EnrichedClassFileCreated(
+            event,
+            history,
+            devContext,
+            System.currentTimeMillis(),
+            Thread.currentThread().getName(),
+            generateEventCorrelationId()
+        );
+    } else if (baseEvent instanceof ClassFileDeleted event) {
+        return new EnrichedClassFileDeleted(
+            event,
+            history,
+            devContext,
+            System.currentTimeMillis(),
+            Thread.currentThread().getName(),
+            generateEventCorrelationId()
+        );
+    }
+    
+    return baseEvent; // Return base event if enrichment not supported
+}
+
+private String generateEventCorrelationId() {
+    return "bytehot-" + System.currentTimeMillis() + "-" + 
+           Integer.toHexString(Thread.currentThread().hashCode());
+}
+#+END_SRC
+
+**Runtime Behavior**: The final enrichment step creates comprehensive domain events that carry all available context, enabling sophisticated downstream processing and decision-making.
+
+* Flow Completion: Intelligent Event Dispatch
+
+The file change detection flow concludes by dispatching enriched domain events to the application layer, where they trigger the hot-swap processing pipeline.
+
+** Final Event Handoff to Application Layer
+
+#+BEGIN_SRC java
+// From: FileMonitoringSession.java (Domain Layer)
+private void handleFileEvent(Object enrichedEvent) {
+    try {
+        // Log the detection for monitoring
+        logEventDetection(enrichedEvent);
+        
+        // Dispatch to application layer
+        ByteHotApplication application = getApplication();
+        
+        if (enrichedEvent instanceof EnrichedClassFileChanged event) {
+            application.accept(event.getBaseEvent());  // → Complete Hot-Swap Flow
+        } else if (enrichedEvent instanceof EnrichedClassFileCreated event) {
+            application.accept(event.getBaseEvent());  // → Complete Hot-Swap Flow
+        } else if (enrichedEvent instanceof EnrichedClassFileDeleted event) {
+            application.handleDeletion(event.getBaseEvent());  // → Deletion Handling Flow
+        }
+        
+    } catch (Exception e) {
+        handleEventDispatchError(enrichedEvent, e);
+    }
+}
+
+private void logEventDetection(Object event) {
+    String eventType = event.getClass().getSimpleName();
+    String timestamp = Instant.now().toString();
+    String threadName = Thread.currentThread().getName();
+    
+    System.out.println(String.format(
+        "[%s] [%s] [%s] File change detected: %s",
+        timestamp, threadName, eventType, event
+    ));
+}
+#+END_SRC
+
+**Runtime Behavior**: The final dispatch ensures that enriched domain events are properly routed to the appropriate application layer handlers while maintaining comprehensive logging for monitoring and debugging.
+
+* Cross-Cutting Concerns and Patterns
+
+** Performance Optimization Patterns
+
+Throughout the flow, several performance optimizations are evident:
+
+1. **Efficient File I/O**: Minimal file operations with strategic caching
+2. **Intelligent Filtering**: Early elimination of irrelevant events
+3. **Asynchronous Processing**: Non-blocking event handling
+4. **Resource Management**: Proper cleanup of file watchers and threads
+
+** Error Resilience Patterns
+
+The flow demonstrates sophisticated error handling:
+
+1. **Graceful Degradation**: Individual failures don't break monitoring
+2. **Context Preservation**: Error events maintain full context
+3. **Recovery Strategies**: Automatic retry and fallback mechanisms
+4. **Monitoring Integration**: All errors are logged and tracked
+
+** Architectural Boundary Respect
+
+The flow maintains clean architectural boundaries:
+
+1. **Domain Purity**: File watching logic contains no infrastructure concerns
+2. **Infrastructure Abstraction**: File system APIs are wrapped in domain services
+3. **Event-Driven Decoupling**: Loose coupling through domain events
+4. **Testability**: Each component can be tested independently
+
+* Related Flow Documentation
+
+- [[complete-hot-swap-flow.org][Complete Hot-Swap Flow]]: The downstream processing triggered by file events
+- [[validation-flow.org][Bytecode Validation Flow]]: How detected changes are validated
+- [[error-recovery-flow.org][Error Recovery Flow]]: How file system errors are handled
+- [[flow-intelligence-learning-flow.org][Flow Intelligence Learning]]: How patterns are detected and learned
+
+* Conclusion: Foundation of Reactive Architecture
+
+The File Change Detection Flow demonstrates how sophisticated, real-time monitoring can be implemented while maintaining clean architecture principles. This flow provides the foundation for ByteHot's reactive hot-swap capabilities, transforming simple file system events into rich, contextual domain events that enable intelligent hot-swap decisions.
+
+The flow showcases the power of event-driven architecture combined with domain-driven design, proving that complex, performance-critical operations can be implemented with maintainable, testable code that respects architectural boundaries.

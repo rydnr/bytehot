@@ -1,0 +1,972 @@
+#+TITLE: Agent Startup and Initialization Flow - Foundational System Bootstrap
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+#+DESCRIPTION: Comprehensive literate programming documentation of ByteHot's sophisticated agent initialization and JVM attachment process
+
+* Overview: Building the Foundation for Runtime Hot-Swapping
+
+The Agent Startup and Initialization Flow represents the foundational bootstrap process that transforms a standard JVM into a ByteHot-enabled runtime environment capable of sophisticated hot-swapping operations. This flow demonstrates ByteHot's integration with the JVM instrumentation API, establishment of monitoring capabilities, and initialization of the complete event-driven architecture. Unlike simple agent loading, this flow shows the sophisticated initialization sequence that creates a fully operational, intelligent hot-swap system.
+
+** Flow Participants and Their Roles
+
+- **ByteHotAgent**: JVM agent entry point and instrumentation coordinator (Infrastructure)
+- **ByteHotApplication**: Application layer orchestration and dependency injection (Application)
+- **InstrumentationProvider**: JVM instrumentation abstraction (Domain)
+- **ConfigurationAdapter**: System configuration and environment setup (Infrastructure)
+- **WatchConfiguration**: File system monitoring configuration (Domain)
+- **UserContextResolver**: Automatic user identification and registration (Domain)
+- **EventStorePort**: Event sourcing infrastructure initialization (Domain)
+- **AgentCapabilities**: Capability discovery and validation (Domain)
+
+** What This Flow Demonstrates
+
+- **JVM instrumentation integration** with sophisticated capability detection
+- **Dependency injection and port configuration** across architectural layers
+- **Configuration discovery and validation** for different environments
+- **User auto-discovery and session initialization** for personalized experience
+- **Event sourcing infrastructure bootstrap** for complete system observability
+
+** The Initialization Pipeline
+
+#+BEGIN_SRC
+JVM Startup → Agent Attach → Instrumentation → Configuration → Dependency Injection → Monitoring Setup → Capability Validation
+     ↓             ↓           ↓                ↓               ↓                    ↓                ↓
+  Process        premain()   API Access      File Discovery    Port Resolution    File Watching    Ready State
+   Launch                                                                                         
+#+END_SRC
+
+* Phase 1: JVM Agent Attachment and Instrumentation Access
+
+The flow begins when the JVM loads the ByteHot agent, either at startup (premain) or dynamically (agentmain).
+
+** Step 1.1: Agent Entry Point and Initial Setup
+
+#+BEGIN_SRC java
+// From: ByteHotAgent.java (Infrastructure Layer)
+public class ByteHotAgent {
+    
+    /**
+     * Premain entry point for agent startup with JVM launch
+     */
+    public static void premain(String agentArgs, Instrumentation instrumentation) {
+        try {
+            // Capture startup timestamp for performance analysis
+            final Instant startupTime = Instant.now();
+            
+            // Parse agent arguments and environment
+            final AgentConfiguration config = parseAgentConfiguration(agentArgs);  // → Step 1.2
+            
+            // Initialize core instrumentation capabilities
+            final InstrumentationProvider provider = initializeInstrumentation(instrumentation);  // → Step 1.3
+            
+            // Bootstrap the application layer with instrumentation
+            final ByteHotApplication application = bootstrapApplication(config, provider, startupTime);  // → Phase 2
+            
+            // Register shutdown hooks for clean termination
+            registerShutdownHooks(application);  // → Step 1.4
+            
+            // Emit agent attachment success event
+            emitAgentAttachmentEvent(application, startupTime, config);  // → Step 1.5
+            
+        } catch (final Exception e) {
+            handleAgentStartupFailure(e, agentArgs);  // → Step 1.6
+        }
+    }
+    
+    /**
+     * Agentmain entry point for dynamic agent attachment
+     */
+    public static void agentmain(String agentArgs, Instrumentation instrumentation) {
+        try {
+            // Dynamic attachment requires additional validation
+            validateDynamicAttachmentSupport(instrumentation);
+            
+            // Use same initialization flow as premain
+            premain(agentArgs, instrumentation);
+            
+        } catch (final Exception e) {
+            handleDynamicAttachmentFailure(e, agentArgs);
+        }
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: The agent entry points handle both startup and dynamic attachment scenarios, providing comprehensive error handling and environment validation from the earliest possible moment.
+
+** Step 1.2: Agent Configuration Parsing and Validation
+
+#+BEGIN_SRC java
+// From: ByteHotAgent.java (Infrastructure Layer)
+private static AgentConfiguration parseAgentConfiguration(final String agentArgs) {
+    final AgentConfigurationBuilder builder = new AgentConfigurationBuilder();
+    
+    // Parse command-line arguments if provided
+    if (agentArgs != null && !agentArgs.trim().isEmpty()) {
+        parseAgentArguments(agentArgs, builder);  // → Step 1.2a
+    }
+    
+    // Load configuration from system properties
+    loadSystemPropertyConfiguration(builder);  // → Step 1.2b
+    
+    // Load configuration from environment variables
+    loadEnvironmentConfiguration(builder);  // → Step 1.2c
+    
+    // Apply default configuration for missing values
+    applyDefaultConfiguration(builder);  // → Step 1.2d
+    
+    // Validate final configuration
+    final AgentConfiguration config = builder.build();
+    validateAgentConfiguration(config);  // → Step 1.2e
+    
+    return config;
+}
+
+private static void parseAgentArguments(final String agentArgs, final AgentConfigurationBuilder builder) {
+    // Parse agent arguments: "watchPath=/src/main/java,pollingInterval=500,logLevel=DEBUG"
+    final String[] arguments = agentArgs.split(",");
+    
+    for (final String argument : arguments) {
+        final String[] keyValue = argument.split("=", 2);
+        if (keyValue.length == 2) {
+            final String key = keyValue[0].trim();
+            final String value = keyValue[1].trim();
+            
+            switch (key) {
+                case "watchPath" -> builder.withWatchPath(Paths.get(value));
+                case "pollingInterval" -> builder.withPollingInterval(Integer.parseInt(value));
+                case "logLevel" -> builder.withLogLevel(LogLevel.valueOf(value.toUpperCase()));
+                case "enableDiagnostics" -> builder.withDiagnosticsEnabled(Boolean.parseBoolean(value));
+                case "maxRetries" -> builder.withMaxRetries(Integer.parseInt(value));
+                case "userAutoDiscovery" -> builder.withUserAutoDiscovery(Boolean.parseBoolean(value));
+                default -> logUnknownAgentArgument(key, value);
+            }
+        }
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Configuration parsing is highly flexible, supporting multiple sources with clear precedence rules and comprehensive validation to prevent startup failures.
+
+** Step 1.3: Instrumentation Provider Initialization
+
+#+BEGIN_SRC java
+// From: InstrumentationProvider.java (Domain Service)
+public class InstrumentationProvider {
+    private final Instrumentation instrumentation;
+    private final Set<AgentCapability> supportedCapabilities;
+    private final InstrumentationMetrics metrics;
+    
+    public static InstrumentationProvider initialize(final Instrumentation instrumentation) throws InstrumentationException {
+        // Validate instrumentation API availability
+        validateInstrumentationAPI(instrumentation);  // → Step 1.3a
+        
+        // Discover supported capabilities
+        final Set<AgentCapability> capabilities = discoverCapabilities(instrumentation);  // → Step 1.3b
+        
+        // Initialize performance metrics
+        final InstrumentationMetrics metrics = new InstrumentationMetrics(instrumentation);
+        
+        // Create provider instance
+        final InstrumentationProvider provider = new InstrumentationProvider(
+            instrumentation, 
+            capabilities, 
+            metrics
+        );
+        
+        // Validate critical capabilities
+        provider.validateCriticalCapabilities();  // → Step 1.3c
+        
+        return provider;
+    }
+    
+    private static void validateInstrumentationAPI(final Instrumentation instrumentation) throws InstrumentationException {
+        // Verify basic instrumentation functionality
+        if (instrumentation == null) {
+            throw new InstrumentationException("Instrumentation API not available");
+        }
+        
+        // Check for required capabilities
+        if (!instrumentation.isRetransformClassesSupported()) {
+            throw new InstrumentationException("Class retransformation not supported by JVM");
+        }
+        
+        if (!instrumentation.isRedefineClassesSupported()) {
+            throw new InstrumentationException("Class redefinition not supported by JVM");
+        }
+        
+        // Verify we can access loaded classes
+        try {
+            final Class<?>[] loadedClasses = instrumentation.getAllLoadedClasses();
+            if (loadedClasses.length == 0) {
+                throw new InstrumentationException("Cannot access loaded classes through instrumentation");
+            }
+        } catch (final Exception e) {
+            throw new InstrumentationException("Failed to access loaded classes", e);
+        }
+    }
+    
+    private static Set<AgentCapability> discoverCapabilities(final Instrumentation instrumentation) {
+        final Set<AgentCapability> capabilities = EnumSet.noneOf(AgentCapability.class);
+        
+        // Basic redefinition capabilities
+        if (instrumentation.isRedefineClassesSupported()) {
+            capabilities.add(AgentCapability.CLASS_REDEFINITION);
+        }
+        
+        if (instrumentation.isRetransformClassesSupported()) {
+            capabilities.add(AgentCapability.CLASS_RETRANSFORMATION);
+        }
+        
+        // Advanced capabilities
+        if (instrumentation.isNativeMethodPrefixSupported()) {
+            capabilities.add(AgentCapability.NATIVE_METHOD_PREFIX);
+        }
+        
+        // Check for module system support (Java 9+)
+        if (isModuleSystemAvailable()) {
+            capabilities.add(AgentCapability.MODULE_REDEFINITION);
+        }
+        
+        // Check for enhanced hot-swap features
+        if (supportsEnhancedHotSwap(instrumentation)) {
+            capabilities.add(AgentCapability.ENHANCED_HOT_SWAP);
+        }
+        
+        return capabilities;
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Instrumentation provider initialization performs comprehensive capability discovery and validation, ensuring ByteHot only enables features that are actually supported by the current JVM.
+
+** Step 1.4: Shutdown Hook Registration
+
+#+BEGIN_SRC java
+// From: ByteHotAgent.java (Infrastructure Layer)
+private static void registerShutdownHooks(final ByteHotApplication application) {
+    final Thread shutdownHook = new Thread(() -> {
+        try {
+            // Graceful application shutdown
+            application.shutdown();  // → Step 1.4a
+            
+        } catch (final Exception e) {
+            // Log but don't fail shutdown
+            System.err.println("Error during ByteHot shutdown: " + e.getMessage());
+        }
+    }, "ByteHot-Shutdown-Hook");
+    
+    // Register with JVM
+    Runtime.getRuntime().addShutdownHook(shutdownHook);
+}
+#+END_SRC
+
+**Runtime Behavior**: Shutdown hooks ensure clean termination of ByteHot operations when the JVM exits, preventing resource leaks and ensuring proper state preservation.
+
+* Phase 2: Application Layer Bootstrap and Dependency Injection
+
+The application layer is initialized with comprehensive dependency injection and port configuration.
+
+** Step 2.1: Application Bootstrap Orchestration
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+public static ByteHotApplication bootstrap(final AgentConfiguration config, 
+                                         final InstrumentationProvider instrumentation,
+                                         final Instant startupTime) throws BootstrapException {
+    // Create application instance
+    final ByteHotApplication application = new ByteHotApplication(config, instrumentation, startupTime);
+    
+    // Phase 1: Infrastructure initialization
+    application.initializeInfrastructure();  // → Step 2.2
+    
+    // Phase 2: Domain service configuration
+    application.configureDomainServices();  // → Step 2.3
+    
+    // Phase 3: Port and adapter binding
+    application.bindPortsAndAdapters();  // → Step 2.4
+    
+    // Phase 4: Event sourcing setup
+    application.initializeEventSourcing();  // → Step 2.5
+    
+    // Phase 5: Monitoring initialization
+    application.initializeMonitoring();  // → Step 2.6
+    
+    // Phase 6: Capability validation and activation
+    application.activateCapabilities();  // → Step 2.7
+    
+    return application;
+}
+#+END_SRC
+
+**Runtime Behavior**: Application bootstrap follows a carefully orchestrated sequence to ensure all components are initialized in the correct dependency order.
+
+** Step 2.2: Infrastructure Initialization
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+private void initializeInfrastructure() throws BootstrapException {
+    try {
+        // Initialize configuration adapter
+        this.configurationAdapter = new ConfigurationAdapter(config);  // → Step 2.2a
+        
+        // Load and validate system configuration
+        final SystemConfiguration systemConfig = configurationAdapter.loadSystemConfiguration();
+        validateSystemConfiguration(systemConfig);
+        
+        // Initialize file system adapters
+        this.fileSystemAdapter = new FileSystemAdapter(systemConfig.getFileSystemConfig());
+        
+        // Initialize serialization support
+        this.serializationSupport = new EventSerializationSupport(systemConfig.getSerializationConfig());
+        
+        // Initialize logging infrastructure
+        this.loggingAdapter = new LoggingAdapter(systemConfig.getLoggingConfig());
+        
+        // Initialize metrics collection
+        this.metricsAdapter = new MetricsAdapter(systemConfig.getMetricsConfig());
+        
+    } catch (final Exception e) {
+        throw new BootstrapException("Failed to initialize infrastructure", e);
+    }
+}
+
+private void validateSystemConfiguration(final SystemConfiguration systemConfig) throws ConfigurationException {
+    // Validate watch path exists and is accessible
+    final Path watchPath = systemConfig.getWatchPath();
+    if (!Files.exists(watchPath)) {
+        throw new ConfigurationException("Watch path does not exist: " + watchPath);
+    }
+    
+    if (!Files.isDirectory(watchPath)) {
+        throw new ConfigurationException("Watch path is not a directory: " + watchPath);
+    }
+    
+    if (!Files.isReadable(watchPath)) {
+        throw new ConfigurationException("Watch path is not readable: " + watchPath);
+    }
+    
+    // Validate polling interval
+    final int pollingInterval = systemConfig.getPollingInterval();
+    if (pollingInterval < 10 || pollingInterval > 10000) {
+        throw new ConfigurationException("Invalid polling interval: " + pollingInterval + "ms (must be 10-10000)");
+    }
+    
+    // Validate event store configuration
+    validateEventStoreConfiguration(systemConfig.getEventStoreConfig());
+}
+#+END_SRC
+
+**Runtime Behavior**: Infrastructure initialization includes comprehensive validation to catch configuration issues early in the startup process.
+
+** Step 2.3: Domain Service Configuration
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+private void configureDomainServices() throws BootstrapException {
+    try {
+        // Initialize core domain services
+        this.bytecodeValidator = new BytecodeValidator();
+        this.hotSwapManager = new HotSwapManager(instrumentation);
+        this.classFileWatcher = new ClassFileWatcher(config.getWatchPath(), config.getPollingInterval());
+        
+        // Initialize user management services
+        this.userContextResolver = new UserContextResolver(config);  // → Step 2.3a
+        this.userSession = initializeUserSession();  // → Step 2.3b
+        
+        // Initialize flow detection services
+        this.flowDetector = new FlowDetector();
+        
+        // Initialize error handling services
+        this.errorHandler = new ErrorHandler(config.getErrorHandlingConfig());
+        
+        // Initialize state preservation services
+        this.statePreserver = new StatePreserver(config.getStatePreservationConfig());
+        
+    } catch (final Exception e) {
+        throw new BootstrapException("Failed to configure domain services", e);
+    }
+}
+
+private UserSession initializeUserSession() throws UserManagementException {
+    // Auto-discover user information
+    final UserDiscoveryResult discovery = userContextResolver.discoverUser();  // → Step 2.3c
+    
+    if (discovery.isSuccessful()) {
+        // Create session for discovered user
+        final User user = discovery.getUser();
+        final UserSession session = UserSession.start(user, Instant.now());
+        
+        // Emit user session started event
+        emitUserSessionStarted(session);
+        
+        return session;
+    } else {
+        // Create anonymous session with auto-registration capability
+        return UserSession.createAnonymous(Instant.now());
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Domain service configuration includes automatic user discovery and session initialization, creating a personalized experience from system startup.
+
+** Step 2.4: Port and Adapter Binding
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+private void bindPortsAndAdapters() throws BootstrapException {
+    try {
+        // Create ports registry
+        final PortsRegistry registry = new PortsRegistry();
+        
+        // Bind event store port and adapter
+        final EventStorePort eventStorePort = registry.createPort(EventStorePort.class);
+        final FilesystemEventStoreAdapter eventStoreAdapter = new FilesystemEventStoreAdapter(
+            config.getEventStorePath(),
+            serializationSupport
+        );
+        registry.bind(eventStorePort, eventStoreAdapter);  // → Step 2.4a
+        
+        // Bind event emitter port and adapter
+        final EventEmitterPort eventEmitterPort = registry.createPort(EventEmitterPort.class);
+        final EventEmitterAdapter eventEmitterAdapter = new EventEmitterAdapter(
+            config.getEmissionTarget(),
+            config.getLogPath()
+        );
+        registry.bind(eventEmitterPort, eventEmitterAdapter);
+        
+        // Bind flow detection port and adapter
+        final FlowDetectionPort flowDetectionPort = registry.createPort(FlowDetectionPort.class);
+        final FilesystemFlowStoreAdapter flowStoreAdapter = new FilesystemFlowStoreAdapter(
+            config.getFlowStorePath(),
+            serializationSupport
+        );
+        registry.bind(flowDetectionPort, flowStoreAdapter);
+        
+        // Bind configuration port and adapter
+        final ConfigurationPort configurationPort = registry.createPort(ConfigurationPort.class);
+        registry.bind(configurationPort, configurationAdapter);
+        
+        // Configure dependency injection for domain layer
+        Ports.initialize(registry);  // → Step 2.4b
+        
+    } catch (final Exception e) {
+        throw new BootstrapException("Failed to bind ports and adapters", e);
+    }
+}
+
+private void validatePortBinding(final PortsRegistry registry) throws BootstrapException {
+    // Verify all critical ports are bound
+    final List<Class<? extends Port>> criticalPorts = List.of(
+        EventStorePort.class,
+        EventEmitterPort.class,
+        FlowDetectionPort.class,
+        ConfigurationPort.class
+    );
+    
+    for (final Class<? extends Port> portClass : criticalPorts) {
+        if (!registry.isBound(portClass)) {
+            throw new BootstrapException("Critical port not bound: " + portClass.getSimpleName());
+        }
+        
+        // Test port connectivity
+        try {
+            final Port port = registry.resolve(portClass);
+            port.validateConnection();
+        } catch (final Exception e) {
+            throw new BootstrapException("Port connection validation failed: " + portClass.getSimpleName(), e);
+        }
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Port and adapter binding establishes the complete infrastructure abstraction that enables the domain layer to operate without infrastructure dependencies.
+
+** Step 2.5: Event Sourcing Infrastructure Setup
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+private void initializeEventSourcing() throws BootstrapException {
+    try {
+        // Initialize event store with validation
+        final EventStorePort eventStore = Ports.resolve(EventStorePort.class);
+        validateEventStore(eventStore);  // → Step 2.5a
+        
+        // Initialize event snapshot generator
+        this.eventSnapshotGenerator = new EventSnapshotGenerator(
+            eventStore,
+            config.getSnapshotConfig()
+        );
+        
+        // Initialize causal chain tracking
+        this.causalChainTracker = new CausalChainTracker(eventStore);
+        
+        // Set up event replay capability
+        this.eventReplayEngine = new EventReplayEngine(
+            eventStore, 
+            serializationSupport,
+            this::replayEventHandler
+        );
+        
+        // Create initial system snapshot
+        createInitialSystemSnapshot();  // → Step 2.5b
+        
+        // Start background event archival if configured
+        if (config.getEventArchivalConfig().isEnabled()) {
+            startEventArchivalProcess();  // → Step 2.5c
+        }
+        
+    } catch (final Exception e) {
+        throw new BootstrapException("Failed to initialize event sourcing", e);
+    }
+}
+
+private void validateEventStore(final EventStorePort eventStore) throws EventStoreException {
+    // Test basic store operations
+    try {
+        // Create test event
+        final TestEvent testEvent = new TestEvent("startup-validation", Instant.now());
+        
+        // Test save operation
+        eventStore.save(testEvent);
+        
+        // Test retrieval operation
+        final List<VersionedDomainEvent> retrievedEvents = eventStore.findEvents(
+            testEvent.getAggregateType(),
+            testEvent.getAggregateId(),
+            0L,
+            1L
+        ).get(5, TimeUnit.SECONDS);
+        
+        if (retrievedEvents.isEmpty()) {
+            throw new EventStoreException("Event store validation failed: saved event not retrievable");
+        }
+        
+        // Clean up test event
+        eventStore.delete(testEvent);
+        
+    } catch (final Exception e) {
+        throw new EventStoreException("Event store validation failed", e);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Event sourcing initialization includes comprehensive testing to ensure the persistence infrastructure is fully operational before ByteHot begins normal operations.
+
+* Phase 3: Monitoring and Capability Activation
+
+The final phase activates file system monitoring and validates that all hot-swap capabilities are operational.
+
+** Step 3.1: File System Monitoring Activation
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+private void initializeMonitoring() throws BootstrapException {
+    try {
+        // Start file system monitoring
+        startFileSystemMonitoring();  // → Step 3.1a
+        
+        // Initialize performance monitoring
+        startPerformanceMonitoring();  // → Step 3.1b
+        
+        // Initialize error monitoring
+        startErrorMonitoring();  // → Step 3.1c
+        
+        // Initialize user activity monitoring
+        startUserActivityMonitoring();  // → Step 3.1d
+        
+    } catch (final Exception e) {
+        throw new BootstrapException("Failed to initialize monitoring", e);
+    }
+}
+
+private void startFileSystemMonitoring() throws IOException {
+    // Create monitoring session
+    final String sessionId = generateSessionId();
+    final FileMonitoringSession monitoringSession = new FileMonitoringSession(
+        sessionId,
+        config.getWatchPath(),
+        config.getWatchConfiguration()
+    );
+    
+    // Start monitoring with event handler
+    monitoringSession.start(this::handleFileSystemEvent);  // → Step 3.1e
+    
+    // Store session for lifecycle management
+    this.activeMonitoringSessions.add(monitoringSession);
+    
+    // Emit monitoring started event
+    final WatchPathConfigured configuredEvent = new WatchPathConfigured(
+        config.getWatchPath(),
+        config.getWatchConfiguration(),
+        sessionId,
+        Instant.now()
+    );
+    
+    emitEvent(configuredEvent);
+}
+
+private void handleFileSystemEvent(final Object event) {
+    try {
+        // Route file system events to domain processing
+        if (event instanceof ClassFileChanged classFileEvent) {
+            final DomainResponseEvent<?> response = accept(classFileEvent);  // → Complete Hot-Swap Flow
+            
+            // Emit response event
+            if (response != null) {
+                emitEvent(response);
+            }
+        }
+        
+    } catch (final Exception e) {
+        // Handle file system event processing errors
+        handleFileSystemEventError(event, e);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: File system monitoring activation creates the primary event source that drives the entire hot-swap system, establishing the reactive foundation for development workflow integration.
+
+** Step 3.2: Capability Validation and System Ready State
+
+#+BEGIN_SRC java
+// From: ByteHotApplication.java (Application Layer)
+private void activateCapabilities() throws BootstrapException {
+    try {
+        // Validate all system capabilities
+        final CapabilityValidationResult validation = validateSystemCapabilities();  // → Step 3.2a
+        
+        if (!validation.allCapabilitiesValid()) {
+            handleCapabilityValidationFailures(validation);  // → Step 3.2b
+        }
+        
+        // Activate hot-swap capabilities
+        activateHotSwapCapabilities();  // → Step 3.2c
+        
+        // Emit system ready event
+        emitSystemReadyEvent();  // → Step 3.2d
+        
+        // Log successful startup
+        logSuccessfulStartup();  // → Step 3.2e
+        
+    } catch (final Exception e) {
+        throw new BootstrapException("Failed to activate capabilities", e);
+    }
+}
+
+private CapabilityValidationResult validateSystemCapabilities() {
+    final CapabilityValidationResult result = new CapabilityValidationResult();
+    
+    // Validate instrumentation capabilities
+    result.addValidation("instrumentation", validateInstrumentationCapabilities());
+    
+    // Validate file system capabilities
+    result.addValidation("filesystem", validateFileSystemCapabilities());
+    
+    // Validate event sourcing capabilities
+    result.addValidation("event_sourcing", validateEventSourcingCapabilities());
+    
+    // Validate serialization capabilities
+    result.addValidation("serialization", validateSerializationCapabilities());
+    
+    // Validate user management capabilities
+    result.addValidation("user_management", validateUserManagementCapabilities());
+    
+    // Validate monitoring capabilities
+    result.addValidation("monitoring", validateMonitoringCapabilities());
+    
+    return result;
+}
+
+private void activateHotSwapCapabilities() throws CapabilityActivationException {
+    // Activate class redefinition capability
+    if (instrumentation.getCapabilities().contains(AgentCapability.CLASS_REDEFINITION)) {
+        enableClassRedefinition();
+    }
+    
+    // Activate class retransformation capability
+    if (instrumentation.getCapabilities().contains(AgentCapability.CLASS_RETRANSFORMATION)) {
+        enableClassRetransformation();
+    }
+    
+    // Activate enhanced hot-swap if supported
+    if (instrumentation.getCapabilities().contains(AgentCapability.ENHANCED_HOT_SWAP)) {
+        enableEnhancedHotSwap();
+    }
+    
+    // Emit capability enabled events
+    for (final AgentCapability capability : instrumentation.getCapabilities()) {
+        final HotSwapCapabilityEnabled capabilityEvent = new HotSwapCapabilityEnabled(
+            capability,
+            config.getWatchPath(),
+            Instant.now()
+        );
+        emitEvent(capabilityEvent);
+    }
+}
+
+private void emitSystemReadyEvent() {
+    final Duration startupDuration = Duration.between(startupTime, Instant.now());
+    
+    final ByteHotAgentAttached readyEvent = new ByteHotAgentAttached(
+        instrumentation.getCapabilities(),
+        config.getWatchPath(),
+        userSession.getUser().getId(),
+        startupDuration,
+        Instant.now()
+    );
+    
+    emitEvent(readyEvent);
+}
+#+END_SRC
+
+**Runtime Behavior**: Capability activation performs final validation that all ByteHot features are operational and emits the system ready event that signals full operational status.
+
+* Phase 4: Startup Performance Analysis and Optimization
+
+The system analyzes its own startup performance and optimizes future initialization cycles.
+
+** Step 4.1: Startup Metrics Collection and Analysis
+
+#+BEGIN_SRC java
+// From: StartupPerformanceAnalyzer.java (Domain Service)
+public class StartupPerformanceAnalyzer {
+    
+    public void analyzeStartupPerformance(final Duration totalStartupTime, 
+                                        final Map<String, Duration> phaseTimings) {
+        // Collect detailed timing metrics
+        final StartupMetrics metrics = collectStartupMetrics(totalStartupTime, phaseTimings);
+        
+        // Analyze performance against benchmarks
+        final PerformanceAnalysis analysis = analyzePerformance(metrics);  // → Step 4.1a
+        
+        // Identify optimization opportunities
+        final List<OptimizationOpportunity> opportunities = identifyOptimizations(analysis);  // → Step 4.1b
+        
+        // Apply automatic optimizations if safe
+        applyAutomaticOptimizations(opportunities);  // → Step 4.1c
+        
+        // Store performance data for trend analysis
+        storePerformanceData(metrics, analysis);  // → Step 4.1d
+    }
+    
+    private PerformanceAnalysis analyzePerformance(final StartupMetrics metrics) {
+        final PerformanceAnalysisBuilder analysis = new PerformanceAnalysisBuilder();
+        
+        // Analyze total startup time
+        if (metrics.getTotalStartupTime().compareTo(ACCEPTABLE_STARTUP_TIME) > 0) {
+            analysis.addIssue(PerformanceIssue.SLOW_STARTUP, metrics.getTotalStartupTime());
+        }
+        
+        // Analyze individual phase timings
+        for (final Map.Entry<String, Duration> phaseEntry : metrics.getPhaseTimings().entrySet()) {
+            final String phase = phaseEntry.getKey();
+            final Duration phaseDuration = phaseEntry.getValue();
+            final Duration expectedDuration = getExpectedPhaseDuration(phase);
+            
+            if (phaseDuration.compareTo(expectedDuration.multipliedBy(2)) > 0) {
+                analysis.addIssue(PerformanceIssue.SLOW_PHASE, phase, phaseDuration);
+            }
+        }
+        
+        // Analyze resource usage during startup
+        analyzeResourceUsage(metrics, analysis);
+        
+        // Analyze dependency initialization order
+        analyzeDependencyOrder(metrics, analysis);
+        
+        return analysis.build();
+    }
+    
+    private List<OptimizationOpportunity> identifyOptimizations(final PerformanceAnalysis analysis) {
+        final List<OptimizationOpportunity> opportunities = new ArrayList<>();
+        
+        // Configuration loading optimizations
+        if (analysis.hasSlowPhase("configuration_loading")) {
+            opportunities.add(new ConfigurationCachingOptimization());
+            opportunities.add(new LazyConfigurationLoadingOptimization());
+        }
+        
+        // Event store initialization optimizations
+        if (analysis.hasSlowPhase("event_sourcing_init")) {
+            opportunities.add(new EventStorePrewarmingOptimization());
+            opportunities.add(new ParallelEventStoreInitOptimization());
+        }
+        
+        // File system monitoring optimizations
+        if (analysis.hasSlowPhase("monitoring_init")) {
+            opportunities.add(new WatchServiceOptimization());
+            opportunities.add(new LazyMonitoringActivationOptimization());
+        }
+        
+        // User discovery optimizations
+        if (analysis.hasSlowPhase("user_discovery")) {
+            opportunities.add(new UserContextCachingOptimization());
+            opportunities.add(new AsynchronousUserDiscoveryOptimization());
+        }
+        
+        return opportunities;
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Startup performance analysis enables ByteHot to continuously improve its initialization time through data-driven optimization.
+
+** Step 4.2: Adaptive Startup Optimization
+
+#+BEGIN_SRC java
+// From: AdaptiveStartupOptimizer.java (Domain Service)
+public class AdaptiveStartupOptimizer {
+    
+    public void optimizeStartupSequence(final List<OptimizationOpportunity> opportunities) {
+        // Group optimizations by safety level
+        final Map<SafetyLevel, List<OptimizationOpportunity>> groupedOptimizations = 
+            opportunities.stream().collect(Collectors.groupingBy(OptimizationOpportunity::getSafetyLevel));
+        
+        // Apply safe optimizations immediately
+        applySafeOptimizations(groupedOptimizations.get(SafetyLevel.SAFE));  // → Step 4.2a
+        
+        // Schedule conservative optimizations for next startup
+        scheduleConservativeOptimizations(groupedOptimizations.get(SafetyLevel.CONSERVATIVE));  // → Step 4.2b
+        
+        // Require explicit approval for experimental optimizations
+        requestApprovalForExperimentalOptimizations(groupedOptimizations.get(SafetyLevel.EXPERIMENTAL));  // → Step 4.2c
+    }
+    
+    private void applySafeOptimizations(final List<OptimizationOpportunity> safeOptimizations) {
+        for (final OptimizationOpportunity optimization : safeOptimizations) {
+            try {
+                final OptimizationResult result = optimization.apply();
+                
+                if (result.isSuccessful()) {
+                    logOptimizationSuccess(optimization, result);
+                    storeOptimizationResult(optimization, result);
+                } else {
+                    logOptimizationFailure(optimization, result);
+                    // Safe optimizations that fail are simply logged, not retried
+                }
+                
+            } catch (final Exception e) {
+                logOptimizationException(optimization, e);
+                // Continue with other optimizations even if one fails
+            }
+        }
+    }
+    
+    private void scheduleConservativeOptimizations(final List<OptimizationOpportunity> conservativeOptimizations) {
+        // Create optimization configuration for next startup
+        final StartupOptimizationConfig optimizationConfig = new StartupOptimizationConfig();
+        
+        for (final OptimizationOpportunity optimization : conservativeOptimizations) {
+            // Add optimization to configuration with validation requirements
+            optimizationConfig.addOptimization(
+                optimization,
+                true,  // require validation
+                createValidationCriteria(optimization)
+            );
+        }
+        
+        // Store configuration for next startup
+        storeOptimizationConfig(optimizationConfig);
+        
+        // Notify user about scheduled optimizations
+        notifyUserAboutScheduledOptimizations(conservativeOptimizations);
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Adaptive startup optimization enables ByteHot to improve its performance over time while maintaining system stability through careful safety analysis.
+
+* Cross-Cutting Startup Patterns
+
+** Configuration Cascade Pattern
+
+Configuration is loaded from multiple sources with clear precedence:
+
+#+BEGIN_SRC java
+// Configuration precedence (highest to lowest):
+// 1. Agent arguments (explicit user specification)
+// 2. System properties (runtime configuration)
+// 3. Environment variables (deployment configuration)
+// 4. Configuration files (persistent configuration)
+// 5. Default values (fallback configuration)
+#+END_SRC
+
+** Graceful Degradation Pattern
+
+Startup continues even when non-critical components fail:
+
+#+BEGIN_SRC java
+// Pattern for graceful degradation during startup
+try {
+    initializeOptionalComponent();
+} catch (Exception e) {
+    logComponentInitializationFailure(e);
+    disableRelatedFeatures();
+    continueWithReducedFunctionality();
+}
+#+END_SRC
+
+** Dependency Validation Pattern
+
+All critical dependencies are validated before activation:
+
+#+BEGIN_SRC java
+// Pattern for dependency validation
+public void validateDependency(Dependency dependency) {
+    if (!dependency.isAvailable()) {
+        throw new DependencyException("Critical dependency unavailable");
+    }
+    
+    if (!dependency.isCompatible()) {
+        throw new DependencyException("Dependency version incompatible");
+    }
+    
+    dependency.validateConnection();
+}
+#+END_SRC
+
+* Startup Completion and System State
+
+** Successful Startup Indicators
+
+A successful ByteHot startup is indicated by:
+- All critical capabilities validated and activated
+- File system monitoring operational
+- Event sourcing infrastructure ready
+- User session established
+- Performance within acceptable parameters
+
+** System Health Monitoring
+
+Post-startup system health is continuously monitored:
+- JVM instrumentation API responsiveness
+- File system event processing latency
+- Event store write/read performance
+- Memory usage and garbage collection impact
+
+** Integration Validation
+
+ByteHot validates its integration with the host application:
+- No interference with application class loading
+- Minimal performance impact on normal operations
+- Proper isolation of ByteHot operations
+- Clean resource management
+
+* Conclusion: Foundation for Intelligent Hot-Swapping
+
+The Agent Startup and Initialization Flow demonstrates how ByteHot transforms a standard JVM into an intelligent, hot-swap-enabled development environment through sophisticated bootstrap procedures. By carefully orchestrating instrumentation access, dependency injection, configuration management, and capability activation, ByteHot creates a robust foundation that supports all other system operations while maintaining performance and reliability.
+
+This flow shows how complex system initialization can be managed through clean architectural principles, comprehensive error handling, and adaptive optimization to create a system that not only starts reliably but improves its performance over time.
+
+** Related Flow Documentation
+
+- [[complete-hot-swap-flow.org][Complete Hot-Swap Flow]]: Core hot-swap operations enabled by startup
+- [[file-change-detection-flow.org][File Change Detection Flow]]: Monitoring activated during startup
+- [[user-management-flow.org][User Management Flow]]: User discovery performed during startup
+
+** Next Steps for Startup Evolution
+
+1. **Predictive Startup Optimization**: Use machine learning to predict optimal startup configurations
+2. **Distributed Startup Coordination**: Support for multi-JVM ByteHot deployments
+3. **Container Integration**: Specialized startup procedures for containerized environments
+4. **IDE Integration**: Direct integration with development environment startup procedures

@@ -1,0 +1,1790 @@
+#+TITLE: Learning Domain-Driven Design and Hexagonal Architecture with ByteHot
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+#+DESCRIPTION: A comprehensive guide to understanding DDD and Hexagonal Architecture through the lens of ByteHot's sophisticated design
+
+* Introduction: Architecture that Scales with Complexity
+
+Welcome to the most comprehensive guide for learning Domain-Driven Design (DDD) and Hexagonal Architecture through a real-world, production-quality codebase. ByteHot, a revolutionary JVM hot-swap agent, serves as our perfect example because it implements these architectural patterns with exceptional clarity and sophistication.
+
+** Why ByteHot is the Perfect Learning Example
+
+ByteHot demonstrates these architectural concepts better than most educational examples because:
+- **Real-world complexity**: Handles actual JVM internals, file system monitoring, and event sourcing
+- **Clear boundaries**: Shows distinct separation between domain, application, and infrastructure
+- **Rich domain model**: Contains meaningful business logic for hot-swap operations
+- **Event-driven architecture**: Demonstrates how events flow through hexagonal boundaries
+- **Multiple adapters**: Shows various infrastructure implementations (filesystem, JSON, CLI)
+
+** What You'll Learn
+
+By the end of this guide, you'll understand:
+1. **Domain-Driven Design fundamentals** through ByteHot's rich domain model
+2. **Hexagonal Architecture principles** via ByteHot's layered structure
+3. **Ports and Adapters pattern** through real infrastructure implementations
+4. **Event-driven architecture** using ByteHot's comprehensive event system
+5. **Clean architecture boundaries** that enable testing and maintainability
+
+* Chapter 1: Domain-Driven Design Foundations
+
+** The Heart of DDD: Understanding the Domain
+
+Domain-Driven Design starts with a deep understanding of the problem domain. In ByteHot's case, the domain is **JVM runtime class modification** - a complex technical domain that requires sophisticated modeling.
+
+*** ByteHot's Core Domain Concepts
+
+Let's explore ByteHot's domain through its key entities and value objects:
+
+#+BEGIN_SRC java
+// Core Domain Entity: The ByteHot aggregate root
+public class ByteHot {
+    // Handles incoming events and orchestrates hot-swap operations
+    public static DomainResponseEvent<ByteHotAttachRequested> accept(ByteHotAttachRequested event);
+    public static DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event);
+}
+#+END_SRC
+
+The ~ByteHot~ class serves as our **Aggregate Root** - the entry point for all domain operations. Notice how it:
+- Accepts domain events as input
+- Returns domain response events as output
+- Contains no infrastructure concerns (no databases, files, or external APIs)
+
+*** Rich Domain Events: The Language of the Domain
+
+ByteHot uses events to express domain concepts in the **Ubiquitous Language**:
+
+#+BEGIN_SRC java
+// Domain events use business terminology
+public class ClassFileChanged extends VersionedDomainEvent {
+    private final Path classFile;
+    private final String className;
+    private final long fileSize;
+    private final Instant detectionTimestamp;
+}
+
+public class BytecodeValidated extends DomainEvent {
+    private final Path classFile;
+    private final String className;
+    private final boolean isValid;
+    private final String validationDetails;
+}
+#+END_SRC
+
+These events demonstrate **DDD's Event Storming** approach:
+- Events are named in past tense (what happened)
+- They contain rich domain information
+- They form the vocabulary of the domain
+- They drive the entire system workflow
+
+*** Domain Services: Pure Business Logic
+
+ByteHot contains sophisticated domain services that encapsulate complex business rules:
+
+#+BEGIN_SRC java
+// BytecodeValidator: A domain service with pure business logic
+public class BytecodeValidator {
+    public BytecodeValidated validate(Path classFile) throws BytecodeValidationException {
+        // Pure domain logic - no infrastructure dependencies
+        // Encapsulates the business rules for safe hot-swapping
+    }
+}
+
+// HotSwapManager: Orchestrates the complex hot-swap process
+public class HotSwapManager {
+    public ClassRedefinitionSucceeded performRedefinition(HotSwapRequested request) {
+        // Domain logic for JVM class redefinition
+        // No knowledge of how JVM is actually accessed
+    }
+}
+#+END_SRC
+
+**Key DDD Insight**: Notice how these domain services contain zero infrastructure concerns. They work with domain concepts (bytecode validation, class redefinition) without knowing about files, databases, or JVM APIs.
+
+*** Value Objects: Immutable Domain Concepts
+
+ByteHot makes extensive use of Value Objects to model domain concepts:
+
+#+BEGIN_SRC java
+// FlowId: A strongly-typed identifier
+public class FlowId {
+    private final String value;
+    // Immutable, value-based equality
+}
+
+// Flow: A complex value object representing hot-swap patterns
+public class Flow {
+    private final FlowId flowId;
+    private final String name;
+    private final List<Class<? extends DomainEvent>> eventSequence;
+    private final double confidence;
+    // Immutable object with rich behavior
+}
+#+END_SRC
+
+**Key DDD Insight**: Value objects provide type safety and encapsulate domain rules. Instead of passing strings around, we use ~FlowId~, making the code more expressive and preventing errors.
+
+** Exercise: Identify Domain Concepts
+
+Look at these ByteHot classes and identify the DDD patterns:
+
+1. [[docs/BytecodeValidator.org][BytecodeValidator]] - What DDD pattern does this represent?
+2. [[docs/Flow.org][Flow]] - Is this an Entity or Value Object? Why?
+3. [[docs/events/ClassFileChanged.org][ClassFileChanged]] - How does this represent domain knowledge?
+
+*Answer Key*:
+1. Domain Service (encapsulates business logic without state)
+2. Value Object (immutable, value-based equality, no identity)
+3. Domain Event (captures something important that happened in the domain)
+
+* Chapter 2: Hexagonal Architecture Fundamentals
+
+** The Problem Hexagonal Architecture Solves
+
+Traditional layered architectures suffer from several problems:
+- Business logic becomes coupled to infrastructure
+- Testing requires complex setup of external dependencies
+- Changes in databases or external APIs break business logic
+- The domain becomes contaminated with technical concerns
+
+ByteHot's Hexagonal Architecture solves these problems through **strict separation of concerns**.
+
+** The Three Layers in ByteHot
+
+*** Layer 1: Domain (The Core)
+
+The domain layer contains pure business logic with **zero dependencies** on external concerns:
+
+#+BEGIN_SRC
+bytehot/src/main/java/org/acmsl/bytehot/domain/
+├── ByteHot.java                 # Aggregate root
+├── BytecodeValidator.java       # Domain service
+├── HotSwapManager.java         # Domain service
+├── Flow.java                   # Value object
+├── events/                     # Domain events
+│   ├── ClassFileChanged.java
+│   ├── BytecodeValidated.java
+│   └── HotSwapRequested.java
+└── ports/                      # Interfaces the domain needs
+    ├── EventStorePort.java
+    ├── InstrumentationPort.java
+    └── FileWatcherPort.java
+#+END_SRC
+
+**Key Insight**: The domain folder contains NO imports from infrastructure libraries. No Jackson, no file I/O, no JVM APIs - just pure business logic.
+
+*** Layer 2: Application (The Orchestrator)
+
+The application layer is thin and stable, responsible for:
+- Routing events to domain aggregates
+- Injecting infrastructure adapters into domain ports
+- Coordinating the overall application flow
+
+#+BEGIN_SRC java
+// ByteHotApplication: The application service
+public class ByteHotApplication {
+    public DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // 1. Route event to domain
+        DomainResponseEvent<ClassFileChanged> response = ByteHot.accept(event);
+        
+        // 2. Emit resulting events to infrastructure
+        emit(response);
+        
+        return response;
+    }
+}
+#+END_SRC
+
+*** Layer 3: Infrastructure (The Adapters)
+
+The infrastructure layer contains all technology-specific implementations:
+
+#+BEGIN_SRC
+bytehot/src/main/java/org/acmsl/bytehot/infrastructure/
+├── cli/                        # Command-line adapters
+│   └── ByteHotCLI.java
+├── eventsourcing/              # Event storage adapters
+│   ├── FilesystemEventStoreAdapter.java
+│   ├── EventSerializationSupport.java
+│   └── JsonClassFileChanged.java
+├── InstrumentationAdapter.java # JVM integration
+├── FileWatcherAdapter.java     # File system integration
+└── EventEmitterAdapter.java   # Event emission
+#+END_SRC
+
+** Ports and Adapters: The Hexagonal Pattern
+
+*** Primary Ports and Adapters
+
+**Primary Ports** are interfaces that allow the outside world to communicate with the domain:
+
+#+BEGIN_SRC java
+// Domain defines what it needs (Port)
+public interface EventStorePort extends Port {
+    void save(VersionedDomainEvent event) throws EventStoreException;
+    List<VersionedDomainEvent> getEventsForAggregate(String type, String id);
+    // ... other methods
+}
+
+// Infrastructure provides implementation (Adapter)
+public class FilesystemEventStoreAdapter implements EventStorePort {
+    public void save(VersionedDomainEvent event) throws EventStoreException {
+        // Filesystem-specific implementation
+        Path eventFile = createEventFile(event);
+        String json = EventSerializationSupport.toJson(event);
+        Files.writeString(eventFile, json);
+    }
+}
+#+END_SRC
+
+*** Secondary Ports and Adapters
+
+**Secondary Ports** are interfaces the domain uses to communicate with the outside world:
+
+#+BEGIN_SRC java
+// Domain defines how it wants to emit events (Port)
+public interface EventEmitterPort extends Port {
+    void emit(DomainResponseEvent<?> event);
+}
+
+// Infrastructure provides different ways to emit (Adapters)
+public class EventEmitterAdapter implements EventEmitterPort {
+    public void emit(DomainResponseEvent<?> event) {
+        // Could emit to console, files, message queues, etc.
+        switch (emissionTarget) {
+            case CONSOLE -> emitToConsole(event);
+            case FILE -> emitToFile(event);
+            case BOTH -> { emitToConsole(event); emitToFile(event); }
+        }
+    }
+}
+#+END_SRC
+
+** The Dependency Inversion Principle in Action
+
+Notice the dependency flow in ByteHot's architecture:
+
+#+BEGIN_SRC
+Infrastructure Layer → Application Layer → Domain Layer
+                   ↑                    ↑
+              (implements)         (depends on)
+                   ↑                    ↑
+                Adapters              Ports
+#+END_SRC
+
+**Key Insight**: The domain defines what it needs (ports), and the infrastructure provides it (adapters). The domain never depends on infrastructure - infrastructure depends on domain interfaces.
+
+** Exercise: Trace an Event Through the Hexagon
+
+Let's trace a ~ClassFileChanged~ event through ByteHot's hexagonal architecture:
+
+1. **Entry Point**: ~FileWatcherAdapter~ detects a file change
+2. **Infrastructure → Application**: Adapter calls ~ByteHotApplication.accept(event)~
+3. **Application → Domain**: Application routes event to ~ByteHot.accept(event)~
+4. **Domain Processing**: ~ByteHot~ orchestrates validation and hot-swap
+5. **Domain → Application**: Returns ~DomainResponseEvent~
+6. **Application → Infrastructure**: Emits events via ~EventEmitterPort~
+
+Find the actual code for each step in the ByteHot codebase. Notice how each layer only knows about the layer inside it, never outside.
+
+* Chapter 3: Ports and Adapters in Practice
+
+** Understanding Ports: Domain's Interface to the World
+
+Ports in ByteHot are interfaces defined in the domain layer that express what the domain needs from the outside world. They use domain language, not technical language.
+
+*** EventStorePort: Persistence Abstraction
+
+#+BEGIN_SRC java
+// Domain defines its persistence needs in domain terms
+public interface EventStorePort extends Port {
+    // Domain concepts: events, aggregates, versions
+    void save(VersionedDomainEvent event) throws EventStoreException;
+    List<VersionedDomainEvent> getEventsForAggregate(String aggregateType, String aggregateId);
+    long getCurrentVersion(String aggregateType, String aggregateId);
+    boolean isHealthy();
+}
+#+END_SRC
+
+**Key DDD Insight**: Notice how the port uses domain language:
+- ~VersionedDomainEvent~ (not "database records")
+- ~aggregateType~ and ~aggregateId~ (not "table" and "primary key")
+- ~isHealthy()~ (domain concept, not "database connection status")
+
+*** FlowDetectionPort: Intelligence Abstraction
+
+#+BEGIN_SRC java
+// Domain defines how it wants to detect patterns
+public interface FlowDetectionPort extends Port {
+    CompletableFuture<List<Flow>> detectFlows(List<VersionedDomainEvent> events);
+    CompletableFuture<FlowStorageResult> storeFlow(Flow flow);
+    CompletableFuture<List<Flow>> getFlowsByConfidence(double minimumConfidence);
+}
+#+END_SRC
+
+This port abstracts the concept of "flow detection" - the domain doesn't care if flows are detected using:
+- Machine learning algorithms
+- Rule-based systems
+- Filesystem storage
+- Database queries
+- Cloud AI services
+
+** Understanding Adapters: Infrastructure's Implementation
+
+Adapters in ByteHot implement the ports using specific technologies, translating between domain concepts and technical implementations.
+
+*** FilesystemEventStoreAdapter: File-Based Persistence
+
+#+BEGIN_SRC java
+public class FilesystemEventStoreAdapter implements EventStorePort {
+    // Translates domain concepts to filesystem operations
+    public void save(VersionedDomainEvent event) {
+        // Domain concept → Technical implementation
+        Path aggregateDir = getAggregateDirectoryPath(
+            event.getAggregateType(),  // Domain concept
+            event.getAggregateId()     // Domain concept
+        );
+        
+        // Technical details: JSON serialization, file I/O
+        String json = EventSerializationSupport.toJson(event);
+        Files.writeString(eventFile, json);
+    }
+}
+#+END_SRC
+
+*** InstrumentationAdapter: JVM Integration
+
+#+BEGIN_SRC java
+public class InstrumentationAdapter implements InstrumentationPort {
+    // Translates domain hot-swap concepts to JVM API calls
+    public void redefineClasses(Map<String, byte[]> classDefinitions) {
+        // Domain concept → JVM technical implementation
+        ClassDefinition[] definitions = classDefinitions.entrySet()
+            .stream()
+            .map(entry -> new ClassDefinition(
+                findLoadedClass(entry.getKey()),  // Domain: class name
+                entry.getValue()                   // Domain: bytecode
+            ))
+            .toArray(ClassDefinition[]::new);
+            
+        // Technical JVM API call
+        instrumentation.redefineClasses(definitions);
+    }
+}
+#+END_SRC
+
+** Multiple Adapters for the Same Port
+
+One of the most powerful aspects of the Ports and Adapters pattern is that you can have multiple implementations of the same port. ByteHot demonstrates this beautifully:
+
+*** EventEmitterPort: Multiple Output Strategies
+
+#+BEGIN_SRC java
+// Single port interface
+public interface EventEmitterPort extends Port {
+    void emit(DomainResponseEvent<?> event);
+}
+
+// Multiple adapter implementations
+public class EventEmitterAdapter implements EventEmitterPort {
+    public void emit(DomainResponseEvent<?> event) {
+        switch (emissionTarget) {
+            case CONSOLE -> emitToConsole(event);      // Console adapter
+            case FILE -> emitToFile(event);            // File adapter  
+            case BOTH -> { /* both implementations */ } // Composite adapter
+        }
+    }
+}
+
+// Future adapters could include:
+// - DatabaseEventEmitterAdapter
+// - MessageQueueEventEmitterAdapter  
+// - CloudEventEmitterAdapter
+// - ElasticsearchEventEmitterAdapter
+#+END_SRC
+
+** Exercise: Design a New Adapter
+
+Imagine you want to store events in a database instead of the filesystem. Design a ~DatabaseEventStoreAdapter~ that implements ~EventStorePort~:
+
+1. What database technology would you choose and why?
+2. How would you map domain concepts (aggregates, events) to database concepts (tables, records)?
+3. How would you handle the asynchronous nature of some port methods?
+4. What would your database schema look like?
+
+*Hint*: Look at [[docs/FilesystemEventStoreAdapter.org][FilesystemEventStoreAdapter]] for inspiration, but remember - your adapter should solve the same domain needs using different technology.
+
+* Chapter 4: Event-Driven Architecture with DDD
+
+** Events as First-Class Domain Concepts
+
+In ByteHot, events are not just technical notifications - they're first-class domain concepts that represent important business occurrences in the hot-swap domain.
+
+*** The Event Hierarchy
+
+ByteHot uses a sophisticated event hierarchy that mirrors domain concepts:
+
+#+BEGIN_SRC java
+// Base domain event
+public abstract class DomainEvent {
+    private final String eventId;
+    private final Instant timestamp;
+    private final String aggregateType;
+    private final String aggregateId;
+}
+
+// Versioned events for event sourcing
+public abstract class VersionedDomainEvent extends DomainEvent {
+    private final long aggregateVersion;
+    private final String previousEventId;
+    private final int schemaVersion;
+}
+
+// Specific domain events
+public class ClassFileChanged extends VersionedDomainEvent {
+    // Rich domain information about what changed
+}
+
+public class BytecodeValidated extends DomainEvent {
+    // Information about validation results
+}
+#+END_SRC
+
+*** Event Sourcing: Events as the Source of Truth
+
+ByteHot implements Event Sourcing, where events are the primary source of truth:
+
+#+BEGIN_SRC java
+// Events represent state changes
+ClassFileChanged fileChanged = ClassFileChanged.forNewSession(
+    path, className, fileSize, timestamp
+);
+
+BytecodeValidated validation = new BytecodeValidated(
+    path, className, true, "Compatible changes detected", timestamp
+);
+
+HotSwapRequested hotSwap = new HotSwapRequested(
+    path, className, oldBytecode, newBytecode, reason, timestamp, fileChanged
+);
+#+END_SRC
+
+**Key Insight**: Instead of storing current state, ByteHot stores the sequence of events that led to that state. This provides:
+- Complete audit trail
+- Ability to replay events
+- Temporal queries ("what was the state at time X?")
+- Event-driven integrations
+
+** Event Flow Through the Hexagon
+
+Let's trace how events flow through ByteHot's architecture:
+
+*** 1. Event Generation (Infrastructure → Domain)
+
+#+BEGIN_SRC java
+// Infrastructure adapter detects file change
+public class FileWatcherAdapter implements FileWatcherPort {
+    private void onFileSystemEvent(WatchEvent<?> event) {
+        // Convert technical file system event to domain event
+        ClassFileChanged domainEvent = ClassFileChanged.forNewSession(
+            classFile, className, fileSize, Instant.now()
+        );
+        
+        // Send to application layer
+        application.accept(domainEvent);
+    }
+}
+#+END_SRC
+
+*** 2. Event Routing (Application Layer)
+
+#+BEGIN_SRC java
+// Application routes events to appropriate aggregates
+public class ByteHotApplication {
+    public DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // Route to domain aggregate
+        DomainResponseEvent<ClassFileChanged> response = ByteHot.accept(event);
+        
+        // Emit any resulting events
+        if (response != null) {
+            eventEmitter.emit(response);
+        }
+        
+        return response;
+    }
+}
+#+END_SRC
+
+*** 3. Event Processing (Domain Layer)
+
+#+BEGIN_SRC java
+// Domain aggregate processes events and generates new events
+public class ByteHot {
+    public static DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        try {
+            // Domain logic: validate bytecode
+            BytecodeValidator validator = new BytecodeValidator();
+            BytecodeValidated validation = validator.validate(event.getClassFile());
+            
+            // Domain logic: request hot-swap if valid
+            HotSwapManager manager = new HotSwapManager();
+            HotSwapRequested request = manager.requestHotSwap(
+                event.getClassFile(), validation, getCurrentBytecode()
+            );
+            
+            // Return success event
+            return ClassFileProcessed.success(event, validation, request);
+            
+        } catch (Exception e) {
+            // Return failure event
+            return ClassFileProcessed.failure(event, e.getMessage());
+        }
+    }
+}
+#+END_SRC
+
+*** 4. Event Persistence (Domain → Infrastructure)
+
+#+BEGIN_SRC java
+// Infrastructure persists events for event sourcing
+public class FilesystemEventStoreAdapter implements EventStorePort {
+    public void save(VersionedDomainEvent event) {
+        // Convert domain event to JSON representation
+        JsonClassFileChanged dto = JsonClassFileChanged.fromDomain(event);
+        String json = EventSerializationSupport.toJson(dto);
+        
+        // Store in filesystem with structured naming
+        Path eventFile = createEventFile(event);
+        Files.writeString(eventFile, json);
+    }
+}
+#+END_SRC
+
+** Event Correlation and Causality
+
+ByteHot maintains event correlation to track causality chains:
+
+#+BEGIN_SRC java
+// Events maintain causal relationships
+public class HotSwapRequested extends VersionedDomainEvent {
+    private final ClassFileChanged triggeringEvent; // What caused this?
+    private final String requestReason;             // Why was this requested?
+    
+    // Later events can reference this one
+    public String getEventId() { return eventId; }
+}
+
+public class ClassRedefinitionSucceeded extends DomainEvent {
+    private final String hotSwapRequestId; // References the request that caused this
+    private final Duration executionTime;  // How long did it take?
+    private final int affectedInstances;   // What was the impact?
+}
+#+END_SRC
+
+This creates an event graph showing the complete flow of causality through the system.
+
+** Exercise: Event Storm ByteHot's Domain
+
+Event Storming is a DDD technique for discovering domain events. Let's apply it to ByteHot:
+
+1. **Start with the end**: What's the ultimate goal? (Successful hot-swap)
+2. **Work backwards**: What events must happen before that?
+3. **Identify the actors**: Who/what triggers these events?
+4. **Find the policies**: What rules determine event flow?
+
+Try to identify all events in a complete hot-swap flow. Compare your list with the events you can find in ~bytehot/src/main/java/org/acmsl/bytehot/domain/events/~.
+
+* Chapter 5: Testing in Hexagonal Architecture
+
+** The Testing Advantage of Hexagonal Architecture
+
+ByteHot's hexagonal architecture provides exceptional testability because:
+- Domain logic has no external dependencies
+- Ports can be easily mocked
+- Each layer can be tested in isolation
+- Integration tests can use test-specific adapters
+
+*** Testing the Domain Layer
+
+Domain testing in ByteHot is pure and fast:
+
+#+BEGIN_SRC java
+// Testing pure domain logic - no mocks needed!
+@Test
+public void testBytecodeValidationForCompatibleChanges() {
+    // Given: A mock bytecode file with compatible changes
+    Path classFile = createMockBytecodeFile("COMPATIBLE_BYTECODE:TestClass:v1.0:method_body_only");
+    
+    // When: Validating the bytecode
+    BytecodeValidator validator = new BytecodeValidator();
+    BytecodeValidated result = validator.validate(classFile);
+    
+    // Then: Validation should succeed
+    assertThat(result.isValid()).isTrue();
+    assertThat(result.getClassName()).isEqualTo("TestClass");
+    assertThat(result.getValidationDetails()).contains("method body changes only");
+}
+
+@Test
+public void testHotSwapManagerCreatesRequestFromValidation() {
+    // Pure domain logic testing - no infrastructure involved
+    HotSwapManager manager = new HotSwapManager();
+    BytecodeValidated validation = createValidBytecodeValidation();
+    byte[] originalBytecode = "original".getBytes();
+    
+    HotSwapRequested request = manager.requestHotSwap(
+        classFile, validation, originalBytecode
+    );
+    
+    assertThat(request.getClassName()).isEqualTo("TestClass");
+    assertThat(request.getRequestReason()).contains("validation passed");
+}
+#+END_SRC
+
+**Key Testing Insight**: Notice how domain tests require no setup of databases, file systems, or external services. They test pure business logic.
+
+*** Testing with Port Mocks
+
+When testing application logic that uses ports, ByteHot uses simple mocks:
+
+#+BEGIN_SRC java
+@Test
+public void testApplicationHandlesClassFileChangedEvent() {
+    // Given: Mock adapters for testing
+    EventStorePort mockEventStore = mock(EventStorePort.class);
+    EventEmitterPort mockEmitter = mock(EventEmitterPort.class);
+    
+    // Configure the application with test doubles
+    ByteHotApplication app = new ByteHotApplication(mockEventStore, mockEmitter);
+    
+    // When: Processing a domain event
+    ClassFileChanged event = ClassFileChanged.forNewSession(
+        Paths.get("Test.class"), "Test", 1024, Instant.now()
+    );
+    DomainResponseEvent<?> response = app.accept(event);
+    
+    // Then: Verify interactions
+    verify(mockEventStore).save(any(VersionedDomainEvent.class));
+    verify(mockEmitter).emit(response);
+}
+#+END_SRC
+
+*** Testing Infrastructure Adapters
+
+Infrastructure adapters can be tested with real or fake external systems:
+
+#+BEGIN_SRC java
+@Test
+public void testFilesystemEventStoreAdapter() throws IOException {
+    // Given: A temporary directory for testing
+    Path tempDir = Files.createTempDirectory("eventstore-test");
+    FilesystemEventStoreAdapter adapter = new FilesystemEventStoreAdapter(tempDir);
+    
+    // When: Saving a domain event
+    ClassFileChanged event = ClassFileChanged.forNewSession(
+        Paths.get("Test.class"), "Test", 1024, Instant.now()
+    );
+    adapter.save(event);
+    
+    // Then: Event should be persisted as JSON file
+    List<Path> eventFiles = Files.list(tempDir)
+        .filter(path -> path.toString().endsWith(".json"))
+        .collect(toList());
+    
+    assertThat(eventFiles).hasSize(1);
+    
+    // And: Event should be retrievable
+    List<VersionedDomainEvent> retrievedEvents = adapter.getEventsForAggregate(
+        event.getAggregateType(), event.getAggregateId()
+    );
+    assertThat(retrievedEvents).hasSize(1);
+    assertThat(retrievedEvents.get(0).getEventType()).isEqualTo("ClassFileChanged");
+}
+#+END_SRC
+
+** Test Doubles Strategy
+
+ByteHot uses different types of test doubles depending on the testing scenario:
+
+*** Fake Adapters for Integration Testing
+
+#+BEGIN_SRC java
+// In-memory event store for fast integration tests
+public class InMemoryEventStoreAdapter implements EventStorePort {
+    private final Map<String, List<VersionedDomainEvent>> events = new HashMap<>();
+    
+    public void save(VersionedDomainEvent event) {
+        String key = event.getAggregateType() + "/" + event.getAggregateId();
+        events.computeIfAbsent(key, k -> new ArrayList<>()).add(event);
+    }
+    
+    public List<VersionedDomainEvent> getEventsForAggregate(String type, String id) {
+        return events.getOrDefault(type + "/" + id, Collections.emptyList());
+    }
+}
+#+END_SRC
+
+*** Mock Adapters for Behavior Verification
+
+#+BEGIN_SRC java
+// Mock adapters to verify domain-infrastructure interactions
+@Test
+public void testEventEmissionStrategy() {
+    EventEmitterPort mockEmitter = mock(EventEmitterPort.class);
+    
+    // Test that the correct events are emitted
+    ByteHotApplication app = new ByteHotApplication(eventStore, mockEmitter);
+    ClassFileChanged event = createTestEvent();
+    
+    app.accept(event);
+    
+    // Verify the specific events that should be emitted
+    ArgumentCaptor<DomainResponseEvent> eventCaptor = 
+        ArgumentCaptor.forClass(DomainResponseEvent.class);
+    verify(mockEmitter).emit(eventCaptor.capture());
+    
+    DomainResponseEvent capturedEvent = eventCaptor.getValue();
+    assertThat(capturedEvent).isInstanceOf(ClassFileProcessed.class);
+}
+#+END_SRC
+
+** Exercise: Design a Test Strategy
+
+Design a comprehensive test strategy for a new feature: "Automatic Rollback on Failed Hot-Swap". Consider:
+
+1. **Domain Tests**: What domain logic needs testing?
+2. **Integration Tests**: How would you test the rollback flow end-to-end?
+3. **Infrastructure Tests**: What adapters would need testing?
+4. **Test Doubles**: Which parts would you mock vs. use real implementations?
+
+Look at ByteHot's existing test structure in ~bytehot/src/test/java/~ for inspiration.
+
+* Chapter 6: Advanced DDD Patterns in ByteHot
+
+** Aggregates and Consistency Boundaries
+
+ByteHot demonstrates sophisticated aggregate design that maintains consistency while enabling scalability.
+
+*** The ByteHot Aggregate
+
+#+BEGIN_SRC java
+public class ByteHot {
+    // Aggregate root - entry point for all domain operations
+    public static DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // Maintains consistency within the aggregate boundary
+        // Single transaction boundary for hot-swap operations
+    }
+    
+    // Each accept method represents a consistent operation
+    public static DomainResponseEvent<BytecodeValidated> accept(BytecodeValidated event) {
+        // Another consistent operation boundary
+    }
+}
+#+END_SRC
+
+**Key DDD Insight**: Each ~accept~ method represents a **consistency boundary**. All operations within that method must succeed or fail together.
+
+*** Flow Aggregate for Pattern Intelligence
+
+#+BEGIN_SRC java
+public class Flow {
+    private final FlowId flowId;           // Identity
+    private final String name;
+    private final List<Class<? extends DomainEvent>> eventSequence;
+    private final double confidence;
+    private final Optional<FlowCondition> conditions;
+    
+    // Aggregate behavior - not just data
+    public boolean matchesByName(List<String> eventTypeNames) {
+        // Business logic for pattern matching
+    }
+    
+    public boolean isValid() {
+        // Business invariants
+        return confidence >= 0.0 && confidence <= 1.0
+            && eventSequence != null && !eventSequence.isEmpty();
+    }
+}
+#+END_SRC
+
+This aggregate encapsulates the business rules for flow pattern recognition - core domain knowledge.
+
+** Specifications Pattern for Complex Business Rules
+
+ByteHot uses the Specification pattern for complex domain rules:
+
+#+BEGIN_SRC java
+// Specification for flow matching criteria
+public class FlowSearchCriteria {
+    private final Optional<String> namePattern;
+    private final Optional<Double> minimumConfidence;
+    private final Optional<Integer> minimumEventCount;
+    
+    public boolean matches(Flow flow) {
+        return namePattern.map(pattern -> flow.getName().matches(pattern)).orElse(true)
+            && minimumConfidence.map(conf -> flow.getConfidence() >= conf).orElse(true)
+            && minimumEventCount.map(count -> flow.getEventSequence().size() >= count).orElse(true);
+    }
+}
+#+END_SRC
+
+This allows complex queries like "find all flows with confidence > 0.8 and containing more than 3 events".
+
+** Repository Pattern for Aggregate Persistence
+
+ByteHot's event store acts as a sophisticated repository:
+
+#+BEGIN_SRC java
+// Repository interface in domain terms
+public interface EventStorePort extends Port {
+    // Aggregate-focused operations
+    void save(VersionedDomainEvent event) throws EventStoreException;
+    List<VersionedDomainEvent> getEventsForAggregate(String aggregateType, String aggregateId);
+    
+    // Query capabilities
+    List<VersionedDomainEvent> getEventsByType(String eventType);
+    List<VersionedDomainEvent> getEventsBetween(Instant startTime, Instant endTime);
+    
+    // Aggregate metadata
+    boolean aggregateExists(String aggregateType, String aggregateId);
+    long getCurrentVersion(String aggregateType, String aggregateId);
+}
+#+END_SRC
+
+**Key DDD Insight**: The repository speaks in aggregate terms, not database terms. It saves and retrieves aggregates, not records.
+
+** Domain Events for Decoupling
+
+ByteHot uses domain events extensively to decouple different parts of the system:
+
+#+BEGIN_SRC java
+// Events enable loose coupling between domain concepts
+ClassFileChanged → BytecodeValidated → HotSwapRequested → ClassRedefinitionSucceeded
+
+// Each step can be handled independently
+// New features can subscribe to any event in the chain
+// System can evolve without breaking existing flows
+#+END_SRC
+
+** Exercise: Identify Aggregate Boundaries
+
+Look at these ByteHot concepts and determine appropriate aggregate boundaries:
+
+1. **User Management**: User, UserSession, UserPreferences
+2. **Flow Intelligence**: Flow, FlowStatistics, FlowSearchCriteria  
+3. **Error Recovery**: ErrorResult, RecoveryAction, RollbackSnapshot
+
+For each group:
+- Which entity should be the aggregate root?
+- What operations need to be transactionally consistent?
+- How would you handle relationships between aggregates?
+
+*Hint*: Aggregates should be designed around business transactions, not data relationships.
+
+* Chapter 7: Event Sourcing and CQRS Patterns
+
+** Event Sourcing: Events as the Source of Truth
+
+ByteHot implements Event Sourcing where events are the primary storage mechanism, not current state.
+
+*** Event Store as the Single Source of Truth
+
+#+BEGIN_SRC java
+// Instead of storing current state...
+public class TraditionalClassState {
+    private String className;
+    private byte[] currentBytecode;
+    private int hotSwapCount;
+    private Instant lastModified;
+}
+
+// ByteHot stores the events that led to that state
+public class EventSourcedClassHistory {
+    // Events tell the complete story
+    ClassFileChanged fileChanged = ...;
+    BytecodeValidated validated = ...;
+    HotSwapRequested requested = ...;
+    ClassRedefinitionSucceeded succeeded = ...;
+    
+    // Current state is derived from events
+    public ClassState getCurrentState() {
+        return events.stream()
+            .reduce(new ClassState(), this::applyEvent);
+    }
+}
+#+END_SRC
+
+*** Event Stream Structure
+
+ByteHot organizes events by aggregate:
+
+#+BEGIN_SRC
+eventstore/
+├── ByteHot/
+│   ├── session-123/
+│   │   ├── 20250620103000123001-ClassFileChanged.json
+│   │   ├── 20250620103001456002-BytecodeValidated.json
+│   │   ├── 20250620103002789003-HotSwapRequested.json
+│   │   └── 20250620103003012004-ClassRedefinitionSucceeded.json
+│   └── session-124/
+│       └── 20250620104000123001-ClassFileChanged.json
+└── Flow/
+    ├── flow-uuid-1/
+    │   └── 20250620105000123001-FlowDiscovered.json
+    └── flow-uuid-2/
+        └── 20250620105001456002-FlowStored.json
+#+END_SRC
+
+Each aggregate instance has its own event stream, providing complete auditability.
+
+*** Event Versioning and Schema Evolution
+
+ByteHot handles event schema evolution through versioning:
+
+#+BEGIN_SRC java
+public abstract class VersionedDomainEvent extends DomainEvent {
+    private final int schemaVersion;  // For handling schema evolution
+    private final String eventType;   // For event type identification
+    
+    // Events can evolve over time while maintaining compatibility
+}
+
+// Event serialization supports multiple versions
+public class EventSerializationSupport {
+    public static VersionedDomainEvent fromJson(String json, String eventType) {
+        // Can handle multiple versions of the same event type
+        Class<? extends VersionedDomainEvent> eventClass = resolveEventClass(eventType);
+        
+        // Future: version-specific deserializers
+        // v1 events can be upgraded to v2 during deserialization
+    }
+}
+#+END_SRC
+
+** CQRS: Command Query Responsibility Segregation
+
+While ByteHot's current implementation is simple, it demonstrates CQRS principles:
+
+*** Command Side (Write Model)
+
+#+BEGIN_SRC java
+// Commands modify state through domain aggregates
+public class ByteHotApplication {
+    // Command: Process a file change
+    public DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // Modify state through domain logic
+        return ByteHot.accept(event);
+    }
+    
+    // Command: Store a discovered flow
+    public CompletableFuture<FlowStorageResult> storeFlow(Flow flow) {
+        // Modify flow knowledge base
+        return flowDetectionPort.storeFlow(flow);
+    }
+}
+#+END_SRC
+
+*** Query Side (Read Model)
+
+#+BEGIN_SRC java
+// Queries read optimized views of data
+public class EventStorePort {
+    // Query: Get event history for analysis
+    List<VersionedDomainEvent> getEventsBetween(Instant start, Instant end);
+    
+    // Query: Get statistics for monitoring
+    FlowStatistics getFlowStatistics();
+    
+    // Query: Search flows by criteria
+    List<Flow> searchFlows(FlowSearchCriteria criteria);
+}
+#+END_SRC
+
+*** Projection Building (Future Enhancement)
+
+ByteHot could build read projections from events:
+
+#+BEGIN_SRC java
+// Example read projection for hot-swap statistics
+public class HotSwapStatisticsProjection {
+    private int totalHotSwaps;
+    private int successfulHotSwaps;
+    private Map<String, Integer> hotSwapsByClass;
+    private Duration averageHotSwapTime;
+    
+    // Built by processing event stream
+    public void handle(ClassRedefinitionSucceeded event) {
+        totalHotSwaps++;
+        successfulHotSwaps++;
+        hotSwapsByClass.merge(event.getClassName(), 1, Integer::sum);
+        updateAverageTime(event.getExecutionTime());
+    }
+    
+    public void handle(ClassRedefinitionFailed event) {
+        totalHotSwaps++;
+        // No increment to successfulHotSwaps
+    }
+}
+#+END_SRC
+
+** Temporal Queries and Time Travel
+
+Event Sourcing enables powerful temporal queries:
+
+#+BEGIN_SRC java
+// What was the state of class "UserService" at 2:00 PM yesterday?
+List<VersionedDomainEvent> events = eventStore.getEventsForAggregate(
+    "ByteHot", "user-service-session"
+);
+
+ClassState stateAtTime = events.stream()
+    .filter(event -> event.getTimestamp().isBefore(targetTime))
+    .reduce(new ClassState(), this::applyEvent);
+
+// How many hot-swaps happened last week?
+List<VersionedDomainEvent> lastWeekEvents = eventStore.getEventsBetween(
+    Instant.now().minus(7, ChronoUnit.DAYS),
+    Instant.now()
+);
+
+long hotSwapCount = lastWeekEvents.stream()
+    .filter(event -> event instanceof HotSwapRequested)
+    .count();
+#+END_SRC
+
+** Exercise: Design Event Sourcing for User Sessions
+
+Design an event sourcing approach for user sessions in ByteHot:
+
+1. **Events**: What events represent user session lifecycle?
+2. **Aggregates**: How would you organize user session aggregates?
+3. **Projections**: What read models would be useful?
+4. **Queries**: What temporal queries would be valuable?
+
+Consider events like: UserSessionStarted, HotSwapPerformed, ErrorOccurred, SessionEnded.
+
+* Chapter 8: Bounded Contexts and Strategic Design
+
+** Identifying Bounded Contexts in ByteHot
+
+ByteHot demonstrates how a seemingly simple application actually contains multiple bounded contexts:
+
+*** Context 1: Hot-Swap Operations
+
+#+BEGIN_SRC java
+// Core hot-swap domain
+org.acmsl.bytehot.domain.ByteHot
+org.acmsl.bytehot.domain.BytecodeValidator  
+org.acmsl.bytehot.domain.HotSwapManager
+org.acmsl.bytehot.domain.events.ClassFileChanged
+org.acmsl.bytehot.domain.events.BytecodeValidated
+org.acmsl.bytehot.domain.events.HotSwapRequested
+
+// Ubiquitous Language: bytecode, validation, hot-swap, redefinition
+#+END_SRC
+
+This context is about the core business of safely modifying running JVM classes.
+
+*** Context 2: Flow Intelligence
+
+#+BEGIN_SRC java
+// Pattern recognition and learning domain  
+org.acmsl.bytehot.domain.Flow
+org.acmsl.bytehot.domain.FlowDetector
+org.acmsl.bytehot.domain.FlowStatistics
+org.acmsl.bytehot.infrastructure.FlowDetectionPort
+org.acmsl.bytehot.infrastructure.FilesystemFlowStoreAdapter
+
+// Ubiquitous Language: flow, pattern, confidence, detection, intelligence
+#+END_SRC
+
+This context is about learning from hot-swap patterns to improve future operations.
+
+*** Context 3: User Management
+
+#+BEGIN_SRC java
+// User and session management domain
+org.acmsl.bytehot.domain.User
+org.acmsl.bytehot.domain.UserSession  
+org.acmsl.bytehot.domain.UserProfile
+org.acmsl.bytehot.domain.events.UserSessionStarted
+
+// Ubiquitous Language: user, session, profile, authentication
+#+END_SRC
+
+This context manages user interactions and personalization.
+
+*** Context 4: Error Recovery
+
+#+BEGIN_SRC java
+// Error handling and recovery domain
+org.acmsl.bytehot.domain.ErrorRecoveryManager
+org.acmsl.bytehot.domain.RollbackManager
+org.acmsl.bytehot.domain.RecoveryStrategy
+
+// Ubiquitous Language: error, recovery, rollback, strategy, resilience
+#+END_SRC
+
+This context handles system resilience and error recovery.
+
+** Context Mapping Between Bounded Contexts
+
+ByteHot demonstrates several context mapping patterns:
+
+*** Shared Kernel: Common Event Infrastructure
+
+#+BEGIN_SRC java
+// Shared by all contexts
+org.acmsl.commons.patterns.DomainEvent
+org.acmsl.commons.patterns.VersionedDomainEvent
+org.acmsl.bytehot.domain.EventMetadata
+
+// Common infrastructure for all contexts
+org.acmsl.bytehot.infrastructure.eventsourcing.EventSerializationSupport
+#+END_SRC
+
+*** Customer-Supplier: Hot-Swap → Flow Intelligence
+
+#+BEGIN_SRC java
+// Hot-swap context generates events...
+ClassFileChanged fileChanged = ...;
+BytecodeValidated validated = ...;
+HotSwapRequested requested = ...;
+
+// ...that Flow Intelligence context consumes
+public class FlowDetector {
+    public List<Flow> detectFlows(List<VersionedDomainEvent> events) {
+        // Analyzes hot-swap events to detect patterns
+        // Hot-swap context is the "supplier"
+        // Flow context is the "customer"
+    }
+}
+#+END_SRC
+
+*** Published Language: Domain Events
+
+#+BEGIN_SRC java
+// Events serve as the published language between contexts
+public interface DomainEvent {
+    String getEventId();
+    String getAggregateType();
+    String getAggregateId();
+    Instant getTimestamp();
+}
+
+// All contexts can publish and consume events
+// Events provide a stable contract between contexts
+#+END_SRC
+
+** Anti-Corruption Layer Pattern
+
+ByteHot uses anti-corruption layers to protect domain contexts from external complexity:
+
+#+BEGIN_SRC java
+// JVM instrumentation is complex external system
+public class InstrumentationAdapter implements InstrumentationPort {
+    // Anti-corruption layer translating between:
+    // - Domain concepts (class names, bytecode)  
+    // - JVM API complexity (ClassDefinition, Instrumentation)
+    
+    public void redefineClasses(Map<String, byte[]> classes) {
+        // Protects domain from JVM API complexity
+        ClassDefinition[] definitions = classes.entrySet()
+            .stream()
+            .map(this::createClassDefinition)  // Translation layer
+            .toArray(ClassDefinition[]::new);
+            
+        instrumentation.redefineClasses(definitions);
+    }
+}
+#+END_SRC
+
+*** File System Anti-Corruption Layer
+
+#+BEGIN_SRC java
+public class FileWatcherAdapter implements FileWatcherPort {
+    // Protects domain from file system complexity
+    public void watchClassFiles(Consumer<Object> onEvent) {
+        // Complex file system API...
+        WatchService watchService = FileSystems.getDefault().newWatchService();
+        
+        // ...translated to simple domain events
+        ClassFileChanged domainEvent = ClassFileChanged.forNewSession(
+            path, className, fileSize, timestamp
+        );
+        onEvent.accept(domainEvent);
+    }
+}
+#+END_SRC
+
+** Exercise: Context Mapping Analysis
+
+Analyze these potential new features for ByteHot and determine:
+
+1. **Performance Monitoring**: Track hot-swap performance metrics
+   - Which bounded context would this belong to?
+   - How would it relate to existing contexts?
+   - What context mapping patterns would apply?
+
+2. **Integration with IDEs**: Direct IDE plugin for hot-swap
+   - What new bounded context might this create?
+   - How would it integrate with existing contexts?
+   - What anti-corruption layers would be needed?
+
+3. **Cloud Deployment**: Multi-instance hot-swap coordination
+   - How would this affect bounded context boundaries?
+   - What new contexts might emerge?
+   - How would context mapping change?
+
+* Chapter 9: Clean Architecture and Dependency Management
+
+** The Dependency Rule in ByteHot
+
+ByteHot strictly follows the dependency rule: dependencies point inward toward the domain.
+
+*** Layer Dependencies
+
+#+BEGIN_SRC java
+// ❌ WRONG: Domain depending on infrastructure
+public class ByteHot {
+    private FilesystemEventStoreAdapter eventStore; // BAD!
+    private JacksonObjectMapper jsonMapper;         // BAD!
+}
+
+// ✅ CORRECT: Domain depending only on abstractions
+public class ByteHot {
+    // Domain depends on ports (abstractions), not adapters (concretions)
+    public static DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // Uses Ports.resolve() to get infrastructure implementations
+        EventStorePort eventStore = Ports.resolve(EventStorePort.class);
+        EventEmitterPort emitter = Ports.resolve(EventEmitterPort.class);
+    }
+}
+#+END_SRC
+
+*** Package Dependencies
+
+ByteHot's package structure enforces the dependency rule:
+
+#+BEGIN_SRC
+// Domain layer - no dependencies on other layers
+org.acmsl.bytehot.domain
+├── ByteHot.java                    // ✓ Pure domain logic
+├── BytecodeValidator.java          // ✓ No infrastructure imports
+└── events/
+    └── ClassFileChanged.java       // ✓ Pure domain event
+
+// Application layer - depends only on domain
+org.acmsl.bytehot.application
+└── ByteHotApplication.java         // ✓ Imports only domain classes
+
+// Infrastructure layer - depends on domain and application
+org.acmsl.bytehot.infrastructure
+├── EventEmitterAdapter.java        // ✓ Implements domain ports
+├── FileWatcherAdapter.java         // ✓ Uses domain events
+└── eventsourcing/
+    └── FilesystemEventStoreAdapter.java  // ✓ Implements EventStorePort
+#+END_SRC
+
+** Ports Class: The Dependency Injection Solution
+
+ByteHot uses a sophisticated dependency injection system through the ~Ports~ class:
+
+#+BEGIN_SRC java
+public class Ports {
+    private static final Map<Class<? extends Port>, Port> portInstances = new HashMap<>();
+    
+    // Domain code uses this to get infrastructure implementations
+    public static <T extends Port> T resolve(Class<T> portClass) {
+        @SuppressWarnings("unchecked")
+        T port = (T) portInstances.get(portClass);
+        if (port == null) {
+            throw new IllegalStateException("Port not registered: " + portClass.getName());
+        }
+        return port;
+    }
+    
+    // Application layer configures the mappings
+    public static <T extends Port> void register(Class<T> portClass, T implementation) {
+        portInstances.put(portClass, implementation);
+    }
+}
+#+END_SRC
+
+*** Usage in Domain Code
+
+#+BEGIN_SRC java
+public class ByteHot {
+    public static DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // Domain requests what it needs - doesn't know about implementation
+        EventStorePort eventStore = Ports.resolve(EventStorePort.class);
+        EventEmitterPort emitter = Ports.resolve(EventEmitterPort.class);
+        
+        // Use the ports without knowing their concrete implementations
+        eventStore.save(event);
+        emitter.emit(responseEvent);
+    }
+}
+#+END_SRC
+
+*** Configuration in Application Layer
+
+#+BEGIN_SRC java
+public class ByteHotApplication {
+    public void configureInfrastructure() {
+        // Application layer wires up the dependencies
+        Ports.register(EventStorePort.class, new FilesystemEventStoreAdapter());
+        Ports.register(EventEmitterPort.class, new EventEmitterAdapter());
+        Ports.register(InstrumentationPort.class, new InstrumentationAdapter());
+        Ports.register(FileWatcherPort.class, new FileWatcherAdapter());
+    }
+}
+#+END_SRC
+
+** Framework Independence
+
+ByteHot demonstrates framework independence - the domain logic works without any specific framework:
+
+*** No Framework Annotations in Domain
+
+#+BEGIN_SRC java
+// ✅ GOOD: Pure domain class
+public class Flow {
+    private final FlowId flowId;
+    private final String name;
+    private final double confidence;
+    
+    // No @Entity, @Component, @Service, or other framework annotations
+    // Just pure business logic
+}
+
+// ❌ BAD: Framework contamination
+public class BadFlow {
+    @Id @GeneratedValue  // JPA contamination
+    private Long id;
+    
+    @JsonProperty       // Jackson contamination  
+    private String name;
+    
+    @Component          // Spring contamination
+    // Domain should not know about frameworks!
+}
+#+END_SRC
+
+*** Framework Usage Only in Infrastructure
+
+#+BEGIN_SRC java
+// Infrastructure layer can use any framework
+public class EventSerializationSupport {
+    @JsonProperty("eventType")     // ✓ OK in infrastructure
+    private static final String EVENT_TYPE_PROPERTY = "eventType";
+    
+    private static final ObjectMapper OBJECT_MAPPER = createObjectMapper();
+    
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());  // ✓ Jackson in infrastructure
+        return mapper;
+    }
+}
+#+END_SRC
+
+** Testing Independence
+
+Clean architecture enables testing each layer independently:
+
+#+BEGIN_SRC java
+// Domain tests - no infrastructure needed
+@Test
+public void testBytecodeValidationLogic() {
+    BytecodeValidator validator = new BytecodeValidator();
+    // Test pure business logic - fast and reliable
+}
+
+// Application tests - mock the ports
+@Test  
+public void testApplicationEventHandling() {
+    EventStorePort mockStore = mock(EventStorePort.class);
+    Ports.register(EventStorePort.class, mockStore);
+    
+    // Test application logic with mocked dependencies
+}
+
+// Infrastructure tests - test real implementations
+@Test
+public void testFilesystemEventStore() throws IOException {
+    Path tempDir = Files.createTempDirectory("test");
+    FilesystemEventStoreAdapter adapter = new FilesystemEventStoreAdapter(tempDir);
+    
+    // Test real infrastructure with temporary resources
+}
+#+END_SRC
+
+** Exercise: Analyze Dependency Violations
+
+Review these code snippets and identify dependency rule violations:
+
+#+BEGIN_SRC java
+// Snippet 1: Domain class
+public class HotSwapManager {
+    private final ObjectMapper jsonMapper = new ObjectMapper();  // Issue?
+    
+    public HotSwapRequested createRequest(BytecodeValidated validation) {
+        String json = jsonMapper.writeValueAsString(validation);  // Issue?
+        // ... rest of method
+    }
+}
+
+// Snippet 2: Application class  
+public class ByteHotApplication {
+    @Autowired                                    // Issue?
+    private FilesystemEventStoreAdapter eventStore;
+    
+    public void handleEvent(ClassFileChanged event) {
+        eventStore.saveToFile(event);             // Issue?
+    }
+}
+
+// Snippet 3: Infrastructure class
+public class FileWatcherAdapter {
+    public void startWatching() {
+        ByteHot.accept(new ClassFileChanged(...)); // Issue?
+    }
+}
+#+END_SRC
+
+*Answers*:
+1. Domain shouldn't depend on Jackson (ObjectMapper)
+2. Application shouldn't depend on concrete adapter, should use port
+3. Infrastructure shouldn't directly call domain - should go through application
+
+* Chapter 10: Real-World Implementation Patterns
+
+** Configuration and Bootstrapping
+
+ByteHot demonstrates how to bootstrap a clean architecture application:
+
+*** Main Class and Application Startup
+
+#+BEGIN_SRC java
+// Clean startup sequence
+public class ByteHotMain {
+    public static void main(String[] args) {
+        try {
+            // 1. Parse command line arguments  
+            ByteHotCLI cli = new ByteHotCLI();
+            CommandLineConfig config = cli.parseArguments(args);
+            
+            // 2. Configure infrastructure adapters
+            configureInfrastructure(config);
+            
+            // 3. Start the application
+            ByteHotApplication app = new ByteHotApplication();
+            app.start(config);
+            
+        } catch (Exception e) {
+            System.err.println("Failed to start ByteHot: " + e.getMessage());
+            System.exit(1);
+        }
+    }
+    
+    private static void configureInfrastructure(CommandLineConfig config) {
+        // Wire up adapters based on configuration
+        Ports.register(EventStorePort.class, 
+            new FilesystemEventStoreAdapter(config.getEventStorePath()));
+        Ports.register(EventEmitterPort.class, 
+            new EventEmitterAdapter(config.getEmissionTarget()));
+        // ... other port registrations
+    }
+}
+#+END_SRC
+
+*** Environment-Specific Configuration
+
+#+BEGIN_SRC java
+// Different configurations for different environments
+public class InfrastructureConfiguration {
+    
+    public static void configureForProduction() {
+        Ports.register(EventStorePort.class, new DatabaseEventStoreAdapter());
+        Ports.register(EventEmitterPort.class, new MessageQueueEventEmitterAdapter());
+    }
+    
+    public static void configureForTesting() {
+        Ports.register(EventStorePort.class, new InMemoryEventStoreAdapter());
+        Ports.register(EventEmitterPort.class, new MockEventEmitterAdapter());
+    }
+    
+    public static void configureForDevelopment() {
+        Ports.register(EventStorePort.class, new FilesystemEventStoreAdapter());
+        Ports.register(EventEmitterPort.class, new ConsoleEventEmitterAdapter());
+    }
+}
+#+END_SRC
+
+** Error Handling Across Layers
+
+ByteHot demonstrates sophisticated error handling that respects architectural boundaries:
+
+*** Domain-Level Exceptions
+
+#+BEGIN_SRC java
+// Domain exceptions express business problems
+public class BytecodeValidationException extends Exception {
+    private final BytecodeRejected rejectionEvent;
+    
+    public BytecodeValidationException(BytecodeRejected rejection) {
+        super(rejection.getRejectionReason());
+        this.rejectionEvent = rejection;
+    }
+    
+    // Exception carries rich domain information
+    public BytecodeRejected getRejectionEvent() {
+        return rejectionEvent;
+    }
+}
+
+public class HotSwapException extends Exception {
+    private final ClassRedefinitionFailed failureEvent;
+    
+    public HotSwapException(ClassRedefinitionFailed failure) {
+        super(failure.getFailureReason());
+        this.failureEvent = failure;
+    }
+}
+#+END_SRC
+
+*** Application-Level Error Handling
+
+#+BEGIN_SRC java
+public class ByteHotApplication {
+    public DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        try {
+            return ByteHot.accept(event);
+            
+        } catch (BytecodeValidationException e) {
+            // Convert domain exception to domain event
+            return ClassFileProcessed.validationFailed(event, e.getRejectionEvent());
+            
+        } catch (HotSwapException e) {
+            // Convert domain exception to domain event  
+            return ClassFileProcessed.hotSwapFailed(event, e.getFailureEvent());
+            
+        } catch (Exception e) {
+            // Unexpected errors become domain events too
+            return ClassFileProcessed.unexpectedError(event, e.getMessage());
+        }
+    }
+}
+#+END_SRC
+
+*** Infrastructure-Level Error Translation
+
+#+BEGIN_SRC java
+public class FilesystemEventStoreAdapter implements EventStorePort {
+    public void save(VersionedDomainEvent event) throws EventStoreException {
+        try {
+            // Infrastructure operation
+            Files.writeString(eventFile, jsonContent);
+            
+        } catch (IOException e) {
+            // Translate infrastructure error to domain error
+            throw new EventStoreException(
+                "Failed to save event to filesystem: " + e.getMessage(),
+                e,
+                EventStoreException.OperationType.SAVE,
+                event.getAggregateType(),
+                event.getAggregateId()
+            );
+        }
+    }
+}
+#+END_SRC
+
+** Logging and Observability
+
+ByteHot demonstrates clean logging that respects architectural boundaries:
+
+*** Domain Logging (Business Events)
+
+#+BEGIN_SRC java
+public class ByteHot {
+    public static DomainResponseEvent<ClassFileChanged> accept(ClassFileChanged event) {
+        // Domain logging focuses on business events
+        logger.info("Processing class file change: {} for class {}", 
+                   event.getClassFile(), event.getClassName());
+        
+        try {
+            BytecodeValidated validation = validator.validate(event.getClassFile());
+            logger.info("Bytecode validation successful for class {}: {}", 
+                       validation.getClassName(), validation.getValidationDetails());
+            
+            return processValidBytecode(event, validation);
+            
+        } catch (BytecodeValidationException e) {
+            logger.warn("Bytecode validation failed for class {}: {}", 
+                       event.getClassName(), e.getRejectionEvent().getRejectionReason());
+            throw e;
+        }
+    }
+}
+#+END_SRC
+
+*** Infrastructure Logging (Technical Details)
+
+#+BEGIN_SRC java
+public class FilesystemEventStoreAdapter implements EventStorePort {
+    public void save(VersionedDomainEvent event) throws EventStoreException {
+        // Infrastructure logging focuses on technical details
+        logger.debug("Saving event {} to filesystem path {}", 
+                    event.getEventId(), eventFile);
+        
+        try {
+            Files.writeString(eventFile, jsonContent);
+            logger.debug("Successfully saved event {} ({} bytes)", 
+                        event.getEventId(), jsonContent.length());
+            
+        } catch (IOException e) {
+            logger.error("Failed to save event {} to file {}: {}", 
+                        event.getEventId(), eventFile, e.getMessage());
+            throw new EventStoreException(...);
+        }
+    }
+}
+#+END_SRC
+
+** Performance Monitoring
+
+ByteHot demonstrates performance monitoring that doesn't violate clean architecture:
+
+*** Domain Performance (Business Metrics)
+
+#+BEGIN_SRC java
+public class HotSwapManager {
+    public ClassRedefinitionSucceeded performRedefinition(HotSwapRequested request) {
+        long startTime = System.nanoTime();
+        
+        // Business operation
+        performJvmRedefinition(request);
+        
+        long endTime = System.nanoTime();
+        Duration executionTime = Duration.ofNanos(endTime - startTime);
+        
+        // Performance data becomes part of domain event
+        return new ClassRedefinitionSucceeded(
+            request.getClassName(),
+            request.getClassFile(),
+            affectedInstances,
+            details,
+            executionTime,  // Business-relevant performance data
+            timestamp
+        );
+    }
+}
+#+END_SRC
+
+*** Infrastructure Performance (Technical Metrics)
+
+#+BEGIN_SRC java
+public class FilesystemEventStoreAdapter implements EventStorePort {
+    private final MeterRegistry meterRegistry;
+    private final Timer saveTimer;
+    
+    public void save(VersionedDomainEvent event) throws EventStoreException {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        
+        try {
+            // Infrastructure operation
+            Files.writeString(eventFile, jsonContent);
+            
+            // Record technical metrics
+            sample.stop(saveTimer);
+            meterRegistry.counter("eventstore.saves.success").increment();
+            
+        } catch (IOException e) {
+            sample.stop(saveTimer);
+            meterRegistry.counter("eventstore.saves.failure").increment();
+            throw new EventStoreException(...);
+        }
+    }
+}
+#+END_SRC
+
+** Exercise: Design Production Deployment
+
+Design a production deployment strategy for ByteHot considering:
+
+1. **Configuration Management**: How would you handle different environments?
+2. **Error Handling**: What error handling strategies would you add?
+3. **Monitoring**: What metrics would you track at each layer?
+4. **Scaling**: How would the architecture support horizontal scaling?
+5. **Security**: What security concerns need addressing at each layer?
+
+Consider how each decision affects the clean architecture principles.
+
+* Conclusion: Architecture Principles in Practice
+
+** Key Takeaways from ByteHot's Architecture
+
+ByteHot demonstrates that sophisticated, real-world applications can maintain clean architectural principles:
+
+1. **Domain Purity**: Business logic remains free of technical concerns
+2. **Dependency Inversion**: All dependencies point toward the domain
+3. **Testability**: Each layer can be tested independently
+4. **Flexibility**: Infrastructure can be changed without affecting business logic
+5. **Event-Driven Design**: Loose coupling through domain events
+6. **Rich Domain Model**: Complex business concepts modeled explicitly
+
+** When to Apply These Patterns
+
+These architectural patterns are most valuable when:
+
+- **Complexity is significant**: Simple CRUD applications may not need this complexity
+- **Business logic is rich**: When domain rules are complex and changing
+- **Multiple integrations**: When you need to integrate with various external systems
+- **Long-term maintenance**: When the application will be maintained for years
+- **Team scaling**: When multiple teams will work on the codebase
+- **Testing is critical**: When reliability and maintainability are paramount
+
+** Common Pitfalls to Avoid
+
+Based on ByteHot's implementation, avoid these common mistakes:
+
+1. **Anemic Domain Models**: Don't just move data between layers
+2. **Leaky Abstractions**: Keep infrastructure details out of domain
+3. **Over-Engineering**: Start simple and add complexity when needed
+4. **Framework Coupling**: Don't let frameworks contaminate your domain
+5. **Ignoring Boundaries**: Respect the architectural layers strictly
+
+** Further Learning
+
+To deepen your understanding:
+
+1. **Study ByteHot's Code**: Explore the actual implementation in detail
+2. **Practice TDD**: Build domain logic test-first to maintain purity
+3. **Read DDD Books**: "Domain-Driven Design" by Eric Evans, "Implementing DDD" by Vaughn Vernon
+4. **Experiment**: Try implementing new features using these patterns
+5. **Join Communities**: Participate in DDD and clean architecture discussions
+
+** Final Exercise: Design Your Own Application
+
+Choose a domain you understand well (e-commerce, project management, social media) and design its architecture using the patterns learned from ByteHot:
+
+1. **Identify Bounded Contexts**: What are the major areas of the domain?
+2. **Define Aggregates**: What are the consistency boundaries?
+3. **Design Events**: What important things happen in your domain?
+4. **Create Ports**: What does your domain need from the outside world?
+5. **Plan Adapters**: How will you implement those ports?
+
+Remember: Architecture is not about being clever - it's about making the complex simple and the simple sustainable.
+
+---
+
+*This guide used ByteHot as a living example of DDD and Hexagonal Architecture because real code teaches better than abstract examples. ByteHot's revolutionary approach to JVM hot-swapping serves as proof that clean architecture principles work even in complex, performance-critical domains.*
+
+**Next Steps**: 
+- Explore the [[docs/][complete ByteHot documentation]]
+- Study the [[flows/][documented flows]] to see the architecture in action
+- Examine the [[bytehot/src/test/java/][test suite]] to understand testing strategies
+- Contribute to ByteHot to practice these patterns hands-on
+
+*Happy architecting!* 🏗️

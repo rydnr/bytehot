@@ -1,0 +1,631 @@
+#+TITLE: FileMonitoringSession - Intelligent File Change Orchestration and Session Management
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~FileMonitoringSession~ class serves as ByteHot's intelligent file change orchestration engine, functioning as a sophisticated domain aggregate that manages the complete lifecycle of file monitoring operations. This critical component transforms raw file system events into meaningful business decisions, coordinating hot-swap operations while maintaining comprehensive session state and statistics. As the orchestrator of file-driven hot-swap workflows, it bridges the gap between file system monitoring and domain-driven hot-swap decision-making, ensuring that every file change is evaluated intelligently and processed according to sophisticated business rules.
+
+* Domain Architecture Role
+
+** Central File Change Orchestrator
+FileMonitoringSession serves as the central orchestrator for file change processing:
+- Manages the complete lifecycle of file monitoring sessions from creation to completion
+- Coordinates file change evaluation and hot-swap decision-making processes
+- Maintains comprehensive session state and historical processing information
+- Acts as the primary aggregate root for file monitoring domain operations
+
+** Event-Driven Processing Hub
+The session operates as a sophisticated event-driven processing hub:
+- Accepts ClassFileChanged events from file system monitoring infrastructure
+- Generates ClassFileProcessed events to track processing outcomes
+- Creates HotSwapRequested events when sophisticated analysis determines hot-swap necessity
+- Maintains event causality and traceability throughout the processing lifecycle
+
+** Session Management and Analytics
+The implementation provides comprehensive session management and analytics:
+- Tracks monitored files and processing statistics for operational intelligence
+- Maintains session history for debugging and optimization analysis
+- Provides rich analytics for understanding file change patterns and system behavior
+- Enables session-based performance optimization and resource management
+
+* Class Structure and Session Management
+
+** Core Session Infrastructure
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Session configuration and management constants
+ */
+private static final int DEFAULT_MONITORED_FILES_CAPACITY = 100;
+private static final Duration DEFAULT_SESSION_TIMEOUT = Duration.ofHours(24);
+private static final int HOT_SWAP_SIZE_THRESHOLD = 100;
+
+/**
+ * Unique session identifier for tracking and correlation
+ */
+@Getter
+private final String sessionId;
+
+/**
+ * Session creation timestamp for lifecycle management
+ */
+@Getter
+private final Instant createdAt;
+
+/**
+ * Comprehensive list of files being monitored in this session
+ */
+@Getter
+private final List<Path> monitoredFiles;
+
+/**
+ * Processing statistics for session analytics and optimization
+ */
+@Getter
+private int processedChanges;
+
+/**
+ * Session state for lifecycle management
+ */
+@Getter
+private SessionState sessionState;
+
+/**
+ * Session configuration for customizable behavior
+ */
+@Getter
+private final SessionConfiguration configuration;
+#+END_SRC
+
+** Advanced Session Creation and Initialization
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Creates a new file monitoring session with comprehensive initialization
+ * @param sessionId unique identifier for this session
+ * @param configuration session-specific configuration for customized behavior
+ */
+public FileMonitoringSession(final String sessionId, final SessionConfiguration configuration) {
+    this.sessionId = validateSessionId(sessionId);
+    this.createdAt = Instant.now();
+    this.monitoredFiles = new ArrayList<>(DEFAULT_MONITORED_FILES_CAPACITY);
+    this.processedChanges = 0;
+    this.sessionState = SessionState.ACTIVE;
+    this.configuration = configuration != null ? configuration : SessionConfiguration.defaultConfiguration();
+    
+    // Initialize session with configuration-specific settings
+    initializeSessionWithConfiguration(this.configuration);
+}
+
+/**
+ * Simplified constructor with default configuration for common use cases
+ * @param sessionId unique identifier for this session
+ */
+public FileMonitoringSession(final String sessionId) {
+    this(sessionId, SessionConfiguration.defaultConfiguration());
+}
+
+/**
+ * Validates session identifier format and uniqueness requirements
+ * @param sessionId the session identifier to validate
+ * @return validated session identifier
+ * @throws IllegalArgumentException if session ID is invalid
+ */
+private String validateSessionId(final String sessionId) {
+    if (sessionId == null || sessionId.trim().isEmpty()) {
+        throw new IllegalArgumentException("Session ID cannot be null or empty");
+    }
+    
+    if (sessionId.length() > MAX_SESSION_ID_LENGTH) {
+        throw new IllegalArgumentException("Session ID exceeds maximum length: " + MAX_SESSION_ID_LENGTH);
+    }
+    
+    if (!SESSION_ID_PATTERN.matcher(sessionId).matches()) {
+        throw new IllegalArgumentException("Session ID must match required pattern: " + SESSION_ID_PATTERN.pattern());
+    }
+    
+    return sessionId.trim();
+}
+#+END_SRC
+
+* Event Processing and Hot-Swap Decision Engine
+
+** Primary Event Acceptance and Processing
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Accepts and processes ClassFileChanged events with sophisticated decision-making
+ * This is the primary entry point following DDD aggregate patterns
+ * @param event the ClassFileChanged event to process
+ * @return comprehensive response event indicating processing results
+ */
+public static DomainResponseEvent<ClassFileChanged> accept(final ClassFileChanged event) {
+    try {
+        // Create session-scoped processing context
+        final ProcessingContext context = createProcessingContext(event);
+        
+        // Perform comprehensive file change analysis
+        final FileChangeAnalysis analysis = analyzeFileChange(event, context);
+        
+        // Make intelligent hot-swap decision
+        final HotSwapDecision decision = makeHotSwapDecision(analysis, context);
+        
+        // Generate appropriate response events
+        return generateResponseEvent(event, analysis, decision);
+        
+    } catch (final FileProcessingException e) {
+        return createErrorResponse(event, e);
+    } catch (final Exception e) {
+        return createUnexpectedErrorResponse(event, e);
+    }
+}
+
+/**
+ * Creates comprehensive processing context for file change evaluation
+ * @param event the file change event
+ * @return rich processing context with environmental and historical information
+ */
+private static ProcessingContext createProcessingContext(final ClassFileChanged event) {
+    return new ProcessingContext(
+        event.getClassFile(),
+        event.getClassName(),
+        event.getDetectionTimestamp(),
+        analyzeFileHistory(event.getClassFile()),
+        captureEnvironmentalContext(),
+        extractUserContext()
+    );
+}
+#+END_SRC
+
+** Sophisticated File Change Analysis Engine
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Performs comprehensive analysis of file changes for intelligent decision-making
+ * @param event the file change event to analyze
+ * @param context the processing context with environmental information
+ * @return comprehensive analysis results for hot-swap decision-making
+ */
+private static FileChangeAnalysis analyzeFileChange(final ClassFileChanged event, final ProcessingContext context) {
+    final FileChangeAnalysisBuilder builder = new FileChangeAnalysisBuilder();
+    
+    // Analyze file size characteristics
+    builder.setFileSizeAnalysis(analyzeFileSize(event));
+    
+    // Analyze temporal patterns
+    builder.setTemporalAnalysis(analyzeTemporalPatterns(event, context));
+    
+    // Analyze file change frequency
+    builder.setFrequencyAnalysis(analyzeChangeFrequency(event, context));
+    
+    // Analyze class complexity implications
+    builder.setComplexityAnalysis(analyzeClassComplexity(event, context));
+    
+    // Analyze change significance
+    builder.setSignificanceAnalysis(analyzeChangeSignificance(event, context));
+    
+    return builder.build();
+}
+
+/**
+ * Analyzes file size characteristics for hot-swap relevance assessment
+ * @param event the file change event
+ * @return comprehensive file size analysis
+ */
+private static FileSizeAnalysis analyzeFileSize(final ClassFileChanged event) {
+    final long fileSize = event.getFileSize();
+    
+    // Classify file size significance
+    final FileSizeSignificance significance = classifyFileSizeSignificance(fileSize);
+    
+    // Assess hot-swap likelihood based on size
+    final double hotSwapLikelihood = calculateHotSwapLikelihoodFromSize(fileSize);
+    
+    // Analyze size change patterns
+    final SizeChangePattern pattern = analyzeSizeChangePattern(event);
+    
+    return new FileSizeAnalysis(fileSize, significance, hotSwapLikelihood, pattern);
+}
+
+/**
+ * Analyzes temporal patterns in file changes for intelligent processing
+ * @param event the file change event
+ * @param context the processing context
+ * @return comprehensive temporal analysis
+ */
+private static TemporalAnalysis analyzeTemporalPatterns(final ClassFileChanged event, final ProcessingContext context) {
+    final Instant changeTime = event.getDetectionTimestamp();
+    final FileHistory history = context.getFileHistory();
+    
+    // Calculate time since last change
+    final Duration timeSinceLastChange = calculateTimeSinceLastChange(changeTime, history);
+    
+    // Analyze change frequency patterns
+    final ChangeFrequency frequency = analyzeChangeFrequency(history);
+    
+    // Detect burst patterns (multiple rapid changes)
+    final BurstPattern burstPattern = detectBurstPattern(changeTime, history);
+    
+    return new TemporalAnalysis(timeSinceLastChange, frequency, burstPattern);
+}
+#+END_SRC
+
+** Intelligent Hot-Swap Decision Making
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Makes intelligent hot-swap decisions based on comprehensive file change analysis
+ * @param analysis the comprehensive file change analysis
+ * @param context the processing context
+ * @return sophisticated hot-swap decision with detailed reasoning
+ */
+private static HotSwapDecision makeHotSwapDecision(final FileChangeAnalysis analysis, final ProcessingContext context) {
+    final HotSwapDecisionBuilder builder = new HotSwapDecisionBuilder();
+    
+    // Evaluate file size criteria
+    final boolean fileSizeMeetsThreshold = evaluateFileSizeThreshold(analysis.getFileSizeAnalysis());
+    builder.addCriterion("file_size", fileSizeMeetsThreshold, "File size indicates meaningful changes");
+    
+    // Evaluate temporal criteria
+    final boolean temporalPatternSupportsHotSwap = evaluateTemporalCriteria(analysis.getTemporalAnalysis());
+    builder.addCriterion("temporal_pattern", temporalPatternSupportsHotSwap, "Temporal patterns suggest hot-swap appropriate");
+    
+    // Evaluate complexity criteria
+    final boolean complexityAllowsHotSwap = evaluateComplexityCriteria(analysis.getComplexityAnalysis());
+    builder.addCriterion("complexity", complexityAllowsHotSwap, "Class complexity supports hot-swap operation");
+    
+    // Evaluate significance criteria
+    final boolean changeIsSignificant = evaluateSignificanceCriteria(analysis.getSignificanceAnalysis());
+    builder.addCriterion("significance", changeIsSignificant, "Change significance warrants hot-swap attempt");
+    
+    // Make final decision based on weighted criteria
+    final boolean shouldTriggerHotSwap = calculateFinalDecision(builder.getCriteria());
+    builder.setDecision(shouldTriggerHotSwap);
+    
+    // Add decision reasoning
+    builder.setReasoning(generateDecisionReasoning(builder.getCriteria(), shouldTriggerHotSwap));
+    
+    return builder.build();
+}
+
+/**
+ * Evaluates file size threshold with sophisticated heuristics
+ * @param fileSizeAnalysis the file size analysis results
+ * @return true if file size meets hot-swap threshold criteria
+ */
+private static boolean evaluateFileSizeThreshold(final FileSizeAnalysis fileSizeAnalysis) {
+    final long fileSize = fileSizeAnalysis.getFileSize();
+    final FileSizeSignificance significance = fileSizeAnalysis.getSignificance();
+    
+    // Apply sophisticated threshold logic
+    if (significance == FileSizeSignificance.MINIMAL) {
+        return false;  // Very small files unlikely to contain meaningful changes
+    }
+    
+    if (significance == FileSizeSignificance.MODERATE) {
+        return fileSize > HOT_SWAP_SIZE_THRESHOLD;  // Apply standard threshold
+    }
+    
+    if (significance == FileSizeSignificance.SUBSTANTIAL) {
+        return true;  // Large files likely contain meaningful changes
+    }
+    
+    return fileSize > HOT_SWAP_SIZE_THRESHOLD;  // Default threshold application
+}
+#+END_SRC
+
+* Session State Management and Lifecycle
+
+** Comprehensive Session Processing Workflow
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Processes file changes within the session context with full lifecycle management
+ * @param event the file change event to process
+ * @return comprehensive list of response events
+ */
+public List<DomainResponseEvent<?>> processFileChange(final ClassFileChanged event) {
+    // Validate session state
+    validateSessionState();
+    
+    final List<DomainResponseEvent<?>> responses = new ArrayList<>();
+    
+    try {
+        // Update session with new file monitoring
+        updateSessionWithFileChange(event);
+        
+        // Perform sophisticated change analysis
+        final FileChangeAnalysis analysis = performSessionContextualAnalysis(event);
+        
+        // Generate primary processing response
+        final ClassFileProcessed primaryResponse = createProcessingResponse(event, analysis);
+        responses.add(primaryResponse);
+        
+        // Generate hot-swap request if criteria are met
+        if (analysis.getHotSwapDecision().shouldTriggerHotSwap()) {
+            final HotSwapRequested hotSwapRequest = createSessionAwareHotSwapRequest(event, analysis);
+            responses.add(hotSwapRequest);
+        }
+        
+        // Update session statistics
+        updateSessionStatistics(event, analysis);
+        
+        // Generate session analytics events if configured
+        if (configuration.isAnalyticsEnabled()) {
+            responses.addAll(generateAnalyticsEvents(event, analysis));
+        }
+        
+    } catch (final SessionProcessingException e) {
+        responses.add(createSessionErrorResponse(event, e));
+    }
+    
+    return responses;
+}
+
+/**
+ * Updates session state with new file change information
+ * @param event the file change event
+ */
+private void updateSessionWithFileChange(final ClassFileChanged event) {
+    // Add file to monitoring list if not already present
+    if (!monitoredFiles.contains(event.getClassFile())) {
+        monitoredFiles.add(event.getClassFile());
+        
+        // Emit file monitoring started event
+        emitFileMonitoringStarted(event.getClassFile());
+    }
+    
+    // Update file change history
+    updateFileChangeHistory(event);
+    
+    // Increment processing counters
+    processedChanges++;
+    
+    // Update session last activity timestamp
+    updateLastActivityTimestamp();
+}
+#+END_SRC
+
+** Session Analytics and Performance Monitoring
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Generates comprehensive session statistics for monitoring and optimization
+ * @return detailed session statistics with performance and behavioral metrics
+ */
+public SessionStatistics getStatistics() {
+    return new SessionStatistics(
+        sessionId,
+        createdAt,
+        monitoredFiles.size(),
+        processedChanges,
+        calculateSessionDuration(),
+        calculateProcessingRate(),
+        calculateHotSwapSuccessRate(),
+        analyzeFileChangePatterns(),
+        getSessionHealthMetrics()
+    );
+}
+
+/**
+ * Calculates current session duration for performance analysis
+ * @return session duration from creation to current time
+ */
+private Duration calculateSessionDuration() {
+    return Duration.between(createdAt, Instant.now());
+}
+
+/**
+ * Calculates file change processing rate for performance monitoring
+ * @return processing rate in changes per minute
+ */
+private double calculateProcessingRate() {
+    final Duration sessionDuration = calculateSessionDuration();
+    final long sessionMinutes = sessionDuration.toMinutes();
+    
+    if (sessionMinutes == 0) {
+        return 0.0;
+    }
+    
+    return (double) processedChanges / sessionMinutes;
+}
+
+/**
+ * Analyzes file change patterns for behavioral insights
+ * @return comprehensive pattern analysis
+ */
+private FileChangePatterns analyzeFileChangePatterns() {
+    final FileChangePatternsBuilder builder = new FileChangePatternsBuilder();
+    
+    // Analyze frequency patterns
+    builder.setFrequencyPattern(analyzeSessionFrequencyPattern());
+    
+    // Analyze temporal patterns
+    builder.setTemporalPattern(analyzeSessionTemporalPattern());
+    
+    // Analyze file diversity patterns
+    builder.setDiversityPattern(analyzeSessionDiversityPattern());
+    
+    return builder.build();
+}
+#+END_SRC
+
+* Advanced Session Configuration and Customization
+
+** Flexible Session Configuration Framework
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Comprehensive session configuration for customizable behavior
+ */
+public static class SessionConfiguration {
+    private final Duration sessionTimeout;
+    private final int maxMonitoredFiles;
+    private final boolean analyticsEnabled;
+    private final HotSwapThresholdStrategy thresholdStrategy;
+    private final AnalyticsLevel analyticsLevel;
+    
+    /**
+     * Creates session configuration with comprehensive customization options
+     */
+    public SessionConfiguration(
+        final Duration sessionTimeout,
+        final int maxMonitoredFiles,
+        final boolean analyticsEnabled,
+        final HotSwapThresholdStrategy thresholdStrategy,
+        final AnalyticsLevel analyticsLevel
+    ) {
+        this.sessionTimeout = sessionTimeout;
+        this.maxMonitoredFiles = maxMonitoredFiles;
+        this.analyticsEnabled = analyticsEnabled;
+        this.thresholdStrategy = thresholdStrategy;
+        this.analyticsLevel = analyticsLevel;
+    }
+    
+    /**
+     * Creates default configuration for standard use cases
+     */
+    public static SessionConfiguration defaultConfiguration() {
+        return new SessionConfiguration(
+            DEFAULT_SESSION_TIMEOUT,
+            DEFAULT_MONITORED_FILES_CAPACITY,
+            true,
+            HotSwapThresholdStrategy.ADAPTIVE,
+            AnalyticsLevel.STANDARD
+        );
+    }
+    
+    /**
+     * Creates high-performance configuration for intensive monitoring scenarios
+     */
+    public static SessionConfiguration highPerformanceConfiguration() {
+        return new SessionConfiguration(
+            Duration.ofHours(8),
+            1000,
+            true,
+            HotSwapThresholdStrategy.AGGRESSIVE,
+            AnalyticsLevel.DETAILED
+        );
+    }
+}
+#+END_SRC
+
+** Session State Management and Lifecycle Control
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FileMonitoringSession.java
+/**
+ * Session state enumeration for lifecycle management
+ */
+public enum SessionState {
+    INITIALIZING("Session is being initialized"),
+    ACTIVE("Session is actively monitoring files"),
+    PAUSED("Session monitoring is temporarily paused"),
+    SUSPENDED("Session is suspended due to errors or resource constraints"),
+    TERMINATING("Session is in the process of termination"),
+    TERMINATED("Session has been terminated and is no longer active");
+    
+    private final String description;
+    
+    SessionState(final String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Validates current session state for operation eligibility
+ * @throws SessionStateException if session is not in valid state for processing
+ */
+private void validateSessionState() throws SessionStateException {
+    switch (sessionState) {
+        case ACTIVE -> {
+            // Normal processing allowed
+        }
+        case PAUSED -> {
+            throw new SessionStateException("Session is paused and cannot process events");
+        }
+        case SUSPENDED -> {
+            throw new SessionStateException("Session is suspended due to errors");
+        }
+        case TERMINATING, TERMINATED -> {
+            throw new SessionStateException("Session is terminated and cannot process events");
+        }
+        case INITIALIZING -> {
+            throw new SessionStateException("Session is still initializing");
+        }
+        default -> {
+            throw new SessionStateException("Session is in unknown state: " + sessionState);
+        }
+    }
+}
+
+/**
+ * Gracefully terminates the session with cleanup and final statistics
+ * @return session termination summary
+ */
+public SessionTerminationSummary terminateSession() {
+    sessionState = SessionState.TERMINATING;
+    
+    try {
+        // Generate final session statistics
+        final SessionStatistics finalStats = getStatistics();
+        
+        // Cleanup session resources
+        cleanupSessionResources();
+        
+        // Update session state
+        sessionState = SessionState.TERMINATED;
+        
+        return new SessionTerminationSummary(sessionId, finalStats, Instant.now());
+        
+    } catch (final Exception e) {
+        // Handle termination errors gracefully
+        sessionState = SessionState.TERMINATED;
+        return SessionTerminationSummary.withError(sessionId, e, Instant.now());
+    }
+}
+#+END_SRC
+
+* Integration with Event Sourcing and Analytics
+
+** Event Generation and Domain Integration
+The FileMonitoringSession integrates seamlessly with ByteHot's event-driven architecture:
+- Generates rich domain events that capture session behavior and decision-making processes
+- Provides comprehensive analytics events for system intelligence and optimization
+- Maintains event causality and traceability throughout session lifecycle
+- Enables event sourcing audit trails for debugging and compliance
+
+** Performance Optimization and Resource Management
+The session provides sophisticated performance optimization:
+- Intelligent file monitoring with configurable thresholds and strategies
+- Memory-efficient storage of session state and historical information
+- Resource cleanup and lifecycle management for long-running sessions
+- Performance analytics for system optimization and capacity planning
+
+** Extensibility and Customization Framework
+The design supports extensive customization and future enhancement:
+- Pluggable hot-swap decision strategies for different use cases
+- Configurable analytics levels for varying monitoring requirements
+- Extensible session configuration for specialized deployment scenarios
+- Integration points for machine learning and advanced pattern recognition
+
+* Related Documentation
+
+- [[ClassFileWatcher.org][ClassFileWatcher]]: Provides file change events to monitoring sessions
+- [[events/ClassFileChanged.org][ClassFileChanged]]: Primary input event for session processing
+- [[events/ClassFileProcessed.org][ClassFileProcessed]]: Primary output event from session processing
+- [[events/HotSwapRequested.org][HotSwapRequested]]: Hot-swap events generated by sessions
+- [[flows/file-change-detection-flow.org][File Change Detection Flow]]: Process documentation including session management
+
+* Implementation Notes
+
+** Design Patterns Applied
+The session leverages several sophisticated design patterns:
+- **Aggregate Root Pattern**: Central domain aggregate managing file monitoring lifecycle
+- **Strategy Pattern**: Pluggable hot-swap decision strategies for different scenarios
+- **Observer Pattern**: Event generation and notification for session activities
+- **State Pattern**: Session lifecycle management with clear state transitions
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Aggregate Consistency**: Maintains session consistency through controlled state changes
+- **Rich Domain Events**: Comprehensive event generation with business context
+- **Domain Logic Encapsulation**: Business rules for hot-swap decisions within domain layer
+- **Event Sourcing Integration**: Complete event trail for session analysis and replay
+
+The FileMonitoringSession provides ByteHot's essential file change orchestration while maintaining clean domain boundaries, comprehensive analytics capabilities, and extensibility for advanced monitoring and decision-making throughout the intelligent hot-swap system lifecycle.

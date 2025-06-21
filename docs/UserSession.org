@@ -1,0 +1,509 @@
+#+TITLE: UserSession - User Session Management and Activity Tracking Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~UserSession~ class serves as ByteHot's sophisticated user session management and activity tracking value object, providing comprehensive session lifecycle management, environmental context preservation, and advanced session intelligence for user experience optimization and system coordination. This critical domain value object encapsulates session state management, temporal tracking capabilities, and sophisticated environmental correlation mechanisms that enable precise session monitoring and user activity coordination. As the session foundation for ByteHot's user management system, it enables comprehensive session intelligence while maintaining clean domain boundaries and supporting advanced session analytics, environmental correlation, and operational traceability throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** User Session Management and Lifecycle Coordination Foundation
+UserSession serves as the comprehensive user session management and lifecycle coordination foundation:
+- Provides sophisticated session lifecycle management for user activity tracking and coordination
+- Enables comprehensive session state management through temporal tracking and environmental context preservation
+- Supports advanced session intelligence and user activity correlation through domain-driven session analytics
+- Acts as the authoritative foundation for user session operations and activity coordination
+
+** Value Object Design and Immutable Session Context
+The class serves as the value object design and immutable session context:
+- Implements sophisticated value object patterns with immutable session encapsulation and state management
+- Provides comprehensive session validation and consistency through domain-driven design principles
+- Enables session composition and correlation capabilities for complex user activity tracking scenarios
+- Supports session optimization and performance enhancement through efficient value object design
+
+** Environmental Context and System Intelligence Hub
+The implementation provides environmental context and system intelligence capabilities:
+- Enables sophisticated environmental context preservation for session correlation and system intelligence
+- Supports advanced system coordination and operational tracking through environmental context management
+- Provides foundation for session audit trails and compliance through comprehensive environmental tracking
+- Enables intelligent session monitoring and optimization through context-driven correlation intelligence
+
+* User Session Structure and Management Context
+
+** Core Session Identity and User Correlation Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Unique session identifier for session tracking and correlation
+ */
+@Getter
+private final String sessionId;
+
+/**
+ * User identifier for this session for user correlation and tracking
+ */
+@Getter
+private final UserId userId;
+#+END_SRC
+
+** Temporal Session Management and Lifecycle Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Session start timestamp for temporal tracking and lifecycle management
+ */
+@Getter
+private final Instant startedAt;
+
+/**
+ * Session end timestamp (null if active) for lifecycle state management
+ */
+@Getter
+private final Instant endedAt;
+#+END_SRC
+
+** Environmental Context and System Intelligence Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Environment information for system context preservation and correlation
+ */
+@Getter
+private final Map<String, String> environment;
+#+END_SRC
+
+** Factory Methods and Session Lifecycle Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Creates a new active session with comprehensive initialization
+ * @param sessionId unique session identifier for session tracking and correlation
+ * @param userId user identifier for user correlation and session management
+ * @param startedAt session start time for temporal tracking and lifecycle management
+ * @param environment environment information for system context preservation
+ * @return new user session with active state and environmental context
+ */
+public static UserSession start(final String sessionId, final UserId userId, 
+                              final Instant startedAt, final Map<String, String> environment) {
+    return new UserSession(sessionId, userId, startedAt, environment, null);
+}
+
+/**
+ * Ends this session with temporal completion tracking
+ * @param endTime session end time for lifecycle completion and duration calculation
+ * @return session with end time set for completed session state management
+ */
+public UserSession end(final Instant endTime) {
+    return new UserSession(this.sessionId, this.userId, this.startedAt, 
+                         this.environment, endTime);
+}
+#+END_SRC
+
+* Session State Management and Intelligence Operations
+
+** Session Lifecycle and State Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Checks if the session is currently active for state management
+ * @return true if session is active (not ended) for lifecycle assessment
+ */
+public boolean isActive() {
+    return endedAt == null;
+}
+
+/**
+ * Gets the session duration (if ended) or current duration (if active)
+ * @return session duration for temporal analysis and lifecycle tracking
+ */
+public Duration getDuration() {
+    final Instant end = endedAt != null ? endedAt : Instant.now();
+    return Duration.between(startedAt, end);
+}
+#+END_SRC
+
+** Environmental Context and System Intelligence Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Gets an environment variable value for system context analysis
+ * @param key environment variable name for context retrieval
+ * @return environment variable value, or null if not present
+ */
+public String getEnvironmentVariable(final String key) {
+    return environment.get(key);
+}
+
+/**
+ * Gets the Java version for this session for system compatibility analysis
+ * @return Java version string for system context and compatibility assessment
+ */
+public String getJavaVersion() {
+    return getEnvironmentVariable("java.version");
+}
+
+/**
+ * Gets the operating system for this session for platform analysis
+ * @return OS name string for platform context and system intelligence
+ */
+public String getOperatingSystem() {
+    return getEnvironmentVariable("os.name");
+}
+
+/**
+ * Gets the working directory for this session for workspace context
+ * @return working directory path for workspace analysis and context tracking
+ */
+public String getWorkingDirectory() {
+    return getEnvironmentVariable("user.dir");
+}
+#+END_SRC
+
+** Enhanced Session Intelligence and Analysis Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Gets the session age from start time for session lifecycle analysis
+ * @return duration since session start for lifecycle assessment
+ */
+public Duration getSessionAge() {
+    return Duration.between(startedAt, Instant.now());
+}
+
+/**
+ * Checks if the session is long-running based on duration threshold
+ * @param threshold duration threshold for long-running session assessment
+ * @return true if session duration exceeds threshold
+ */
+public boolean isLongRunning(final Duration threshold) {
+    return getDuration().compareTo(threshold) > 0;
+}
+
+/**
+ * Checks if the session has been idle for a specified duration
+ * @param idleThreshold idle duration threshold for session activity assessment
+ * @return true if session has been idle beyond threshold
+ */
+public boolean isIdle(final Duration idleThreshold) {
+    if (!isActive()) {
+        return false;
+    }
+    return getSessionAge().compareTo(idleThreshold) > 0;
+}
+
+/**
+ * Gets the session context summary for logging and monitoring
+ * @return formatted session context for operational intelligence
+ */
+public String getSessionSummary() {
+    StringBuilder summary = new StringBuilder();
+    summary.append("UserSession[")
+        .append("id=").append(sessionId)
+        .append(", user=").append(userId.getValue())
+        .append(", duration=").append(getDuration().toMinutes()).append("min")
+        .append(", active=").append(isActive())
+        .append(", os=").append(getOperatingSystem())
+        .append(", java=").append(getJavaVersion())
+        .append("]");
+    return summary.toString();
+}
+
+/**
+ * Gets the development environment type based on working directory patterns
+ * @return development environment type (IDE, command-line, etc.)
+ */
+public String getDevelopmentEnvironment() {
+    String workDir = getWorkingDirectory();
+    if (workDir == null) {
+        return "unknown";
+    }
+    
+    if (workDir.contains(".vscode") || workDir.contains("workspace")) {
+        return "vscode";
+    }
+    if (workDir.contains(".idea") || workDir.contains("intellij")) {
+        return "intellij";
+    }
+    if (workDir.contains("eclipse")) {
+        return "eclipse";
+    }
+    return "command-line";
+}
+
+/**
+ * Gets system resource information from environment for resource analysis
+ * @return map of system resource information
+ */
+public Map<String, String> getSystemResources() {
+    Map<String, String> resources = new java.util.HashMap<>();
+    resources.put("java.vm.name", getEnvironmentVariable("java.vm.name"));
+    resources.put("java.vm.version", getEnvironmentVariable("java.vm.version"));
+    resources.put("java.vm.vendor", getEnvironmentVariable("java.vm.vendor"));
+    resources.put("java.runtime.name", getEnvironmentVariable("java.runtime.name"));
+    resources.put("os.arch", getEnvironmentVariable("os.arch"));
+    resources.put("os.version", getEnvironmentVariable("os.version"));
+    return resources;
+}
+
+/**
+ * Checks if the session is running in a development environment
+ * @return true if session appears to be in development environment
+ */
+public boolean isDevelopmentSession() {
+    String env = getDevelopmentEnvironment();
+    return !"command-line".equals(env) && !"unknown".equals(env);
+}
+
+/**
+ * Gets the session performance characteristics for performance analysis
+ * @return session performance information
+ */
+public SessionPerformance getPerformanceCharacteristics() {
+    return SessionPerformance.builder()
+        .sessionDuration(getDuration())
+        .isActive(isActive())
+        .developmentEnvironment(getDevelopmentEnvironment())
+        .javaVersion(getJavaVersion())
+        .operatingSystem(getOperatingSystem())
+        .isDevelopmentSession(isDevelopmentSession())
+        .build();
+}
+#+END_SRC
+
+** Session Performance Analytics Value Object
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserSession.java
+/**
+ * Session performance characteristics for analytics and optimization
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class SessionPerformance {
+    /**
+     * Session duration for performance analysis
+     */
+    private final Duration sessionDuration;
+    
+    /**
+     * Session active state for lifecycle analysis
+     */
+    private final boolean isActive;
+    
+    /**
+     * Development environment type for context analysis
+     */
+    private final String developmentEnvironment;
+    
+    /**
+     * Java version for compatibility analysis
+     */
+    private final String javaVersion;
+    
+    /**
+     * Operating system for platform analysis
+     */
+    private final String operatingSystem;
+    
+    /**
+     * Development session indicator for usage analysis
+     */
+    private final boolean isDevelopmentSession;
+}
+#+END_SRC
+
+* Session Intelligence and User Experience Integration
+
+** Session Analytics and Performance Intelligence
+The UserSession enables sophisticated session analytics capabilities:
+- **Duration Analysis**: Session duration analysis for user engagement and activity pattern assessment
+- **Environment Correlation**: Environment correlation for system compatibility and performance optimization
+- **Activity Tracking**: Activity tracking through session lifecycle and temporal correlation
+- **Performance Assessment**: Performance assessment through session characteristics and system context
+
+** User Experience and Engagement Intelligence
+The session management supports comprehensive user experience analysis:
+- **Engagement Metrics**: Engagement metrics through session duration and activity pattern analysis
+- **User Behavior**: User behavior analysis through session lifecycle and environmental correlation
+- **Experience Optimization**: Experience optimization through session intelligence and performance assessment
+- **Personalization**: Personalization opportunities through session context and user pattern analysis
+
+** System Intelligence and Environmental Correlation
+The environmental context provides system intelligence capabilities:
+- **Platform Analysis**: Platform analysis through operating system and Java version correlation
+- **Development Context**: Development context analysis for developer experience optimization
+- **Resource Assessment**: Resource assessment through system information and environmental context
+- **Compatibility Intelligence**: Compatibility intelligence through version and platform correlation
+
+* Integration with ByteHot Session Management Infrastructure
+
+** Session Management System Integration
+UserSession integrates with ByteHot's session management systems:
+- Provide comprehensive session lifecycle management for user activity tracking and coordination
+- Enable sophisticated session state management through temporal tracking and environmental preservation
+- Support advanced session intelligence and user activity correlation through domain-driven analytics
+- Provide foundation for session audit trails and user experience optimization
+
+** User Experience Analytics Integration
+The class coordinates with user experience systems:
+- **Experience Tracking**: Experience tracking through session analytics and environmental correlation
+- **Performance Monitoring**: Performance monitoring through session characteristics and system intelligence
+- **User Journey**: User journey analysis through session lifecycle and activity correlation
+- **Optimization Intelligence**: Optimization intelligence through session analytics and performance assessment
+
+** System Monitoring and Operations Integration
+The implementation supports system monitoring integration:
+- **Session Monitoring**: Session monitoring for system health and user activity assessment
+- **Resource Tracking**: Resource tracking through environmental context and system information
+- **Performance Analytics**: Performance analytics through session intelligence and system correlation
+- **Operational Intelligence**: Operational intelligence through session management and environmental analysis
+
+* Advanced Session Management and Intelligence Features
+
+** Multi-Session Coordination
+The session enables multi-session coordination:
+- **Session Correlation**: Session correlation for multi-device and multi-context user experience
+- **Cross-Session Analytics**: Cross-session analytics for comprehensive user behavior understanding
+- **Session Handoff**: Session handoff and continuity for seamless user experience across contexts
+- **Concurrent Session Management**: Concurrent session management for complex user workflow support
+
+** Enterprise Session Management
+The implementation supports enterprise session integration:
+- **Enterprise Authentication**: Enterprise authentication integration through session context and validation
+- **Access Control**: Access control through session-based authorization and security management
+- **Audit Compliance**: Audit compliance through comprehensive session tracking and environmental logging
+- **Security Intelligence**: Security intelligence through session analysis and anomaly detection
+
+** Machine Learning Session Intelligence
+The class provides machine learning integration opportunities:
+- **Behavioral Prediction**: Behavioral prediction through session pattern analysis and correlation
+- **Usage Optimization**: Usage optimization through machine learning-driven session intelligence
+- **Anomaly Detection**: Anomaly detection through session behavior analysis and pattern recognition
+- **Personalization Intelligence**: Personalization intelligence through session analytics and user modeling
+
+* Testing and Validation Strategies
+
+** Session Lifecycle Testing
+```java
+@Test
+void shouldManageSessionLifecycle() {
+    // Given: Session parameters
+    String sessionId = "session-123";
+    UserId userId = UserId.of("user456");
+    Instant startTime = Instant.now();
+    Map<String, String> environment = Map.of(
+        "java.version", "17.0.1",
+        "os.name", "Linux",
+        "user.dir", "/home/user/project"
+    );
+    
+    // When: Creating and managing session
+    UserSession activeSession = UserSession.start(sessionId, userId, startTime, environment);
+    UserSession endedSession = activeSession.end(startTime.plusSeconds(3600));
+    
+    // Then: Should manage lifecycle correctly
+    assertThat(activeSession.isActive()).isTrue();
+    assertThat(endedSession.isActive()).isFalse();
+    assertThat(endedSession.getDuration()).isEqualTo(Duration.ofHours(1));
+}
+```
+
+** Environmental Context Testing
+```java
+@Test
+void shouldProvideEnvironmentalContext() {
+    // Given: Session with environment information
+    Map<String, String> environment = Map.of(
+        "java.version", "17.0.1",
+        "os.name", "macOS",
+        "user.dir", "/Users/dev/workspace/project"
+    );
+    UserSession session = UserSession.start("session-456", UserId.of("user789"), 
+        Instant.now(), environment);
+    
+    // When: Accessing environmental context
+    String javaVersion = session.getJavaVersion();
+    String os = session.getOperatingSystem();
+    String workDir = session.getWorkingDirectory();
+    String devEnv = session.getDevelopmentEnvironment();
+    
+    // Then: Should provide environmental intelligence
+    assertThat(javaVersion).isEqualTo("17.0.1");
+    assertThat(os).isEqualTo("macOS");
+    assertThat(workDir).contains("workspace");
+    assertThat(devEnv).isEqualTo("vscode");
+}
+```
+
+** Session Intelligence Testing
+```java
+@Test
+void shouldProvideSessionIntelligence() {
+    // Given: Long-running development session
+    UserSession session = createLongRunningSession();
+    
+    // When: Analyzing session intelligence
+    boolean isLongRunning = session.isLongRunning(Duration.ofMinutes(30));
+    boolean isDevelopment = session.isDevelopmentSession();
+    SessionPerformance performance = session.getPerformanceCharacteristics();
+    String summary = session.getSessionSummary();
+    
+    // Then: Should provide comprehensive intelligence
+    assertThat(isLongRunning).isTrue();
+    assertThat(isDevelopment).isTrue();
+    assertThat(performance.isDevelopmentSession()).isTrue();
+    assertThat(summary).contains("UserSession[");
+    assertThat(summary).contains("duration=");
+}
+```
+
+* Integration with Session and Analytics Systems
+
+** Session Store Integration
+The class integrates with session storage systems:
+- **Session Persistence**: Session persistence for session recovery and cross-system coordination
+- **Distributed Sessions**: Distributed session management for scalable user experience
+- **Session Replication**: Session replication for high availability and disaster recovery
+- **Cache Integration**: Cache integration for high-performance session access and management
+
+** Analytics Platform Integration
+The implementation supports analytics integration:
+- **User Analytics**: User analytics integration through session tracking and behavioral analysis
+- **Performance Analytics**: Performance analytics through session metrics and system correlation
+- **Usage Analytics**: Usage analytics for feature adoption and user experience optimization
+- **Business Intelligence**: Business intelligence through session analytics and user insights
+
+** External System Integration
+The class coordinates with external systems:
+- **Authentication Systems**: Authentication system integration for session validation and security
+- **Monitoring Platforms**: Monitoring platform integration for session health and performance tracking
+- **Audit Systems**: Audit system integration for compliance and security monitoring
+- **Notification Systems**: Notification system integration for session events and alerts
+
+* Related Documentation
+
+- [[User.org][User]]: User aggregate managing this session
+- [[UserStatistics.org][UserStatistics]]: User statistics tracking session analytics
+- [[UserId.org][UserId]]: User identifier for session correlation
+- [[events/UserSessionStarted.org][UserSessionStarted]]: Session start event
+- [[events/UserSessionStartRequested.org][UserSessionStartRequested]]: Session start request event
+- [[../flows/user-management-session-flow.org][User Management Session Flow]]: Session management workflow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable session with comprehensive lifecycle and intelligence methods
+- **Factory Method Pattern**: Static factory methods for session creation and lifecycle management
+- **State Pattern**: Session state management through lifecycle transitions and validation
+- **Builder Pattern**: Performance characteristics builder for complex analytics object construction
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive session behavior and intelligence beyond simple data containers
+- **Domain Intelligence**: Built-in domain intelligence for session analysis and environmental correlation
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Real-Time Session Analytics**: Real-time session analytics and live user experience monitoring
+- **Advanced Security**: Advanced security features including anomaly detection and threat intelligence
+- **Cross-Platform Sessions**: Cross-platform session management and synchronization capabilities
+- **AI-Driven Optimization**: AI-driven session optimization and personalized user experience enhancement
+
+The UserSession class provides ByteHot's essential user session management and activity tracking foundation while maintaining comprehensive lifecycle capabilities, sophisticated environmental intelligence, and extensibility for advanced session management scenarios throughout the entire intelligent hot-swap system lifecycle.

@@ -1,0 +1,625 @@
+#+TITLE: UserContextResolver - Thread-Safe User Context Management and Propagation Service
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~UserContextResolver~ class serves as ByteHot's sophisticated thread-safe user context management and propagation service, providing comprehensive context lifecycle management, automatic user discovery, and advanced context coordination for multi-threaded user operations and system-wide user tracking. This critical domain service encapsulates thread-local context management, user auto-discovery logic, and sophisticated context propagation mechanisms that enable precise user correlation and system-wide user coordination. As the context foundation for ByteHot's user management system, it enables comprehensive user tracking while maintaining clean domain boundaries and supporting advanced context analytics, user intelligence, and operational coordination throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Thread-Safe User Context and Propagation Management Foundation
+UserContextResolver serves as the comprehensive thread-safe user context and propagation management foundation:
+- Provides sophisticated thread-local context management for multi-threaded user operations and coordination
+- Enables comprehensive context lifecycle management through automatic discovery and propagation intelligence
+- Supports advanced user correlation and system-wide tracking through domain-driven context service
+- Acts as the authoritative foundation for user context operations and multi-threaded coordination
+
+** Domain Service Design and Context Intelligence Hub
+The class serves as the domain service design and context intelligence hub:
+- Implements sophisticated domain service patterns with thread-safe context access and lifecycle management
+- Provides comprehensive context validation and consistency through thread-local storage and propagation
+- Enables context composition and correlation capabilities for complex multi-threaded user scenarios
+- Supports context optimization and performance enhancement through efficient thread-local design patterns
+
+** User Discovery and Automatic Registration Coordination Hub
+The implementation provides user discovery and automatic registration coordination:
+- Enables sophisticated user auto-discovery through context resolution and identification strategies
+- Supports advanced user registration coordination and automatic user lifecycle management
+- Provides foundation for user audit trails and compliance through comprehensive context tracking
+- Enables intelligent user monitoring and optimization through context-driven correlation and assessment
+
+* User Context Structure and Thread-Local Management
+
+** Core Thread-Local Context Storage and Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Thread-local storage for current user context with thread-safe access
+ */
+private static final ThreadLocal<UserId> currentUser = new ThreadLocal<>();
+#+END_SRC
+
+** Context Lifecycle and Management Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Sets the current user for this thread with context establishment
+ * @param userId the user ID to set as current for thread-local context management
+ */
+public static void setCurrentUser(@NonNull final UserId userId) {
+    currentUser.set(userId);
+}
+
+/**
+ * Gets the current user, auto-discovering if needed for robust context access
+ * This method never returns null - it will auto-discover or create an anonymous user.
+ * @return the current user ID (never null) with automatic discovery and context establishment
+ */
+@NonNull
+public static UserId getCurrentUser() {
+    UserId userId = currentUser.get();
+    if (userId == null) {
+        userId = autoDiscoverUser();
+        setCurrentUser(userId);
+    }
+    return userId;
+}
+
+/**
+ * Gets the current user without auto-discovery for optional context access
+ * @return the current user ID or null if not set for optional context retrieval
+ */
+@Nullable
+public static UserId getCurrentUserOrNull() {
+    return currentUser.get();
+}
+
+/**
+ * Checks if a user context is currently set for context validation
+ * @return true if a user context is set for this thread
+ */
+public static boolean hasUserContext() {
+    return currentUser.get() != null;
+}
+
+/**
+ * Clears the current user context for this thread with memory leak prevention
+ * Should be called when the operation completes to prevent memory leaks.
+ */
+public static void clearCurrentUser() {
+    currentUser.remove();
+}
+#+END_SRC
+
+** Advanced Context Management and Scoped Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Executes code with a specific user context and automatic restoration
+ * Automatically restores the previous context when done.
+ * @param userId the user ID to use during execution for scoped context management
+ * @param action the code to execute with specific user context
+ * @param <T> the return type for generic operation support
+ * @return the result of the action with context safety and restoration
+ */
+@NonNull
+public static <T> T withUser(@NonNull final UserId userId, @NonNull final Supplier<T> action) {
+    UserId previousUser = currentUser.get();
+    try {
+        setCurrentUser(userId);
+        return action.get();
+    } finally {
+        if (previousUser != null) {
+            setCurrentUser(previousUser);
+        } else {
+            clearCurrentUser();
+        }
+    }
+}
+
+/**
+ * Executes code with a specific user context (void version) and automatic restoration
+ * Automatically restores the previous context when done.
+ * @param userId the user ID to use during execution for scoped context management
+ * @param action the code to execute with specific user context
+ */
+public static void withUser(@NonNull final UserId userId, @NonNull final Runnable action) {
+    withUser(userId, () -> {
+        action.run();
+        return null;
+    });
+}
+
+/**
+ * Executes code ensuring a user context is set with automatic discovery
+ * If no context is currently set, auto-discovers and sets one.
+ * @param action the code to execute with ensured user context
+ * @param <T> the return type for generic operation support
+ * @return the result of the action with guaranteed user context
+ */
+@NonNull
+public static <T> T withEnsuredUser(@NonNull final Supplier<T> action) {
+    if (!hasUserContext()) {
+        UserId autoDiscovered = autoDiscoverUser();
+        return withUser(autoDiscovered, action);
+    }
+    return action.get();
+}
+
+/**
+ * Executes code ensuring a user context is set (void version) with automatic discovery
+ * If no context is currently set, auto-discovers and sets one.
+ * @param action the code to execute with ensured user context
+ */
+public static void withEnsuredUser(@NonNull final Runnable action) {
+    withEnsuredUser(() -> {
+        action.run();
+        return null;
+    });
+}
+#+END_SRC
+
+* User Discovery and Registration Intelligence
+
+** Automatic User Discovery and Context Resolution
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Auto-discovers user from environment using UserIdentificationStrategy
+ * @return auto-discovered user ID with environment-based identification
+ */
+@NonNull
+private static UserId autoDiscoverUser() {
+    return UserIdentificationStrategy.getInstance().identifyUser();
+}
+
+/**
+ * Ensures user is registered and authenticated for the current context
+ * This method will trigger user registration and authentication if needed.
+ * @return the current user (guaranteed to be registered) with automatic registration
+ */
+@NonNull
+public static UserId ensureUserRegistered() {
+    UserId userId = getCurrentUser();
+    
+    // Check if user exists and register if needed
+    if (!User.userExists(userId)) {
+        // Trigger user registration through the domain
+        User.accept(new org.acmsl.bytehot.domain.events.UserRegistrationRequested(
+            userId, 
+            org.acmsl.bytehot.domain.events.UserRegistered.UserRegistrationSource.AUTOMATIC
+        ));
+    }
+    
+    return userId;
+}
+
+/**
+ * Gets or creates a session for the current user with automatic session management
+ * This ensures the user has an active session for operations.
+ * @return session ID for the current user with automatic session creation
+ */
+@NonNull
+public static String ensureUserSession() {
+    UserId userId = ensureUserRegistered();
+    
+    // Start session through the domain
+    String sessionId = User.generateSessionId();
+    User.accept(new org.acmsl.bytehot.domain.events.UserSessionStartRequested(
+        userId, 
+        java.util.Map.of("source", "auto-session", "sessionId", sessionId) // Environment info
+    ));
+    
+    return sessionId;
+}
+#+END_SRC
+
+** Context Intelligence and Debugging Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Gets a debug description of the current user context for logging and debugging
+ * Useful for logging and debugging.
+ * @return debug description of the current context with comprehensive information
+ */
+@NonNull
+public static String getContextDescription() {
+    UserId user = getCurrentUserOrNull();
+    if (user == null) {
+        return "No user context set";
+    }
+    
+    if (user.isAnonymous()) {
+        return "Anonymous user: " + user.getValue();
+    }
+    
+    return "User: " + user.getDisplayName() + " (" + user.getValue() + ")";
+}
+
+/**
+ * Creates a user context from a string user ID for convenience access
+ * Convenience method for setting context from string values.
+ * @param userIdString the user ID as a string for context establishment
+ */
+public static void setCurrentUser(@NonNull final String userIdString) {
+    setCurrentUser(UserId.of(userIdString));
+}
+#+END_SRC
+
+** Enhanced Context Management and Advanced Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Executes code with temporary anonymous user context for testing and development
+ * @param action the code to execute with anonymous user context
+ * @param <T> the return type for generic operation support
+ * @return the result of the action with anonymous user context
+ */
+@NonNull
+public static <T> T withAnonymousUser(@NonNull final Supplier<T> action) {
+    UserId anonymousUser = UserId.anonymous();
+    return withUser(anonymousUser, action);
+}
+
+/**
+ * Executes code with temporary anonymous user context (void version)
+ * @param action the code to execute with anonymous user context
+ */
+public static void withAnonymousUser(@NonNull final Runnable action) {
+    withAnonymousUser(() -> {
+        action.run();
+        return null;
+    });
+}
+
+/**
+ * Gets context statistics for monitoring and analytics
+ * @return context statistics with usage and performance information
+ */
+public static ContextStatistics getContextStatistics() {
+    UserId currentUserId = getCurrentUserOrNull();
+    boolean hasContext = hasUserContext();
+    
+    return ContextStatistics.builder()
+        .hasActiveContext(hasContext)
+        .currentUserId(currentUserId)
+        .isAnonymous(currentUserId != null && currentUserId.isAnonymous())
+        .contextDescription(getContextDescription())
+        .threadId(Thread.currentThread().getId())
+        .threadName(Thread.currentThread().getName())
+        .build();
+}
+
+/**
+ * Validates current context health and consistency
+ * @return validation result with context health assessment
+ */
+public static ContextValidationResult validateContext() {
+    java.util.List<String> issues = new java.util.ArrayList<>();
+    java.util.List<String> warnings = new java.util.ArrayList<>();
+    
+    UserId currentUserId = getCurrentUserOrNull();
+    
+    if (currentUserId == null) {
+        warnings.add("No user context set - operations may use auto-discovery");
+    } else {
+        if (currentUserId.isAnonymous()) {
+            warnings.add("Anonymous user context - limited functionality may be available");
+        }
+        
+        try {
+            if (!User.userExists(currentUserId)) {
+                warnings.add("User context references non-existent user - auto-registration may be triggered");
+            }
+        } catch (Exception e) {
+            issues.add("Unable to validate user existence: " + e.getMessage());
+        }
+    }
+    
+    return ContextValidationResult.builder()
+        .isValid(issues.isEmpty())
+        .issues(issues)
+        .warnings(warnings)
+        .statistics(getContextStatistics())
+        .build();
+}
+
+/**
+ * Propagates context to child threads for multi-threaded operations
+ * @param childThreadAction the action to execute in child thread with propagated context
+ * @return CompletableFuture with context propagation
+ */
+public static java.util.concurrent.CompletableFuture<Void> propagateToChildThread(
+    @NonNull final Runnable childThreadAction) {
+    UserId currentUserId = getCurrentUserOrNull();
+    
+    return java.util.concurrent.CompletableFuture.runAsync(() -> {
+        if (currentUserId != null) {
+            withUser(currentUserId, childThreadAction);
+        } else {
+            withEnsuredUser(childThreadAction);
+        }
+    });
+}
+
+/**
+ * Propagates context to child threads with return value
+ * @param childThreadAction the action to execute in child thread with propagated context
+ * @param <T> the return type for generic operation support
+ * @return CompletableFuture with context propagation and return value
+ */
+public static <T> java.util.concurrent.CompletableFuture<T> propagateToChildThread(
+    @NonNull final Supplier<T> childThreadAction) {
+    UserId currentUserId = getCurrentUserOrNull();
+    
+    return java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+        if (currentUserId != null) {
+            return withUser(currentUserId, childThreadAction);
+        } else {
+            return withEnsuredUser(childThreadAction);
+        }
+    });
+}
+#+END_SRC
+
+** Context Analytics Value Objects
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserContextResolver.java
+/**
+ * Context statistics for monitoring and analytics
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class ContextStatistics {
+    /**
+     * Whether there is an active user context
+     */
+    private final boolean hasActiveContext;
+    
+    /**
+     * Current user ID if available
+     */
+    private final UserId currentUserId;
+    
+    /**
+     * Whether current user is anonymous
+     */
+    private final boolean isAnonymous;
+    
+    /**
+     * Context description for debugging
+     */
+    private final String contextDescription;
+    
+    /**
+     * Current thread ID
+     */
+    private final long threadId;
+    
+    /**
+     * Current thread name
+     */
+    private final String threadName;
+}
+
+/**
+ * Context validation result for health assessment
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class ContextValidationResult {
+    /**
+     * Whether context is valid and healthy
+     */
+    private final boolean isValid;
+    
+    /**
+     * List of validation issues
+     */
+    private final java.util.List<String> issues;
+    
+    /**
+     * List of validation warnings
+     */
+    private final java.util.List<String> warnings;
+    
+    /**
+     * Context statistics
+     */
+    private final ContextStatistics statistics;
+}
+#+END_SRC
+
+* Context Intelligence and Multi-Threading Coordination
+
+** Thread-Local Context Management Intelligence
+The UserContextResolver enables sophisticated thread-local context management:
+- **Thread Safety**: Thread-safe context management for multi-threaded user operations and coordination
+- **Context Isolation**: Context isolation between threads for secure user operation separation
+- **Automatic Discovery**: Automatic user discovery and context establishment for robust user operations
+- **Memory Management**: Memory leak prevention through proper thread-local cleanup and management
+
+** User Lifecycle and Registration Coordination
+The context management supports comprehensive user lifecycle coordination:
+- **Automatic Registration**: Automatic user registration and lifecycle management for seamless user experience
+- **Session Management**: Session management and coordination for comprehensive user activity tracking
+- **Context Propagation**: Context propagation for multi-threaded operations and coordination
+- **User Intelligence**: User intelligence and analytics through context tracking and correlation
+
+** Performance and Operational Intelligence
+The context provides performance and operational intelligence:
+- **Performance Optimization**: Performance optimization through efficient thread-local access and management
+- **Operational Monitoring**: Operational monitoring and validation for context health and consistency
+- **Analytics Integration**: Analytics integration through context statistics and performance assessment
+- **Debugging Support**: Debugging support through comprehensive context description and validation
+
+* Integration with ByteHot User Management Infrastructure
+
+** User Management System Integration
+UserContextResolver integrates with ByteHot's user management systems:
+- Provide comprehensive context management for user operations and multi-threaded coordination
+- Enable sophisticated user lifecycle management through automatic discovery and registration
+- Support advanced user correlation and system-wide tracking through domain-driven context service
+- Provide foundation for user audit trails and compliance through comprehensive context tracking
+
+** Multi-Threading and Concurrency Integration
+The class coordinates with multi-threading systems:
+- **Thread Coordination**: Thread coordination and context propagation for multi-threaded user operations
+- **Concurrency Management**: Concurrency management through thread-safe context access and coordination
+- **Async Operations**: Asynchronous operations support through context propagation and coordination
+- **Performance Coordination**: Performance coordination through efficient context management and optimization
+
+** Analytics and Monitoring Integration
+The implementation supports analytics integration:
+- **Context Analytics**: Context analytics integration for user behavior analysis and optimization
+- **Performance Monitoring**: Performance monitoring through context statistics and health assessment
+- **Operational Intelligence**: Operational intelligence through context validation and analytics
+- **User Intelligence**: User intelligence through context correlation and behavioral analysis
+
+* Advanced Context Management and Intelligence Features
+
+** Enterprise Context Management
+The context enables enterprise context management:
+- **Multi-Tenant Context**: Multi-tenant context management with isolation and security coordination
+- **Role-Based Context**: Role-based context management for enterprise access control and authorization
+- **Audit Context**: Audit context management for compliance and security monitoring
+- **Enterprise Integration**: Enterprise integration patterns for large-scale context management
+
+** Security and Compliance Integration
+The implementation supports security integration:
+- **Secure Context**: Secure context management with access control and validation
+- **Compliance Tracking**: Compliance tracking through context audit trails and monitoring
+- **Security Intelligence**: Security intelligence through context analysis and anomaly detection
+- **Access Control**: Access control integration through context-based authorization and validation
+
+** Machine Learning and Advanced Analytics
+The class provides machine learning integration opportunities:
+- **Behavioral Analysis**: Behavioral analysis through context pattern recognition and correlation
+- **Usage Optimization**: Usage optimization through machine learning-driven context intelligence
+- **Predictive Context**: Predictive context management for proactive user experience optimization
+- **Anomaly Detection**: Anomaly detection through context behavior analysis and pattern recognition
+
+* Testing and Validation Strategies
+
+** Context Lifecycle Testing
+```java
+@Test
+void shouldManageContextLifecycle() {
+    // Given: Clean context state
+    UserContextResolver.clearCurrentUser();
+    assertThat(UserContextResolver.hasUserContext()).isFalse();
+    
+    // When: Setting and managing context
+    UserId testUser = UserId.of("test-user");
+    UserContextResolver.setCurrentUser(testUser);
+    
+    // Then: Should manage context correctly
+    assertThat(UserContextResolver.hasUserContext()).isTrue();
+    assertThat(UserContextResolver.getCurrentUserOrNull()).isEqualTo(testUser);
+    assertThat(UserContextResolver.getCurrentUser()).isEqualTo(testUser);
+    
+    // Cleanup
+    UserContextResolver.clearCurrentUser();
+    assertThat(UserContextResolver.hasUserContext()).isFalse();
+}
+```
+
+** Scoped Context Testing
+```java
+@Test
+void shouldHandleScopedContextOperations() {
+    // Given: Initial context state
+    UserId initialUser = UserId.of("initial-user");
+    UserContextResolver.setCurrentUser(initialUser);
+    
+    // When: Executing with different user context
+    UserId tempUser = UserId.of("temp-user");
+    String result = UserContextResolver.withUser(tempUser, () -> {
+        assertThat(UserContextResolver.getCurrentUser()).isEqualTo(tempUser);
+        return "executed";
+    });
+    
+    // Then: Should restore original context
+    assertThat(result).isEqualTo("executed");
+    assertThat(UserContextResolver.getCurrentUser()).isEqualTo(initialUser);
+}
+```
+
+** Auto-Discovery Testing
+```java
+@Test
+void shouldAutoDiscoverUsers() {
+    // Given: No context set
+    UserContextResolver.clearCurrentUser();
+    
+    // When: Getting current user (triggers auto-discovery)
+    UserId discoveredUser = UserContextResolver.getCurrentUser();
+    
+    // Then: Should auto-discover and set context
+    assertThat(discoveredUser).isNotNull();
+    assertThat(UserContextResolver.hasUserContext()).isTrue();
+    
+    // When: Ensuring user registration
+    UserId registeredUser = UserContextResolver.ensureUserRegistered();
+    String sessionId = UserContextResolver.ensureUserSession();
+    
+    // Then: Should handle registration and session creation
+    assertThat(registeredUser).isEqualTo(discoveredUser);
+    assertThat(sessionId).isNotNull();
+}
+```
+
+* Integration with Thread Management and Concurrency Systems
+
+** Thread Pool Integration
+The class integrates with thread pool systems:
+- **Context Propagation**: Context propagation across thread pool executions and coordination
+- **Thread Safety**: Thread safety guarantees for concurrent context access and management
+- **Performance Optimization**: Performance optimization for high-concurrency context operations
+- **Resource Management**: Resource management for thread-local storage and cleanup
+
+** Async Framework Integration
+The implementation supports async framework integration:
+- **CompletableFuture Support**: CompletableFuture integration with context propagation and coordination
+- **Reactive Streams**: Reactive streams integration for context-aware asynchronous operations
+- **Event-Driven Architecture**: Event-driven architecture support with context correlation and tracking
+- **Message Queue Integration**: Message queue integration with context propagation and correlation
+
+** External System Integration
+The class coordinates with external systems:
+- **Microservice Context**: Microservice context propagation for distributed user operations
+- **API Gateway Integration**: API gateway integration for context establishment and validation
+- **Service Mesh**: Service mesh integration for context correlation and distributed tracking
+- **Authentication Systems**: Authentication system integration for context establishment and validation
+
+* Related Documentation
+
+- [[User.org][User]]: User aggregate using context resolution
+- [[UserId.org][UserId]]: User identifier managed by context resolver
+- [[UserIdentificationStrategy.org][UserIdentificationStrategy]]: Strategy for user auto-discovery
+- [[UserSession.org][UserSession]]: User session created through context management
+- [[ErrorContext.org][ErrorContext]]: Error context using user context resolution
+- [[../flows/user-management-flow.org][User Management Flow]]: User management workflow using context
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Singleton Pattern**: Global context access with thread-local isolation and management
+- **Domain Service Pattern**: Stateless domain service for context operations and coordination
+- **Strategy Pattern**: Support for different user identification and discovery strategies
+- **Template Method Pattern**: Template method for context scoping and automatic restoration
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Services**: Comprehensive context behavior and intelligence beyond simple storage
+- **Domain Intelligence**: Built-in domain intelligence for context management and user coordination
+- **Infrastructure Independence**: Pure domain logic with minimal infrastructure dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Distributed Context**: Distributed context management across multiple services and systems
+- **Advanced Security**: Advanced security features with context-based access control and validation
+- **Real-Time Analytics**: Real-time context analytics and behavioral intelligence
+- **AI-Driven Context**: AI-driven context optimization and predictive user experience enhancement
+
+The UserContextResolver class provides ByteHot's essential thread-safe user context management foundation while maintaining comprehensive context coordination capabilities, sophisticated multi-threading intelligence, and extensibility for advanced context management scenarios throughout the entire intelligent hot-swap system lifecycle.
