@@ -194,7 +194,8 @@ public class ConfigurationAdapter
         
         for (int i = 0; i < paths.length; i++) {
             final Path path = Paths.get(paths[i].trim());
-            final List<String> patterns = List.of("*.class");
+            final String watchPatterns = System.getProperty(PROP_PREFIX + "watch.patterns", "*.class");
+            final List<String> patterns = List.of(watchPatterns.split(","));
             final boolean recursive = Boolean.parseBoolean(
                 System.getProperty(PROP_PREFIX + "watch.recursive", "true")
             );
