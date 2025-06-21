@@ -50,6 +50,7 @@ import org.acmsl.bytehot.domain.WatchConfiguration;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import java.lang.instrument.Instrumentation;
+import java.util.List;
 import java.util.Objects;
 
 import lombok.EqualsAndHashCode;
@@ -116,10 +117,25 @@ public class ByteHot {
     public void start(final ByteHotAttachRequested precedingEvent) {
         try {
             final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+            final FileWatcherPort fileWatcher = Ports.resolve(FileWatcherPort.class);
             
-            // Configure watch paths
+            // Configure watch paths and start file watching
             final WatchPathConfigured watchEvent = new WatchPathConfigured(configuration, precedingEvent);
             eventEmitter.emit(watchEvent);
+            
+            // Start watching each configured folder
+            for (final FolderWatch folderWatch : configuration.getFolders()) {
+                try {
+                    final String watchId = fileWatcher.startWatching(
+                        folderWatch.getFolder(), 
+                        List.of("*.class"), // Default pattern for class files
+                        true // Recursive watching
+                    );
+                    System.out.println("Started watching folder: " + folderWatch.getFolder() + " (ID: " + watchId + ")");
+                } catch (final Exception e) {
+                    System.err.println("Failed to start watching folder " + folderWatch.getFolder() + ": " + e.getMessage());
+                }
+            }
             
             // Check and emit hot-swap capability
             if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
