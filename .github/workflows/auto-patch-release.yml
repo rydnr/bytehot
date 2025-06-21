@@ -138,89 +138,24 @@ jobs:
         NEW_VERSION="${{ steps.current_version.outputs.next }}"
         CATEGORY="${{ steps.patch_detect.outputs.category }}"
         COMMIT_MSG="${{ steps.patch_detect.outputs.commit_msg }}"
+        BUILD_DATE=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
         
         # Configure git for tagging
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         
-        # Create tag message based on category
-        case "$CATEGORY" in
-          "bugfix")
-            TAG_MSG=$(cat <<EOF
-ByteHot $NEW_VERSION - Bug Fix
-
-🐛 **Automated Patch Release**
-- **Change Type**: Bug Fix
-- **Trigger Commit**: $COMMIT_MSG
-- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-This patch release was automatically created based on bug fix commit detection.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-EOF
-)
-            ;;
-          "security")
-            TAG_MSG=$(cat <<EOF
-ByteHot $NEW_VERSION - Security Fix
-
-🔒 **Automated Security Patch**
-- **Change Type**: Security Fix
-- **Trigger Commit**: $COMMIT_MSG
-- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-This security patch was automatically created based on security-related commit detection.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-EOF
-)
-            ;;
-          "config")
-            TAG_MSG=$(cat <<EOF
-ByteHot $NEW_VERSION - Configuration Fix
-
-🔧 **Automated Configuration Patch**
-- **Change Type**: Configuration Fix
-- **Trigger Commit**: $COMMIT_MSG
-- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-This patch release was automatically created based on configuration fix commit detection.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-EOF
-)
-            ;;
-          "performance")
-            TAG_MSG=$(cat <<EOF
-ByteHot $NEW_VERSION - Performance Improvement
-
-⚡ **Automated Performance Patch**
-- **Change Type**: Performance Improvement
-- **Trigger Commit**: $COMMIT_MSG
-- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-This patch release was automatically created based on performance improvement commit detection.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-EOF
-)
-            ;;
-          *)
-            TAG_MSG=$(cat <<EOF
-ByteHot $NEW_VERSION - Automated Patch
-
-🔄 **Automated Patch Release**
-- **Change Type**: General Fix
-- **Trigger Commit**: $COMMIT_MSG
-- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
-
-This patch release was automatically created based on patch-level commit detection.
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-EOF
-)
-            ;;
-        esac
+        # Create tag message based on category - using simple concatenation to avoid YAML issues
+        if [ "$CATEGORY" = "bugfix" ]; then
+          TAG_MSG="ByteHot $NEW_VERSION - Bug Fix"$'\n\n'"🐛 **Automated Patch Release**"$'\n'"- **Change Type**: Bug Fix"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on bug fix commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
+        elif [ "$CATEGORY" = "security" ]; then
+          TAG_MSG="ByteHot $NEW_VERSION - Security Fix"$'\n\n'"🔒 **Automated Security Patch**"$'\n'"- **Change Type**: Security Fix"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This security patch was automatically created based on security-related commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
+        elif [ "$CATEGORY" = "config" ]; then
+          TAG_MSG="ByteHot $NEW_VERSION - Configuration Fix"$'\n\n'"🔧 **Automated Configuration Patch**"$'\n'"- **Change Type**: Configuration Fix"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on configuration fix commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
+        elif [ "$CATEGORY" = "performance" ]; then
+          TAG_MSG="ByteHot $NEW_VERSION - Performance Improvement"$'\n\n'"⚡ **Automated Performance Patch**"$'\n'"- **Change Type**: Performance Improvement"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on performance improvement commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
+        else
+          TAG_MSG="ByteHot $NEW_VERSION - Automated Patch"$'\n\n'"🔄 **Automated Patch Release**"$'\n'"- **Change Type**: General Fix"$'\n'"- **Trigger Commit**: $COMMIT_MSG"$'\n'"- **Auto-Generated**: $BUILD_DATE"$'\n\n'"This patch release was automatically created based on patch-level commit detection."$'\n\n'"🤖 Generated with [Claude Code](https://claude.ai/code)"
+        fi
         
         # Create and push the tag
         git tag -a "$NEW_VERSION" -m "$TAG_MSG"
