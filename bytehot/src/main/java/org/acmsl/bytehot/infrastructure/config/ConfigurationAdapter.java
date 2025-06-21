@@ -29,9 +29,10 @@
  * Class name: ConfigurationAdapter
  *
  * Responsibilities:
- *   - Implement configuration loading from various sources
- *   - Handle YAML, properties, and environment variable configuration
+ *   - Implement configuration loading from various sources (YAML, properties, environment)
+ *   - Handle YAML, properties, and environment variable configuration with proper fallbacks
  *   - Provide infrastructure implementation of ConfigurationPort
+ *   - Support both classpath and external file configuration loading
  *
  * Collaborators:
  *   - ConfigurationPort: Interface this adapter implements
