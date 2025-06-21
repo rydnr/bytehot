@@ -36,14 +36,21 @@
 package org.acmsl.bytehot.application;
 
 import org.acmsl.bytehot.domain.ByteHot;
+import org.acmsl.bytehot.domain.BytecodeValidationException;
+import org.acmsl.bytehot.domain.BytecodeValidator;
 import org.acmsl.bytehot.domain.ConfigurationPort;
 import org.acmsl.bytehot.domain.EventEmitterPort;
 import org.acmsl.bytehot.domain.FileWatcherPort;
+import org.acmsl.bytehot.domain.HotSwapException;
+import org.acmsl.bytehot.domain.HotSwapManager;
 import org.acmsl.bytehot.domain.InstrumentationPort;
 import org.acmsl.bytehot.domain.Ports;
+import org.acmsl.bytehot.domain.events.BytecodeValidated;
 import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
+import org.acmsl.bytehot.domain.events.ClassRedefinitionSucceeded;
+import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter;
 import org.acmsl.bytehot.infrastructure.events.EventEmitterAdapter;
 import org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter;
@@ -161,15 +168,64 @@ public class ByteHotApplication
                 return;
             }
             
-            // For now, just log the event and emit it
             System.out.println("Processing ClassFileChanged: " + event.getClassName() + " at " + event.getClassFile());
             
-            // For now, just log the event since ClassFileChanged is not a DomainResponseEvent
-            // In a full implementation, this would trigger the hot-swap pipeline
-            System.out.println("ClassFileChanged event received: " + event.getClassName());
+            // Trigger the complete hot-swap pipeline
+            executeHotSwapPipeline(event);
             
         } catch (final Exception e) {
             System.err.println("Failed to process ClassFileChanged event: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Executes the complete hot-swap pipeline for a class file change
+     * @param event the class file changed event
+     */
+    protected void executeHotSwapPipeline(final ClassFileChanged event) {
+        try {
+            // Step 1: Validate the new bytecode
+            System.out.println("Validating bytecode for class: " + event.getClassName());
+            final BytecodeValidator validator = new BytecodeValidator();
+            final BytecodeValidated validation = validator.validate(event.getClassFile());
+            
+            System.out.println("Bytecode validation successful for: " + event.getClassName());
+            
+            // Step 2: Create hot-swap request
+            System.out.println("Creating HotSwapRequested event for: " + event.getClassName());
+            final HotSwapManager hotSwapManager = new HotSwapManager();
+            
+            // Get the current bytecode (mock empty for now since we don't have class tracking)
+            final byte[] originalBytecode = new byte[0];
+            final HotSwapRequested hotSwapRequest = hotSwapManager.requestHotSwap(
+                event.getClassFile(), 
+                validation, 
+                originalBytecode
+            );
+            
+            // Step 3: Perform class redefinition
+            System.out.println("Performing class redefinition for: " + event.getClassName());
+            final ClassRedefinitionSucceeded result = hotSwapManager.performRedefinition(hotSwapRequest);
+            
+            // Step 4: Log success (event emission would be handled by proper domain flow in production)
+            System.out.println("Hot-swap completed successfully for: " + event.getClassName() + 
+                             " (affected instances: " + result.getAffectedInstances() + ")");
+            System.out.println("ClassRedefinitionSucceeded event generated for: " + event.getClassName());
+            
+        } catch (final BytecodeValidationException e) {
+            // Handle validation failure
+            System.err.println("Bytecode validation failed for " + event.getClassName() + ": " + e.getMessage());
+            System.err.println("BytecodeRejected event generated: " + e.getRejectionEvent().getRejectionReason());
+            
+        } catch (final HotSwapException e) {
+            // Handle redefinition failure
+            System.err.println("Class redefinition failed for " + event.getClassName() + ": " + e.getMessage());
+            System.err.println("ClassRedefinitionFailed event generated: " + e.getFailureEvent().getFailureReason());
+            
+        } catch (final Exception e) {
+            // Handle unexpected errors
+            System.err.println("Unexpected error in hot-swap pipeline for " + event.getClassName() + ": " + e.getMessage());
             e.printStackTrace();
         }
     }
