@@ -284,12 +284,28 @@ ByteHot understands and documents its own behavior:
 - **Documentation Generation:** Automatic creation of process documentation
 - **Behavior Analysis:** Pattern recognition in system operations
 
+## Versioning Strategy
+
+ByteHot follows a milestone-aligned semantic versioning strategy detailed in [Versioning and Release Strategy](versioning-and-release-strategy.md).
+
+### Current Version: 1.2.1
+- **Phase**: Core Foundation Complete (1.x.x)
+- **Milestones**: Core Foundation + Milestone 6A (EventSourcing) + Milestone 6F (Flow Detection)
+- **Latest Change**: Configuration loading bug fix
+
+### Version Format
+All versions follow semver format `X.Y.Z` (no `v` prefix):
+- **Major (X)**: Architectural phases (1=Core Foundation, 2=EventSourcing Complete, 3=Advanced Features)
+- **Minor (Y)**: Completed milestones within a phase
+- **Patch (Z)**: Bug fixes and hotfixes (automated by CI/CD)
+
 ## Getting Started
 
 ### For Developers
 1. Read [Milestone 1](milestone-1-file-system-monitoring.md) to understand file monitoring
 2. Review [Milestone 2](milestone-2-bytecode-analysis.md) for bytecode analysis concepts
 3. Check current progress in [Milestone 3](milestone-3-hotswap-operations.md)
+4. Review [Versioning Strategy](versioning-and-release-strategy.md) for release process
 
 ### For Architects
 1. Review the domain events architecture and event flow

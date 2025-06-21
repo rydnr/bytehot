@@ -1,0 +1,228 @@
+name: Auto Patch Release
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/workflows/**'
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  detect-patch-release:
+    name: Detect Patch-Level Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout with full history
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Analyze commit for patch-level changes
+      id: patch_detect
+      run: |
+        # Get the last commit message
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        echo "commit_msg=$COMMIT_MSG" >> $GITHUB_OUTPUT
+        
+        # Check if this is a patch-worthy commit
+        PATCH_WORTHY=false
+        
+        # Bug fix patterns
+        if [[ "$COMMIT_MSG" =~ ^(fix:|🐛|✅.*fix|✅.*Fix) ]] || \
+           [[ "$COMMIT_MSG" =~ Fix.*bug ]] || \
+           [[ "$COMMIT_MSG" =~ Resolve.*issue ]]; then
+          PATCH_WORTHY=true
+          echo "category=bugfix" >> $GITHUB_OUTPUT
+        fi
+        
+        # Security patterns  
+        if [[ "$COMMIT_MSG" =~ ^(security:|🔒) ]] || \
+           [[ "$COMMIT_MSG" =~ Security.*fix ]] || \
+           [[ "$COMMIT_MSG" =~ vulnerability ]]; then
+          PATCH_WORTHY=true
+          echo "category=security" >> $GITHUB_OUTPUT
+        fi
+        
+        # Configuration fix patterns
+        if [[ "$COMMIT_MSG" =~ ^(config:|🔧) ]] || \
+           [[ "$COMMIT_MSG" =~ Configuration.*fix ]] || \
+           [[ "$COMMIT_MSG" =~ configuration.*loading ]]; then
+          PATCH_WORTHY=true
+          echo "category=config" >> $GITHUB_OUTPUT
+        fi
+        
+        # Performance patterns
+        if [[ "$COMMIT_MSG" =~ ^(perf:|⚡) ]] || \
+           [[ "$COMMIT_MSG" =~ Performance.*improvement ]]; then
+          PATCH_WORTHY=true
+          echo "category=performance" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "patch_worthy=$PATCH_WORTHY" >> $GITHUB_OUTPUT
+        
+        if [ "$PATCH_WORTHY" = "true" ]; then
+          echo "🎯 Patch-level change detected: $COMMIT_MSG"
+        else
+          echo "ℹ️ No patch-level change detected"
+        fi
+        
+    - name: Get current version
+      id: current_version
+      if: steps.patch_detect.outputs.patch_worthy == 'true'
+      run: |
+        # Get the latest semver tag
+        LATEST_TAG=$(git tag --list --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+        
+        if [ -z "$LATEST_TAG" ]; then
+          echo "No existing semver tags found, starting with 1.0.0"
+          echo "current=1.0.0" >> $GITHUB_OUTPUT
+          echo "next=1.0.1" >> $GITHUB_OUTPUT
+        else
+          echo "current=$LATEST_TAG" >> $GITHUB_OUTPUT
+          
+          # Parse version components  
+          IFS='.' read -r major minor patch <<< "$LATEST_TAG"
+          
+          # Increment patch version
+          new_patch=$((patch + 1))
+          NEW_VERSION="$major.$minor.$new_patch"
+          
+          echo "next=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "📈 Version increment: $LATEST_TAG → $NEW_VERSION"
+        fi
+        
+    - name: Check if tag already exists
+      id: tag_check
+      if: steps.patch_detect.outputs.patch_worthy == 'true'
+      run: |
+        NEW_VERSION="${{ steps.current_version.outputs.next }}"
+        
+        if git tag --list | grep -q "^$NEW_VERSION$"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "⚠️ Tag $NEW_VERSION already exists, skipping auto-release"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "✅ Tag $NEW_VERSION is available for creation"
+        fi
+        
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      if: steps.patch_detect.outputs.patch_worthy == 'true' && steps.tag_check.outputs.exists == 'false'
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Test build before tagging
+      if: steps.patch_detect.outputs.patch_worthy == 'true' && steps.tag_check.outputs.exists == 'false'
+      run: |
+        echo "🧪 Running tests before creating patch release..."
+        mvn clean test -B -q
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ All tests passed, proceeding with patch release"
+        else
+          echo "❌ Tests failed, aborting auto patch release"
+          exit 1
+        fi
+        
+    - name: Create automated patch tag
+      if: steps.patch_detect.outputs.patch_worthy == 'true' && steps.tag_check.outputs.exists == 'false'
+      run: |
+        NEW_VERSION="${{ steps.current_version.outputs.next }}"
+        CATEGORY="${{ steps.patch_detect.outputs.category }}"
+        COMMIT_MSG="${{ steps.patch_detect.outputs.commit_msg }}"
+        
+        # Configure git for tagging
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Create tag message based on category
+        case "$CATEGORY" in
+          "bugfix")
+            TAG_MSG="ByteHot $NEW_VERSION - Bug Fix
+
+🐛 **Automated Patch Release**
+- **Change Type**: Bug Fix
+- **Trigger Commit**: $COMMIT_MSG
+- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+This patch release was automatically created based on bug fix commit detection.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)"
+            ;;
+          "security")
+            TAG_MSG="ByteHot $NEW_VERSION - Security Fix
+
+🔒 **Automated Security Patch**
+- **Change Type**: Security Fix
+- **Trigger Commit**: $COMMIT_MSG
+- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+This security patch was automatically created based on security-related commit detection.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)"
+            ;;
+          "config")
+            TAG_MSG="ByteHot $NEW_VERSION - Configuration Fix
+
+🔧 **Automated Configuration Patch**
+- **Change Type**: Configuration Fix
+- **Trigger Commit**: $COMMIT_MSG
+- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+This patch release was automatically created based on configuration fix commit detection.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)"
+            ;;
+          "performance")
+            TAG_MSG="ByteHot $NEW_VERSION - Performance Improvement
+
+⚡ **Automated Performance Patch**
+- **Change Type**: Performance Improvement
+- **Trigger Commit**: $COMMIT_MSG
+- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+This patch release was automatically created based on performance improvement commit detection.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)"
+            ;;
+          *)
+            TAG_MSG="ByteHot $NEW_VERSION - Automated Patch
+
+🔄 **Automated Patch Release**
+- **Change Type**: General Fix
+- **Trigger Commit**: $COMMIT_MSG
+- **Auto-Generated**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+This patch release was automatically created based on patch-level commit detection.
+
+🤖 Generated with [Claude Code](https://claude.ai/code)"
+            ;;
+        esac
+        
+        # Create and push the tag
+        git tag -a "$NEW_VERSION" -m "$TAG_MSG"
+        git push origin "$NEW_VERSION"
+        
+        echo "🚀 Created and pushed tag: $NEW_VERSION"
+        echo "📋 Category: $CATEGORY"
+        
+    - name: Summary
+      if: always()
+      run: |
+        if [ "${{ steps.patch_detect.outputs.patch_worthy }}" = "true" ]; then
+          if [ "${{ steps.tag_check.outputs.exists }}" = "true" ]; then
+            echo "⚠️ Patch-level change detected but tag already exists"
+          else
+            echo "✅ Automated patch release completed: ${{ steps.current_version.outputs.next }}"
+          fi
+        else
+          echo "ℹ️ No patch-level changes detected in this commit"
+        fi

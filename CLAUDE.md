@@ -40,9 +40,10 @@ Following the *DDD* terminology, we use the term "primary port" to identify poin
 
 From a code standpoint, a "Port" is an interface in the Domain layer, and an "Adapter" is a class in the Infrastructure layer that implements a "Port", and gets injected in the Domain by the Application layer (and later available through the `#resolve(Port)` method in the `Ports` class).
 
-[... rest of the existing content remains unchanged ...]
-
 ## Memories
 
 ### Documentation Requirements
 - Don't use markdown, only org-mode format, but in the README.md file.
+
+### Versioning
+- Tags should follow the semantic versioning recommendations, but leaving the patch group to CI/CD tools. Versions should not include the `v` prefix.

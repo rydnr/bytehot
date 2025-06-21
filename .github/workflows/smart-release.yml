@@ -3,8 +3,9 @@ name: Smart Release with Metadata
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'  # Semver without v prefix
       - 'milestone-*'
+      - 'test-*'  # Allow test tags for workflow validation
 
 env:
   JAVA_VERSION: '17'
@@ -35,29 +36,55 @@ jobs:
         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-maven-
         
-    - name: Extract tag metadata
+    - name: Extract tag metadata and validate semver
       id: meta
       run: |
         TAG=${GITHUB_REF#refs/tags/}
         echo "tag=$TAG" >> $GITHUB_OUTPUT
         
-        # Determine release type
-        if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        # Validate and determine release type
+        if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
           echo "type=stable" >> $GITHUB_OUTPUT
           echo "prerelease=false" >> $GITHUB_OUTPUT
-          echo "title=Stable Release" >> $GITHUB_OUTPUT
+          echo "title=ByteHot Release" >> $GITHUB_OUTPUT
+          
+          # Extract version components
+          IFS='.' read -r major minor patch <<< "$TAG"
+          echo "major=$major" >> $GITHUB_OUTPUT
+          echo "minor=$minor" >> $GITHUB_OUTPUT  
+          echo "patch=$patch" >> $GITHUB_OUTPUT
+          
+          # Determine phase based on major version
+          if [ "$major" -eq 0 ]; then
+            echo "phase=Development" >> $GITHUB_OUTPUT
+          elif [ "$major" -eq 1 ]; then
+            echo "phase=Core Foundation Complete" >> $GITHUB_OUTPUT
+          elif [ "$major" -eq 2 ]; then
+            echo "phase=EventSourcing Complete" >> $GITHUB_OUTPUT
+          elif [ "$major" -eq 3 ]; then
+            echo "phase=Advanced Features" >> $GITHUB_OUTPUT
+          else
+            echo "phase=Future Phase" >> $GITHUB_OUTPUT
+          fi
+          
         elif [[ "$TAG" =~ milestone ]]; then
           echo "type=milestone" >> $GITHUB_OUTPUT
           echo "prerelease=true" >> $GITHUB_OUTPUT
           echo "title=Milestone Release" >> $GITHUB_OUTPUT
+          echo "phase=Milestone" >> $GITHUB_OUTPUT
           # Extract milestone number
-          if [[ "$TAG" =~ milestone-([0-9]+) ]]; then
+          if [[ "$TAG" =~ milestone-([0-9a-zA-Z]+) ]]; then
             echo "milestone=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
           fi
-        else
-          echo "type=development" >> $GITHUB_OUTPUT
+        elif [[ "$TAG" =~ ^test- ]]; then
+          echo "type=test" >> $GITHUB_OUTPUT
           echo "prerelease=true" >> $GITHUB_OUTPUT
-          echo "title=Development Release" >> $GITHUB_OUTPUT
+          echo "title=Test Release" >> $GITHUB_OUTPUT
+          echo "phase=Testing" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Invalid tag format: $TAG"
+          echo "✅ Valid formats: X.Y.Z (semver), milestone-*, test-*"
+          exit 1
         fi
         
         echo "build_date=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT

@@ -1,0 +1,372 @@
+#+TITLE: ByteHot Versioning and Release Strategy
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-21
+
+* Overview
+
+This specification establishes the official versioning and release strategy for ByteHot, aligned with semantic versioning principles and the milestone-based development approach. The strategy ensures consistency, predictability, and automation in version management.
+
+* Semantic Versioning Strategy
+
+ByteHot follows semantic versioning (semver) with milestone-aligned major and minor versions, and CI/CD-managed patch versions.
+
+** Version Format
+
+All ByteHot versions follow the format: =X.Y.Z= (no =v= prefix)
+
+- =X= (Major): Significant architectural phases
+- =Y= (Minor): Completed milestones within a phase  
+- =Z= (Patch): Bug fixes and hotfixes (CI/CD managed)
+
+** Examples
+- =1.2.1=: Core Foundation phase, with Milestones 6A and 6F complete, plus one patch
+- =2.0.0=: EventSourcing Complete phase begins
+- =2.7.0=: EventSourcing phase with all milestones 6A-6G complete
+
+* Major Version Strategy
+
+Major versions represent significant architectural phases and capabilities.
+
+** Version 0.x.x: Development Phase (SUPERSEDED)
+- *Status*: SUPERSEDED - moved directly to 1.x.x due to core foundation completion
+- *Description*: Initial development and proof-of-concept
+- *Capabilities*: Basic hot-swap functionality development
+
+** Version 1.x.x: Core Foundation Complete
+- *Status*: CURRENT PHASE
+- *Description*: Complete hot-swap foundation with hexagonal architecture
+- *Milestones Included*:
+  - Milestone 1: File System Monitoring ✅
+  - Milestone 2: Bytecode Analysis ✅  
+  - Milestone 3: Hot-Swap Operations ✅
+  - Milestone 4: Instance Management ✅
+  - Milestone 5: Hexagonal Architecture ✅
+- *Key Capabilities*:
+  - Complete hot-swap workflow
+  - JVM agent deployment
+  - Thread-safe concurrent operations
+  - Comprehensive error handling
+
+** Version 2.x.x: EventSourcing Complete (PLANNED)
+- *Description*: Full EventSourcing capabilities with user management
+- *Milestones Included*:
+  - Milestone 6A: Basic EventSourcing Infrastructure ✅
+  - Milestone 6B: Event-Driven Testing Framework
+  - Milestone 6C: User Management Domain
+  - Milestone 6D: Event-Driven Bug Reporting  
+  - Milestone 6E: GitHub Actions CI/CD Pipeline ✅
+  - Milestone 6F: Flow Detection ✅
+  - Milestone 6G: Java-Commons Refactoring
+- *Key Capabilities*:
+  - Complete audit trails
+  - Event-driven testing
+  - User-aware operations
+  - Automatic bug reproduction
+  - Self-documenting system behavior
+
+** Version 3.x.x: Advanced Features (FUTURE)
+- *Description*: Plugin ecosystem and enterprise features
+- *Milestones Included*:
+  - Milestone 7: Plugin Architecture + Spring Support
+  - Milestone 8: Telemetry and Analytics + Time Saved Tracking  
+  - Milestone 9: HTTP REPL for Runtime Interaction
+  - Milestone 10: Additional Framework Plugins
+- *Key Capabilities*:
+  - Extensible plugin architecture
+  - Framework integrations
+  - Advanced analytics
+  - Runtime interaction APIs
+
+** Version 4.x.x: IDE Integration (FUTURE)
+- *Description*: Native IDE integrations and tooling
+- *Milestones Included*:
+  - Milestone 11: IntelliJ IDEA Plugin
+  - Milestone 12: Eclipse Plugin
+  - Milestone 13: Runtime Introspection
+- *Key Capabilities*:
+  - Deep IDE integration
+  - Native development experience
+  - Advanced introspection
+
+* Minor Version Strategy
+
+Minor versions increment for each **completed milestone** within a major version phase.
+
+** Current 1.x.x Phase Mapping
+
+| Version | Milestone | Description | Status |
+|---------|-----------|-------------|---------|
+| =1.0.0= | Core Foundation | Milestones 1-5 complete | ✅ ACHIEVED |
+| =1.1.0= | + Milestone 6A | Basic EventSourcing Infrastructure | ✅ ACHIEVED |
+| =1.2.0= | + Milestone 6F | Flow Detection | ✅ ACHIEVED |
+| =1.3.0= | + Milestone 6E | GitHub Actions CI/CD Pipeline | ✅ ACHIEVED |
+| =1.4.0= | + Milestone 6B | Event-Driven Testing Framework | 📋 PLANNED |
+| =1.5.0= | + Milestone 6C | User Management Domain | 📋 PLANNED |
+| =1.6.0= | + Milestone 6D | Event-Driven Bug Reporting | 📋 PLANNED |
+| =1.7.0= | + Milestone 6G | Java-Commons Refactoring | 📋 PLANNED |
+| =2.0.0= | EventSourcing Complete | All Milestones 6A-6G | 📋 PLANNED |
+
+** Future 2.x.x Phase Mapping
+
+| Version | Milestone | Description | Status |
+|---------|-----------|-------------|---------|
+| =2.0.0= | EventSourcing Foundation | Milestone 6A-6G complete | 📋 PLANNED |
+| =2.1.0= | + Milestone 7 | Plugin Architecture + Spring | 📋 PLANNED |  
+| =2.2.0= | + Milestone 8 | Telemetry and Analytics | 📋 PLANNED |
+| =2.3.0= | + Milestone 9 | HTTP REPL | 📋 PLANNED |
+| =2.4.0= | + Milestone 10 | Additional Framework Plugins | 📋 PLANNED |
+| =3.0.0= | Advanced Features Complete | Milestones 7-10 | 📋 PLANNED |
+
+* Patch Version Strategy
+
+Patch versions are **automatically managed by CI/CD tools** and increment for:
+
+- Bug fixes and hotfixes
+- Configuration corrections  
+- Security patches
+- Documentation updates
+- Test improvements
+- Performance optimizations
+
+** Automated Patch Increment Rules
+
+GitHub Actions automatically increments patch versions when:
+
+1. **Bug Fix Commits**: Commits with prefixes =fix:=, =🐛=, =✅= (when fixing issues)
+2. **Security Commits**: Commits with prefixes =security:=, =🔒=
+3. **Configuration Commits**: Commits with prefixes =config:=, =🔧=
+4. **Hotfix Branches**: Any merge from =hotfix/*= branches
+
+** Manual Patch Override
+
+Developers can specify patch versions manually only for:
+- Critical production issues requiring immediate release
+- Security vulnerabilities requiring coordinated disclosure
+- Configuration changes that must be versioned for compliance
+
+* Tag Naming Conventions
+
+** Correct Tag Format
+- ✅ =1.2.1= (correct semver format)
+- ✅ =2.0.0= (major version release)
+- ✅ =1.7.0= (minor version release)
+
+** Incorrect Tag Formats  
+- ❌ =v1.2.1= (no =v= prefix allowed)
+- ❌ =1.2= (must include patch version)
+- ❌ =release-1.2.1= (no prefixes allowed)
+- ❌ =1.2.1-beta= (pre-release tags not used in main branch)
+
+** Special Tags
+
+Special tags for development and automation:
+
+- =milestone-6a-complete=: Milestone completion markers (kept for reference)
+- =test-*=: Testing and CI/CD validation tags
+- =docs-*=: Documentation milestone tags
+
+* Current Version Status Analysis
+
+** Correction Required: v0.7.1 → 1.2.1
+
+The recently created =v0.7.1= tag is incorrect and needs correction:
+
+*** Why v0.7.1 is Wrong
+1. **v prefix violation**: Should not include =v= prefix
+2. **Phase misalignment**: Should be in 1.x.x phase (Core Foundation Complete)
+3. **Milestone miscount**: Doesn't reflect actual milestone completion status
+
+*** Correct Version: 1.2.1
+1. **Major 1**: Core Foundation Complete phase
+2. **Minor 2**: Core Foundation + Milestone 6A (EventSourcing) + Milestone 6F (Flow Detection)  
+3. **Patch 1**: Configuration loading bug fix
+
+*** Historical Alignment
+Retrospective milestone-to-version mapping:
+- =1.0.0=: Core Foundation complete (Milestones 1-5)
+- =1.1.0=: + Milestone 6A (Basic EventSourcing Infrastructure)  
+- =1.2.0=: + Milestone 6F (Flow Detection)
+- =1.2.1=: + Configuration loading fix
+
+* Release Automation Strategy
+
+** GitHub Actions Integration
+
+The release process is fully automated through GitHub Actions:
+
+*** Tag-Triggered Releases
+1. **Tag Creation**: Developer creates proper semver tag
+2. **Workflow Detection**: GitHub Actions detects new tag
+3. **Artifact Building**: Automated JAR compilation and packaging  
+4. **Changelog Generation**: Intelligent commit analysis and categorization
+5. **GitHub Release**: Automated release creation with artifacts
+
+*** Patch Version Automation
+1. **Commit Analysis**: GitHub Actions analyzes commit messages
+2. **Automatic Tagging**: Creates patch version tags for qualifying commits
+3. **Release Creation**: Automated release for patch versions
+4. **Notification**: Team notification of automated releases
+
+** Release Artifact Strategy
+
+Each release includes standardized artifacts:
+
+*** Required Artifacts
+- =bytehot-X.Y.Z-agent.jar=: JVM agent for production use
+- =bytehot-X.Y.Z.jar=: Library JAR for integration
+- =bytehot-X.Y.Z-sources.jar=: Source code archive
+- =bytehot-X.Y.Z-javadoc.jar=: API documentation
+
+*** Optional Artifacts  
+- =bytehot-X.Y.Z-docs.zip=: Complete documentation bundle
+- =bytehot-X.Y.Z-examples.zip=: Usage examples and tutorials
+
+** Changelog Generation Strategy
+
+Automated changelog generation categorizes commits:
+
+*** Commit Categories
+- **🎯 New Features**: Major functionality additions (minor version worthy)
+- **🔧 Bug Fixes**: Issue resolutions and corrections  
+- **🚀 Performance**: Optimization and efficiency improvements
+- **📚 Documentation**: Documentation updates and improvements
+- **🧪 Testing**: Test additions and improvements
+- **🔒 Security**: Security-related changes and fixes
+
+*** Milestone Integration
+Changelogs automatically reference:
+- Milestone completion status
+- Test coverage metrics  
+- Performance benchmark results
+- Breaking change notifications
+
+* Migration Strategy
+
+** Immediate Actions Required
+
+1. **Delete Incorrect Tag**: Remove =v0.7.1= tag and associated GitHub release
+2. **Create Correct Tag**: Create =1.2.1= tag for configuration fix
+3. **Update Documentation**: Update all references to use correct versioning
+4. **Configure CI/CD**: Update GitHub Actions for proper semver handling
+
+** Implementation Steps
+
+*** Step 1: Tag Correction
+#+begin_src bash
+# Delete incorrect tag locally and remotely
+git tag -d v0.7.1
+git push origin --delete v0.7.1
+
+# Create correct tag
+git tag -a 1.2.1 -s -m "ByteHot 1.2.1 - Configuration Loading Fix"
+git push origin 1.2.1
+#+end_src
+
+*** Step 2: GitHub Actions Update
+- Update release workflows to validate semver format
+- Add automatic patch version detection
+- Configure milestone-to-version mapping
+
+*** Step 3: Documentation Update
+- Update all version references in documentation
+- Add versioning strategy to GETTING_STARTED guide
+- Update contributor guidelines
+
+* Compliance and Governance
+
+** Semver Compliance
+
+ByteHot strictly follows semantic versioning principles:
+
+- **Backward Compatibility**: Patch and minor versions maintain backward compatibility
+- **Breaking Changes**: Only allowed in major version changes
+- **API Stability**: Public APIs remain stable within major versions
+- **Deprecation Process**: Features deprecated in minor versions, removed in major versions
+
+** Release Approval Process
+
+*** Automated Releases (Patch Versions)
+- No approval required for qualifying patch commits
+- Automated testing must pass
+- Security scans must complete successfully
+
+*** Manual Releases (Minor/Major Versions)  
+- Milestone completion verification required
+- Full test suite must pass (unit, integration, performance)
+- Documentation completeness verification
+- Security vulnerability scan clearance
+
+** Quality Gates
+
+Each release must pass quality gates:
+
+*** Code Quality
+- ✅ All tests passing (unit, integration, performance)
+- ✅ Code coverage > 80%  
+- ✅ No critical security vulnerabilities
+- ✅ No major code quality issues (SonarQube/similar)
+
+*** Documentation Quality
+- ✅ API documentation complete and accurate
+- ✅ User guides updated for new features
+- ✅ Migration guides for breaking changes
+- ✅ Changelog properly generated
+
+*** Performance Standards
+- ✅ Hot-swap latency < 200ms (95th percentile)
+- ✅ Memory overhead < 10MB
+- ✅ CPU overhead < 2%
+- ✅ Success rate > 99% for compatible changes
+
+* Future Considerations
+
+** Long-term Versioning Strategy
+
+*** Enterprise Versioning (4.x.x+)
+Future enterprise versions may require:
+- Long-term support (LTS) versioning
+- Extended security patching  
+- Enterprise compliance versioning
+- Multi-environment deployment versioning
+
+*** Plugin Ecosystem Versioning
+Plugin architecture will require:
+- Plugin API versioning
+- Plugin compatibility matrices
+- Independent plugin versioning
+- Cross-plugin dependency management
+
+** Version Communication Strategy
+
+*** Public Communication
+- GitHub releases with comprehensive changelogs
+- Documentation site version indicators
+- API documentation versioning
+- Community announcement coordination
+
+*** Developer Communication  
+- Version-specific development guides
+- Migration path documentation
+- Breaking change notifications
+- Deprecation timelines
+
+* Conclusion
+
+This versioning strategy provides:
+
+1. **Predictable Versioning**: Clear milestone-to-version mapping
+2. **Automated Management**: CI/CD-driven patch version handling  
+3. **Semver Compliance**: Industry-standard semantic versioning
+4. **Quality Assurance**: Comprehensive quality gates for all releases
+5. **Documentation Integration**: Version-aware documentation and communication
+
+The strategy ensures ByteHot maintains professional versioning practices while supporting the milestone-driven development approach and automated release pipeline.
+
+** Implementation Priority
+
+1. **Immediate**: Fix current =v0.7.1= → =1.2.1= tag correction
+2. **Short-term**: Update GitHub Actions for proper semver validation
+3. **Medium-term**: Implement automated patch version detection
+4. **Long-term**: Establish enterprise versioning considerations
+
+This strategy positions ByteHot for scalable, professional version management throughout its development lifecycle.
