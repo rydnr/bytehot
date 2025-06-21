@@ -47,3 +47,6 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 
 ### Versioning
 - Tags should follow the semantic versioning recommendations, but leaving the patch group to CI/CD tools. Versions should not include the `v` prefix.
+
+### YAML Conventions
+- No heredocs are allowed in YAML files.
