@@ -182,7 +182,8 @@ protected WatchConfiguration loadFromSystemProperties() {
     
     for (int i = 0; i < paths.length; i++) {
         final Path path = Paths.get(paths[i].trim());
-        final List<String> patterns = List.of("*.class");
+        final String watchPatterns = System.getProperty(PROP_PREFIX + "watch.patterns", "*.class");
+        final List<String> patterns = List.of(watchPatterns.split(","));
         final boolean recursive = Boolean.parseBoolean(
             System.getProperty(PROP_PREFIX + "watch.recursive", "true")
         );
@@ -211,6 +212,7 @@ System properties configuration provides comprehensive runtime control:
 #+BEGIN_SRC java
 // System properties supported:
 // - bytehot.watch.paths: Comma-separated list of paths to watch
+// - bytehot.watch.patterns: Comma-separated list of file patterns to match (defaults to "*.class")
 // - bytehot.watch.intervals: Comma-separated list of watch intervals
 // - bytehot.watch.recursive: Boolean for recursive directory watching
 // - bytehot.port: Server port for ByteHot operations
@@ -223,6 +225,14 @@ System properties enable powerful runtime configuration override:
 - IDE integration for debugging and development workflows
 - CI/CD pipeline configuration customization
 - Production environment emergency configuration changes
+
+** Pattern Matching Support
+The patterns configuration supports flexible file matching:
+- Simple patterns like "*.class" for Java bytecode files
+- Complex patterns like "**/*.class" for recursive matching
+- Multiple patterns as comma-separated values
+- Default fallback to "*.class" when not specified
+- Integration with file watching for precise change detection
 
 * Environment Variables Configuration
 

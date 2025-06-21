@@ -141,14 +141,31 @@ The integration includes comprehensive capability validation:
 
 ** Hexagonal Architecture Bootstrap
 The agent initiates ByteHot's hexagonal architecture:
-#+BEGIN_SRC java
-// Architecture initialization sequence:
-// 1. Domain layer setup with instrumentation access
-// 2. Application layer initialization and event routing
-// 3. Infrastructure adapter registration and injection
-// 4. Port resolution and dependency satisfaction
-// 5. System health verification and status reporting
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/agent/ByteHotAgent.java
+        // Create and process the agent attachment request through domain logic
+        try {
+            // Load the actual configuration instead of using default
+            final WatchConfiguration config = WatchConfiguration.load();
+            final ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, inst);
+            final List<DomainResponseEvent<ByteHotAttachRequested>> responses = ByteHotApplication.getInstance().accept(attachRequest);
+            
+            // Print the response events to stdout for testing verification
+            for (final DomainResponseEvent<ByteHotAttachRequested> response : responses) {
+                System.out.println(response.getClass().getSimpleName());
+            }
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to process agent attachment: " + e.getMessage());
+            e.printStackTrace();
+        }
 #+END_SRC
+
+** Configuration Loading Integration
+The agent now properly integrates with the configuration system:
+- Uses WatchConfiguration.load() to access actual configuration sources
+- Supports system properties, environment variables, and YAML files
+- Properly handles configuration loading errors with fallback
+- Creates domain events with real configuration instead of defaults
 
 ** Dependency Injection Coordination
 The initialization coordinates complex dependency injection:
