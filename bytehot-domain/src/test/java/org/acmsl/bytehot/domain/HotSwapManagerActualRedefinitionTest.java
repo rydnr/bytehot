@@ -67,7 +67,7 @@ public class HotSwapManagerActualRedefinitionTest {
     @Test
     public void shouldUseRealInstrumentationPortInsteadOfMockLogic() throws IOException {
         // Given: HotSwapManager source code analysis to verify it calls InstrumentationPort
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = findHotSwapManagerFile();
         assertThat(hotSwapManagerFile).exists();
         
         String sourceCode = Files.readString(hotSwapManagerFile);
@@ -101,7 +101,7 @@ public class HotSwapManagerActualRedefinitionTest {
         // This test detects the original bug by analyzing the source code structure
         
         // Given: HotSwapManager source code
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = findHotSwapManagerFile();
         String sourceCode = Files.readString(hotSwapManagerFile);
         
         // Then: performRedefinition method should contain actual redefinition logic
@@ -123,7 +123,7 @@ public class HotSwapManagerActualRedefinitionTest {
     @Test
     public void shouldValidateClassLookupBeforeRedefinition() throws IOException {
         // Given: HotSwapManager source code
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = findHotSwapManagerFile();
         String sourceCode = Files.readString(hotSwapManagerFile);
         
         // Then: Should find loaded class before attempting redefinition
@@ -148,7 +148,7 @@ public class HotSwapManagerActualRedefinitionTest {
     @Test
     public void shouldHandleRealJvmExceptionsNotMockOnes() throws IOException {
         // Given: HotSwapManager source code
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = findHotSwapManagerFile();
         String sourceCode = Files.readString(hotSwapManagerFile);
         
         // Then: Should handle real JVM redefinition exceptions
@@ -168,5 +168,33 @@ public class HotSwapManagerActualRedefinitionTest {
         assertThat(sourceCode)
             .as("Should not check for mock content patterns")
             .doesNotContain("content.contains(\"INCOMPATIBLE_BYTECODE\")");
+    }
+    
+    /**
+     * Helper method to find the HotSwapManager.java file in different environments.
+     * Tries multiple possible paths to be compatible with local development and CI/CD.
+     */
+    private Path findHotSwapManagerFile() {
+        // Possible paths where the file might be located
+        String[] possiblePaths = {
+            "src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java",
+            "../src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java",
+            "./bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java",
+            "bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"
+        };
+        
+        for (String pathStr : possiblePaths) {
+            Path path = Path.of(pathStr);
+            if (Files.exists(path)) {
+                return path;
+            }
+        }
+        
+        // If none found, provide helpful error message
+        String currentDir = System.getProperty("user.dir");
+        throw new RuntimeException(
+            "HotSwapManager.java not found in any expected location. Current directory: " + currentDir +
+            ". Tried paths: " + String.join(", ", possiblePaths)
+        );
     }
 }

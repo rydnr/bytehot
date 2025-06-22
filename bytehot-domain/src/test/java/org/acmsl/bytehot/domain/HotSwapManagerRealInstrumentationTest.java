@@ -64,7 +64,7 @@ public class HotSwapManagerRealInstrumentationTest {
     @Test
     public void shouldUseRealInstrumentationServiceInsteadOfMockLogic() throws IOException, HotSwapException {
         // Given: HotSwapManager source code analysis to verify it uses InstrumentationService
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = findHotSwapManagerFile();
         assertThat(hotSwapManagerFile).exists();
         
         String sourceCode = Files.readString(hotSwapManagerFile);
@@ -86,5 +86,33 @@ public class HotSwapManagerRealInstrumentationTest {
         assertThat(sourceCode)
             .as("HotSwapManager should not contain mock JVM redefinition logic")
             .doesNotContain("Mock JVM redefinition logic for testing");
+    }
+    
+    /**
+     * Helper method to find the HotSwapManager.java file in different environments.
+     * Tries multiple possible paths to be compatible with local development and CI/CD.
+     */
+    private Path findHotSwapManagerFile() {
+        // Possible paths where the file might be located
+        String[] possiblePaths = {
+            "src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java",
+            "../src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java",
+            "./bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java",
+            "bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"
+        };
+        
+        for (String pathStr : possiblePaths) {
+            Path path = Path.of(pathStr);
+            if (Files.exists(path)) {
+                return path;
+            }
+        }
+        
+        // If none found, provide helpful error message
+        String currentDir = System.getProperty("user.dir");
+        throw new RuntimeException(
+            "HotSwapManager.java not found in any expected location. Current directory: " + currentDir +
+            ". Tried paths: " + String.join(", ", possiblePaths)
+        );
     }
 }
