@@ -706,16 +706,32 @@ jobs:
             # Create temporary file with footer  
             sed "s|href=\"|href=\"${relative_path}|g" temp_footer.html > "temp_footer_${file//\//_}.html"
             
-            # Apply navigation and footer
-            sed -i "/<body>/r temp_nav_${file//\//_}.html" "$file"
-            sed -i "/<\/body>/i\\$(cat temp_footer_${file//\//_}.html)" "$file"
+            # Apply navigation and footer using a simpler, more reliable approach
+            local nav_file="temp_nav_${file//\//_}.html"
+            local footer_file="temp_footer_${file//\//_}.html"
+            
+            # Create a completely new file by combining parts
+            {
+              # Everything up to and including <body> tag
+              sed -n '1,/<body>/p' "$file"
+              
+              # Add navigation content
+              cat "$nav_file"
+              
+              # Everything between <body> and </body> (excluding the tags themselves)
+              sed -n '/<body>/,/<\/body>/{/<body>/d; /<\/body>/d; p}' "$file"
+              
+              # Add footer content
+              cat "$footer_file"
+              
+              # Everything from </body> to end
+              sed -n '/<\/body>/,$p' "$file"
+              
+            } > "${file}.tmp" && mv "${file}.tmp" "$file"
             
             # Ensure proper container wrapper for main content
-            if ! grep -q 'class="container"' "$file" || ! grep -q '<main' "$file"; then
-              # Wrap content between navigation and footer in container and main
-              sed -i '/<\/div><!-- end navigation -->/a\<div class="container"><main>' "$file" 2>/dev/null || true
-              sed -i '/<footer class="footer">/i\</main></div>' "$file" 2>/dev/null || true
-            fi
+            # Skip this complex operation for now to avoid sed issues
+            # The navigation and footer contain their own styling
             
             # Clean up temp files
             rm -f "temp_nav_${file//\//_}.html" "temp_footer_${file//\//_}.html"
