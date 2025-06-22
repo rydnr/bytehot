@@ -7,75 +7,75 @@
 This flow documents the complete end-to-end process from detecting a class file change to successfully updating existing instances. This is the primary flow in ByteHot that demonstrates how the system achieves its core mission of runtime bytecode hot-swapping.
 
 ** Flow Trigger
-- **Starting Event**: `ClassFileChanged`
-- **Ending Event**: `InstancesUpdated`
+- **Starting Event**: =ClassFileChanged=
+- **Ending Event**: =InstancesUpdated=
 - **Duration**: Typically 50-500ms depending on class complexity and instance count
 - **Criticality**: High - Core ByteHot functionality
 
 * Flow Participants
 
 ** Primary Actors
-- `ClassFileWatcher` (Infrastructure): Detects file system changes
-- `BytecodeValidator` (Domain): Validates bytecode compatibility
-- `HotSwapManager` (Domain): Orchestrates class redefinition
-- `InstanceUpdater` (Domain): Updates existing instances
-- `ErrorHandler` (Domain): Handles any errors during the process
+- =ClassFileWatcher= (Infrastructure): Detects file system changes
+- =BytecodeValidator= (Domain): Validates bytecode compatibility
+- =HotSwapManager= (Domain): Orchestrates class redefinition
+- =InstanceUpdater= (Domain): Updates existing instances
+- =ErrorHandler= (Domain): Handles any errors during the process
 
 ** Secondary Actors
-- `InstanceTracker` (Domain): Tracks existing instances
-- `StatePreserver` (Domain): Preserves instance state during updates
-- `FrameworkIntegration` (Domain): Handles framework-specific updates
+- =InstanceTracker= (Domain): Tracks existing instances
+- =StatePreserver= (Domain): Preserves instance state during updates
+- =FrameworkIntegration= (Domain): Handles framework-specific updates
 
 * Flow Sequence
 
 ** Phase 1: File System Detection
-```
+#+begin_src
 [ File System ] --file-change--> [ ClassFileWatcher ] --ClassFileChanged--> [ ByteHotApplication ]
-```
+#+begin_src
 
 The flow begins when the underlying file system notifies ByteHot of a class file modification:
 
-1. **File System Event**: Operating system detects `.class` file modification
-2. **Watcher Notification**: `ClassFileWatcher` receives file system notification
-3. **Event Creation**: `ClassFileChanged` event is created with file path and timestamp
-4. **Event Routing**: Event is sent to `ByteHotApplication.accept()`
+1. **File System Event**: Operating system detects =.class= file modification
+2. **Watcher Notification**: =ClassFileWatcher= receives file system notification
+3. **Event Creation**: =ClassFileChanged= event is created with file path and timestamp
+4. **Event Routing**: Event is sent to =ByteHotApplication.accept()=
 
 ** Phase 2: Bytecode Validation
-```
+#+begin_src
 [ ByteHotApplication ] --ClassFileChanged--> [ ByteHot.accept() ] --validation--> [ BytecodeValidator ]
                                                     |
                                                     v
                                             [ BytecodeValidated | BytecodeRejected ]
-```
+#+begin_src
 
 The domain aggregate processes the file change and validates the new bytecode:
 
-1. **Aggregate Processing**: `ByteHot.accept(ClassFileChanged)` receives the event
+1. **Aggregate Processing**: =ByteHot.accept(ClassFileChanged)= receives the event
 2. **Bytecode Loading**: New bytecode is loaded from the modified file
-3. **Validation Process**: `BytecodeValidator` performs compatibility checks
+3. **Validation Process**: =BytecodeValidator= performs compatibility checks
 4. **Validation Outcome**: 
-   - **Success Path**: `BytecodeValidated` event emitted
-   - **Failure Path**: `BytecodeRejected` event emitted (flow terminates)
+   - **Success Path**: =BytecodeValidated= event emitted
+   - **Failure Path**: =BytecodeRejected= event emitted (flow terminates)
 
 ** Phase 3: Hot-Swap Execution
-```
+#+begin_src
 [ BytecodeValidated ] --hot-swap--> [ HotSwapManager ] --JVM-redefine--> [ JVM Instrumentation ]
                                            |
                                            v
                                    [ ClassRedefinitionSucceeded | ClassRedefinitionFailed ]
-```
+#+begin_src
 
 If validation succeeds, the hot-swap operation is executed:
 
-1. **Hot-Swap Initiation**: `HotSwapManager` receives `BytecodeValidated` event
-2. **JVM Interaction**: `InstrumentationProvider` calls JVM's class redefinition API
+1. **Hot-Swap Initiation**: =HotSwapManager= receives =BytecodeValidated= event
+2. **JVM Interaction**: =InstrumentationProvider= calls JVM's class redefinition API
 3. **JVM Processing**: JVM attempts to redefine the class with new bytecode
 4. **Redefinition Outcome**:
-   - **Success Path**: `ClassRedefinitionSucceeded` event emitted
-   - **Failure Path**: `ClassRedefinitionFailed` event emitted (triggers error recovery)
+   - **Success Path**: =ClassRedefinitionSucceeded= event emitted
+   - **Failure Path**: =ClassRedefinitionFailed= event emitted (triggers error recovery)
 
 ** Phase 4: Instance Management
-```
+#+begin_src
 [ ClassRedefinitionSucceeded ] --update-instances--> [ InstanceUpdater ] --track--> [ InstanceTracker ]
                                         |                                               |
                                         v                                               v
@@ -83,41 +83,41 @@ If validation succeeds, the hot-swap operation is executed:
                                         |                                               |
                                         v                                               v
                                 [ InstancesUpdated ]  <------------------------------- /
-```
+#+begin_src
 
 After successful class redefinition, existing instances must be updated:
 
-1. **Instance Discovery**: `InstanceTracker` identifies all existing instances of the redefined class
-2. **Update Strategy Selection**: `InstanceUpdater` selects appropriate update method based on:
+1. **Instance Discovery**: =InstanceTracker= identifies all existing instances of the redefined class
+2. **Update Strategy Selection**: =InstanceUpdater= selects appropriate update method based on:
    - Instance characteristics
    - Framework integration availability
    - Performance requirements
-3. **State Preservation**: `StatePreserver` captures current instance state
+3. **State Preservation**: =StatePreserver= captures current instance state
 4. **Instance Updates**: Instances are updated using selected strategy:
    - **Reflection-based**: Direct field updates using reflection
    - **Framework-based**: Framework-specific update mechanisms
    - **Proxy refresh**: Proxy instance refresh for framework-managed objects
 5. **State Restoration**: Previously preserved state is restored to updated instances
-6. **Completion**: `InstancesUpdated` event emitted with update metrics
+6. **Completion**: =InstancesUpdated= event emitted with update metrics
 
 * Error Handling Flows
 
 ** Validation Failure Flow
-```
+#+begin_src
 [ ClassFileChanged ] --> [ BytecodeValidator ] --> [ BytecodeRejected ] --> [ ErrorHandler ]
                                                             |
                                                             v
                                                     [ RecoveryStrategy.REJECT_CHANGE ]
-```
+#+begin_src
 
 When bytecode validation fails:
-1. `BytecodeRejected` event contains validation error details
-2. `ErrorHandler` classifies error as `VALIDATION_ERROR`
-3. Recovery strategy `REJECT_CHANGE` is selected
+1. =BytecodeRejected= event contains validation error details
+2. =ErrorHandler= classifies error as =VALIDATION_ERROR=
+3. Recovery strategy =REJECT_CHANGE= is selected
 4. No further processing occurs for this file change
 
 ** Redefinition Failure Flow
-```
+#+begin_src
 [ BytecodeValidated ] --> [ HotSwapManager ] --> [ ClassRedefinitionFailed ] --> [ ErrorHandler ]
                                                             |
                                                             v
@@ -125,26 +125,26 @@ When bytecode validation fails:
                                                             |
                                                             v
                                                     [ RollbackManager ]
-```
+#+begin_src
 
 When JVM rejects class redefinition:
-1. `ClassRedefinitionFailed` event contains JVM error details
-2. `ErrorHandler` classifies error as `REDEFINITION_FAILURE`
-3. `ErrorRecoveryManager` initiates recovery process
-4. `RollbackManager` may restore previous state if available
+1. =ClassRedefinitionFailed= event contains JVM error details
+2. =ErrorHandler= classifies error as =REDEFINITION_FAILURE=
+3. =ErrorRecoveryManager= initiates recovery process
+4. =RollbackManager= may restore previous state if available
 5. System returns to stable state
 
 ** Instance Update Failure Flow
-```
+#+begin_src
 [ ClassRedefinitionSucceeded ] --> [ InstanceUpdater ] --> [ InstanceUpdateException ] --> [ ErrorHandler ]
                                                                         |
                                                                         v
                                                                 [ PartialRecovery ]
-```
+#+begin_src
 
 When instance updates fail:
-1. `InstanceUpdateException` contains details of failed updates
-2. `ErrorHandler` evaluates partial success vs. complete failure
+1. =InstanceUpdateException= contains details of failed updates
+2. =ErrorHandler= evaluates partial success vs. complete failure
 3. Partial recovery may preserve successful updates
 4. Failed instances may be marked for manual intervention
 
@@ -167,27 +167,27 @@ When instance updates fail:
 
 ** Framework-Integrated Flow
 When framework integration is available:
-```
+#+begin_src
 [ InstanceUpdater ] --> [ FrameworkIntegration ] --> [ Framework-Specific Update ]
                                 |
                                 v
                         [ Enhanced Instance Management ]
-```
+#+begin_src
 
 ** Concurrent Update Flow
 When multiple classes change simultaneously:
-```
+#+begin_src
 [ Multiple ClassFileChanged ] --> [ Coordinated Validation ] --> [ Batch Hot-Swap ]
                                             |
                                             v
                                     [ Coordinated Instance Updates ]
-```
+#+begin_src
 
 ** Rollback-Required Flow
 When updates must be rolled back:
-```
+#+begin_src
 [ Update Failure ] --> [ RollbackManager ] --> [ Snapshot Restoration ] --> [ System Recovery ]
-```
+#+begin_src
 
 * Monitoring and Observability
 

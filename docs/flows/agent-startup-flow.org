@@ -8,44 +8,44 @@ This flow documents the complete ByteHot agent initialization process, from JVM 
 
 ** Flow Trigger
 - **Starting Event**: JVM agent attachment (premain or agentmain)
-- **Ending Event**: `HotSwapCapabilityEnabled` for monitored classes
+- **Ending Event**: =HotSwapCapabilityEnabled= for monitored classes
 - **Duration**: 100-2000ms depending on configuration complexity
 - **Criticality**: Critical - Required for all ByteHot functionality
 
 * Flow Participants
 
 ** Primary Actors
-- `ByteHotAgent` (Infrastructure): JVM agent entry point
-- `ByteHotApplication` (Application): Application layer coordinator
-- `InstrumentationProvider` (Domain): JVM instrumentation access
-- `ClassFileWatcher` (Infrastructure): File system monitoring setup
+- =ByteHotAgent= (Infrastructure): JVM agent entry point
+- =ByteHotApplication= (Application): Application layer coordinator
+- =InstrumentationProvider= (Domain): JVM instrumentation access
+- =ClassFileWatcher= (Infrastructure): File system monitoring setup
 
 ** Secondary Actors
-- `WatchConfiguration` (Domain): Configuration management
-- `Ports` (Domain): Dependency injection coordination
+- =WatchConfiguration= (Domain): Configuration management
+- =Ports= (Domain): Dependency injection coordination
 - Various adapters for external integrations
 
 * Agent Attachment Flow
 
 ** Phase 1: JVM Agent Initialization
-```
+#+begin_src
 [ JVM Startup ] --agent-attachment--> [ ByteHotAgent.premain() ] --initialization--> [ Agent Setup ]
-```
+#+begin_src
 
 The flow begins when the JVM loads the ByteHot agent:
 
 1. **JVM Agent Loading**: JVM loads ByteHot agent through:
-   - **Startup attachment**: `-javaagent:bytehot.jar` JVM argument
+   - **Startup attachment**: =-javaagent:bytehot.jar= JVM argument
    - **Runtime attachment**: Dynamic attachment via Attach API
-2. **Agent Entry Point**: `ByteHotAgent.premain()` or `ByteHotAgent.agentmain()` called
-3. **Instrumentation Capture**: Agent captures `Instrumentation` instance for later use
+2. **Agent Entry Point**: =ByteHotAgent.premain()= or =ByteHotAgent.agentmain()= called
+3. **Instrumentation Capture**: Agent captures =Instrumentation= instance for later use
 4. **Initial Validation**: Verify JVM supports required capabilities:
    - Class redefinition support
    - Bytecode instrumentation
    - File system access permissions
 
 ** Phase 2: Core System Initialization
-```
+#+begin_src
 [ ByteHotAgent ] --bootstrap--> [ ByteHotApplication ] --ports-setup--> [ Dependency Injection ]
                                         |
                                         v
@@ -53,16 +53,16 @@ The flow begins when the JVM loads the ByteHot agent:
                                         |
                                         v
                                 [ Configuration Loading ]
-```
+#+begin_src
 
 Core ByteHot system components are initialized:
 
-1. **Application Bootstrap**: `ByteHotApplication` instance created
+1. **Application Bootstrap**: =ByteHotApplication= instance created
 2. **Ports Configuration**: Dependency injection system setup:
    - Register infrastructure adapters
    - Configure port-to-adapter mappings
    - Validate adapter implementations
-3. **Instrumentation Provider**: `InstrumentationProvider` configured with captured `Instrumentation`
+3. **Instrumentation Provider**: =InstrumentationProvider= configured with captured =Instrumentation=
 4. **Configuration Loading**: Load ByteHot configuration from:
    - JVM system properties
    - Configuration files
@@ -70,7 +70,7 @@ Core ByteHot system components are initialized:
    - Default settings
 
 ** Phase 3: Watch Configuration Setup
-```
+#+begin_src
 [ Configuration ] --parsing--> [ WatchConfiguration ] --validation--> [ Watch Setup ]
                                         |
                                         v
@@ -78,11 +78,11 @@ Core ByteHot system components are initialized:
                                         |
                                         v
                                 [ File System Monitoring ]
-```
+#+begin_src
 
 File system monitoring is configured based on loaded configuration:
 
-1. **Configuration Parsing**: `WatchConfiguration` processes configuration:
+1. **Configuration Parsing**: =WatchConfiguration= processes configuration:
    - Watch paths (directories to monitor)
    - File patterns to include/exclude
    - Monitoring frequency and sensitivity
@@ -92,7 +92,7 @@ File system monitoring is configured based on loaded configuration:
    - Read permissions verification
    - Path canonicalization
 3. **Watch Registration**: Register watch paths with file system:
-   - Create `ClassFileWatcher` instances
+   - Create =ClassFileWatcher= instances
    - Configure file system event listeners
    - Set up monitoring threads
 4. **Event Integration**: Connect file watchers to event system
@@ -100,9 +100,9 @@ File system monitoring is configured based on loaded configuration:
 * Capability Enablement Flow
 
 ** Phase 4: Hot-Swap Capability Assessment
-```
+#+begin_src
 [ Class Discovery ] --analysis--> [ Capability Assessment ] --enablement--> [ HotSwapCapabilityEnabled ]
-```
+#+begin_src
 
 For each discovered class, assess and enable hot-swap capabilities:
 
@@ -119,12 +119,12 @@ For each discovered class, assess and enable hot-swap capabilities:
    - Register class with instrumentation system
    - Set up metadata tracking
    - Configure framework integration if available
-   - Emit `HotSwapCapabilityEnabled` event
+   - Emit =HotSwapCapabilityEnabled= event
 
 ** Phase 5: Event System Activation
-```
+#+begin_src
 [ Component Setup ] --integration--> [ Event System ] --activation--> [ Monitoring Active ]
-```
+#+begin_src
 
 Activate the complete event-driven system:
 
@@ -143,29 +143,29 @@ Activate the complete event-driven system:
 * Configuration Loading Details
 
 ** Configuration Sources (Priority Order)
-```
+#+begin_src
 [ JVM Properties ] --> [ Config Files ] --> [ Environment Variables ] --> [ Defaults ]
                 |               |                      |                    |
                 v               v                      v                    v
         [ Property Merger ] --> [ Validation ] --> [ WatchConfiguration ]
-```
+#+begin_src
 
 Configuration is loaded from multiple sources with defined precedence:
 
 1. **JVM System Properties**: Highest priority
-   - `-Dbytehot.watch.paths=/path/to/classes`
-   - `-Dbytehot.monitoring.enabled=true`
-   - `-Dbytehot.framework.integration=spring`
+   - =-Dbytehot.watch.paths=/path/to/classes=
+   - =-Dbytehot.monitoring.enabled=true=
+   - =-Dbytehot.framework.integration=spring=
 
 2. **Configuration Files**: Second priority
-   - `bytehot.properties` in classpath
-   - `bytehot.yml` in working directory
+   - =bytehot.properties= in classpath
+   - =bytehot.yml= in working directory
    - User-specified configuration file
 
 3. **Environment Variables**: Third priority
-   - `BYTEHOT_WATCH_PATHS`
-   - `BYTEHOT_MONITORING_ENABLED`
-   - `BYTEHOT_FRAMEWORK_INTEGRATION`
+   - =BYTEHOT_WATCH_PATHS=
+   - =BYTEHOT_MONITORING_ENABLED=
+   - =BYTEHOT_FRAMEWORK_INTEGRATION=
 
 4. **Default Values**: Lowest priority
    - Built-in sensible defaults
@@ -173,9 +173,9 @@ Configuration is loaded from multiple sources with defined precedence:
    - Platform-specific defaults
 
 ** Configuration Validation
-```
+#+begin_src
 [ Raw Configuration ] --> [ Schema Validation ] --> [ Path Validation ] --> [ Permission Check ]
-```
+#+begin_src
 
 Configuration undergoes comprehensive validation:
 
@@ -188,9 +188,9 @@ Configuration undergoes comprehensive validation:
 * Error Handling During Startup
 
 ** Critical Error Flow
-```
+#+begin_src
 [ Startup Error ] --> [ Error Classification ] --> [ Fallback Strategy ] --> [ Graceful Degradation ]
-```
+#+begin_src
 
 When critical errors occur during startup:
 
@@ -210,9 +210,9 @@ When critical errors occur during startup:
    - Enable monitoring for manual intervention
 
 ** Permission Error Flow
-```
+#+begin_src
 [ Permission Denied ] --> [ Alternative Path ] --> [ Reduced Functionality ] --> [ User Notification ]
-```
+#+begin_src
 
 When permission errors prevent full functionality:
 
@@ -223,7 +223,7 @@ When permission errors prevent full functionality:
 * Performance Optimization During Startup
 
 ** Parallel Initialization
-```
+#+begin_src
 [ Configuration Loading ] --parallel--> [ File System Setup ]
            |                                     |
            v                                     v
@@ -231,7 +231,7 @@ When permission errors prevent full functionality:
            |                                     |
            v                                     v
 [ Event System ] --sync--> [ Startup Completion ]
-```
+#+begin_src
 
 Startup operations are parallelized where possible:
 
@@ -241,9 +241,9 @@ Startup operations are parallelized where possible:
 4. **Lazy Initialization**: Defer non-critical setup until first use
 
 ** Resource Pre-allocation
-```
+#+begin_src
 [ Startup ] --> [ Thread Pool Setup ] --> [ Memory Pre-allocation ] --> [ Cache Initialization ]
-```
+#+begin_src
 
 Pre-allocate resources to avoid startup delays during operation:
 
@@ -255,9 +255,9 @@ Pre-allocate resources to avoid startup delays during operation:
 * Startup Flow Variations
 
 ** Dynamic Attachment Flow
-```
+#+begin_src
 [ Running JVM ] --> [ Attach API ] --> [ Agent Loading ] --> [ Late Initialization ]
-```
+#+begin_src
 
 When ByteHot attaches to an already running JVM:
 
@@ -267,9 +267,9 @@ When ByteHot attaches to an already running JVM:
 4. **Retroactive Enablement**: Enable hot-swap for existing classes
 
 ** Framework-Specific Startup
-```
+#+begin_src
 [ Framework Detection ] --> [ Framework Adapter ] --> [ Integration Setup ] --> [ Enhanced Capabilities ]
-```
+#+begin_src
 
 When specific frameworks are detected:
 
@@ -279,9 +279,9 @@ When specific frameworks are detected:
 4. **Enhanced Capabilities**: Enable framework-optimized hot-swap strategies
 
 ** Minimal Startup Flow
-```
+#+begin_src
 [ Essential Only ] --> [ Basic Monitoring ] --> [ On-Demand Features ]
-```
+#+begin_src
 
 For resource-constrained environments:
 
@@ -325,9 +325,9 @@ For resource-constrained environments:
 - Configuration validity
 
 ** Startup Events
-- `ByteHotAgentAttached`: Agent successfully attached
-- `WatchPathConfigured`: Each watch path successfully configured
-- `HotSwapCapabilityEnabled`: Hot-swap enabled for each eligible class
+- =ByteHotAgentAttached=: Agent successfully attached
+- =WatchPathConfigured=: Each watch path successfully configured
+- =HotSwapCapabilityEnabled=: Hot-swap enabled for each eligible class
 - Configuration loading events
 - Error events for any startup issues
 
