@@ -60,47 +60,67 @@ jobs:
           # Generate Javadocs using multiple approaches
           echo "🔧 Attempting to generate Javadocs..."
           
-          # Create javadocs directory
-          mkdir -p bytehot/target/site/apidocs
+          # Create javadocs directories for all modules
+          mkdir -p target/site/apidocs
           
-          # Strategy 1: Try Maven with relaxed settings
-          echo "📋 Strategy 1: Maven javadoc plugin with relaxed settings..."
-          mvn javadoc:javadoc -pl bytehot \
+          # Strategy 1: Try Maven aggregate javadoc for all modules
+          echo "📋 Strategy 1: Maven aggregate javadoc for all modules..."
+          mvn javadoc:aggregate \
             -DfailOnError=false \
             -Dadditionalparam="-Xdoclint:none" \
             -Dmaven.javadoc.skip=false \
-            -Dquiet=false \
-            -X | head -50 || echo "Maven javadoc approach 1 failed"
+            -Dquiet=false || echo "Maven aggregate javadoc failed"
           
-          # Strategy 2: Try Maven aggregate
-          if [ ! -d "bytehot/target/site/apidocs" ] || [ -z "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
-            echo "📋 Strategy 2: Maven aggregate javadoc..."
-            mvn javadoc:aggregate -DfailOnError=false -Dadditionalparam="-Xdoclint:none" || echo "Maven aggregate failed"
+          # Strategy 2: Try individual module javadocs
+          if [ ! -d "target/site/apidocs" ] || [ -z "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
+            echo "📋 Strategy 2: Individual module javadocs..."
+            for module in bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+              echo "Generating javadoc for $module..."
+              mvn javadoc:javadoc -pl $module \
+                -DfailOnError=false \
+                -Dadditionalparam="-Xdoclint:none" || echo "Javadoc failed for $module"
+            done
             
-            # Move aggregate docs if they exist
-            if [ -d "target/site/apidocs" ]; then
-              mkdir -p bytehot/target/site/
-              mv target/site/apidocs bytehot/target/site/apidocs
-              echo "✅ Moved aggregate javadocs to bytehot/target/site/apidocs"
-            fi
+            # Aggregate individual module docs
+            mkdir -p target/site/apidocs
+            for module in bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+              if [ -d "$module/target/site/apidocs" ]; then
+                cp -r "$module/target/site/apidocs/"* target/site/apidocs/ 2>/dev/null || true
+                echo "✅ Copied javadocs from $module"
+              fi
+            done
           fi
           
           # Strategy 3: Direct javadoc command
-          if [ ! -d "bytehot/target/site/apidocs" ] || [ -z "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
-            echo "📋 Strategy 3: Direct javadoc command..."
+          if [ ! -d "target/site/apidocs" ] || [ -z "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
+            echo "📋 Strategy 3: Direct javadoc command for all modules..."
             
-            # Build classpath from Maven
-            cd bytehot
-            echo "Building classpath..."
-            CLASSPATH=$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q 2>/dev/null | tail -1)
-            echo "Classpath length: ${#CLASSPATH}"
-            cd ..
+            # Build comprehensive classpath from all modules
+            echo "Building classpath from all modules..."
+            CLASSPATH=""
+            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+              if [ -d "$module" ]; then
+                MODULE_CP=$(mvn dependency:build-classpath -pl $module -Dmdep.outputFile=/dev/stdout -q 2>/dev/null | tail -1)
+                if [ -n "$MODULE_CP" ]; then
+                  CLASSPATH="$CLASSPATH:$MODULE_CP:$module/target/classes"
+                fi
+              fi
+            done
+            echo "Total classpath length: ${#CLASSPATH}"
             
-            # Generate Javadocs directly
+            # Generate Javadocs directly for all source paths
             echo "Running direct javadoc command..."
-            javadoc -d bytehot/target/site/apidocs \
-              -sourcepath bytehot/src/main/java \
-              -classpath "bytehot/target/classes:$CLASSPATH" \
+            SOURCEPATHS=""
+            for module in bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+              if [ -d "$module/src/main/java" ]; then
+                SOURCEPATHS="$SOURCEPATHS:$module/src/main/java"
+              fi
+            done
+            SOURCEPATHS=${SOURCEPATHS#:}  # Remove leading colon
+            
+            javadoc -d target/site/apidocs \
+              -sourcepath "$SOURCEPATHS" \
+              -classpath "$CLASSPATH" \
               -subpackages org.acmsl.bytehot \
               -windowtitle "ByteHot API Documentation" \
               -doctitle "ByteHot - JVM Bytecode Hot-Swapping Agent" \
@@ -111,17 +131,6 @@ jobs:
               -quiet || echo "Direct javadoc also failed"
           fi
           
-          # Strategy 4: Alternative Maven approach without parent config
-          if [ ! -d "bytehot/target/site/apidocs" ] || [ -z "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
-            echo "📋 Strategy 4: Alternative Maven approach..."
-            cd bytehot
-            mvn org.apache.maven.plugins:maven-javadoc-plugin:3.10.0:javadoc \
-              -DfailOnError=false \
-              -Ddoclint=none \
-              -Dquiet=false || echo "Alternative Maven approach failed"
-            cd ..
-          fi
-          
           # Check all possible locations for javadocs
           echo "🔍 Checking all possible javadoc locations..."
           find . -name "*apidocs*" -type d 2>/dev/null || echo "No apidocs directories found"
@@ -129,52 +138,52 @@ jobs:
           
           # Check results and create fallback if needed
           echo "📊 Final check for generated Javadocs:"
-          if [ -d "bytehot/target/site/apidocs" ] && [ -n "$(ls -A bytehot/target/site/apidocs 2>/dev/null)" ]; then
+          if [ -d "target/site/apidocs" ] && [ -n "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
             echo "✅ Javadocs generated successfully!"
             echo "Files in apidocs (first 10):"
-            ls -la bytehot/target/site/apidocs/ | head -10
-            echo "Total files: $(find bytehot/target/site/apidocs -type f | wc -l)"
+            ls -la target/site/apidocs/ | head -10
+            echo "Total files: $(find target/site/apidocs -type f | wc -l)"
           else
             echo "❌ Javadoc generation failed completely"
             echo "🔧 Creating fallback Javadocs..."
-            mkdir -p bytehot/target/site/apidocs
+            mkdir -p target/site/apidocs
             # Create better fallback HTML using echo statements
-            echo '<!DOCTYPE html>' > bytehot/target/site/apidocs/index.html
-            echo '<html>' >> bytehot/target/site/apidocs/index.html
-            echo '<head>' >> bytehot/target/site/apidocs/index.html
-            echo '    <title>ByteHot API Documentation</title>' >> bytehot/target/site/apidocs/index.html
-            echo '    <style>' >> bytehot/target/site/apidocs/index.html
-            echo '        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.6;color:#333;max-width:800px;margin:0 auto;padding:20px}' >> bytehot/target/site/apidocs/index.html
-            echo '        .error{color:#d73027;background:#fee;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #d73027}' >> bytehot/target/site/apidocs/index.html
-            echo '        .info{background:#e7f3ff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #2196F3}' >> bytehot/target/site/apidocs/index.html
-            echo '        h1{color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:10px}' >> bytehot/target/site/apidocs/index.html
-            echo '        a{color:#3498db;text-decoration:none}' >> bytehot/target/site/apidocs/index.html
-            echo '        a:hover{text-decoration:underline}' >> bytehot/target/site/apidocs/index.html
-            echo '    </style>' >> bytehot/target/site/apidocs/index.html
-            echo '</head>' >> bytehot/target/site/apidocs/index.html
-            echo '<body>' >> bytehot/target/site/apidocs/index.html
-            echo '    <h1>ByteHot API Documentation</h1>' >> bytehot/target/site/apidocs/index.html
-            echo '    <div class="error">' >> bytehot/target/site/apidocs/index.html
-            echo '        <h2>⚠️ Documentation Generation Failed</h2>' >> bytehot/target/site/apidocs/index.html
-            echo '        <p>The automated Javadoc generation process encountered issues. This may be due to:</p>' >> bytehot/target/site/apidocs/index.html
-            echo '        <ul>' >> bytehot/target/site/apidocs/index.html
-            echo '            <li>Strict documentation linting requirements</li>' >> bytehot/target/site/apidocs/index.html
-            echo '            <li>Missing documentation comments</li>' >> bytehot/target/site/apidocs/index.html
-            echo '            <li>Classpath resolution issues</li>' >> bytehot/target/site/apidocs/index.html
-            echo '        </ul>' >> bytehot/target/site/apidocs/index.html
-            echo '    </div>' >> bytehot/target/site/apidocs/index.html
-            echo '    <div class="info">' >> bytehot/target/site/apidocs/index.html
-            echo '        <h3>📋 Alternative Documentation Sources</h3>' >> bytehot/target/site/apidocs/index.html
-            echo '        <p>While we work on resolving the Javadoc generation, you can explore:</p>' >> bytehot/target/site/apidocs/index.html
-            echo '        <ul>' >> bytehot/target/site/apidocs/index.html
-            echo '            <li><a href="../../../index.html">🏠 ByteHot Documentation Home</a></li>' >> bytehot/target/site/apidocs/index.html
-            echo '            <li><a href="https://github.com/rydnr/bytehot">📂 Source Code on GitHub</a></li>' >> bytehot/target/site/apidocs/index.html
-            echo '            <li><a href="../../../docs/configuration.html">⚙️ Configuration Guide</a></li>' >> bytehot/target/site/apidocs/index.html
-            echo '        </ul>' >> bytehot/target/site/apidocs/index.html
-            echo '    </div>' >> bytehot/target/site/apidocs/index.html
-            echo '    <p><em>This page was generated automatically. Check the <a href="https://github.com/rydnr/bytehot/actions">GitHub Actions logs</a> for more details.</em></p>' >> bytehot/target/site/apidocs/index.html
-            echo '</body>' >> bytehot/target/site/apidocs/index.html
-            echo '</html>' >> bytehot/target/site/apidocs/index.html
+            echo '<!DOCTYPE html>' > target/site/apidocs/index.html
+            echo '<html>' >> target/site/apidocs/index.html
+            echo '<head>' >> target/site/apidocs/index.html
+            echo '    <title>ByteHot API Documentation</title>' >> target/site/apidocs/index.html
+            echo '    <style>' >> target/site/apidocs/index.html
+            echo '        body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;line-height:1.6;color:#333;max-width:800px;margin:0 auto;padding:20px}' >> target/site/apidocs/index.html
+            echo '        .error{color:#d73027;background:#fee;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #d73027}' >> target/site/apidocs/index.html
+            echo '        .info{background:#e7f3ff;padding:20px;border-radius:8px;margin:20px 0;border-left:4px solid #2196F3}' >> target/site/apidocs/index.html
+            echo '        h1{color:#2c3e50;border-bottom:2px solid #3498db;padding-bottom:10px}' >> target/site/apidocs/index.html
+            echo '        a{color:#3498db;text-decoration:none}' >> target/site/apidocs/index.html
+            echo '        a:hover{text-decoration:underline}' >> target/site/apidocs/index.html
+            echo '    </style>' >> target/site/apidocs/index.html
+            echo '</head>' >> target/site/apidocs/index.html
+            echo '<body>' >> target/site/apidocs/index.html
+            echo '    <h1>ByteHot API Documentation</h1>' >> target/site/apidocs/index.html
+            echo '    <div class="error">' >> target/site/apidocs/index.html
+            echo '        <h2>⚠️ Documentation Generation Failed</h2>' >> target/site/apidocs/index.html
+            echo '        <p>The automated Javadoc generation process encountered issues. This may be due to:</p>' >> target/site/apidocs/index.html
+            echo '        <ul>' >> target/site/apidocs/index.html
+            echo '            <li>Strict documentation linting requirements</li>' >> target/site/apidocs/index.html
+            echo '            <li>Missing documentation comments</li>' >> target/site/apidocs/index.html
+            echo '            <li>Classpath resolution issues</li>' >> target/site/apidocs/index.html
+            echo '        </ul>' >> target/site/apidocs/index.html
+            echo '    </div>' >> target/site/apidocs/index.html
+            echo '    <div class="info">' >> target/site/apidocs/index.html
+            echo '        <h3>📋 Alternative Documentation Sources</h3>' >> target/site/apidocs/index.html
+            echo '        <p>While we work on resolving the Javadoc generation, you can explore:</p>' >> target/site/apidocs/index.html
+            echo '        <ul>' >> target/site/apidocs/index.html
+            echo '            <li><a href="../../../index.html">🏠 ByteHot Documentation Home</a></li>' >> target/site/apidocs/index.html
+            echo '            <li><a href="https://github.com/rydnr/bytehot">📂 Source Code on GitHub</a></li>' >> target/site/apidocs/index.html
+            echo '            <li><a href="../../../docs/configuration.html">⚙️ Configuration Guide</a></li>' >> target/site/apidocs/index.html
+            echo '        </ul>' >> target/site/apidocs/index.html
+            echo '    </div>' >> target/site/apidocs/index.html
+            echo '    <p><em>This page was generated automatically. Check the <a href="https://github.com/rydnr/bytehot/actions">GitHub Actions logs</a> for more details.</em></p>' >> target/site/apidocs/index.html
+            echo '</body>' >> target/site/apidocs/index.html
+            echo '</html>' >> target/site/apidocs/index.html
             echo "📄 Created fallback documentation page"
           fi
 

@@ -1,0 +1,243 @@
+#+TITLE: FlowAnalysisRequested - Event Flow Analysis and Pattern Detection Request Event
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-21]
+
+* Overview
+
+The ~FlowAnalysisRequested~ event represents a comprehensive request for event sequence analysis and flow pattern detection, providing sophisticated analysis coordination and intelligent pattern recognition for advanced ByteHot debugging and system understanding.
+
+* Event Structure and Analysis Context
+
+** Core Analysis Request and Configuration Information
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/FlowAnalysisRequested.java
+/**
+ * Unique identifier for the analysis request for comprehensive tracking
+ * @return the AnalysisId for analysis coordination and management
+ */
+@Getter
+private final AnalysisId analysisId;
+
+/**
+ * Events to be analyzed for flow detection and pattern recognition
+ * @return the list of VersionedDomainEvent instances for analysis
+ */
+@Getter
+private final List<org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent> eventsToAnalyze;
+
+/**
+ * Optional time window for analysis scope and temporal constraints
+ * @return the TimeWindow for analysis temporal boundaries
+ */
+@Getter
+private final Optional<TimeWindow> analysisWindow;
+
+/**
+ * Minimum confidence level required for flow detection accuracy
+ * @return the confidence threshold for pattern detection validation
+ */
+@Getter
+private final double minimumConfidence;
+
+/**
+ * User who requested the analysis for accountability and audit tracking
+ * @return the UserId of the analysis requester
+ */
+@Getter
+private final UserId requestedBy;
+
+/**
+ * Timestamp when analysis was requested for temporal tracking
+ * @return the Instant when the analysis request was initiated
+ */
+@Getter
+private final Instant requestedAt;
+
+/**
+ * Previous event in the event chain for causal relationship tracking
+ * @return the Optional DomainEvent that preceded this request
+ */
+@Getter
+private final Optional<DomainEvent> previousEvent;
+#+END_SRC
+
+** Factory Methods and Analysis Request Creation
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/FlowAnalysisRequested.java
+/**
+ * Factory method for comprehensive flow analysis request with all parameters
+ * @param analysisId unique identifier for analysis tracking
+ * @param eventsToAnalyze events for flow pattern detection
+ * @param analysisWindow temporal boundaries for analysis
+ * @param minimumConfidence confidence threshold for pattern validation
+ * @param requestedBy user initiating the analysis request
+ * @param requestedAt timestamp of request initiation
+ * @param previousEvent preceding event for causal tracking
+ * @return new FlowAnalysisRequested event with complete analysis context
+ */
+public static FlowAnalysisRequested of(final AnalysisId analysisId,
+                                      final List<org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent> eventsToAnalyze,
+                                      final Optional<TimeWindow> analysisWindow,
+                                      final double minimumConfidence,
+                                      final UserId requestedBy,
+                                      final Instant requestedAt,
+                                      final Optional<DomainEvent> previousEvent) {
+    return new FlowAnalysisRequested(analysisId, eventsToAnalyze, analysisWindow, 
+                                   minimumConfidence, requestedBy, requestedAt, previousEvent);
+}
+
+/**
+ * Factory method for standard flow analysis with default confidence level
+ * @param analysisId unique identifier for analysis tracking
+ * @param eventsToAnalyze events for flow pattern detection
+ * @param requestedBy user initiating the analysis request
+ * @return new FlowAnalysisRequested event with standard configuration
+ */
+public static FlowAnalysisRequested standard(final AnalysisId analysisId,
+                                           final List<org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent> eventsToAnalyze,
+                                           final UserId requestedBy) {
+    return of(analysisId, eventsToAnalyze, Optional.empty(), 0.75, requestedBy, 
+             Instant.now(), Optional.empty());
+}
+
+/**
+ * Factory method for high-precision flow analysis with elevated confidence
+ * @param analysisId unique identifier for analysis tracking
+ * @param eventsToAnalyze events for flow pattern detection
+ * @param requestedBy user initiating the analysis request
+ * @return new FlowAnalysisRequested event with high-precision configuration
+ */
+public static FlowAnalysisRequested highPrecision(final AnalysisId analysisId,
+                                                 final List<org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent> eventsToAnalyze,
+                                                 final UserId requestedBy) {
+    return of(analysisId, eventsToAnalyze, Optional.empty(), 0.95, requestedBy, 
+             Instant.now(), Optional.empty());
+}
+#+END_SRC
+
+** Analysis Intelligence and Pattern Detection Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/FlowAnalysisRequested.java
+/**
+ * Returns the number of events to be analyzed for scope assessment
+ * @return count of events in the analysis scope
+ */
+public int getEventCount() {
+    return eventsToAnalyze.size();
+}
+
+/**
+ * Returns whether analysis has temporal constraints
+ * @return true if analysis window is specified for temporal analysis
+ */
+public boolean hasTemporalConstraints() {
+    return analysisWindow.isPresent();
+}
+
+/**
+ * Returns whether analysis requires high precision detection
+ * @return true if minimum confidence is above 0.9 for high-precision analysis
+ */
+public boolean isHighPrecisionAnalysis() {
+    return minimumConfidence > 0.9;
+}
+
+/**
+ * Returns whether analysis includes causal relationship tracking
+ * @return true if previous event is specified for causal analysis
+ */
+public boolean hasCausalContext() {
+    return previousEvent.isPresent();
+}
+
+/**
+ * Returns analysis complexity level based on configuration
+ * @return AnalysisComplexity enum indicating analysis sophistication level
+ */
+public AnalysisComplexity getComplexityLevel() {
+    if (isHighPrecisionAnalysis() && hasTemporalConstraints() && hasCausalContext()) {
+        return AnalysisComplexity.COMPREHENSIVE;
+    } else if (isHighPrecisionAnalysis() || hasTemporalConstraints()) {
+        return AnalysisComplexity.ADVANCED;
+    } else {
+        return AnalysisComplexity.STANDARD;
+    }
+}
+
+/**
+ * Analysis complexity enumeration for intelligent analysis categorization
+ */
+public enum AnalysisComplexity {
+    /**
+     * Standard analysis with basic flow detection
+     */
+    STANDARD,
+
+    /**
+     * Advanced analysis with enhanced pattern recognition
+     */
+    ADVANCED,
+
+    /**
+     * Comprehensive analysis with full sophistication
+     */
+    COMPREHENSIVE
+}
+#+END_SRC
+
+* Domain Event Role
+
+This event serves as a DomainEvent that initiates comprehensive event flow analysis workflows, triggering sophisticated pattern detection and flow analysis processes for advanced ByteHot system understanding and debugging coordination.
+
+* Flow Analysis Intelligence and Pattern Detection
+
+The event enables sophisticated flow analysis coordination:
+- **Event Sequence Analysis**: Comprehensive event sequence analysis for flow pattern detection
+- **Temporal Analysis**: Time-window-based analysis for temporal flow pattern recognition
+- **Confidence Assessment**: Minimum confidence threshold management for pattern validation
+- **Causal Relationship Tracking**: Previous event tracking for causal flow analysis
+
+* Analysis Sophistication and Intelligence Operations
+
+The event provides advanced analysis management:
+- **Pattern Recognition**: Sophisticated event flow pattern recognition and detection
+- **Analysis Customization**: Configurable analysis parameters for diverse use cases
+- **Precision Control**: Confidence level management for analysis accuracy control
+- **Context Preservation**: Comprehensive analysis context preservation and management
+
+* Related Documentation
+
+- [[../AnalysisId.org][AnalysisId]]: Analysis identifier used for tracking and coordination
+- [[../TimeWindow.org][TimeWindow]]: Temporal boundaries for analysis scope management
+- [[../UserId.org][UserId]]: User identifier for analysis request accountability
+- [[../FlowAnalysisResult.org][FlowAnalysisResult]]: Analysis results from flow pattern detection
+- [[../Flow.org][Flow]]: Flow aggregate that processes analysis requests
+
+* Implementation Notes
+
+** Design Patterns Applied
+The event leverages several sophisticated design patterns:
+- **Domain Event Pattern**: Analysis workflow initiation through event-driven architecture
+- **Builder Pattern**: Complex event construction with optional parameters
+- **Factory Method Pattern**: Streamlined event creation through static factory methods
+- **Strategy Pattern**: Configurable analysis strategies through parameter variation
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Events**: Comprehensive analysis context beyond simple notification
+- **Domain Intelligence**: Built-in intelligence for analysis configuration and management
+- **Workflow Coordination**: Clear analysis workflow initiation through domain events
+- **Analysis-Centric Design**: Flow analysis-centric design with comprehensive configuration
+
+** Analysis Sophistication
+The analysis event maintains analysis best practices:
+- **Pattern Detection**: Sophisticated flow pattern detection and recognition
+- **Confidence Management**: Analysis confidence threshold management and validation
+- **Temporal Analysis**: Time-window-based analysis for temporal pattern recognition
+- **Causal Analysis**: Previous event tracking for causal relationship analysis
+
+** Performance Considerations
+The implementation provides performance optimization:
+- **Event Batching**: Efficient event batching for large-scale analysis
+- **Analysis Optimization**: Optimized analysis processing and pattern detection
+- **Memory Management**: Efficient memory management for large event collections
+- **Computational Efficiency**: Efficient computational processing for complex analysis
+
+The FlowAnalysisRequested event provides ByteHot's essential flow analysis foundation while maintaining comprehensive analysis intelligence and pattern detection coordination for advanced system understanding and debugging scenarios.

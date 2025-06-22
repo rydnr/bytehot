@@ -43,16 +43,40 @@ Complete error handling and recovery system with rollback capabilities, comprehe
 
 ## 🏗️ Architecture Excellence
 
-ByteHot is built with **Hexagonal Architecture** and **Domain-Driven Design** principles:
+ByteHot is built with **Hexagonal Architecture** and **Domain-Driven Design** principles, organized into distinct Maven modules:
+
+### 📦 Module Structure
+```
+bytehot/
+├── java-commons/              # Shared utilities and patterns
+├── bytehot-domain/           # Pure business logic
+│   ├── src/main/java/org/acmsl/bytehot/domain/
+│   │   ├── events/          # Domain events
+│   │   ├── *.java          # Aggregates, entities, value objects
+│   │   └── *Port.java      # Secondary ports (interfaces)
+│   └── docs/               # Domain documentation
+├── bytehot-application/      # Use cases and orchestration
+│   ├── src/main/java/org/acmsl/bytehot/application/
+│   │   └── ByteHotApplication.java
+│   └── docs/               # Application documentation
+├── bytehot-infrastructure/   # External adapters
+│   ├── src/main/java/org/acmsl/bytehot/infrastructure/
+│   │   ├── agent/          # JVM agent implementation
+│   │   ├── config/         # Configuration adapters
+│   │   ├── filesystem/     # File system adapters
+│   │   └── events/         # Event emission adapters
+│   └── docs/               # Infrastructure documentation
+└── bytehot/                 # Legacy module (being phased out)
+```
 
 ### 🎯 Clean Architecture
 ```
 ┌─────────────────────────────────────┐
-│           Infrastructure            │
+│      bytehot-infrastructure        │
 │  ┌─────────────────────────────┐   │
-│  │        Application          │   │
+│  │      bytehot-application    │   │
 │  │  ┌─────────────────────┐   │   │
-│  │  │      Domain         │   │   │
+│  │  │   bytehot-domain    │   │   │
 │  │  │  • ByteHot Core     │   │   │
 │  │  │  • Instance Mgmt    │   │   │
 │  │  │  • Error Handling   │   │   │
@@ -84,12 +108,20 @@ ByteHot is built with **Hexagonal Architecture** and **Domain-Driven Design** pr
 
 1. **Download the ByteHot agent JAR**:
 ```bash
-wget https://github.com/rydnr/bytehot/releases/latest/download/bytehot-agent.jar
+wget https://github.com/rydnr/bytehot/releases/latest/download/bytehot-infrastructure-agent.jar
 ```
 
 2. **Add to your JVM startup**:
 ```bash
-java -javaagent:bytehot-agent.jar -jar your-application.jar
+java -javaagent:bytehot-infrastructure-agent.jar -jar your-application.jar
+```
+
+**Or build from source:**
+```bash
+git clone https://github.com/rydnr/bytehot.git
+cd bytehot
+mvn clean package
+# Agent JAR will be at: bytehot-infrastructure/target/bytehot-infrastructure-*-agent.jar
 ```
 
 ### Configuration

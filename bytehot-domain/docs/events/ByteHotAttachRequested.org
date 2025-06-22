@@ -1,0 +1,277 @@
+#+TITLE: ByteHotAttachRequested - Agent Attachment Domain Event
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Overview
+
+The ~ByteHotAttachRequested~ event represents the primary trigger that initiates the ByteHot system lifecycle. This domain event encapsulates all necessary information for attaching and configuring the ByteHot agent within a JVM runtime environment, serving as the foundational event that transforms a standard Java application into a hot-swap enabled system.
+
+* Domain Event Classification
+
+** Event Type: Command Event
+~ByteHotAttachRequested~ represents a command event that carries an imperative: "attach the ByteHot agent with this configuration." It differs from notification events by explicitly requesting action rather than reporting something that has already occurred.
+
+** Event Flow Position
+In the ByteHot event flow, this event serves as:
+- *Initialization Trigger*: The first event in any ByteHot session
+- *Configuration Carrier*: Contains all necessary setup parameters
+- *Lifecycle Initiator*: Triggers the complete system startup sequence
+
+* Event Structure and Data
+
+** Core Event Data
+The event encapsulates essential information for ByteHot initialization:
+
+#+BEGIN_SRC java
+public class ByteHotAttachRequested implements DomainEvent {
+    private final Instrumentation instrumentation;
+    private final WatchConfiguration configuration;
+    private final String sessionId;
+    private final Instant requestedAt;
+    private final UserId requestedBy;
+}
+#+END_SRC
+
+** Instrumentation Context
+- *JVM Instrumentation*: Direct access to Java instrumentation capabilities
+- *Capability Verification*: Enables validation of hot-swap support
+- *Runtime Integration*: Bridges domain logic with JVM internals
+
+** Configuration Specification
+- *Watch Paths*: Directories to monitor for class file changes
+- *File Patterns*: Specific patterns to match (e.g., "*.class")
+- *Monitoring Options*: Recursive watching, exclusion patterns
+- *Performance Tuning*: Polling intervals, batch processing settings
+
+* Event Semantics and Intent
+
+** Semantic Meaning
+"A request has been made to attach the ByteHot agent to this JVM with the specified configuration, enabling hot-swap capabilities for the defined watch paths."
+
+** Business Intent
+- Enable runtime bytecode modification capabilities
+- Establish file system monitoring for automatic change detection
+- Initialize user session tracking for audit and analytics
+- Configure system parameters for optimal performance
+
+** Temporal Characteristics
+- *Immediate Processing*: Requires immediate response for system readiness
+- *One-Time Event*: Typically occurs once per JVM session
+- *Session Boundary*: Marks the beginning of a ByteHot-enabled session
+
+* Event Processing Flow
+
+** Primary Event Handler
+The ~ByteHot~ aggregate serves as the primary handler for this event:
+
+#+BEGIN_SRC java
+public static DomainResponseEvent<ByteHotAttachRequested> accept(final ByteHotAttachRequested event) {
+    DomainResponseEvent<ByteHotAttachRequested> result = null;
+    try {
+        new ByteHot(event.getInstrumentation(), event.getConfiguration())
+            .start(event);
+        result = new ByteHotAgentAttached(event, event.getConfiguration());
+    } catch (final Throwable t) {
+        result = new ByteHotNotStarted(event, t);
+    }
+    return result;
+}
+#+END_SRC
+
+** Processing Stages
+1. *Validation*: Verify instrumentation availability and configuration validity
+2. *Aggregate Creation*: Instantiate ByteHot aggregate with event parameters
+3. *System Startup*: Initialize monitoring, capabilities, and infrastructure
+4. *Result Generation*: Produce success or failure response event
+
+* Response Events
+
+** Success Response: ByteHotAgentAttached
+When processing succeeds, the system emits ~ByteHotAgentAttached~:
+- Confirms successful agent attachment
+- Includes effective configuration used
+- Provides reference to original request event
+- Enables subsequent system operations
+
+** Failure Response: ByteHotNotStarted  
+When processing fails, the system emits ~ByteHotNotStarted~:
+- Documents the failure with complete error context
+- Preserves original request for debugging
+- Enables error recovery or alternative approaches
+- Maintains event-driven error handling consistency
+
+* Configuration Integration
+
+** WatchConfiguration Contents
+The embedded configuration specifies:
+
+#+BEGIN_SRC java
+public class WatchConfiguration {
+    private final List<Path> watchPaths;
+    private final List<String> includePatterns;
+    private final List<String> excludePatterns;
+    private final Duration pollInterval;
+    private final boolean recursiveWatching;
+    private final int maxConcurrentWatchers;
+}
+#+END_SRC
+
+** Configuration Validation
+During event processing:
+- Path existence verification
+- Pattern syntax validation  
+- Resource availability checks
+- Performance parameter optimization
+
+* User Context and Analytics
+
+** User Identification
+The event includes user context for:
+- Audit trail establishment
+- User-specific analytics
+- Personalized configuration preferences
+- Collaborative development support
+
+** Session Management
+- Unique session identification
+- Development environment tracking
+- Performance baseline establishment
+- User behavior pattern initiation
+
+* Infrastructure Coordination
+
+** JVM Integration Points
+The event facilitates integration with:
+- *Java Instrumentation API*: Direct bytecode manipulation capabilities
+- *File System Watchers*: Native OS file monitoring services  
+- *Class Loading Infrastructure*: JVM class loader coordination
+- *Thread Management*: Concurrent operation support
+
+** Platform Abstraction
+While carrying platform-specific data (Instrumentation), the event maintains platform abstraction through:
+- Interface-based instrumentation access
+- Configuration-driven behavior specification
+- Event-driven response handling
+- Clean error boundary establishment
+
+* Testing and Verification
+
+** Event Creation for Testing
+#+BEGIN_SRC java
+@Test
+void shouldCreateValidAttachRequest() {
+    // Given: Valid instrumentation and configuration
+    Instrumentation instrumentation = mock(Instrumentation.class);
+    WatchConfiguration config = WatchConfiguration.builder()
+        .watchPaths(List.of(Paths.get("target/classes")))
+        .includePatterns(List.of("**/*.class"))
+        .build();
+    
+    // When: Event is created
+    ByteHotAttachRequested event = new ByteHotAttachRequested(
+        instrumentation, config, "test-session", Instant.now(), UserId.of("test-user")
+    );
+    
+    // Then: Event should be valid and processable
+    assertThat(event.getInstrumentation()).isEqualTo(instrumentation);
+    assertThat(event.getConfiguration()).isEqualTo(config);
+}
+#+END_SRC
+
+** Processing Verification
+#+BEGIN_SRC java
+@Test
+void shouldProcessAttachRequestSuccessfully() {
+    // Given: Valid attach request
+    ByteHotAttachRequested request = createValidAttachRequest();
+    
+    // When: Event is processed
+    DomainResponseEvent<ByteHotAttachRequested> response = ByteHot.accept(request);
+    
+    // Then: Should return success event
+    assertThat(response).isInstanceOf(ByteHotAgentAttached.class);
+    assertThat(response.getPreceding()).isEqualTo(request);
+}
+#+END_SRC
+
+* Error Scenarios and Recovery
+
+** Common Failure Conditions
+- *Instrumentation Unavailable*: JVM doesn't support required instrumentation
+- *Invalid Configuration*: Watch paths don't exist or are inaccessible
+- *Resource Constraints*: Insufficient permissions or system resources
+- *Initialization Conflicts*: Another agent or system conflict
+
+** Error Context Preservation
+Failed processing preserves complete context:
+- Original event data for replay
+- Detailed error information for diagnosis
+- System state at failure time
+- Recovery guidance when possible
+
+* Event Sourcing Implications
+
+** Event Storage Considerations
+- Complete instrumentation context cannot be serialized
+- Configuration data should be fully persistent
+- User context enables event replay for different users
+- Temporal data supports audit and compliance requirements
+
+** Replay Scenarios
+- Development environment recreation
+- Issue reproduction from production
+- Configuration testing and validation
+- User behavior analysis
+
+* Security and Compliance
+
+** Security Implications
+- Instrumentation access represents significant JVM privileges
+- Configuration may expose file system structure
+- User identification enables access control
+- Session tracking supports security auditing
+
+** Compliance Support
+- Complete audit trail from first system interaction
+- User attribution for all subsequent operations
+- Configuration change tracking
+- Temporal accountability for all actions
+
+* Performance Considerations
+
+** Processing Efficiency
+- Event processing should complete within milliseconds
+- Configuration validation should be non-blocking where possible
+- Resource allocation should be lazy and on-demand
+- Error handling should not impact performance
+
+** Resource Management
+- Instrumentation references should not prevent garbage collection
+- Configuration data should be efficiently stored
+- Event metadata should use minimal memory
+- Processing should scale with configuration complexity
+
+* Related Documentation
+
+- [[../ByteHot.org][ByteHot]]: Primary event handler aggregate
+- [[../WatchConfiguration.org][WatchConfiguration]]: Configuration value object
+- [[./ByteHotAgentAttached.org][ByteHotAgentAttached]]: Success response event
+- [[./ByteHotNotStarted.org][ByteHotNotStarted]]: Failure response event
+- [[../../flows/bytehot-startup-flow.org][ByteHot Startup Flow]]: Complete initialization sequence
+
+* Future Evolution
+
+** Anticipated Enhancements
+- Configuration versioning and migration support
+- Distributed agent coordination for microservices
+- Enhanced security and permission management
+- Advanced configuration validation and optimization
+
+** Backward Compatibility
+Event structure designed for evolution:
+- Optional fields for new capabilities
+- Version information for migration support
+- Extensible configuration structure
+- Preserved core semantics across versions
+
+The ~ByteHotAttachRequested~ event represents the foundational contract that initiates ByteHot's revolutionary hot-swapping capabilities, establishing the system's runtime context and configuration while maintaining clean event-driven semantics.

@@ -1,0 +1,382 @@
+#+TITLE: HotSwapRequested - Hot-Swap Operation Initiation and Execution Planning Event
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~HotSwapRequested~ event serves as ByteHot's comprehensive hot-swap operation initiation and execution planning signal, representing the authorized request to proceed with JVM class redefinition based on successful validation and safety verification. This critical domain event provides complete execution context including validated bytecode references, execution strategy selection, and performance optimization parameters that enable intelligent hot-swap execution. As the execution gateway in ByteHot's hot-swap pipeline, it bridges the gap between validation success and actual JVM manipulation while maintaining complete audit trails and supporting sophisticated execution strategies, performance optimization, and operational intelligence throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Role and Significance
+
+** Hot-Swap Orchestration Command
+HotSwapRequested serves as the command event that triggers actual JVM instrumentation operations. It encapsulates all the information required to safely replace class definitions in the running JVM.
+
+** Critical Decision Point
+This event represents the point of no return in the hot-swap pipeline where:
+- Validation has completed successfully
+- Bytecode compatibility has been verified
+- All prerequisites for safe hot-swap have been met
+- The system commits to attempting JVM class redefinition
+
+** Response Event Architecture
+As a ~DomainResponseEvent<ClassFileChanged>~, this event maintains causal relationships with the original file change that triggered the hot-swap sequence, enabling complete audit trails and event sourcing capabilities.
+
+* Event Structure and Properties
+
+** Core Hot-Swap Information
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java
+/**
+ * The path to the .class file being hot-swapped
+ */
+Path classFile;
+
+/**
+ * The fully qualified name of the class being hot-swapped
+ */
+String className;
+
+/**
+ * The reason why hot-swap was requested
+ */
+String requestReason;
+#+END_SRC
+
+** Bytecode Comparison Data
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java
+/**
+ * The current bytecode in the JVM
+ */
+byte[] originalBytecode;
+
+/**
+ * The new bytecode to install
+ */
+byte[] newBytecode;
+#+END_SRC
+
+** Temporal and Causal Context
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java
+/**
+ * The timestamp when hot-swap was requested
+ */
+Instant timestamp;
+
+/**
+ * The original event that triggered this hot-swap request
+ */
+ClassFileChanged preceding;
+#+END_SRC
+
+* Event Inheritance and Architecture
+
+** DomainResponseEvent Implementation
+HotSwapRequested implements ~DomainResponseEvent<ClassFileChanged>~, providing:
+- Causal relationship tracking to the originating file change
+- Event sourcing compatibility for complete audit trails
+- Response event semantics for flow tracking
+- Integration with ByteHot's event-driven architecture
+
+** Preceding Event Integration
+The relationship to the preceding event enables:
+#+BEGIN_SRC java
+@Override
+public ClassFileChanged getPreceding() {
+    return preceding;
+}
+#+END_SRC
+
+This relationship allows:
+- Complete event chain reconstruction
+- Temporal analysis of hot-swap latency
+- Causal impact assessment
+- User context preservation across the workflow
+
+* Bytecode Management and Comparison
+
+** Original Bytecode Preservation
+The ~originalBytecode~ field serves critical functions:
+- *Rollback Capability*: Enables instant reversion if hot-swap fails
+- *Change Analysis*: Allows detailed comparison of modifications
+- *Validation Support*: Provides baseline for compatibility checking
+- *Audit Trail*: Documents the exact state before modification
+
+** New Bytecode Validation
+The ~newBytecode~ field contains the validated bytecode ready for installation:
+#+BEGIN_SRC java
+// Bytecode requirements:
+// - Must pass structural validation
+// - Must comply with JVM hot-swap limitations
+// - Must maintain class identity and compatibility
+// - Must be loadable by the current class loader
+#+END_SRC
+
+** Bytecode Difference Analysis
+The system can analyze differences between original and new bytecode:
+#+BEGIN_SRC java
+// Common bytecode change patterns:
+// - Method body modifications (safe)
+// - New method additions (safe)
+// - Field additions (requires careful handling)
+// - Constant pool changes (usually safe)
+// - Attribute modifications (varies by type)
+#+END_SRC
+
+* Request Reason and Context
+
+** Request Reason Categories
+The ~requestReason~ field provides context for the hot-swap request:
+#+BEGIN_SRC java
+// Example request reasons:
+// - "File change detected in session: dev-session-123"
+// - "Automatic hot-swap triggered by compilation"
+// - "Manual hot-swap requested by developer"
+// - "Framework-initiated class refresh"
+// - "Test-driven hot-swap for rapid iteration"
+#+END_SRC
+
+** Contextual Information Value
+Request reasons enable:
+- User experience optimization based on context
+- Analytics for hot-swap usage patterns
+- Debugging support for failed operations
+- Workflow optimization insights
+
+* Factory Methods and Creation Patterns
+
+** File Change Integration
+Primary factory method for creating requests from file changes:
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java
+public static HotSwapRequested fromFileChange(
+    ClassFileChanged fileChangeEvent, 
+    String sessionId
+) {
+    // Load actual bytecode from file system
+    byte[] originalBytecode = loadCurrentBytecode(fileChangeEvent.getClassName());
+    byte[] newBytecode = loadNewBytecode(fileChangeEvent.getClassFile());
+    
+    return new HotSwapRequested(
+        fileChangeEvent.getClassFile(),
+        fileChangeEvent.getClassName(),
+        originalBytecode,
+        newBytecode,
+        "File change detected in session: " + sessionId,
+        Instant.now(),
+        fileChangeEvent
+    );
+}
+#+END_SRC
+
+** Manual Request Creation
+For explicitly triggered hot-swap operations:
+#+BEGIN_SRC java
+public static HotSwapRequested forManualOperation(
+    String className,
+    byte[] originalBytecode,
+    byte[] newBytecode,
+    String userId
+) {
+    return new HotSwapRequested(
+        resolveClassFilePath(className),
+        className,
+        originalBytecode,
+        newBytecode,
+        "Manual hot-swap requested by user: " + userId,
+        Instant.now(),
+        null // No preceding file change event
+    );
+}
+#+END_SRC
+
+* Event Processing and JVM Integration
+
+** JVM Instrumentation Coordination
+HotSwapRequested events trigger JVM instrumentation operations:
+#+BEGIN_SRC java
+// Processing pattern:
+public void processHotSwapRequest(HotSwapRequested event) {
+    try {
+        // 1. Prepare for hot-swap
+        prepareClassRedefinition(event.getClassName());
+        
+        // 2. Execute JVM redefinition
+        instrumentationAPI.redefineClasses(
+            event.getClassName(),
+            event.getNewBytecode()
+        );
+        
+        // 3. Emit success event
+        emit(new ClassRedefinitionSucceeded(event));
+        
+    } catch (Exception e) {
+        // 4. Handle failure with rollback
+        emit(new ClassRedefinitionFailed(event, e));
+    }
+}
+#+END_SRC
+
+** Safety Protocols
+Hot-swap execution follows strict safety protocols:
+- Pre-execution system state capture
+- Atomic redefinition operations
+- Immediate rollback capability
+- Exception handling with detailed error context
+- Resource cleanup on both success and failure
+
+* Integration with Instance Management
+
+** Instance Update Coordination
+HotSwapRequested events coordinate with instance management:
+#+BEGIN_SRC java
+// Instance management integration:
+// 1. Identify existing instances of the class
+// 2. Prepare instance state preservation
+// 3. Execute hot-swap operation
+// 4. Update existing instances with new behavior
+// 5. Validate instance consistency
+#+END_SRC
+
+** Framework Integration Points
+The event enables framework-aware hot-swap operations:
+- Spring bean refresh coordination
+- CDI context boundary management
+- Guice provider instance updates
+- Framework proxy invalidation and recreation
+
+* Performance and Resource Management
+
+** Memory Efficiency
+HotSwapRequested events manage memory efficiently:
+- Bytecode arrays are typically short-lived
+- Original bytecode is cached for potential reuse
+- Event instances are lightweight despite bytecode payload
+- Garbage collection optimized for rapid event processing
+
+** Processing Speed Optimization
+Hot-swap execution is optimized for minimal latency:
+- Bytecode loading is parallelized when possible
+- JVM instrumentation uses efficient native operations
+- Event processing avoids unnecessary object allocations
+- Critical path operations are prioritized
+
+** Resource Cleanup
+Proper resource management ensures system stability:
+#+BEGIN_SRC java
+// Resource cleanup pattern:
+try {
+    performHotSwap(event);
+} finally {
+    // Always clean up resources
+    releaseTemporaryResources();
+    clearBytecodeBuffers();
+    updateMemoryMetrics();
+}
+#+END_SRC
+
+* Error Handling and Rollback
+
+** Hot-Swap Failure Recovery
+When hot-swap operations fail, comprehensive recovery mechanisms activate:
+#+BEGIN_SRC java
+// Failure recovery sequence:
+// 1. Capture detailed error information
+// 2. Attempt automatic rollback to original bytecode
+// 3. Verify system state consistency
+// 4. Emit detailed failure event
+// 5. Log comprehensive diagnostic information
+#+END_SRC
+
+** Rollback Capabilities
+The preserved original bytecode enables instant rollback:
+- JVM state restoration to pre-hot-swap condition
+- Instance state rollback where applicable
+- Framework configuration restoration
+- Complete audit trail of rollback operations
+
+* Testing and Validation
+
+** Event Creation Testing
+#+BEGIN_SRC java
+@Test
+void shouldCreateHotSwapRequestFromFileChange() {
+    // Given: File change event with valid bytecode
+    ClassFileChanged fileChange = createFileChangeEvent();
+    String sessionId = "test-session-123";
+    
+    // When: Hot-swap request is created
+    HotSwapRequested request = HotSwapRequested.fromFileChange(
+        fileChange, sessionId
+    );
+    
+    // Then: Request should contain proper information
+    assertThat(request.getClassName()).isEqualTo(fileChange.getClassName());
+    assertThat(request.getClassFile()).isEqualTo(fileChange.getClassFile());
+    assertThat(request.getPreceding()).isEqualTo(fileChange);
+    assertThat(request.getRequestReason()).contains(sessionId);
+}
+#+END_SRC
+
+** Hot-Swap Execution Testing
+#+BEGIN_SRC java
+@Test
+void shouldExecuteHotSwapSuccessfully() {
+    given()
+        .event(new ClassFileChanged(classPath))
+        .event(new BytecodeValidated(classPath, true));
+    
+    when()
+        .event(new HotSwapRequested(classPath, className, originalBytes, newBytes));
+    
+    then()
+        .expectEvent(ClassRedefinitionSucceeded.class)
+        .withClassName(className);
+}
+#+END_SRC
+
+* Monitoring and Analytics
+
+** Hot-Swap Metrics
+HotSwapRequested events enable comprehensive metrics collection:
+- Hot-swap request frequency per developer
+- Bytecode change size distributions
+- Request reason analysis for workflow optimization
+- Temporal patterns in hot-swap usage
+
+** Performance Analysis
+The events support performance optimization:
+- Hot-swap execution latency tracking
+- Bytecode processing time analysis
+- Resource usage patterns
+- Success rate correlation with change types
+
+** Usage Pattern Discovery
+Analytics reveal important usage patterns:
+- Most frequently hot-swapped classes
+- Peak usage times for development optimization
+- Change complexity trends over time
+- Developer workflow efficiency metrics
+
+* Related Documentation
+
+- [[./ClassRedefinitionSucceeded.org][ClassRedefinitionSucceeded]]: Successful hot-swap completion event
+- [[./ClassRedefinitionFailed.org][ClassRedefinitionFailed]]: Hot-swap failure event
+- [[./InstancesUpdated.org][InstancesUpdated]]: Instance management follow-up event
+- [[../HotSwapManager.org][HotSwapManager]]: Component responsible for processing these events
+- [[../../flows/hotswap-execution-process.org][Hot-Swap Execution Process]]: Complete hot-swap workflow
+
+* Future Evolution
+
+** Enhanced Request Context
+Future improvements to request context:
+- Detailed change impact analysis
+- Predictive performance impact assessment
+- Automated optimization suggestions
+- Enhanced rollback strategies
+
+** Advanced Integration
+Anticipated integration enhancements:
+- IDE integration for real-time hot-swap control
+- Build tool coordination for automated requests
+- Cloud deployment integration for distributed hot-swap
+- Advanced debugging integration
+
+The HotSwapRequested event represents the culmination of ByteHot's validation and preparation pipeline, initiating the critical JVM instrumentation operations that enable runtime class evolution.

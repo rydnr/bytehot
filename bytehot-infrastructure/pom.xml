@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.acmsl</groupId>
+    <artifactId>acmsl-pom</artifactId>
+    <version>latest-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-infrastructure</artifactId>
+  <version>latest-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>ByteHot Infrastructure</name>
+  <description>ByteHot Infrastructure Layer - Adapters, agents, and external integrations</description>
+  <inceptionYear>2025</inceptionYear>
+  <organization>
+    <name>ACM-SL</name>
+    <url>http://www.acm-sl.org</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>GNU General Public License v3.0</name>
+      <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:https://github.com/rydnr/bytehot.git</connection>
+    <developerConnection>scm:git:git@github.com/rydnr/bytehot.git</developerConnection>
+    <url>https://github.com/rydnr/bytehot.git</url>
+  </scm>
+  <issueManagement>
+    <system>github</system>
+    <url>https://github.com/rydnr/bytehot.git/</url>
+  </issueManagement>
+  <ciManagement>
+    <system>Jenkins</system>
+    <url>https://jenkins.acm-sl.org/job/rydnr.bytehot</url>
+    <notifiers>
+      <notifier>
+        <configuration>
+          <address>jenkins@acm-sl.org</address>
+        </configuration>
+      </notifier>
+    </notifiers>
+  </ciManagement>
+  
+  <dependencies>
+    <!-- Domain and Application layer dependencies -->
+    <dependency>
+      <groupId>org.acmsl</groupId>
+      <artifactId>bytehot-domain</artifactId>
+      <version>latest-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.acmsl</groupId>
+      <artifactId>bytehot-application</artifactId>
+      <version>latest-SNAPSHOT</version>
+    </dependency>
+    
+    <!-- Lombok for reducing boilerplate -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    
+    <!-- External dependencies for infrastructure concerns -->
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+    </dependency>
+    
+    <!-- YAML configuration support -->
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+    </dependency>
+    
+    <!-- JSON serialization support -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    
+    <!-- Checker Framework annotations -->
+    <dependency>
+      <groupId>org.checkerframework</groupId>
+      <artifactId>checker-qual</artifactId>
+    </dependency>
+    
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.24.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  
+  <build>
+    <plugins>
+      <!-- Create agent JAR with proper manifest -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Premain-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Premain-Class>
+              <Agent-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Agent-Class>
+              <Can-Redefine-Classes>true</Can-Redefine-Classes>
+              <Can-Retransform-Classes>true</Can-Retransform-Classes>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      
+      <!-- Create fat JAR for agent distribution -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>agent</shadedClassifierName>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Premain-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Premain-Class>
+                    <Agent-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Agent-Class>
+                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

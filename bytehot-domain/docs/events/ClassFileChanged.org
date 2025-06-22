@@ -1,0 +1,354 @@
+#+TITLE: ClassFileChanged - File System Monitoring Event
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Overview
+
+The ~ClassFileChanged~ event represents the detection of a modification to a compiled Java class file on the file system. This is one of the most fundamental events in ByteHot's architecture, serving as the primary trigger that initiates the entire hot-swap workflow.
+
+* Domain Role and Significance
+
+** Primary Domain Event
+As a critical domain event, ClassFileChanged serves as the entry point for ByteHot's hot-swap capabilities. When a developer recompiles their Java code, this event captures the precise moment when the new bytecode becomes available for potential hot-swapping.
+
+** Event-Driven Architecture Position
+This event occupies a crucial position in the event chain:
+1. *File System Monitoring* detects changes → ~ClassFileChanged~
+2. ~ClassFileChanged~ triggers → ~ClassMetadataExtracted~
+3. Metadata extraction leads to → ~BytecodeValidated~
+4. Validation success enables → ~HotSwapRequested~
+
+** EventSourcing Foundation
+ClassFileChanged events form the foundational layer of ByteHot's EventSourcing capabilities, providing:
+- Complete audit trail of all file modifications
+- Temporal tracking of development activities
+- User context for collaborative development scenarios
+- Causal relationship establishment for subsequent events
+
+* Event Structure and Properties
+
+** Core File Information
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileChanged.java
+/**
+ * The path to the modified .class file
+ */
+Path classFile;
+
+/**
+ * The name of the class (extracted from filename)
+ */
+String className;
+
+/**
+ * The size of the file after modification
+ */
+long fileSize;
+#+END_SRC
+
+** Temporal Context
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileChanged.java
+/**
+ * The timestamp when the change was detected (domain-specific, different from event timestamp)
+ */
+Instant detectionTimestamp;
+#+END_SRC
+
+The distinction between ~detectionTimestamp~ and the inherited event timestamp is crucial:
+- ~detectionTimestamp~: When the file system change was actually detected
+- Event timestamp: When the domain event was created and processed
+
+* Event Inheritance and Architecture
+
+** AbstractVersionedDomainEvent Inheritance
+ClassFileChanged extends ~AbstractVersionedDomainEvent~, inheriting:
+- EventSourcing capabilities with aggregate versioning
+- Event causality chains through ~previousEventId~
+- User context tracking for collaborative environments
+- Schema versioning for event evolution
+- Correlation identifiers for distributed tracing
+
+** Event Metadata Integration
+The event seamlessly integrates with ByteHot's ~EventMetadata~ system:
+#+BEGIN_SRC java
+// EventSourcing metadata automatically includes:
+// - Unique event identifier
+// - Aggregate type ("filewatch") 
+// - Aggregate identifier (file path)
+// - Version sequencing
+// - User context
+// - Causality tracking
+#+END_SRC
+
+* Factory Methods and Creation Patterns
+
+** New Session Creation
+For the first event in a file monitoring session:
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileChanged.java
+public static ClassFileChanged forNewSession(
+    Path classFile,
+    String className,
+    long fileSize,
+    Instant detectionTimestamp
+) {
+    EventMetadata metadata = createMetadataForNewAggregate(
+        "filewatch", 
+        classFile.toString()
+    );
+    
+    return new ClassFileChanged(
+        metadata,
+        classFile,
+        className,
+        fileSize,
+        detectionTimestamp
+    );
+}
+#+END_SRC
+
+** Existing Session Continuation
+For subsequent events in an ongoing monitoring session:
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileChanged.java
+public static ClassFileChanged forExistingSession(
+    Path classFile,
+    String className,
+    long fileSize,
+    Instant detectionTimestamp,
+    String previousEventId,
+    long currentVersion
+) {
+    EventMetadata metadata = EventMetadata.forExistingAggregate(
+        "filewatch",
+        classFile.toString(),
+        previousEventId,
+        currentVersion,
+        detectionTimestamp
+    );
+    
+    return new ClassFileChanged(
+        metadata,
+        classFile,
+        className,
+        fileSize,
+        detectionTimestamp
+    );
+}
+#+END_SRC
+
+** User-Aware Creation
+For collaborative environments with explicit user context:
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileChanged.java
+public static ClassFileChanged withUser(
+    Path classFile,
+    String className,
+    long fileSize,
+    Instant detectionTimestamp,
+    String userId,
+    String previousEventId,
+    long currentVersion
+) {
+    EventMetadata metadata = createMetadataWithUser(
+        "filewatch",
+        classFile.toString(),
+        previousEventId,
+        currentVersion,
+        userId
+    );
+    
+    return new ClassFileChanged(
+        metadata,
+        classFile,
+        className,
+        fileSize,
+        detectionTimestamp
+    );
+}
+#+END_SRC
+
+* Event Processing Workflow
+
+** File System Integration
+The event creation process typically follows this pattern:
+1. *NIO WatchService* detects file modification
+2. *FileWatcherAdapter* validates the change is a ~.class~ file
+3. File metadata is extracted (size, timestamp, class name)
+4. User context is resolved (Git, environment, explicit configuration)
+5. ~ClassFileChanged~ event is created with appropriate factory method
+6. Event is emitted to the domain layer for processing
+
+** Class Name Extraction Logic
+The ~className~ field requires careful extraction from the file path:
+#+BEGIN_SRC java
+// Example transformation:
+// Path: /project/target/classes/com/example/service/UserService.class
+// ClassName: com.example.service.UserService
+
+String className = extractClassNameFromPath(classFile, watchRoot);
+#+END_SRC
+
+** File Size Significance
+The ~fileSize~ field serves multiple purposes:
+- *Change Detection*: Different sizes indicate meaningful modifications
+- *Validation Input*: Size changes help determine compatibility impact
+- *Performance Optimization*: Large files may require different processing strategies
+- *Audit Trail*: Historical size tracking reveals development patterns
+
+* Event Consumption Patterns
+
+** Primary Consumers
+The primary consumers of ClassFileChanged events include:
+- *ByteHot Aggregate*: Core decision-making entity that orchestrates responses
+- *ClassMetadataExtractor*: Analyzes bytecode structure and compatibility
+- *UserStatisticsTracker*: Updates developer productivity metrics
+- *FlowDetector*: Identifies recurring development patterns
+
+** Event Filtering and Routing
+Not all ClassFileChanged events trigger hot-swap attempts:
+#+BEGIN_SRC java
+// Common filtering criteria:
+// - File must be in configured watch paths
+// - File must match configured patterns (*.class)
+// - File must not be in excluded directories (test/, generated/)
+// - File size must be within reasonable bounds
+// - File must be readable and valid bytecode
+#+END_SRC
+
+** Batch Processing Considerations
+Multiple rapid file changes may be batched:
+- Debouncing prevents excessive processing during mass compilation
+- Temporal clustering groups related changes
+- Dependency analysis determines optimal processing order
+
+* Integration with Hot-Swap Pipeline
+
+** Validation Gateway
+ClassFileChanged events must pass validation before proceeding:
+- *File Accessibility*: Can the file be read?
+- *Bytecode Validity*: Is the content valid Java bytecode?
+- *Class Loading*: Can the class be loaded by the current JVM?
+- *Hot-Swap Compatibility*: Are the changes compatible with JVM limitations?
+
+** State Transition Triggering
+Successful ClassFileChanged processing triggers state transitions:
+#+BEGIN_SRC java
+// Event sequence for successful hot-swap:
+ClassFileChanged → ClassMetadataExtracted → BytecodeValidated 
+                → HotSwapRequested → ClassRedefinitionSucceeded 
+                → InstancesUpdated
+#+END_SRC
+
+** Error Handling Integration
+Failed processing generates error events:
+#+BEGIN_SRC java
+// Error sequence examples:
+ClassFileChanged → BytecodeRejected (invalid bytecode)
+ClassFileChanged → ClassRedefinitionFailed (JVM rejection)
+ClassFileChanged → HotSwapCapabilityNix (unsupported changes)
+#+END_SRC
+
+* Performance and Optimization
+
+** Memory Efficiency
+- Path objects are lightweight and reusable
+- String class names are interned for memory optimization
+- File size is stored as primitive long for efficiency
+- Instant timestamps use optimal internal representation
+
+** Processing Speed
+- Event creation is optimized for minimal latency
+- File metadata extraction uses NIO for performance
+- Class name parsing employs efficient string operations
+- Factory methods minimize object allocation overhead
+
+** Scalability Considerations
+- Events support high-frequency file change scenarios
+- Batch processing capabilities handle mass compilation
+- Memory footprint remains constant regardless of file size
+- Event queuing prevents memory leaks during processing spikes
+
+* Testing and Validation
+
+** Event Creation Testing
+#+BEGIN_SRC java
+@Test
+void shouldCreateEventForNewSession() {
+    // Given: File change parameters
+    Path classFile = Paths.get("target/classes/com/example/Service.class");
+    String className = "com.example.Service";
+    long fileSize = 2048L;
+    Instant detectionTime = Instant.now();
+    
+    // When: Event is created
+    ClassFileChanged event = ClassFileChanged.forNewSession(
+        classFile, className, fileSize, detectionTime
+    );
+    
+    // Then: Event should contain correct information
+    assertThat(event.getClassFile()).isEqualTo(classFile);
+    assertThat(event.getClassName()).isEqualTo(className);
+    assertThat(event.getFileSize()).isEqualTo(fileSize);
+    assertThat(event.getDetectionTimestamp()).isEqualTo(detectionTime);
+    assertThat(event.getAggregateVersion()).isEqualTo(1L);
+}
+#+END_SRC
+
+** Event Processing Testing
+#+BEGIN_SRC java
+@Test
+void shouldTriggerHotSwapWorkflow() {
+    // Given: Valid class file change
+    ClassFileChanged event = createValidClassFileChanged();
+    
+    // When: Event is processed
+    DomainResponseEvent<ClassFileChanged> response = 
+        ByteHot.accept(event);
+    
+    // Then: Should trigger metadata extraction
+    assertThat(response.isSuccessful()).isTrue();
+    assertThat(response.getEvents())
+        .hasSize(1)
+        .first()
+        .isInstanceOf(ClassMetadataExtracted.class);
+}
+#+END_SRC
+
+** Integration Testing
+#+BEGIN_SRC java
+@Test
+void shouldHandleRapidFileChanges() {
+    // Given: Multiple rapid file changes
+    List<ClassFileChanged> rapidChanges = createRapidFileChanges();
+    
+    // When: Events are processed in sequence
+    List<DomainResponseEvent<?>> responses = 
+        rapidChanges.stream()
+                   .map(ByteHot::accept)
+                   .collect(toList());
+    
+    // Then: Should handle all changes without errors
+    assertThat(responses).allMatch(DomainResponseEvent::isSuccessful);
+}
+#+END_SRC
+
+* Related Documentation
+
+- [[./ClassMetadataExtracted.org][ClassMetadataExtracted]]: Next event in the hot-swap chain
+- [[./BytecodeValidated.org][BytecodeValidated]]: Validation outcome event
+- [[../ByteHot.org][ByteHot]]: Primary aggregate that processes these events
+- [[../infrastructure/FileWatcherAdapter.org][FileWatcherAdapter]]: Infrastructure component that generates these events
+- [[../../flows/file-change-detection.org][File Change Detection Flow]]: Complete workflow documentation
+
+* Future Evolution
+
+** Anticipated Enhancements
+- Enhanced file type detection beyond ~.class~ files
+- Integration with build tool change notifications
+- Predictive pre-loading based on change patterns
+- Advanced filtering based on change impact analysis
+
+** Extensibility Points
+- Custom class name extraction strategies
+- Pluggable file validation logic
+- Alternative file monitoring backends
+- Integration with IDE change notifications
+
+The ClassFileChanged event serves as the cornerstone of ByteHot's reactive architecture, transforming file system changes into structured domain events that drive intelligent hot-swap decisions.

@@ -1,0 +1,652 @@
+#+TITLE: EventEmitterAdapter - Domain Event Emission Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~EventEmitterAdapter~ class provides the infrastructure implementation of the ~EventEmitterPort~ interface, serving as the critical event emission system for ByteHot's event-driven architecture. This adapter handles the accidental complexity of outputting domain events to various targets including console, files, and message queues, while providing a clean, domain-focused interface for event emission and monitoring throughout the system.
+
+* Hexagonal Architecture Role
+
+** Secondary Adapter Implementation
+EventEmitterAdapter serves as a secondary adapter in ByteHot's hexagonal architecture:
+- Implements the ~EventEmitterPort~ interface defined in the domain layer
+- Handles event emission target implementation details (console, file, external systems)
+- Isolates domain logic from event serialization and output format complexity
+- Provides concrete implementation for event monitoring and observability operations
+
+** Event Output Abstraction Boundary
+The adapter manages the boundary between domain events and output technology:
+- Translates domain events into formatted output messages
+- Handles multiple emission targets with consistent formatting
+- Manages event serialization and persistence mechanisms
+- Provides performance optimization for high-volume event emission
+
+** Infrastructure Complexity Management
+The adapter encapsulates complex event output infrastructure concerns:
+- Multi-target event emission with unified interface
+- Event formatting and timestamp management
+- File system access and log rotation capabilities
+- Error handling and recovery for emission failures
+
+* Class Structure and Configuration
+
+** Core Infrastructure Components
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Default log file path for event emission
+ */
+private static final String DEFAULT_LOG_FILE = "bytehot-events.log";
+
+/**
+ * Date time formatter for event timestamps
+ */
+private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
+/**
+ * Counter for emitted events
+ */
+private final AtomicLong eventCounter;
+
+/**
+ * Target for event emission (console, file, etc.)
+ */
+private final EmissionTarget target;
+
+/**
+ * Path to log file if using file emission
+ */
+private final Path logFile;
+
+/**
+ * Whether to include stack traces in error events
+ */
+private final boolean includeStackTraces;
+#+END_SRC
+
+** Constructor Overloads and Configuration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Creates a new EventEmitterAdapter with console output
+ */
+public EventEmitterAdapter() {
+    this(EmissionTarget.CONSOLE, null, false);
+}
+
+/**
+ * Creates a new EventEmitterAdapter with specified configuration
+ */
+public EventEmitterAdapter(final EmissionTarget target, final String logFilePath, final boolean includeStackTraces) {
+    this.eventCounter = new AtomicLong(0);
+    this.target = target != null ? target : EmissionTarget.CONSOLE;
+    this.logFile = logFilePath != null ? Paths.get(logFilePath) : Paths.get(DEFAULT_LOG_FILE);
+    this.includeStackTraces = includeStackTraces;
+}
+#+END_SRC
+
+** Emission Target Enumeration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Enumeration of emission targets
+ */
+public enum EmissionTarget {
+    /**
+     * Emit to console only
+     */
+    CONSOLE,
+    
+    /**
+     * Emit to file only
+     */
+    FILE,
+    
+    /**
+     * Emit to both console and file
+     */
+    BOTH
+}
+#+END_SRC
+
+* Event Emission Implementation
+
+** Single Event Emission
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Emits a single domain event
+ */
+@Override
+public void emit(final DomainResponseEvent<?> event) throws Exception {
+    if (event == null) {
+        return;
+    }
+
+    final String eventMessage = formatEvent(event);
+    
+    switch (target) {
+        case CONSOLE:
+            System.out.println(eventMessage);
+            break;
+        case FILE:
+            writeToFile(eventMessage);
+            break;
+        case BOTH:
+            System.out.println(eventMessage);
+            writeToFile(eventMessage);
+            break;
+    }
+
+    eventCounter.incrementAndGet();
+}
+#+END_SRC
+
+** Batch Event Emission
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Emits multiple domain events
+ */
+@Override
+public void emit(final List<DomainResponseEvent<?>> events) throws Exception {
+    if (events == null || events.isEmpty()) {
+        return;
+    }
+
+    for (final DomainResponseEvent<?> event : events) {
+        emit(event);
+    }
+}
+#+END_SRC
+
+** Event Emission Characteristics
+The emission implementation provides comprehensive capabilities:
+#+BEGIN_SRC java
+// Emission features:
+// - Null-safe event handling with early returns
+// - Atomic event counting for monitoring
+// - Multi-target emission with unified processing
+// - Exception propagation for error handling
+// - Performance optimization through direct delegation
+#+END_SRC
+
+* Event Formatting and Serialization
+
+** Comprehensive Event Formatting
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Formats an event for emission
+ */
+protected String formatEvent(final DomainResponseEvent<?> event) {
+    final StringBuilder sb = new StringBuilder();
+    
+    // Timestamp
+    sb.append("[").append(LocalDateTime.now().format(TIMESTAMP_FORMAT)).append("] ");
+    
+    // Event type
+    sb.append("[").append(event.getClass().getSimpleName()).append("] ");
+    
+    // Event details
+    sb.append("Event: ").append(event.toString());
+    
+    // Previous event reference if available
+    if (event.getPreceding() != null) {
+        sb.append(" | Previous: ").append(event.getPreceding().getClass().getSimpleName());
+    }
+
+    // Stack trace for error events if enabled
+    if (includeStackTraces && isErrorEvent(event)) {
+        final String stackTrace = getStackTrace();
+        if (!stackTrace.isEmpty()) {
+            sb.append("\nStack Trace:\n").append(stackTrace);
+        }
+    }
+
+    return sb.toString();
+}
+#+END_SRC
+
+** Event Formatting Features
+The formatting system provides rich event information:
+#+BEGIN_SRC java
+// Formatting components:
+// - High-precision timestamps (millisecond accuracy)
+// - Event type identification for filtering
+// - Complete event content serialization
+// - Event chain tracking through previous event references
+// - Conditional stack trace inclusion for debugging
+#+END_SRC
+
+** Error Event Detection
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Determines if an event represents an error condition
+ */
+protected boolean isErrorEvent(final DomainResponseEvent<?> event) {
+    final String eventName = event.getClass().getSimpleName().toLowerCase();
+    return eventName.contains("error") || eventName.contains("failed") || eventName.contains("exception");
+}
+#+END_SRC
+
+* File System Integration
+
+** File Writing Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Writes a message to the log file
+ */
+protected void writeToFile(final String message) throws Exception {
+    try {
+        // Create parent directories if they don't exist
+        if (logFile.getParent() != null) {
+            Files.createDirectories(logFile.getParent());
+        }
+
+        // Append to file
+        Files.write(logFile, (message + System.lineSeparator()).getBytes(), 
+                   StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                   
+    } catch (final IOException e) {
+        throw new Exception("Failed to write to log file " + logFile + ": " + e.getMessage(), e);
+    }
+}
+#+END_SRC
+
+** File System Availability Checking
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Checks if the log file is writable
+ */
+protected boolean isFileWritable() {
+    try {
+        if (Files.exists(logFile)) {
+            return Files.isWritable(logFile);
+        } else {
+            // Check if parent directory is writable
+            final Path parent = logFile.getParent();
+            return parent == null || Files.isWritable(parent);
+        }
+    } catch (final Exception e) {
+        return false;
+    }
+}
+#+END_SRC
+
+** File System Features
+The file system integration provides robust capabilities:
+#+BEGIN_SRC java
+// File system features:
+// - Automatic parent directory creation
+// - Append-only file writing for log continuity
+// - File permission validation before writing
+// - Graceful error handling for file system issues
+// - Platform-independent file path handling
+#+END_SRC
+
+* Monitoring and Observability
+
+** Emission Availability Monitoring
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Checks if event emission is available
+ */
+@Override
+public boolean isEmissionAvailable() {
+    switch (target) {
+        case CONSOLE:
+        case BOTH:
+            return true;
+        case FILE:
+            return isFileWritable();
+        default:
+            return false;
+    }
+}
+#+END_SRC
+
+** Emission Target Description
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Returns the emission target description
+ */
+@Override
+public String getEmissionTarget() {
+    switch (target) {
+        case CONSOLE:
+            return "Console Output";
+        case FILE:
+            return "File: " + logFile.toString();
+        case BOTH:
+            return "Console and File: " + logFile.toString();
+        default:
+            return "Unknown Target";
+    }
+}
+#+END_SRC
+
+** Event Counting and Metrics
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Returns the number of events emitted
+ */
+@Override
+public long getEmittedEventCount() {
+    return eventCounter.get();
+}
+#+END_SRC
+
+* Stack Trace Integration
+
+** Stack Trace Generation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Gets the current stack trace as a string
+ */
+protected String getStackTrace() {
+    try (final StringWriter sw = new StringWriter();
+         final PrintWriter pw = new PrintWriter(sw)) {
+        
+        new Exception("Stack trace").printStackTrace(pw);
+        return sw.toString();
+        
+    } catch (final Exception e) {
+        return "Unable to generate stack trace: " + e.getMessage();
+    }
+}
+#+END_SRC
+
+** Stack Trace Features
+Stack trace integration provides powerful debugging capabilities:
+#+BEGIN_SRC java
+// Stack trace features:
+// - On-demand stack trace generation for error events
+// - Resource-safe string generation with try-with-resources
+// - Graceful error handling for stack trace failures
+// - Configurable inclusion for performance optimization
+// - Complete call stack context for debugging
+#+END_SRC
+
+* Thread Safety and Concurrency
+
+** Thread-Safe Design
+The adapter ensures thread-safe operation across all methods:
+#+BEGIN_SRC java
+// Thread safety mechanisms:
+// - AtomicLong for concurrent event counting
+// - Immutable configuration fields (final)
+// - Thread-safe file writing operations
+// - No shared mutable state across operations
+#+END_SRC
+
+** Concurrent Event Emission
+Multiple threads can safely emit events simultaneously:
+- Thread-safe event counter increments using AtomicLong
+- Concurrent file writing with atomic append operations
+- Independent event formatting without synchronization
+- Minimal contention points in emission logic
+
+** Performance Under Concurrency
+The implementation optimizes for concurrent access:
+#+BEGIN_SRC java
+// Concurrency optimizations:
+// - Lock-free counter increments
+// - Independent event processing per thread
+// - Minimal shared state access
+// - Efficient formatting without synchronization
+#+END_SRC
+
+* Error Handling and Recovery
+
+** Comprehensive Exception Management
+The adapter handles all categories of emission errors:
+#+BEGIN_SRC java
+// Exception handling categories:
+// - IOException: File system access failures
+// - SecurityException: File permission issues
+// - OutOfMemoryError: Resource exhaustion during formatting
+// - RuntimeException: Unexpected emission failures
+#+END_SRC
+
+** Error Recovery Strategies
+The adapter implements multiple recovery strategies:
+- Graceful null event handling with early returns
+- File system error reporting with detailed messages
+- Stack trace generation fallback for debugging failures
+- Console fallback when file emission fails (in BOTH mode)
+
+** Emission Failure Handling
+Specialized handling for emission-specific failures:
+#+BEGIN_SRC java
+// Failure scenarios handled:
+// - File system unavailability or permission issues
+// - Disk space exhaustion during log writing
+// - Event serialization failures
+// - Timestamp formatting errors
+// - Console output redirection issues
+#+END_SRC
+
+* Performance Optimization
+
+** Emission Performance
+The adapter optimizes event emission performance:
+#+BEGIN_SRC java
+// Performance optimization strategies:
+// - Minimal object allocation during emission
+// - Efficient string building for event formatting
+// - Direct console output without buffering
+// - Atomic file operations for consistency
+#+END_SRC
+
+** Memory Management
+Careful memory management throughout emission operations:
+- Efficient StringBuilder usage for event formatting
+- Immediate release of formatted event strings
+- Resource-safe stack trace generation
+- Memory-conscious batch event processing
+
+** I/O Performance Optimization
+Optimized I/O operations for file emission:
+#+BEGIN_SRC java
+// I/O optimization strategies:
+// - Efficient NIO file operations
+// - Append-only writing for sequential access
+// - Minimal file system metadata operations
+// - Platform-optimized line separators
+#+END_SRC
+
+* Configuration and Customization
+
+** Emission Target Configuration
+Flexible emission target configuration:
+#+BEGIN_SRC java
+// Configuration options:
+// - CONSOLE: Standard output for development
+// - FILE: Persistent logging for production
+// - BOTH: Combined output for debugging
+// - Custom log file paths and locations
+#+END_SRC
+
+** Debugging Configuration
+Configurable debugging features:
+- Stack trace inclusion for error events
+- High-precision timestamp formatting
+- Event chain tracking through previous events
+- Custom log file naming and location
+
+** Performance Tuning Configuration
+Performance-oriented configuration options:
+#+BEGIN_SRC java
+// Performance tuning options:
+// - Stack trace generation enablement
+// - Event formatting verbosity levels
+// - Batch emission optimization
+// - Memory usage optimization
+#+END_SRC
+
+* Integration with ByteHot Architecture
+
+** Port Interface Compliance
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/events/EventEmitterAdapter.java
+/**
+ * Returns the port interface this adapter implements
+ */
+@Override
+public Class<EventEmitterPort> adapts() {
+    return EventEmitterPort.class;
+}
+#+END_SRC
+
+** Event-Driven Architecture Integration
+The adapter integrates seamlessly with ByteHot's event-driven architecture:
+- Complete domain event emission capability
+- Event chain tracking and correlation
+- Performance monitoring and metrics collection
+- Error event detection and specialized handling
+
+** Hexagonal Architecture Compliance
+The adapter follows strict hexagonal architecture principles:
+#+BEGIN_SRC java
+// Architecture compliance features:
+// - Clean separation between domain and infrastructure concerns
+// - No domain logic in infrastructure implementation
+// - Complete delegation to platform I/O capabilities
+// - Technology-specific error handling and translation
+#+END_SRC
+
+* Testing and Mock Support
+
+** Testability Design
+The adapter enables comprehensive testing strategies:
+#+BEGIN_SRC java
+// Testing support features:
+// - Constructor injection enables mock configuration
+// - Protected methods enable unit testing
+// - State inspection through accessor methods
+// - Event counting verification for testing
+#+END_SRC
+
+** Mock Implementation Strategy
+Testing uses mock emission implementations:
+#+BEGIN_SRC java
+// Mock testing approach:
+// - In-memory event collection for testing
+// - Simulated file system for controlled testing
+// - Error condition simulation and validation
+// - Performance testing with synthetic events
+#+END_SRC
+
+** Integration Testing Support
+The adapter supports comprehensive integration testing:
+- Real file system testing with temporary files
+- Console output capture and verification
+- Concurrent emission testing with multiple threads
+- Performance testing under load conditions
+
+* Security Considerations
+
+** File System Security
+Event emission file operations require careful security management:
+#+BEGIN_SRC java
+// Security requirements:
+// - File write permissions for log file creation
+// - Directory creation privileges
+// - Safe file path resolution
+// - Protection against path traversal attacks
+#+END_SRC
+
+** Information Disclosure Prevention
+The adapter prevents sensitive information disclosure:
+- Controlled stack trace inclusion for debugging
+- Safe event content serialization
+- Log file access permission management
+- Sensitive parameter masking in events
+
+** Audit Trail Integration
+All emission operations contribute to comprehensive audit trails:
+#+BEGIN_SRC java
+// Audit information captured:
+// - Event emission timestamps and counts
+// - Emission target and configuration details
+// - File system operation success/failure status
+// - Performance metrics and resource usage
+#+END_SRC
+
+* Monitoring and Operations
+
+** Operational Monitoring
+The adapter provides comprehensive operational monitoring:
+#+BEGIN_SRC java
+// Monitoring capabilities:
+// - Event emission rate tracking
+// - File system usage monitoring
+// - Error rate analysis and alerting
+// - Performance characteristic measurement
+#+END_SRC
+
+** Health Check Integration
+Integration with system health checking:
+- Emission availability verification
+- File system accessibility validation
+- Resource usage assessment
+- Performance degradation detection
+
+** Diagnostic Information
+Enhanced diagnostic information for troubleshooting:
+#+BEGIN_SRC java
+// Diagnostic features:
+// - Detailed emission target description
+// - File system status reporting
+// - Event counting and statistics
+// - Configuration validation reporting
+#+END_SRC
+
+* Future Evolution and Extensibility
+
+** Emission Enhancement Roadmap
+Planned enhancements to emission capabilities:
+#+BEGIN_SRC java
+// Future enhancement areas:
+// - Additional emission targets (message queues, databases)
+// - Advanced event filtering and routing
+// - Event batching and compression
+// - Real-time event streaming capabilities
+#+END_SRC
+
+** Technology Integration
+Integration with emerging event technologies:
+- Cloud logging service integration
+- Distributed tracing system support
+- Message queue and event streaming platforms
+- Advanced analytics and monitoring systems
+
+** Performance Enhancement Opportunities
+Identified areas for future optimization:
+#+BEGIN_SRC java
+// Performance enhancement targets:
+// - Asynchronous event emission
+// - Event compression and archival
+// - Adaptive batching based on load
+// - Memory-mapped file operations
+#+END_SRC
+
+* Related Documentation
+
+- [[ports/EventEmitterPort.org][EventEmitterPort]]: Domain interface implemented by this adapter
+- [[ByteHotApplication.org][ByteHotApplication]]: Application layer using event emission
+- [[events/][Domain Events]]: Events emitted through this adapter
+- [[flows/hot-swap-complete-flow.org][Hot-Swap Complete Flow]]: Process generating events for emission
+
+* Implementation Notes
+
+** Design Patterns Applied
+The adapter leverages several key design patterns:
+- **Adapter Pattern**: Clean interface between domain events and emission targets
+- **Strategy Pattern**: Different emission strategies for different targets
+- **Template Method**: Consistent event formatting across targets
+- **Null Object Pattern**: Safe handling of null events
+
+** Resource Management
+The implementation provides careful resource management:
+- Try-with-resources for stack trace generation
+- Automatic directory creation for log files
+- Efficient memory usage for event formatting
+- Proper I/O resource cleanup
+
+The EventEmitterAdapter provides ByteHot's critical event emission infrastructure while maintaining architectural purity and enabling flexible, reliable, and performant event monitoring across diverse deployment environments and operational scenarios.

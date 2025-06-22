@@ -1,0 +1,239 @@
+#+TITLE: ByteHot Domain Events Documentation Index
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Introduction
+
+This document provides a comprehensive index of all domain events in the ByteHot system. Each event represents a significant occurrence within the domain that drives ByteHot's event-driven architecture and enables complete auditability through EventSourcing.
+
+* Event Categories and Organization
+
+ByteHot's domain events are organized into logical categories that reflect different aspects of the hot-swap lifecycle and system capabilities.
+
+** File System Monitoring Events
+
+These events capture file system changes that trigger hot-swap operations:
+
+- [[./ClassFileChanged.org][ClassFileChanged]]: Represents detection of a modified .class file, serving as the primary trigger for hot-swap workflows
+- [[./ClassFileCreated.org][ClassFileCreated]]: Captures creation of new .class files in monitored directories
+- [[./ClassFileDeleted.org][ClassFileDeleted]]: Records removal of .class files from the file system
+- [[./ClassFileProcessed.org][ClassFileProcessed]]: Indicates completion of file processing workflow
+
+** Bytecode Analysis and Validation Events
+
+These events represent the analysis and validation of bytecode for hot-swap compatibility:
+
+- [[./ClassMetadataExtracted.org][ClassMetadataExtracted]]: Documents successful extraction and analysis of class metadata
+- [[./BytecodeValidated.org][BytecodeValidated]]: Represents successful bytecode validation for hot-swap compatibility
+- [[./BytecodeRejected.org][BytecodeRejected]]: Indicates bytecode validation failure with detailed reasoning
+
+** Hot-Swap Operation Events
+
+These events capture the core hot-swap execution process:
+
+- [[./HotSwapRequested.org][HotSwapRequested]]: Initiates actual JVM class redefinition with complete bytecode context
+- [[./ClassRedefinitionSucceeded.org][ClassRedefinitionSucceeded]]: Confirms successful JVM class redefinition
+- [[./ClassRedefinitionFailed.org][ClassRedefinitionFailed]]: Records hot-swap failure with error context and rollback information
+
+** Instance Management Events
+
+These events manage existing object instances during hot-swap operations:
+
+- [[./InstancesUpdated.org][InstancesUpdated]]: Documents successful update of existing instances with new class behavior
+- [[./InstanceUpdateRequested.org][InstanceUpdateRequested]]: Initiates instance state preservation and migration
+
+** System Lifecycle Events
+
+These events manage ByteHot's agent lifecycle and capabilities:
+
+- [[./ByteHotAttachRequested.org][ByteHotAttachRequested]]: Initial agent attachment request to JVM
+- [[./ByteHotAgentAttached.org][ByteHotAgentAttached]]: Successful agent attachment with system capabilities
+- [[./ByteHotNotStarted.org][ByteHotNotStarted]]: Agent initialization failure or unavailability
+- [[./HotSwapCapabilityEnabled.org][HotSwapCapabilityEnabled]]: Hot-swap functionality activation
+- [[./WatchPathConfigured.org][WatchPathConfigured]]: File system monitoring configuration establishment
+
+** User Management Events
+
+These events handle user identification, authentication, and session management:
+
+- [[./UserRegistrationRequested.org][UserRegistrationRequested]]: User identity discovery initiation
+- [[./UserRegistered.org][UserRegistered]]: Successful user identity establishment
+- [[./UserAuthenticationRequested.org][UserAuthenticationRequested]]: User authentication process initiation
+- [[./UserAuthenticated.org][UserAuthenticated]]: Successful user authentication completion
+- [[./UserSessionStartRequested.org][UserSessionStartRequested]]: Development session initiation request
+- [[./UserSessionStarted.org][UserSessionStarted]]: Active development session establishment
+
+** Flow Detection Events
+
+These events enable ByteHot's self-documenting capabilities through pattern recognition:
+
+- [[./FlowAnalysisRequested.org][FlowAnalysisRequested]]: Initiation of event pattern analysis for flow discovery
+- [[./FlowDiscovered.org][FlowDiscovered]]: Successful identification of development workflow patterns
+
+** Base Event Infrastructure
+
+These foundational events provide common functionality across the event hierarchy:
+
+- [[./AbstractVersionedDomainEvent.org][AbstractVersionedDomainEvent]]: Base class providing EventSourcing capabilities and event metadata
+
+* Event-Driven Architecture Overview
+
+** Event Flow Patterns
+
+ByteHot's events follow predictable flow patterns that represent complete business processes:
+
+*** Primary Hot-Swap Flow
+1. ~ClassFileChanged~ → File system modification detected
+2. ~ClassMetadataExtracted~ → Bytecode structure analyzed
+3. ~BytecodeValidated~ → Compatibility confirmed
+4. ~HotSwapRequested~ → JVM redefinition initiated
+5. ~ClassRedefinitionSucceeded~ → Class successfully updated
+6. ~InstancesUpdated~ → Existing instances updated
+
+*** User Session Flow
+1. ~UserRegistrationRequested~ → User identity discovery
+2. ~UserRegistered~ → User identity established
+3. ~UserAuthenticationRequested~ → Authentication initiated
+4. ~UserAuthenticated~ → Authentication completed
+5. ~UserSessionStartRequested~ → Session creation requested
+6. ~UserSessionStarted~ → Active session established
+
+*** Flow Detection Pattern
+1. ~FlowAnalysisRequested~ → Pattern analysis initiated
+2. ~FlowDiscovered~ → Workflow pattern identified and documented
+
+** Event Characteristics
+
+All ByteHot domain events share common characteristics:
+
+- *Immutability*: Events cannot be modified after creation
+- *Causality*: Events maintain relationships to preceding events
+- *Temporality*: Events include precise timestamp information
+- *Versioning*: Events support schema evolution through versioning
+- *User Context*: Events include user identity for collaborative scenarios
+- *Auditability*: Events provide complete audit trails for compliance
+
+** EventSourcing Integration
+
+ByteHot's events fully support EventSourcing capabilities:
+- Complete system state reconstruction from event streams
+- Temporal analysis and time-travel debugging
+- Event replay for testing and validation
+- Audit trails for enterprise compliance
+- Causal analysis for performance optimization
+
+* Event Documentation Standards
+
+Each event documentation follows consistent standards:
+
+** Structure Organization
+- *Overview*: Purpose and significance within the domain
+- *Domain Role*: Position within ByteHot's architecture
+- *Event Structure*: Properties and their meanings
+- *Event Architecture*: Inheritance and relationships
+- *Processing Patterns*: How the event is consumed and processed
+- *Testing*: Comprehensive test examples and patterns
+- *Performance*: Optimization and scalability considerations
+- *Related Documentation*: Cross-references to related components
+
+** Literate Programming Approach
+Event documentation uses literate programming techniques:
+- Code examples are directly tangled into source files
+- Documentation serves as both explanation and implementation guide
+- Cross-references maintain consistency across the codebase
+- Examples are executable and testable
+
+** Living Documentation
+Event documentation evolves with the system:
+- Documentation is automatically validated against source code
+- Examples are tested as part of the build process
+- Cross-references are verified for accuracy
+- Documentation reflects actual system behavior
+
+* Testing and Event-Driven Development
+
+ByteHot's event-driven architecture enables revolutionary testing approaches:
+
+** Event-Driven Testing Framework
+The EventDrivenTestSupport framework allows testing with real domain events:
+
+#+BEGIN_SRC java
+@Test
+void shouldCompleteHotSwapWorkflow() {
+    given()
+        .event(new ClassFileChanged(classPath))
+        .event(new BytecodeValidated(classPath, true));
+    
+    when()
+        .event(new HotSwapRequested(classPath, bytecode));
+    
+    then()
+        .expectEvent(ClassRedefinitionSucceeded.class)
+        .expectEvent(InstancesUpdated.class);
+}
+#+END_SRC
+
+** Benefits of Event-Driven Testing
+- *Realistic Test Scenarios*: Tests use actual domain events rather than mocks
+- *Reliable Test Evolution*: Tests evolve with the domain model
+- *Living Documentation*: Tests serve as executable documentation
+- *Complete Workflow Testing*: Full event chains can be tested end-to-end
+
+* Performance and Optimization
+
+** Event Processing Optimization
+ByteHot's event processing is optimized for performance:
+- *Minimal Latency*: Events are processed with sub-second response times
+- *Memory Efficiency*: Events use minimal memory footprint
+- *Concurrent Processing*: Multiple events can be processed simultaneously
+- *Resource Management*: Automatic cleanup prevents resource leaks
+
+** Scalability Considerations
+The event system scales effectively:
+- *Batch Processing*: Multiple events can be processed together
+- *Queue Management*: Event queues prevent processing bottlenecks
+- *Load Balancing*: Event processing can be distributed
+- *Graceful Degradation*: System maintains functionality under high load
+
+* Integration and Extensibility
+
+** Framework Integration
+Events integrate seamlessly with major frameworks:
+- *Spring Framework*: Event-driven bean lifecycle management
+- *CDI*: Contextual event processing and scoping
+- *Guice*: Dependency injection coordination
+- *Testing Frameworks*: JUnit, TestNG, and custom test support
+
+** Extensibility Points
+The event system provides multiple extensibility points:
+- *Custom Events*: New domain events can be easily added
+- *Event Processors*: Custom event handling logic can be implemented
+- *Event Filters*: Selective event processing based on criteria
+- *Event Transformers*: Event data can be transformed and enriched
+
+* Future Evolution
+
+** Anticipated Enhancements
+Future improvements to the event system:
+- *Machine Learning Integration*: AI-powered event pattern analysis
+- *Advanced Analytics*: Sophisticated event data analysis
+- *Real-time Processing*: Enhanced real-time event processing capabilities
+- *Cloud Integration*: Distributed event processing across cloud environments
+
+** Extensibility Roadmap
+Planned extensibility improvements:
+- *Plugin Architecture*: Hot-pluggable event processors
+- *External Integration*: Integration with external event systems
+- *Custom Event Types*: User-defined event types and processing
+- *Advanced Querying*: Sophisticated event stream querying capabilities
+
+* Contributing to Event Documentation
+
+Guidelines for contributing to event documentation:
+- Follow the established documentation structure and standards
+- Include comprehensive code examples with proper tangling
+- Maintain cross-references and ensure accuracy
+- Test all examples as part of the contribution process
+- Update related documentation when adding new events
+
+The ByteHot domain events form the foundation of a sophisticated, event-driven architecture that enables safe, reliable, and observable hot-swap operations while providing complete auditability and user-aware development experiences.
