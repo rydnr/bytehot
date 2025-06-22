@@ -29,10 +29,10 @@
  * Class name: ByteHotCLI
  *
  * Responsibilities: Extract parameters from the command line into a domain
- * event, and send it to the application layer.
+ * event, and send it to the application layer through the Application interface.
  *
  * Collaborators:
- *   - ByteHot: the application layer.
+ *   - Application: Interface from java-commons for hexagonal architecture
  */
 package org.acmsl.bytehot.infrastructure.cli;
 
@@ -41,9 +41,11 @@ import java.lang.instrument.Instrumentation;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import org.acmsl.bytehot.application.ByteHotApplication;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.WatchConfiguration;
+
+import org.acmsl.commons.patterns.Application;
+import org.acmsl.commons.patterns.DomainResponseEvent;
 
 /**
  * Primary port from the command line, when a JVM is started with the agent enabled.
@@ -61,24 +63,25 @@ public class ByteHotCLI {
      * @param agentArgs Arguments passed to the agent.
      * @param inst Instrumentation instance for the JVM.
      */
+    @SuppressWarnings("unchecked")
     public static void premain(final String agentArgs, final Instrumentation inst) {
         String configPath = System.getProperty("bhconfig");
         if (configPath == null || configPath.isBlank()) {
             throw new IllegalStateException("Missing required system property bhconfig");
         }
 
-        // Initialize the application with instrumentation (this will inject all adapters)
-        ByteHotApplication.initialize(inst);
-
-        WatchConfiguration config;
         try {
-            config = WatchConfiguration.load();
-        } catch (final Exception exception) {
-            throw new IllegalStateException("Failed to load configuration", exception);
+            // Discover and initialize the Application layer through reflection
+            final Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> application = discoverApplication(inst);
+            
+            WatchConfiguration config = WatchConfiguration.load();
+            
+            // Process the attach request
+            application.accept(new ByteHotAttachRequested(config, inst));
+            
+        } catch (final Exception e) {
+            throw new IllegalStateException("Failed to initialize ByteHot CLI", e);
         }
-        
-        // Process the attach request
-        ByteHotApplication.getInstance().accept(new ByteHotAttachRequested(config, inst));
     }
 
     /**
@@ -88,5 +91,41 @@ public class ByteHotCLI {
      */
     public static void agentmain(final String agentArgs, final Instrumentation inst) {
         premain(agentArgs, inst);
+    }
+    
+    /**
+     * Discovers and initializes the Application layer through reflection
+     * Following hexagonal architecture, infrastructure should not directly depend on application
+     * @param inst the instrumentation instance to pass to application
+     * @return the discovered Application instance
+     * @throws Exception if application discovery fails
+     */
+    @SuppressWarnings("unchecked")
+    protected static Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> discoverApplication(final Instrumentation inst) throws Exception {
+        try {
+            // Try to find ByteHotApplication in the application layer
+            final String applicationClassName = "org.acmsl.bytehot.application.ByteHotApplication";
+            final Class<?> applicationClass = Class.forName(applicationClassName);
+            
+            // Initialize the application with instrumentation
+            final var initializeMethod = applicationClass.getMethod("initialize", Instrumentation.class);
+            initializeMethod.invoke(null, inst);
+            
+            // Get the singleton instance
+            final var getInstanceMethod = applicationClass.getMethod("getInstance");
+            final Object applicationInstance = getInstanceMethod.invoke(null);
+            
+            // Verify it implements the Application interface
+            if (!(applicationInstance instanceof Application)) {
+                throw new IllegalStateException("Discovered application class does not implement Application interface");
+            }
+            
+            return (Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>>) applicationInstance;
+            
+        } catch (final ClassNotFoundException e) {
+            throw new Exception("ByteHotApplication not found in classpath. Ensure bytehot-application module is included.", e);
+        } catch (final Exception e) {
+            throw new Exception("Failed to discover and initialize Application layer: " + e.getMessage(), e);
+        }
     }
 }

@@ -54,6 +54,14 @@
       <version>latest-SNAPSHOT</version>
     </dependency>
     
+    <!-- Infrastructure layer dependency (only for agent JAR creation) -->
+    <dependency>
+      <groupId>org.acmsl</groupId>
+      <artifactId>bytehot-infrastructure</artifactId>
+      <version>latest-SNAPSHOT</version>
+      <scope>runtime</scope>
+    </dependency>
+    
     <!-- Lombok for reducing boilerplate -->
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -88,7 +96,51 @@
   
   <build>
     <plugins>
-      <!-- Enforce application layer dependency rules -->
+      <!-- Create agent JAR with proper manifest -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Premain-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Premain-Class>
+              <Agent-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Agent-Class>
+              <Can-Redefine-Classes>true</Can-Redefine-Classes>
+              <Can-Retransform-Classes>true</Can-Retransform-Classes>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      
+      <!-- Create fat JAR for agent distribution -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>agent</shadedClassifierName>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Premain-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Premain-Class>
+                    <Agent-Class>org.acmsl.bytehot.infrastructure.agent.ByteHotAgent</Agent-Class>
+                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <!-- Enforce application layer dependency rules (excluding runtime deps for agent) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
@@ -102,14 +154,12 @@
               <rules>
                 <bannedDependencies>
                   <excludes>
-                    <!-- Application layer cannot depend on infrastructure -->
-                    <exclude>org.acmsl:bytehot-infrastructure</exclude>
                     <!-- Ban most external frameworks to keep application pure -->
                     <exclude>org.springframework:*</exclude>
                     <exclude>javax.servlet:*</exclude>
                     <exclude>jakarta.servlet:*</exclude>
                   </excludes>
-                  <message>Application layer must not depend on infrastructure layer or external frameworks</message>
+                  <message>Application layer must not depend on external frameworks (infrastructure runtime deps are allowed for agent JAR)</message>
                 </bannedDependencies>
               </rules>
             </configuration>

@@ -32,18 +32,21 @@
  *   - Implement file system watching using Java NIO WatchService
  *   - Handle recursive directory watching with pattern matching
  *   - Provide infrastructure implementation of FileWatcherPort
+ *   - Accept Application instance for processing events (Hexagonal Architecture)
  *
  * Collaborators:
  *   - FileWatcherPort: Interface this adapter implements
  *   - WatchService: Java NIO API for file system monitoring
+ *   - Application: Interface from java-commons for processing events
  */
 package org.acmsl.bytehot.infrastructure.filesystem;
 
-import org.acmsl.bytehot.application.ByteHotApplication;
 import org.acmsl.bytehot.domain.FileWatcherPort;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 
 import org.acmsl.commons.patterns.Adapter;
+import org.acmsl.commons.patterns.Application;
+import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import java.io.IOException;
 import java.nio.file.FileSystems;
@@ -104,11 +107,18 @@ public class FileWatcherAdapter
      * Whether the watcher is currently running
      */
     private volatile boolean running;
+    
+    /**
+     * Application instance for processing events (following hexagonal architecture)
+     */
+    private Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application;
 
     /**
      * Creates a new FileWatcherAdapter instance
+     * @param application the application instance for processing events
      */
-    public FileWatcherAdapter() throws IOException {
+    public FileWatcherAdapter(final Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application) throws IOException {
+        this.application = application;
         this.watchService = FileSystems.getDefault().newWatchService();
         this.executorService = Executors.newCachedThreadPool(r -> {
             final Thread thread = new Thread(r, "FileWatcher-" + Thread.currentThread().getId());
@@ -310,8 +320,23 @@ public class FileWatcherAdapter
                 detectionTimestamp
             );
             
-            // Emit the event through the ByteHotApplication
-            ByteHotApplication.getInstance().processClassFileChanged(event);
+            // Process the event through the Application layer following hexagonal architecture
+            if (application != null) {
+                // For ClassFileChanged events, we need to use a different method signature
+                // since the Application interface expect generic DomainEvent/DomainResponseEvent
+                // TODO: This needs proper integration with the application layer
+                try {
+                    final Class<?> applicationClass = application.getClass();
+                    final var processMethod = applicationClass.getMethod("processClassFileChanged", ClassFileChanged.class);
+                    processMethod.invoke(application, event);
+                } catch (final Exception reflectionException) {
+                    System.err.println("Failed to process ClassFileChanged event via reflection: " + reflectionException.getMessage());
+                    // Fallback: just log the event
+                    System.out.println("ClassFileChanged detected: " + className + " at " + classFile);
+                }
+            } else {
+                System.err.println("No application instance available to process ClassFileChanged event");
+            }
             
         } catch (final Exception e) {
             System.err.println("Failed to emit ClassFileChanged event for " + classFile + ": " + e.getMessage());

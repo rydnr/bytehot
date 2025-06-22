@@ -6,15 +6,17 @@ This Agents.md file provides guidance when working with this codebase.
 
 ## Modules
 
-This project consists of two modules:
+This project consists of four modules following Domain-Driven Design and Hexagonal Architecture:
 - `/java-commons`: Support project. Used to save time and give consistency, but not the main focus of this repository.
-- `/bytehot`: The main project: a JVM agent to refresh bytecode at runtime (*hot-swap*).
+- `/bytehot-domain`: Pure domain logic with business rules and domain events.
+- `/bytehot-application`: Application layer orchestrating use cases and workflow.
+- `/bytehot-infrastructure`: Infrastructure adapters for external systems and JVM agent.
 
 ## ByteHot project Structure
 
 ### Overall layout
 
-The ByteHot module follows the standard (Maven) folder structure:
+Each ByteHot module follows the standard (Maven) folder structure:
 - `/src`: Source files.
   - `/main`: Application sources.
     - `/java`: Java source code.
@@ -23,11 +25,11 @@ The ByteHot module follows the standard (Maven) folder structure:
 
 ### Domain-Driven Design and Hexagonal Architecture layout
 
-ByteHot project uses a strict folder structure to respect the boundaries of the three layers: Domain, Application and Infrastructure:
+ByteHot project uses a strict module structure to respect the boundaries of the three layers:
 
-- `/src/main/java/org/acmsl/bytehot/domain`: The Domain layer.
-- `/src/main/java/org/acmsl/bytehot/application`: The Application layer.
-- `/src/main/java/org/acmsl/bytehot/infrastructure`: The Infrastructure layer.
+- `/bytehot-domain/src/main/java/org/acmsl/bytehot/domain`: The Domain layer.
+- `/bytehot-application/src/main/java/org/acmsl/bytehot/application`: The Application layer.
+- `/bytehot-infrastructure/src/main/java/org/acmsl/bytehot/infrastructure`: The Infrastructure layer.
 
 Note on primary and secondary ports:
 
@@ -53,3 +55,16 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 
 ### Development Workflow
 - Before each commit, make sure the literate programming documentation is synchronized with the updated code.
+
+### Architecture Notes
+- The agent JAR is built from the application module (bytehot-application).
+- The infrastructure module cannot have a dependency to the application module.
+- Infrastructure adapters only know about the `Application` interface from java-commons.
+- The "orchestrator" is the application layer, not the infrastructure.
+- The `-agent` JAR includes all dependencies and is created at `/bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar`.
+- Infrastructure adapters discover and invoke the application layer through reflection following hexagonal architecture principles.
+
+### Module Dependencies
+- `bytehot-domain`: Only depends on `java-commons` and has no external dependencies
+- `bytehot-application`: Depends on `bytehot-domain` and `java-commons`
+- `bytehot-infrastructure`: Depends on `bytehot-domain` and `java-commons` (runtime dependency on application for agent JAR only)
