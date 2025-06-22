@@ -46,4 +46,10 @@ public interface Defaults {
      * The default port on which ByteHot will listen for requests.
      */
     int PORT = 62345;
+
+    /**
+     * Base URL for ByteHot documentation system.
+     * Used by DocProvider for generating documentation URLs.
+     */
+    String DOCUMENTATION_BASE_URL = "https://rydnr.github.io/bytehot";
 }
