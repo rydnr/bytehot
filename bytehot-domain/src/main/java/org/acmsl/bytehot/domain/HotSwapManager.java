@@ -96,6 +96,22 @@ public class HotSwapManager {
     }
 
     /**
+     * The instrumentation service for this manager
+     */
+    private final InstrumentationService instrumentationService;
+
+    /**
+     * Creates a new HotSwapManager with instrumentation service
+     * @param instrumentationService the instrumentation service
+     */
+    public HotSwapManager(final InstrumentationService instrumentationService) {
+        if (instrumentationService == null) {
+            throw new IllegalArgumentException("InstrumentationService cannot be null");
+        }
+        this.instrumentationService = instrumentationService;
+    }
+
+    /**
      * Performs JVM class redefinition for a hot-swap request
      * @param request the hot-swap request to execute
      * @return the success event with redefinition details
@@ -105,18 +121,15 @@ public class HotSwapManager {
         final long startTime = System.nanoTime();
         
         try {
-            // Get real instrumentation port
-            final InstrumentationPort instrumentation = Ports.resolve(InstrumentationPort.class);
-            
             // Find the loaded class to redefine
-            final Class<?> targetClass = findLoadedClass(request.getClassName(), instrumentation);
+            final Class<?> targetClass = instrumentationService.findLoadedClass(request.getClassName());
             if (targetClass == null) {
                 throw createClassNotFoundException(request);
             }
             
             // Perform actual JVM class redefinition
             try {
-                instrumentation.redefineClass(targetClass, request.getNewBytecode());
+                instrumentationService.redefineClass(targetClass, request.getNewBytecode());
             } catch (final Exception redefinitionException) {
                 // Wrap JVM redefinition exceptions
                 final ClassRedefinitionFailed failure = createJvmRedefinitionFailure(request, redefinitionException);
@@ -248,23 +261,6 @@ public class HotSwapManager {
         return String.format("Class %s redefinition completed successfully", request.getClassName());
     }
 
-    /**
-     * Finds a loaded class by name using instrumentation
-     * @param className the class name to find
-     * @param instrumentation the instrumentation port
-     * @return the loaded class or null if not found
-     */
-    protected Class<?> findLoadedClass(final String className, final InstrumentationPort instrumentation) {
-        final Class<?>[] loadedClasses = instrumentation.getAllLoadedClasses();
-        
-        for (final Class<?> clazz : loadedClasses) {
-            if (className.equals(clazz.getSimpleName()) || className.equals(clazz.getName())) {
-                return clazz;
-            }
-        }
-        
-        return null;
-    }
 
     /**
      * Creates a failure event for JVM redefinition errors

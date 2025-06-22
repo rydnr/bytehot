@@ -39,6 +39,7 @@ import org.acmsl.commons.patterns.DomainResponseEvent;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.ToString;
 
 import java.lang.instrument.Instrumentation;
 
@@ -49,6 +50,7 @@ import java.lang.instrument.Instrumentation;
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode
+@ToString
 public class HotSwapCapabilityEnabled implements DomainResponseEvent<ByteHotAttachRequested> {
 
     /**

@@ -35,6 +35,7 @@
 package org.acmsl.bytehot.domain.events;
 
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
+import org.acmsl.bytehot.domain.testing.MockInstrumentationService;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
@@ -60,7 +61,7 @@ public class ClassRedefinitionFailedTest {
      * Tests that JVM redefinition failure triggers ClassRedefinitionFailed event
      */
     @Test
-    @Disabled("TODO: Fix architecture - test requires proper InstrumentationPort configuration")
+    @Disabled("TODO: Fix architecture - test requires proper InstrumentationService configuration")
     public void jvm_redefinition_failure_triggers_failed_event(@TempDir Path tempDir) throws IOException {
         // Given: A hot-swap request that will fail at JVM level
         Path classFile = tempDir.resolve("IncompatibleClass.class");
@@ -77,7 +78,8 @@ public class ClassRedefinitionFailedTest {
         );
         
         // When: HotSwapManager attempts redefinition and JVM rejects it
-        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager();
+        MockInstrumentationService mockService = new MockInstrumentationService();
+        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         
         // Then: HotSwapException should be thrown with ClassRedefinitionFailed event
         org.acmsl.bytehot.domain.HotSwapException exception = 
@@ -100,7 +102,7 @@ public class ClassRedefinitionFailedTest {
      * Tests that schema change rejection provides detailed error information
      */
     @Test
-    @Disabled("TODO: Fix architecture - test requires proper InstrumentationPort configuration")
+    @Disabled("TODO: Fix architecture - test requires proper InstrumentationService configuration")
     public void schema_change_rejection_provides_detailed_error(@TempDir Path tempDir) throws IOException {
         // Given: A request with schema changes that JVM will reject
         Path classFile = tempDir.resolve("SchemaChangeClass.class");
@@ -117,7 +119,8 @@ public class ClassRedefinitionFailedTest {
         );
         
         // When: JVM rejects due to schema changes
-        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager();
+        MockInstrumentationService mockService = new MockInstrumentationService();
+        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         
         // Then: Detailed failure information should be provided
         org.acmsl.bytehot.domain.HotSwapException exception = 
@@ -144,7 +147,7 @@ public class ClassRedefinitionFailedTest {
      * Tests that class not found error provides appropriate guidance
      */
     @Test
-    @Disabled("TODO: Fix architecture - test requires proper InstrumentationPort configuration")
+    @Disabled("TODO: Fix architecture - test requires proper InstrumentationService configuration")
     public void class_not_found_error_provides_guidance(@TempDir Path tempDir) throws IOException {
         // Given: A request for a class that's not loaded in JVM
         Path classFile = tempDir.resolve("NotLoadedClass.class");
@@ -161,7 +164,8 @@ public class ClassRedefinitionFailedTest {
         );
         
         // When: JVM cannot find the class to redefine
-        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager();
+        MockInstrumentationService mockService = new MockInstrumentationService();
+        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         
         // Then: Appropriate guidance should be provided
         org.acmsl.bytehot.domain.HotSwapException exception = 

@@ -81,27 +81,27 @@ public class FileWatcherAdapter
     /**
      * The underlying NIO watch service
      */
-    private final WatchService watchService;
+    private WatchService watchService;
 
     /**
      * Thread pool for handling watch events
      */
-    private final ExecutorService executorService;
+    private ExecutorService executorService;
 
     /**
      * Map of watch IDs to their configurations
      */
-    private final Map<String, WatchConfiguration> watchConfigurations;
+    private final Map<String, WatchConfiguration> watchConfigurations = new ConcurrentHashMap<>();
 
     /**
      * Map of paths to their watch keys
      */
-    private final Map<Path, WatchKey> pathToWatchKey;
+    private final Map<Path, WatchKey> pathToWatchKey = new ConcurrentHashMap<>();
 
     /**
      * Map of watch keys to their paths
      */
-    private final Map<WatchKey, Path> watchKeyToPath;
+    private final Map<WatchKey, Path> watchKeyToPath = new ConcurrentHashMap<>();
 
     /**
      * Whether the watcher is currently running
@@ -112,6 +112,17 @@ public class FileWatcherAdapter
      * Application instance for processing events (following hexagonal architecture)
      */
     private Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application;
+
+    /**
+     * Default constructor for adapter discovery
+     */
+    public FileWatcherAdapter() {
+        // For adapter discovery only - minimal initialization
+        this.application = null;
+        this.watchService = null;
+        this.executorService = null;
+        this.running = false;
+    }
 
     /**
      * Creates a new FileWatcherAdapter instance
@@ -125,9 +136,7 @@ public class FileWatcherAdapter
             thread.setDaemon(true);
             return thread;
         });
-        this.watchConfigurations = new ConcurrentHashMap<>();
-        this.pathToWatchKey = new ConcurrentHashMap<>();
-        this.watchKeyToPath = new ConcurrentHashMap<>();
+        // Maps are automatically initialized as field initializers
         this.running = true;
         
         // Start the watch service loop
@@ -200,6 +209,28 @@ public class FileWatcherAdapter
     public boolean isWatcherAvailable() {
         return running && watchService != null;
     }
+    
+    /**
+     * Properly initializes this adapter with full functionality
+     * @param application the application instance for processing events
+     */
+    public void initialize(final Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application) throws IOException {
+        if (this.watchService != null) {
+            return; // Already initialized
+        }
+        
+        this.application = application;
+        this.watchService = FileSystems.getDefault().newWatchService();
+        this.executorService = Executors.newCachedThreadPool(r -> {
+            final Thread thread = new Thread(r, "FileWatcher-" + Thread.currentThread().getId());
+            thread.setDaemon(true);
+            return thread;
+        });
+        this.running = true;
+        
+        // Start the watch service loop
+        startWatchServiceLoop();
+    }
 
     /**
      * Returns the port interface this adapter implements
@@ -207,6 +238,14 @@ public class FileWatcherAdapter
     @Override
     public Class<FileWatcherPort> adapts() {
         return FileWatcherPort.class;
+    }
+
+    /**
+     * Sets the application instance for processing events
+     * @param application the application instance
+     */
+    public void setApplication(final Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application) {
+        this.application = application;
     }
 
     /**

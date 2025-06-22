@@ -37,9 +37,23 @@ jobs:
       id: version
       run: |
         TAG=${GITHUB_REF#refs/tags/}
+        VERSION=${TAG#v}
         echo "tag=$TAG" >> $GITHUB_OUTPUT
-        echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "milestone=${TAG}" >> $GITHUB_OUTPUT
+        
+        # Create Maven-compatible version (remove 'v' prefix if present)
+        if [[ $VERSION == v* ]]; then
+          MAVEN_VERSION=${VERSION#v}
+        else
+          MAVEN_VERSION=$VERSION
+        fi
+        echo "maven_version=$MAVEN_VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Update Maven version
+      run: |
+        echo "Setting Maven version to: ${{ steps.version.outputs.maven_version }}"
+        mvn versions:set -DnewVersion=${{ steps.version.outputs.maven_version }} -DgenerateBackupPoms=false -B
         
     - name: Build and test project
       run: |
@@ -50,10 +64,34 @@ jobs:
       run: |
         mvn package -DskipTests -B
         
-    - name: Create release artifacts directory
+    - name: Create release artifacts directory and rename files
       run: |
         mkdir -p release-artifacts
-        find . -name "*.jar" -path "*/target/*" -exec cp {} release-artifacts/ \;
+        
+        # Find and rename JAR files to use proper version
+        VERSION="${{ steps.version.outputs.maven_version }}"
+        
+        # Copy and rename main artifacts
+        if [ -f "bytehot/target/bytehot-${VERSION}-shaded.jar" ]; then
+          cp "bytehot/target/bytehot-${VERSION}-shaded.jar" "release-artifacts/bytehot-${VERSION}.jar"
+          echo "✅ Created bytehot-${VERSION}.jar"
+        fi
+        
+        if [ -f "java-commons/target/java-commons-${VERSION}.jar" ]; then
+          cp "java-commons/target/java-commons-${VERSION}.jar" "release-artifacts/java-commons-${VERSION}.jar"
+          echo "✅ Created java-commons-${VERSION}.jar"
+        fi
+        
+        # Copy any additional artifacts with version replacement
+        find . -name "*-${VERSION}.jar" -path "*/target/*" | while read -r file; do
+          basename_file=$(basename "$file")
+          if [[ ! "$basename_file" =~ (shaded|original) ]]; then
+            cp "$file" "release-artifacts/"
+            echo "✅ Copied $basename_file"
+          fi
+        done
+        
+        echo "📦 Release artifacts created:"
         ls -la release-artifacts/
         
     - name: Generate release notes
@@ -84,13 +122,13 @@ jobs:
         
         ## Artifacts
         
-        - \`bytehot-latest-SNAPSHOT.jar\`: Main ByteHot JVM agent
-        - \`java-commons-latest-SNAPSHOT.jar\`: Shared utilities library
+        - \`bytehot-${{ steps.version.outputs.maven_version }}.jar\`: Main ByteHot JVM agent
+        - \`java-commons-${{ steps.version.outputs.maven_version }}.jar\`: Shared utilities library
         
         ## Installation
         
         1. Download the appropriate JAR file
-        2. Add as JVM agent: \`-javaagent:bytehot-latest-SNAPSHOT.jar\`
+        2. Add as JVM agent: \`-javaagent:bytehot-${{ steps.version.outputs.maven_version }}.jar\`
         3. Configure monitoring paths via system properties or configuration file
         
         ## Documentation

@@ -115,42 +115,58 @@ public class ByteHot {
      * @param precedingEvent the event that triggered this startup
      */
     public void start(final ByteHotAttachRequested precedingEvent) {
+        EventEmitterPort eventEmitter = null;
+        
+        // First, try to get the event emitter
         try {
-            final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+            eventEmitter = Ports.resolve(EventEmitterPort.class);
+        } catch (final Exception e) {
+            System.err.println("Failed to resolve EventEmitterPort: " + e.getMessage());
+            // Continue without event emission
+        }
+        
+        // Try to start file watching (this may fail, but we continue)
+        try {
             final FileWatcherPort fileWatcher = Ports.resolve(FileWatcherPort.class);
             
-            // Configure watch paths and start file watching
-            final WatchPathConfigured watchEvent = new WatchPathConfigured(configuration, precedingEvent);
-            eventEmitter.emit(watchEvent);
+            if (eventEmitter != null) {
+                // Configure watch paths and start file watching
+                final WatchPathConfigured watchEvent = new WatchPathConfigured(configuration, precedingEvent);
+                eventEmitter.emit(watchEvent);
+            }
             
             // Start watching each configured folder
             final List<FolderWatch> folders = configuration.getFolders();
             if (folders != null) {
                 for (final FolderWatch folderWatch : folders) {
-                try {
-                    final String watchId = fileWatcher.startWatching(
-                        folderWatch.getFolder(), 
-                        List.of("*.class"), // Default pattern for class files
-                        true // Recursive watching
-                    );
-                    System.out.println("Started watching folder: " + folderWatch.getFolder() + " (ID: " + watchId + ")");
-                } catch (final Exception e) {
-                    System.err.println("Failed to start watching folder " + folderWatch.getFolder() + ": " + e.getMessage());
-                }
+                    try {
+                        final String watchId = fileWatcher.startWatching(
+                            folderWatch.getFolder(), 
+                            List.of("*.class"), // Default pattern for class files
+                            true // Recursive watching
+                        );
+                        System.out.println("Started watching folder: " + folderWatch.getFolder() + " (ID: " + watchId + ")");
+                    } catch (final Exception e) {
+                        System.err.println("Failed to start watching folder " + folderWatch.getFolder() + ": " + e.getMessage());
+                    }
                 }
             } else {
                 System.out.println("No folders configured for watching");
             }
             
-            // Check and emit hot-swap capability
-            if (instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
+        } catch (final Exception e) {
+            System.err.println("Failed to emit domain events during startup: " + e.getMessage());
+            // Continue with startup even if file watching fails
+        }
+        
+        // Always check and emit hot-swap capability, regardless of file watching status
+        try {
+            if (eventEmitter != null && instrumentation.isRedefineClassesSupported() && instrumentation.isRetransformClassesSupported()) {
                 final HotSwapCapabilityEnabled capabilityEvent = new HotSwapCapabilityEnabled(instrumentation, precedingEvent);
                 eventEmitter.emit(capabilityEvent);
             }
-            
         } catch (final Exception e) {
-            System.err.println("Failed to emit domain events during startup: " + e.getMessage());
-            // Continue with startup even if event emission fails
+            System.err.println("Failed to emit HotSwapCapabilityEnabled event: " + e.getMessage());
         }
     }
 }

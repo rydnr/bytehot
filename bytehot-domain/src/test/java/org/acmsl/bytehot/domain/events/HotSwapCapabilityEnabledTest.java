@@ -122,7 +122,13 @@ public class HotSwapCapabilityEnabledTest {
         compileProcess.waitFor(10, TimeUnit.SECONDS);
 
         // When: Run the test app with ByteHot agent and configuration
-        Path agentJar = Path.of(System.getProperty("user.dir") + "/target/bytehot-latest-SNAPSHOT-agent.jar");
+        Path currentDir = Path.of(System.getProperty("user.dir"));
+        Path agentJar = currentDir.resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
+        
+        // If we're in a module directory, adjust path to parent
+        if (currentDir.getFileName().toString().startsWith("bytehot-")) {
+            agentJar = currentDir.getParent().resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
+        }
         ProcessBuilder runBuilder = new ProcessBuilder(
             "java",
             "-javaagent:" + agentJar.toAbsolutePath(),
@@ -133,8 +139,13 @@ public class HotSwapCapabilityEnabledTest {
         runBuilder.redirectErrorStream(true);
         Process runProcess = runBuilder.start();
         
+        // Give the process more time to complete and capture all output
+        boolean finished = runProcess.waitFor(15, TimeUnit.SECONDS);
         String output = new String(runProcess.getInputStream().readAllBytes());
-        runProcess.waitFor(10, TimeUnit.SECONDS);
+        
+        if (!finished) {
+            runProcess.destroyForcibly();
+        }
 
         // Then: Output should contain HotSwapCapabilityEnabled event
         assertTrue(output.contains("HotSwapCapabilityEnabled"), 

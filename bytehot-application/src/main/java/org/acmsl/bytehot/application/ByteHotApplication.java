@@ -43,7 +43,8 @@ import org.acmsl.bytehot.domain.EventEmitterPort;
 import org.acmsl.bytehot.domain.FileWatcherPort;
 import org.acmsl.bytehot.domain.HotSwapException;
 import org.acmsl.bytehot.domain.HotSwapManager;
-import org.acmsl.bytehot.domain.InstrumentationPort;
+import org.acmsl.bytehot.domain.InstrumentationService;
+import org.acmsl.bytehot.domain.JvmInstrumentationService;
 import org.acmsl.bytehot.domain.Ports;
 import org.acmsl.bytehot.domain.events.BytecodeValidated;
 import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
@@ -90,6 +91,11 @@ public class ByteHotApplication
     private static volatile boolean adaptersInitialized = false;
 
     /**
+     * The instrumentation service for this application
+     */
+    private static InstrumentationService instrumentationService;
+
+    /**
      * Default constructor to point to the singleton.
      */
     protected ByteHotApplication() {}
@@ -116,6 +122,9 @@ public class ByteHotApplication
         if (!adaptersInitialized) {
             synchronized (ByteHotApplication.class) {
                 if (!adaptersInitialized) {
+                    // Create the core instrumentation service for the domain
+                    instrumentationService = new JvmInstrumentationService(instrumentation);
+                    
                     discoverAndInjectAdapters(instrumentation);
                     adaptersInitialized = true;
                 }
@@ -190,7 +199,7 @@ public class ByteHotApplication
             
             // Step 2: Create hot-swap request
             System.out.println("Creating HotSwapRequested event for: " + event.getClassName());
-            final HotSwapManager hotSwapManager = new HotSwapManager();
+            final HotSwapManager hotSwapManager = new HotSwapManager(instrumentationService);
             
             // Get the current bytecode (mock empty for now since we don't have class tracking)
             final byte[] originalBytecode = new byte[0];
@@ -409,11 +418,15 @@ public class ByteHotApplication
      * Checks if a class is a valid adapter
      */
     protected static boolean isValidAdapter(final Class<?> clazz) {
-        return clazz != null 
-            && !clazz.isInterface() 
-            && !java.lang.reflect.Modifier.isAbstract(clazz.getModifiers())
-            && Adapter.class.isAssignableFrom(clazz)
-            && Port.class.isAssignableFrom(getPortInterface(clazz));
+        if (clazz == null 
+            || clazz.isInterface() 
+            || java.lang.reflect.Modifier.isAbstract(clazz.getModifiers())
+            || !Adapter.class.isAssignableFrom(clazz)) {
+            return false;
+        }
+        
+        final Class<? extends Port> portInterface = getPortInterface(clazz);
+        return portInterface != null && Port.class.isAssignableFrom(portInterface);
     }
 
     /**
@@ -423,11 +436,16 @@ public class ByteHotApplication
     protected static Class<? extends Port> getPortInterface(final Class<?> adapterClass) {
         try {
             if (Adapter.class.isAssignableFrom(adapterClass)) {
+                // Special handling for adapters that can't be instantiated via default constructor
+                if (adapterClass.getName().equals("org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter")) {
+                    return org.acmsl.bytehot.domain.FileWatcherPort.class;
+                }
+                
                 final Adapter<?> instance = (Adapter<?>) adapterClass.getDeclaredConstructor().newInstance();
                 return (Class<? extends Port>) instance.adapts();
             }
         } catch (final Exception e) {
-            // Ignore
+            // Silently ignore failed instantiations during discovery
         }
         return null;
     }
@@ -438,8 +456,26 @@ public class ByteHotApplication
     @SuppressWarnings("unchecked")
     protected static void instantiateAndInjectAdapter(final Ports ports, final Class<?> adapterClass) {
         try {
-            final Adapter<? extends Port> adapter = (Adapter<? extends Port>) adapterClass.getDeclaredConstructor().newInstance();
-            final Class<? extends Port> portInterface = adapter.adapts();
+            Adapter<? extends Port> adapter = null;
+            Class<? extends Port> portInterface = null;
+            
+            // Special handling for FileWatcherAdapter
+            if (adapterClass.getName().equals("org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter")) {
+                try {
+                    adapter = (Adapter<? extends Port>) adapterClass.getDeclaredConstructor().newInstance();
+                    portInterface = org.acmsl.bytehot.domain.FileWatcherPort.class;
+                    
+                    // Initialize it properly
+                    final java.lang.reflect.Method initializeMethod = adapterClass.getMethod("initialize", Application.class);
+                    initializeMethod.invoke(adapter, getInstance());
+                } catch (final Exception specialException) {
+                    System.err.println("Failed to instantiate FileWatcherAdapter: " + specialException.getMessage());
+                    return;
+                }
+            } else {
+                adapter = (Adapter<? extends Port>) adapterClass.getDeclaredConstructor().newInstance();
+                portInterface = adapter.adapts();
+            }
             
             ports.inject((Class<Port>) portInterface, (Adapter<Port>) adapter);
             System.out.println("Injected adapter: " + adapterClass.getSimpleName() + " for port: " + portInterface.getSimpleName());

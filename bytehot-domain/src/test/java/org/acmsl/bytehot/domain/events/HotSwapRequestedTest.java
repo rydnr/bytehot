@@ -34,6 +34,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.testing.MockInstrumentationService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -74,7 +76,8 @@ public class HotSwapRequestedTest {
         );
         
         // When: HotSwapManager requests hot-swap
-        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager();
+        MockInstrumentationService mockService = new MockInstrumentationService();
+        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         HotSwapRequested event = manager.requestHotSwap(classFile, validation, originalBytecode);
         
         // Then: HotSwapRequested event should contain all necessary information
@@ -108,7 +111,8 @@ public class HotSwapRequestedTest {
         );
         
         // When: HotSwapManager creates request with validation context
-        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager();
+        MockInstrumentationService mockService = new MockInstrumentationService();
+        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         HotSwapRequested event = manager.requestHotSwap(classFile, validation, originalBytecode);
         
         // Then: Request should include validation details
@@ -142,7 +146,8 @@ public class HotSwapRequestedTest {
         );
         
         // When: Creating hot-swap request
-        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager();
+        MockInstrumentationService mockService = new MockInstrumentationService();
+        org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         HotSwapRequested event = manager.requestHotSwap(classFile, validation, createOriginalBytecode("TestService"));
         
         // Then: Request reason should be descriptive

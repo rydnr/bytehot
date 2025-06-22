@@ -481,7 +481,7 @@ extends TestCase
             t_BigDecimal.divide(
                 new java.math.BigDecimal(1.0),
                 1,
-                java.math.BigDecimal.ROUND_HALF_EVEN).doubleValue()
+                java.math.RoundingMode.HALF_EVEN).doubleValue()
             == 2.0);
     // JUnitDoclet end method toBigDecimal
   }

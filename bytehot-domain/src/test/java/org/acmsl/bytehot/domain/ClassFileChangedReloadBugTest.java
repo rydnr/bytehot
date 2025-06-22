@@ -155,7 +155,7 @@ public class ClassFileChangedReloadBugTest {
                  "- Update ByteHotApplication.processClassFileChanged() to:\n" +
                  "  a) Validate bytecode using BytecodeValidator\n" +
                  "  b) Create HotSwapRequested via HotSwapManager\n" +
-                 "  c) Perform redefinition via InstrumentationPort\n" +
+                 "  c) Perform redefinition via InstrumentationService\n" +
                  "  d) Emit appropriate result events\n\n" +
                  "This test will PASS once the hot-swap pipeline is implemented.");
         }

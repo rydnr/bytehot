@@ -29,11 +29,11 @@
  * Class name: HotSwapManagerRealInstrumentationTest
  *
  * Responsibilities:
- *   - Test that HotSwapManager uses real InstrumentationPort instead of mock logic
+ *   - Test that HotSwapManager uses real InstrumentationService instead of mock logic
  *
  * Collaborators:
  *   - HotSwapManager: Class under test
- *   - InstrumentationPort: Real JVM instrumentation interface
+ *   - InstrumentationService: Core domain service for JVM instrumentation
  */
 package org.acmsl.bytehot.domain;
 
@@ -52,7 +52,7 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test that HotSwapManager uses real InstrumentationPort instead of mock logic
+ * Test that HotSwapManager uses real InstrumentationService instead of mock logic
  * @author Claude Code
  * @since 2025-06-22
  */
@@ -62,25 +62,25 @@ public class HotSwapManagerRealInstrumentationTest {
     Path tempDir;
 
     @Test
-    public void shouldUseRealInstrumentationPortInsteadOfMockLogic() throws IOException, HotSwapException {
-        // Given: HotSwapManager source code analysis to verify it calls InstrumentationPort
+    public void shouldUseRealInstrumentationServiceInsteadOfMockLogic() throws IOException, HotSwapException {
+        // Given: HotSwapManager source code analysis to verify it uses InstrumentationService
         Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
         assertThat(hotSwapManagerFile).exists();
         
         String sourceCode = Files.readString(hotSwapManagerFile);
         
-        // Then: HotSwapManager.performRedefinition() should use InstrumentationPort
+        // Then: HotSwapManager should use InstrumentationService directly
         assertThat(sourceCode)
-            .as("HotSwapManager should resolve InstrumentationPort")
-            .contains("Ports.resolve(InstrumentationPort.class)");
+            .as("HotSwapManager should have InstrumentationService as dependency")
+            .contains("InstrumentationService instrumentationService");
             
         assertThat(sourceCode)
-            .as("HotSwapManager should call redefineClass on InstrumentationPort")
-            .contains("redefineClass(");
+            .as("HotSwapManager should call redefineClass on InstrumentationService")
+            .contains("instrumentationService.redefineClass(");
             
         assertThat(sourceCode)
-            .as("HotSwapManager should look up loaded classes")
-            .contains("getAllLoadedClasses()");
+            .as("HotSwapManager should use service for class lookup")
+            .contains("instrumentationService.findLoadedClass(");
             
         // And: Should NOT contain mock logic anymore
         assertThat(sourceCode)

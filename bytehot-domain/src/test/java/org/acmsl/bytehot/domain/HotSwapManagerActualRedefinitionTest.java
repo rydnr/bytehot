@@ -31,11 +31,11 @@
  * Responsibilities:
  *   - Test that HotSwapManager performs ACTUAL JVM class redefinition
  *   - Detect the critical bug where mock logic was used instead of real redefinition
- *   - Verify HotSwapManager uses real InstrumentationPort instead of mock logic
+ *   - Verify HotSwapManager uses real InstrumentationService instead of mock logic
  *
  * Collaborators:
  *   - HotSwapManager: Class under test
- *   - InstrumentationPort: Real JVM instrumentation interface
+ *   - InstrumentationService: Core domain service for JVM instrumentation
  */
 package org.acmsl.bytehot.domain;
 
@@ -54,7 +54,8 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Test that detects the critical bug where HotSwapManager used mock logic instead of real JVM redefinition
+ * Test that detects the critical bug where HotSwapManager used mock logic instead of real JVM redefinition.
+ * Updated to verify InstrumentationService usage as core domain service.
  * @author Claude Code
  * @since 2025-06-22
  */
@@ -71,18 +72,18 @@ public class HotSwapManagerActualRedefinitionTest {
         
         String sourceCode = Files.readString(hotSwapManagerFile);
         
-        // Then: HotSwapManager.performRedefinition() should use InstrumentationPort
+        // Then: HotSwapManager should use InstrumentationService directly
         assertThat(sourceCode)
-            .as("HotSwapManager should resolve InstrumentationPort")
-            .contains("Ports.resolve(InstrumentationPort.class)");
+            .as("HotSwapManager should have InstrumentationService as dependency")
+            .contains("InstrumentationService instrumentationService");
             
         assertThat(sourceCode)
-            .as("HotSwapManager should call redefineClass on InstrumentationPort")
-            .contains("instrumentation.redefineClass(");
+            .as("HotSwapManager should call redefineClass on InstrumentationService")
+            .contains("instrumentationService.redefineClass(");
             
         assertThat(sourceCode)
-            .as("HotSwapManager should look up loaded classes")
-            .contains("getAllLoadedClasses()");
+            .as("HotSwapManager should look up loaded classes through service")
+            .contains("findLoadedClass(");
             
         // And: Should NOT contain mock logic anymore
         assertThat(sourceCode)
@@ -105,8 +106,8 @@ public class HotSwapManagerActualRedefinitionTest {
         
         // Then: performRedefinition method should contain actual redefinition logic
         assertThat(sourceCode)
-            .as("CRITICAL: performRedefinition should call real InstrumentationPort.redefineClass()")
-            .contains("instrumentation.redefineClass(targetClass, request.getNewBytecode())");
+            .as("CRITICAL: performRedefinition should call real InstrumentationService.redefineClass()")
+            .contains("instrumentationService.redefineClass(targetClass, request.getNewBytecode())");
             
         // And: Should NOT contain mock simulation patterns
         assertThat(sourceCode)
@@ -128,7 +129,7 @@ public class HotSwapManagerActualRedefinitionTest {
         // Then: Should find loaded class before attempting redefinition
         assertThat(sourceCode)
             .as("Should look up loaded class before redefinition")
-            .contains("findLoadedClass(request.getClassName(), instrumentation)");
+            .contains("instrumentationService.findLoadedClass(request.getClassName())");
             
         assertThat(sourceCode)
             .as("Should check if target class was found")
@@ -138,14 +139,10 @@ public class HotSwapManagerActualRedefinitionTest {
             .as("Should throw exception when class is not found")
             .contains("throw createClassNotFoundException(request)");
             
-        // And: findLoadedClass method should iterate through loaded classes
+        // And: Should delegate class lookup to instrumentation service
         assertThat(sourceCode)
-            .as("findLoadedClass should iterate through all loaded classes")
-            .contains("instrumentation.getAllLoadedClasses()");
-            
-        assertThat(sourceCode)
-            .as("findLoadedClass should match class names")
-            .contains("className.equals(clazz.getSimpleName()) || className.equals(clazz.getName())");
+            .as("Should delegate to instrumentation service for class lookup")
+            .contains("instrumentationService.findLoadedClass(");
     }
 
     @Test

@@ -232,6 +232,9 @@ public class ByteHotApplicationIntegrationTest {
         try {
             // When: Processing the attach request through the application layer
             ByteHotApplication.initialize(instrumentation);
+            
+            // FileWatcherAdapter discovery will be attempted by ByteHotApplication.initialize()
+            
             ByteHotApplication application = ByteHotApplication.getInstance();
             List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
 
@@ -296,6 +299,9 @@ public class ByteHotApplicationIntegrationTest {
         try {
             // When: Processing the attach request
             ByteHotApplication.initialize(instrumentation);
+            
+            // FileWatcherAdapter discovery will be attempted by ByteHotApplication.initialize()
+            
             ByteHotApplication application = ByteHotApplication.getInstance();
             List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
 
