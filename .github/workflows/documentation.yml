@@ -348,18 +348,97 @@ jobs:
         run: |
           # Copy the comprehensive ByteHot CSS styling
           echo "📎 Copying ByteHot CSS styling..."
-          cp .github/resources/bytehot-style.css bytehot/style.css || {
-            echo "⚠️ Fallback: Creating basic CSS styling..."
-            echo "/* ByteHot Documentation Styling - Fallback */" > bytehot/style.css
-            echo "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 1280px; margin: 0 auto; padding: 2rem; line-height: 1.6; }" >> bytehot/style.css
-            echo "h1 { color: #2c3e50; font-size: 2.5rem; border-bottom: 3px solid #3498db; padding-bottom: 0.5rem; }" >> bytehot/style.css
-            echo "h2 { color: #34495e; font-size: 1.8rem; border-left: 4px solid #3498db; padding-left: 1rem; }" >> bytehot/style.css
-            echo "code { background: #f8f9fa; color: #e74c3c; padding: 0.2rem 0.4rem; border-radius: 4px; font-weight: 600; }" >> bytehot/style.css
-            echo "pre { background: #f8f9fa; border: 1px solid #e1e8ed; padding: 1.5rem; border-radius: 8px; overflow-x: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }" >> bytehot/style.css
-            echo ".navigation { background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); color: white; padding: 1rem; margin-bottom: 2rem; }" >> bytehot/style.css
-            echo ".navigation a { color: #ecf0f1; text-decoration: none; padding: 0.5rem 1rem; margin: 0 0.5rem; border-radius: 6px; }" >> bytehot/style.css
-            echo ".footer { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: #ecf0f1; text-align: center; padding: 3rem 0 2rem 0; margin-top: 4rem; }" >> bytehot/style.css
-          }
+          if cp .github/resources/bytehot-style.css bytehot/style.css; then
+            echo "✅ ByteHot CSS successfully copied"
+          else
+            echo "⚠️ Fallback: Creating comprehensive CSS styling..."
+            cat > bytehot/style.css << 'EOF'
+/* ByteHot Documentation Styling - Fallback */
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
+  max-width: 1280px; 
+  margin: 0 auto; 
+  padding: 0; 
+  line-height: 1.6; 
+  color: #333;
+}
+
+h1 { 
+  color: #2c3e50; 
+  font-size: 2.5rem; 
+  border-bottom: 3px solid #3498db; 
+  padding-bottom: 0.5rem; 
+}
+
+h2 { 
+  color: #34495e; 
+  font-size: 1.8rem; 
+  border-left: 4px solid #3498db; 
+  padding-left: 1rem; 
+}
+
+code { 
+  background: #f8f9fa; 
+  color: #e74c3c; 
+  padding: 0.2rem 0.4rem; 
+  border-radius: 4px; 
+  font-weight: 600; 
+}
+
+pre { 
+  background: #f8f9fa; 
+  border: 1px solid #e1e8ed; 
+  padding: 1.5rem; 
+  border-radius: 8px; 
+  overflow-x: auto; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+}
+
+.navigation { 
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); 
+  color: white; 
+  padding: 1rem 2rem; 
+  margin-bottom: 2rem; 
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.navigation a { 
+  color: #ecf0f1; 
+  text-decoration: none; 
+  padding: 0.5rem 1rem; 
+  margin: 0 0.5rem; 
+  border-radius: 6px; 
+}
+
+.navigation a:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.footer { 
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); 
+  color: #ecf0f1; 
+  text-align: center; 
+  padding: 3rem 0 2rem 0; 
+  margin-top: 4rem; 
+  width: 100%;
+}
+
+.footer a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* Main content styling */
+main {
+  padding: 2rem;
+}
+EOF
+          fi
           
           # Convert story.org to index.html with navigation (check if file exists in bytehot directory)
           if [ -f "bytehot/story.org" ]; then
@@ -706,28 +785,24 @@ jobs:
             # Create temporary file with footer  
             sed "s|href=\"|href=\"${relative_path}|g" temp_footer.html > "temp_footer_${file//\//_}.html"
             
-            # Apply navigation and footer using a simpler, more reliable approach
+            # Apply navigation and footer using a simple and reliable approach
             local nav_file="temp_nav_${file//\//_}.html"
             local footer_file="temp_footer_${file//\//_}.html"
             
-            # Create a completely new file by combining parts
-            {
-              # Everything up to and including <body> tag
-              sed -n '1,/<body>/p' "$file"
-              
-              # Add navigation content
-              cat "$nav_file"
-              
-              # Everything between <body> and </body> (excluding the tags themselves)
-              sed -n '/<body>/,/<\/body>/{/<body>/d; /<\/body>/d; p}' "$file"
-              
-              # Add footer content
-              cat "$footer_file"
-              
-              # Everything from </body> to end
-              sed -n '/<\/body>/,$p' "$file"
-              
-            } > "${file}.tmp" && mv "${file}.tmp" "$file"
+            # Method 1: Insert navigation after <body> tag
+            if grep -q "<body>" "$file"; then
+              sed -i "/<body>/r $nav_file" "$file"
+            fi
+            
+            # Method 2: Insert footer before </body> tag using a simpler approach
+            if grep -q "</body>" "$file"; then
+              # Split file at </body>, insert footer, then rejoin
+              grep -B 999999 "</body>" "$file" | head -n -1 > "${file}.before"
+              cat "$footer_file" > "${file}.footer_content"
+              grep -A 999999 "</body>" "$file" > "${file}.after"
+              cat "${file}.before" "${file}.footer_content" "${file}.after" > "$file"
+              rm -f "${file}.before" "${file}.footer_content" "${file}.after"
+            fi
             
             # Ensure proper container wrapper for main content
             # Skip this complex operation for now to avoid sed issues
