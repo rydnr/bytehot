@@ -57,12 +57,26 @@ public class HotSwapCapabilityEnabledTest {
      */
     @BeforeAll
     public static void ensureAgentJarExists() throws IOException, InterruptedException {
-        Path agentJar = Path.of(System.getProperty("user.dir") + "/target/bytehot-latest-SNAPSHOT-agent.jar");
+        // Agent JAR is now built in bytehot-application module
+        Path currentDir = Path.of(System.getProperty("user.dir"));
+        Path agentJar = currentDir.resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
+        
+        // If we're in a module directory, adjust path to parent
+        if (currentDir.getFileName().toString().startsWith("bytehot-")) {
+            agentJar = currentDir.getParent().resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
+        }
         
         if (!Files.exists(agentJar)) {
             System.out.println("Building agent JAR for test...");
+            
+            // Build from root directory to ensure all modules are built
+            Path buildDir = currentDir;
+            if (currentDir.getFileName().toString().startsWith("bytehot-")) {
+                buildDir = currentDir.getParent();
+            }
+            
             ProcessBuilder builder = new ProcessBuilder("mvn", "package", "-DskipTests=true", "-q");
-            builder.directory(Path.of(System.getProperty("user.dir")).toFile());
+            builder.directory(buildDir.toFile());
             builder.inheritIO();
             
             Process process = builder.start();

@@ -66,7 +66,7 @@ public class HotSwapManagerActualRedefinitionTest {
     @Test
     public void shouldUseRealInstrumentationPortInsteadOfMockLogic() throws IOException {
         // Given: HotSwapManager source code analysis to verify it calls InstrumentationPort
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
         assertThat(hotSwapManagerFile).exists();
         
         String sourceCode = Files.readString(hotSwapManagerFile);
@@ -100,7 +100,7 @@ public class HotSwapManagerActualRedefinitionTest {
         // This test detects the original bug by analyzing the source code structure
         
         // Given: HotSwapManager source code
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
         String sourceCode = Files.readString(hotSwapManagerFile);
         
         // Then: performRedefinition method should contain actual redefinition logic
@@ -122,7 +122,7 @@ public class HotSwapManagerActualRedefinitionTest {
     @Test
     public void shouldValidateClassLookupBeforeRedefinition() throws IOException {
         // Given: HotSwapManager source code
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
         String sourceCode = Files.readString(hotSwapManagerFile);
         
         // Then: Should find loaded class before attempting redefinition
@@ -151,7 +151,7 @@ public class HotSwapManagerActualRedefinitionTest {
     @Test
     public void shouldHandleRealJvmExceptionsNotMockOnes() throws IOException {
         // Given: HotSwapManager source code
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
         String sourceCode = Files.readString(hotSwapManagerFile);
         
         // Then: Should handle real JVM redefinition exceptions

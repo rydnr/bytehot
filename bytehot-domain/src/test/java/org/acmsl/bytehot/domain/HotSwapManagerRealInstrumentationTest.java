@@ -64,7 +64,7 @@ public class HotSwapManagerRealInstrumentationTest {
     @Test
     public void shouldUseRealInstrumentationPortInsteadOfMockLogic() throws IOException, HotSwapException {
         // Given: HotSwapManager source code analysis to verify it calls InstrumentationPort
-        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
+        Path hotSwapManagerFile = Path.of("/home/chous/github/rydnr/bytehot/bytehot-domain/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java");
         assertThat(hotSwapManagerFile).exists();
         
         String sourceCode = Files.readString(hotSwapManagerFile);

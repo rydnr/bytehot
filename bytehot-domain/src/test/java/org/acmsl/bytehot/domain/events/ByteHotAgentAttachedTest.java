@@ -67,13 +67,18 @@ public class ByteHotAgentAttachedTest {
      */
     @BeforeAll
     public static void ensureAgentJarExists() throws IOException, InterruptedException {
-        // Try multiple possible locations for the agent JAR
+        // Try multiple possible locations for the agent JAR (now built in bytehot-application module)
         Path currentDir = Path.of(System.getProperty("user.dir"));
-        Path agentJar = currentDir.resolve("target/bytehot-latest-SNAPSHOT-agent.jar");
+        Path agentJar = currentDir.resolve("target/bytehot-application-latest-SNAPSHOT-agent.jar");
         
-        // If not found in current directory, try parent directory (for GitHub Actions)
+        // If not found in current directory, try application module
         if (!Files.exists(agentJar)) {
-            agentJar = currentDir.resolve("bytehot/target/bytehot-latest-SNAPSHOT-agent.jar");
+            agentJar = currentDir.resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
+        }
+        
+        // Fallback: try parent directory structure
+        if (!Files.exists(agentJar)) {
+            agentJar = currentDir.resolve("../bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
         }
         
         if (!Files.exists(agentJar)) {
@@ -81,14 +86,18 @@ public class ByteHotAgentAttachedTest {
             System.out.println("Current working directory: " + currentDir);
             System.out.println("Looking for agent JAR at: " + agentJar);
             
-            // Determine the correct build directory
+            // Determine the correct build directory (from root to build all modules)
             Path buildDir = currentDir;
-            if (Files.exists(currentDir.resolve("bytehot/pom.xml"))) {
-                // We're in the parent directory
-                buildDir = currentDir.resolve("bytehot");
+            
+            // If we're in a module directory, go to parent to build all modules
+            if (currentDir.getFileName().toString().startsWith("bytehot-")) {
+                buildDir = currentDir.getParent();
             } else if (!Files.exists(currentDir.resolve("pom.xml"))) {
-                // Neither current nor bytehot subdirectory has pom.xml
-                throw new RuntimeException("No pom.xml found in " + currentDir + " or " + currentDir.resolve("bytehot"));
+                // If no pom.xml found, assume we need to go to parent
+                buildDir = currentDir.getParent();
+                if (buildDir == null || !Files.exists(buildDir.resolve("pom.xml"))) {
+                    throw new RuntimeException("No root pom.xml found. Current dir: " + currentDir);
+                }
             }
             
             System.out.println("Building from directory: " + buildDir);
@@ -103,8 +112,8 @@ public class ByteHotAgentAttachedTest {
                 throw new RuntimeException("Failed to build agent JAR for test. Exit code: " + exitCode);
             }
             
-            // Re-check for the JAR in the expected location
-            agentJar = buildDir.resolve("target/bytehot-latest-SNAPSHOT-agent.jar");
+            // Re-check for the JAR in the application module
+            agentJar = buildDir.resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
             if (!Files.exists(agentJar)) {
                 throw new RuntimeException("Agent JAR was not created: " + agentJar);
             }
@@ -179,21 +188,28 @@ public class ByteHotAgentAttachedTest {
     }
 
     private String findByteHotAgentJar() {
-        // Find the agent JAR in the most likely locations
+        // Find the agent JAR in the most likely locations (now in bytehot-application module)
         Path currentDir = Path.of(System.getProperty("user.dir"));
-        Path agentJar = currentDir.resolve("target/bytehot-latest-SNAPSHOT-agent.jar");
         
+        // Try application module from current directory
+        Path agentJar = currentDir.resolve("bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
         if (Files.exists(agentJar)) {
-            return "target/bytehot-latest-SNAPSHOT-agent.jar";
+            return "bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar";
+        }
+        
+        // Try if we're in the application module itself
+        agentJar = currentDir.resolve("target/bytehot-application-latest-SNAPSHOT-agent.jar");
+        if (Files.exists(agentJar)) {
+            return "target/bytehot-application-latest-SNAPSHOT-agent.jar";
         }
         
         // Try parent directory structure (for GitHub Actions)
-        agentJar = currentDir.resolve("bytehot/target/bytehot-latest-SNAPSHOT-agent.jar");
+        agentJar = currentDir.resolve("../bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar");
         if (Files.exists(agentJar)) {
-            return "bytehot/target/bytehot-latest-SNAPSHOT-agent.jar";
+            return "../bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar";
         }
         
-        // Default to the standard location
-        return "target/bytehot-latest-SNAPSHOT-agent.jar";
+        // Default to the application module location
+        return "bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar";
     }
 }
