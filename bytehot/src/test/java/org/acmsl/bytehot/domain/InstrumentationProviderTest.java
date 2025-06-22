@@ -179,10 +179,10 @@ public class InstrumentationProviderTest {
         public boolean isModifiableClass(Class<?> theClass) { return false; }
         
         @Override
-        public Class<?>[] getAllLoadedClasses() { return new Class[0]; }
+        public Class<?>[] getAllLoadedClasses() { return new Class<?>[0]; }
         
         @Override
-        public Class<?>[] getInitiatedClasses(ClassLoader loader) { return new Class[0]; }
+        public Class<?>[] getInitiatedClasses(ClassLoader loader) { return new Class<?>[0]; }
         
         @Override
         public long getObjectSize(Object objectToSize) { return 0; }
@@ -239,10 +239,10 @@ public class InstrumentationProviderTest {
         public boolean isModifiableClass(Class<?> theClass) { return false; }
         
         @Override
-        public Class<?>[] getAllLoadedClasses() { return new Class[0]; }
+        public Class<?>[] getAllLoadedClasses() { return new Class<?>[0]; }
         
         @Override
-        public Class<?>[] getInitiatedClasses(ClassLoader loader) { return new Class[0]; }
+        public Class<?>[] getInitiatedClasses(ClassLoader loader) { return new Class<?>[0]; }
         
         @Override
         public long getObjectSize(Object objectToSize) { return 0; }

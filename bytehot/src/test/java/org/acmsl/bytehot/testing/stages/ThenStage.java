@@ -204,7 +204,8 @@ public class ThenStage {
      * @param eventTypes the expected sequence of event types
      * @return this stage for fluent chaining
      */
-    public ThenStage eventsInOrder(Class<? extends DomainEvent>... eventTypes) {
+    @SafeVarargs
+    public final ThenStage eventsInOrder(Class<? extends DomainEvent>... eventTypes) {
         List<DomainEvent> resultingEvents = context.getResultingEvents();
         
         Assertions.assertThat(resultingEvents)

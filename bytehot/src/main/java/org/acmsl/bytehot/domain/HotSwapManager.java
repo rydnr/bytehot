@@ -105,20 +105,25 @@ public class HotSwapManager {
         final long startTime = System.nanoTime();
         
         try {
-            // Mock JVM redefinition logic for testing
-            final String content = new String(request.getNewBytecode());
+            // Get real instrumentation port
+            final InstrumentationPort instrumentation = Ports.resolve(InstrumentationPort.class);
             
-            if (content.contains("INCOMPATIBLE_BYTECODE") || content.contains("SCHEMA_CHANGE_BYTECODE")) {
-                // Simulate JVM rejection
-                throw createJvmRejectionException(request, content);
-            }
-            
-            if (content.contains("NotLoadedClass")) {
-                // Simulate class not found
+            // Find the loaded class to redefine
+            final Class<?> targetClass = findLoadedClass(request.getClassName(), instrumentation);
+            if (targetClass == null) {
                 throw createClassNotFoundException(request);
             }
             
-            // Simulate successful redefinition
+            // Perform actual JVM class redefinition
+            try {
+                instrumentation.redefineClass(targetClass, request.getNewBytecode());
+            } catch (final Exception redefinitionException) {
+                // Wrap JVM redefinition exceptions
+                final ClassRedefinitionFailed failure = createJvmRedefinitionFailure(request, redefinitionException);
+                throw new HotSwapException(failure, redefinitionException);
+            }
+            
+            // Calculate success metrics
             final long endTime = System.nanoTime();
             final Duration duration = Duration.ofNanos(endTime - startTime);
             final int affectedInstances = calculateAffectedInstances(request);
@@ -241,5 +246,54 @@ public class HotSwapManager {
      */
     protected String createRedefinitionDetails(final HotSwapRequested request) {
         return String.format("Class %s redefinition completed successfully", request.getClassName());
+    }
+
+    /**
+     * Finds a loaded class by name using instrumentation
+     * @param className the class name to find
+     * @param instrumentation the instrumentation port
+     * @return the loaded class or null if not found
+     */
+    protected Class<?> findLoadedClass(final String className, final InstrumentationPort instrumentation) {
+        final Class<?>[] loadedClasses = instrumentation.getAllLoadedClasses();
+        
+        for (final Class<?> clazz : loadedClasses) {
+            if (className.equals(clazz.getSimpleName()) || className.equals(clazz.getName())) {
+                return clazz;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Creates a failure event for JVM redefinition errors
+     * @param request the hot-swap request
+     * @param cause the JVM exception
+     * @return the failure event
+     */
+    protected ClassRedefinitionFailed createJvmRedefinitionFailure(final HotSwapRequested request, final Exception cause) {
+        String reason = "JVM class redefinition failed";
+        String jvmError = cause.getMessage();
+        String recoveryAction = "Check bytecode compatibility and retry";
+        
+        if (cause.getMessage() != null) {
+            if (cause.getMessage().contains("schema")) {
+                reason = "JVM rejected schema changes";
+                recoveryAction = "Restart application to load new class definition";
+            } else if (cause.getMessage().contains("unsupported")) {
+                reason = "JVM does not support this type of change";
+                recoveryAction = "Use compatible changes or restart application";
+            }
+        }
+        
+        return new ClassRedefinitionFailed(
+            request.getClassName(),
+            request.getClassFile(),
+            reason,
+            jvmError,
+            recoveryAction,
+            Instant.now()
+        );
     }
 }

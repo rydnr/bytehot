@@ -50,3 +50,6 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 
 ### YAML Conventions
 - No heredocs are allowed in YAML files.
+
+### Development Workflow
+- Before each commit, make sure the literate programming documentation is synchronized with the updated code.
