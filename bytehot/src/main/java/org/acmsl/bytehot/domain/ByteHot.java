@@ -124,7 +124,9 @@ public class ByteHot {
             eventEmitter.emit(watchEvent);
             
             // Start watching each configured folder
-            for (final FolderWatch folderWatch : configuration.getFolders()) {
+            final List<FolderWatch> folders = configuration.getFolders();
+            if (folders != null) {
+                for (final FolderWatch folderWatch : folders) {
                 try {
                     final String watchId = fileWatcher.startWatching(
                         folderWatch.getFolder(), 
@@ -135,6 +137,9 @@ public class ByteHot {
                 } catch (final Exception e) {
                     System.err.println("Failed to start watching folder " + folderWatch.getFolder() + ": " + e.getMessage());
                 }
+                }
+            } else {
+                System.out.println("No folders configured for watching");
             }
             
             // Check and emit hot-swap capability
