@@ -61,7 +61,6 @@ public class ClassRedefinitionSucceededTest {
      * Tests that successful JVM redefinition triggers ClassRedefinitionSucceeded event
      */
     @Test
-    @Disabled("TODO: Fix architecture - test requires proper InstrumentationService configuration")
     public void successful_jvm_redefinition_triggers_succeeded_event(@TempDir Path tempDir) 
             throws IOException, org.acmsl.bytehot.domain.HotSwapException {
         // Given: A hot-swap request ready for JVM redefinition
@@ -80,6 +79,9 @@ public class ClassRedefinitionSucceededTest {
         
         // When: HotSwapManager performs successful redefinition
         MockInstrumentationService mockService = new MockInstrumentationService();
+        // Configure mock for successful redefinition
+        mockService.addLoadedClass("UserService", String.class); // Use String.class as mock target
+        mockService.setShouldFailRedefinition(false); // Ensure redefinition succeeds
         org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         ClassRedefinitionSucceeded event = manager.performRedefinition(request);
         
@@ -100,7 +102,6 @@ public class ClassRedefinitionSucceededTest {
      * Tests that redefinition details include performance metrics
      */
     @Test
-    @Disabled("TODO: Fix architecture - test requires proper InstrumentationService configuration")
     public void redefinition_success_includes_performance_metrics(@TempDir Path tempDir) 
             throws IOException, org.acmsl.bytehot.domain.HotSwapException {
         // Given: A complex class hot-swap request
@@ -119,6 +120,9 @@ public class ClassRedefinitionSucceededTest {
         
         // When: Performing redefinition with multiple instances
         MockInstrumentationService mockService = new MockInstrumentationService();
+        // Configure mock for successful redefinition
+        mockService.addLoadedClass("ComplexService", String.class);
+        mockService.setShouldFailRedefinition(false);
         org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         ClassRedefinitionSucceeded event = manager.performRedefinition(request);
         
@@ -136,7 +140,6 @@ public class ClassRedefinitionSucceededTest {
      * Tests that redefinition success includes instance count information
      */
     @Test
-    @Disabled("TODO: Fix architecture - test requires proper InstrumentationService configuration")
     public void redefinition_success_reports_instance_information(@TempDir Path tempDir) 
             throws IOException, org.acmsl.bytehot.domain.HotSwapException {
         // Given: A service class with known instances
@@ -155,6 +158,9 @@ public class ClassRedefinitionSucceededTest {
         
         // When: Redefinition affects multiple instances
         MockInstrumentationService mockService = new MockInstrumentationService();
+        // Configure mock for successful redefinition
+        mockService.addLoadedClass("ServiceWithInstances", String.class);
+        mockService.setShouldFailRedefinition(false);
         org.acmsl.bytehot.domain.HotSwapManager manager = new org.acmsl.bytehot.domain.HotSwapManager(mockService);
         ClassRedefinitionSucceeded event = manager.performRedefinition(request);
         
