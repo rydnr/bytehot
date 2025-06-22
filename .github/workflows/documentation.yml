@@ -74,7 +74,7 @@ jobs:
           # Strategy 2: Try individual module javadocs
           if [ ! -d "target/site/apidocs" ] || [ -z "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
             echo "📋 Strategy 2: Individual module javadocs..."
-            for module in bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure; do
               echo "Generating javadoc for $module..."
               mvn javadoc:javadoc -pl $module \
                 -DfailOnError=false \
@@ -83,7 +83,7 @@ jobs:
             
             # Aggregate individual module docs
             mkdir -p target/site/apidocs
-            for module in bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure; do
               if [ -d "$module/target/site/apidocs" ]; then
                 cp -r "$module/target/site/apidocs/"* target/site/apidocs/ 2>/dev/null || true
                 echo "✅ Copied javadocs from $module"
@@ -98,7 +98,7 @@ jobs:
             # Build comprehensive classpath from all modules
             echo "Building classpath from all modules..."
             CLASSPATH=""
-            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure; do
               if [ -d "$module" ]; then
                 MODULE_CP=$(mvn dependency:build-classpath -pl $module -Dmdep.outputFile=/dev/stdout -q 2>/dev/null | tail -1)
                 if [ -n "$MODULE_CP" ]; then
@@ -111,7 +111,7 @@ jobs:
             # Generate Javadocs directly for all source paths
             echo "Running direct javadoc command..."
             SOURCEPATHS=""
-            for module in bytehot-domain bytehot-application bytehot-infrastructure bytehot; do
+            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure; do
               if [ -d "$module/src/main/java" ]; then
                 SOURCEPATHS="$SOURCEPATHS:$module/src/main/java"
               fi
@@ -200,9 +200,11 @@ jobs:
           # Find and copy Javadocs from any location
           echo "🔍 Searching for generated Javadocs..."
           JAVADOC_PATHS=(
-            "bytehot/target/site/apidocs"
             "target/site/apidocs"
-            "bytehot/target/apidocs"
+            "java-commons/target/site/apidocs"
+            "bytehot-domain/target/site/apidocs"
+            "bytehot-application/target/site/apidocs"
+            "bytehot-infrastructure/target/site/apidocs"
             "target/apidocs"
           )
           
