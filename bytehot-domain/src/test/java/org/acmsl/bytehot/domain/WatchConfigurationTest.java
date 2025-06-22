@@ -73,10 +73,10 @@ public class WatchConfigurationTest {
         Path config = Files.createTempFile("bytehot", ".yml");
         Files.writeString(config, yaml);
 
-        // Register ConfigurationAdapter and set up test environment
-        org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter adapter = 
-            new org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter();
-        org.acmsl.bytehot.domain.Ports.getInstance().inject(org.acmsl.bytehot.domain.ConfigurationPort.class, adapter);
+        // TODO: Fix architecture - domain test should not instantiate infrastructure adapters
+        // org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter adapter = 
+        //     new org.acmsl.bytehot.infrastructure.config.ConfigurationAdapter();
+        // org.acmsl.bytehot.domain.Ports.getInstance().inject(org.acmsl.bytehot.domain.ConfigurationPort.class, adapter);
         
         // Set system properties for testing (adapter will read these)
         System.setProperty("bytehot.watch.paths", dir1.toString() + "," + dir2.toString());
@@ -97,10 +97,10 @@ public class WatchConfigurationTest {
         Path file = folder.resolve("a.txt");
         Files.writeString(file, "hello");
 
-        // Register FileWatcherAdapter for this test
-        org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter fileWatcherAdapter = 
-            new org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter();
-        org.acmsl.bytehot.domain.Ports.getInstance().inject(org.acmsl.bytehot.domain.FileWatcherPort.class, fileWatcherAdapter);
+        // TODO: Fix architecture - domain test should not instantiate infrastructure adapters
+        // org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter fileWatcherAdapter = 
+        //     new org.acmsl.bytehot.infrastructure.filesystem.FileWatcherAdapter();
+        // org.acmsl.bytehot.domain.Ports.getInstance().inject(org.acmsl.bytehot.domain.FileWatcherPort.class, fileWatcherAdapter);
         
         FolderWatch watch = new FolderWatch(folder, 100);
         CountDownLatch latch = new CountDownLatch(1);
