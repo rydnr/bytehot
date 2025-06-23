@@ -37,7 +37,11 @@ bash ./.github/scripts/generate-journal.sh
 echo "🔧 Fixing broken links..."
 bash ./.github/scripts/fix-links.sh
 
-# Step 5: Apply new style to all documentation pages
+# Step 5: Fix event links to point to HTML files instead of org files
+echo "🔗 Fixing event links..."
+bash ./.github/scripts/fix-event-links.sh
+
+# Step 6: Apply new style to all documentation pages
 echo "🎨 Applying new matrix style to all pages..."
 bash ./.github/scripts/apply-new-style.sh
 
