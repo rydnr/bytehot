@@ -45,7 +45,19 @@ bash ./.github/scripts/fix-event-links.sh
 echo "🔧 Creating missing HTML files..."
 bash ./.github/scripts/create-missing-html.sh
 
-# Step 7: Apply new style to all documentation pages
+# Step 7: Create comprehensive documentation files
+echo "📚 Creating comprehensive documentation..."
+bash ./.github/scripts/create-comprehensive-docs.sh
+
+# Step 8: Create literate programming documentation
+echo "📖 Creating literate programming documentation..."
+bash ./.github/scripts/create-literate-docs.sh
+
+# Step 9: Add class cross-references
+echo "🔗 Adding class cross-references..."
+bash ./.github/scripts/add-class-crossrefs.sh
+
+# Step 10: Apply new style to all documentation pages
 echo "🎨 Applying new matrix style to all pages..."
 bash ./.github/scripts/apply-new-style.sh
 
