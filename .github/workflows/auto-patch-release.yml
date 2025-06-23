@@ -137,17 +137,54 @@ jobs:
       if: steps.patch_detect.outputs.patch_worthy == 'true' && steps.tag_check.outputs.exists == 'false'
       run: |
         echo "🧪 Running tests before creating patch release..."
-        # First ensure dependencies are built and installed
-        mvn clean install -DskipTests -q
-        # Then run specific configuration and adapter tests in the infrastructure module
-        mvn test -pl bytehot-infrastructure -Dtest=ConfigurationAdapterTest,ConfigurationLoadingIntegrationTest,EventEmitterAdapterTest,FilesystemEventStoreAdapterTest -q
-        # Also run core domain tests
-        mvn test -pl bytehot-domain -Dtest=WatchConfigurationTest -q
         
-        if [ $? -eq 0 ]; then
-          echo "✅ All tests passed, proceeding with patch release"
+        # First ensure dependencies are built and installed
+        echo "📦 Building project without tests..."
+        mvn clean install -DskipTests -q
+        
+        # Function to run tests with graceful handling
+        run_tests_gracefully() {
+          local module=$1
+          local tests=$2
+          echo "🧪 Testing $module with pattern: $tests"
+          
+          # Run tests with failIfNoSpecifiedTests=false to handle missing tests gracefully
+          mvn test -pl "$module" -Dtest="$tests" -Dsurefire.failIfNoSpecifiedTests=false -q
+          local exit_code=$?
+          
+          if [ $exit_code -eq 0 ]; then
+            echo "✅ Tests passed for $module"
+            return 0
+          else
+            echo "⚠️ Tests failed or not found for $module (exit code: $exit_code)"
+            return $exit_code
+          fi
+        }
+        
+        # Track overall test results
+        OVERALL_SUCCESS=true
+        
+        # Test infrastructure module - key adapter tests
+        if ! run_tests_gracefully "bytehot-infrastructure" "ConfigurationAdapterTest,ConfigurationLoadingIntegrationTest,EventEmitterAdapterTest,FilesystemEventStoreAdapterTest"; then
+          echo "⚠️ Infrastructure tests had issues, but continuing..."
+          # Don't fail patch release for missing tests, but log it
+        fi
+        
+        # Test domain module - core configuration tests
+        if ! run_tests_gracefully "bytehot-domain" "WatchConfigurationTest"; then
+          echo "⚠️ Domain tests had issues, but continuing..."
+          # Don't fail patch release for missing tests, but log it  
+        fi
+        
+        # Run a broader test to ensure basic functionality
+        echo "🧪 Running broader test suite to verify basic functionality..."
+        mvn test -Dsurefire.failIfNoSpecifiedTests=false -q
+        BROAD_TEST_EXIT=$?
+        
+        if [ $BROAD_TEST_EXIT -eq 0 ]; then
+          echo "✅ Broader test suite passed, proceeding with patch release"
         else
-          echo "❌ Tests failed, aborting auto patch release"
+          echo "❌ Critical test failures detected, aborting auto patch release"
           exit 1
         fi
         
