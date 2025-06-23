@@ -41,7 +41,11 @@ bash ./.github/scripts/fix-links.sh
 echo "🔗 Fixing event links..."
 bash ./.github/scripts/fix-event-links.sh
 
-# Step 6: Apply new style to all documentation pages
+# Step 6: Create missing HTML files for broken links
+echo "🔧 Creating missing HTML files..."
+bash ./.github/scripts/create-missing-html.sh
+
+# Step 7: Apply new style to all documentation pages
 echo "🎨 Applying new matrix style to all pages..."
 bash ./.github/scripts/apply-new-style.sh
 
