@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flows/file-change-detection-flow - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview-the-foundation-of-reactive-hot-swapping">Overview: The
+Foundation of Reactive Hot-Swapping</h1>
+<p>The File Change Detection Flow represents the foundational capability
+of ByteHot - the ability to detect, filter, and respond to file system
+changes in real-time. This flow transforms low-level file system events
+into rich domain events that drive the entire hot-swap ecosystem. Unlike
+simple file watching, this flow demonstrates sophisticated event
+filtering, timing coordination, and domain event generation.</p>
+<h2 id="flow-participants-and-their-roles">Flow Participants and Their
+Roles</h2>
+<ul>
+<li><strong><strong>FolderWatch</strong></strong>: Base file system
+monitoring infrastructure (Domain)</li>
+<li><strong><strong>ClassFileWatcher</strong></strong>: Specialized
+.class file monitoring (Domain)</li>
+<li><strong><strong>FileWatcherAdapter</strong></strong>: Infrastructure
+integration (Infrastructure)</li>
+<li><strong><strong>WatchConfiguration</strong></strong>: Configuration
+management (Domain)</li>
+<li><strong><strong>FileMonitoringSession</strong></strong>: Session
+lifecycle management (Domain)</li>
+<li><strong><strong>ClassFileChanged/Created/Deleted</strong></strong>:
+Rich domain events (Domain)</li>
+</ul>
+<h2 id="what-this-flow-demonstrates">What This Flow Demonstrates</h2>
+<ul>
+<li><strong><strong>Real-time file system integration</strong></strong>
+without compromising domain purity</li>
+<li><strong><strong>Event filtering and transformation</strong></strong>
+from technical to business events</li>
+<li><strong><strong>Timing coordination</strong></strong> to handle file
+write completion</li>
+<li><strong><strong>Error resilience</strong></strong> during file
+system operations</li>
+<li><strong><strong>Session-aware monitoring</strong></strong> with
+proper lifecycle management</li>
+</ul>
+<h2 id="the-detection-pipeline">The Detection Pipeline</h2>
+<pre><code>File System → Java NIO.2 → FolderWatch → ClassFileWatcher → Domain Events → Application
+     ↓              ↓           ↓             ↓               ↓              ↓
+   .class        WatchService   Polling    Event Filter   Rich Events   Hot-Swap Flow
+  Modified                                                                    
+</code></pre>
+<h1 id="phase-1-file-system-integration-foundation">Phase 1: File System
+Integration Foundation</h1>
+<p>The flow begins with ByteHot's sophisticated integration with the
+underlying file system through Java's NIO.2 WatchService API.</p>
+<h2 id="step-1.1-monitoring-session-initialization">Step 1.1: Monitoring
+Session Initialization</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: FileMonitoringSession.java (Domain Layer)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> FileMonitoringSession <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> sessionId<span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Path watchPath<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> WatchConfiguration configuration<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Instant startTime<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">volatile</span> <span class="dt">boolean</span> isActive<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="kw">volatile</span> <span class="bu">Thread</span> monitoringThread<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">FileMonitoringSession</span><span class="op">(</span><span class="bu">String</span> sessionId<span class="op">,</span> Path watchPath<span class="op">,</span> WatchConfiguration config<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">sessionId</span> <span class="op">=</span> sessionId<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">watchPath</span> <span class="op">=</span> watchPath<span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">configuration</span> <span class="op">=</span> config<span class="op">;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">startTime</span> <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">isActive</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">start</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>isActive<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalStateException</span><span class="op">(</span><span class="st">&quot;Session already active: &quot;</span> <span class="op">+</span> sessionId<span class="op">);</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create the file watcher with session configuration</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        ClassFileWatcher watcher <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassFileWatcher</span><span class="op">(</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            watchPath<span class="op">,</span> </span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>            configuration<span class="op">.</span><span class="fu">getPollingInterval</span><span class="op">()</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Start monitoring in dedicated thread</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        monitoringThread <span class="op">=</span> <span class="kw">new</span> <span class="bu">Thread</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>                isActive <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>                watcher<span class="op">.</span><span class="fu">watchClassFiles</span><span class="op">(</span><span class="kw">this</span><span class="op">::</span>handleFileEvent<span class="op">);</span>  <span class="co">// → Step 1.2</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>                <span class="fu">handleMonitoringError</span><span class="op">(</span>e<span class="op">);</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">finally</span> <span class="op">{</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>                isActive <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">},</span> <span class="st">&quot;ByteHot-FileMonitor-&quot;</span> <span class="op">+</span> sessionId<span class="op">);</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        monitoringThread<span class="op">.</span><span class="fu">start</span><span class="op">();</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Each monitoring
+session maintains its own lifecycle and configuration, enabling multiple
+concurrent monitoring operations with different parameters and target
+directories.</p>
+<h2 id="step-1.2-core-file-system-event-loop">Step 1.2: Core File System
+Event Loop</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">watchClassFiles</span><span class="op">(</span><span class="dt">final</span> Consumer<span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> onClassFileEvent<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchService watchService <span class="op">=</span> java<span class="op">.</span><span class="fu">nio</span><span class="op">.</span><span class="fu">file</span><span class="op">.</span><span class="fu">FileSystems</span><span class="op">.</span><span class="fu">getDefault</span><span class="op">().</span><span class="fu">newWatchService</span><span class="op">();</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">getFolder</span><span class="op">().</span><span class="fu">register</span><span class="op">(</span>watchService<span class="op">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_CREATE</span><span class="op">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_MODIFY</span><span class="op">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_DELETE</span><span class="op">);</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> <span class="op">(!</span><span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">isInterrupted</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> WatchKey key <span class="op">=</span> watchService<span class="op">.</span><span class="fu">poll</span><span class="op">(</span><span class="fu">getInterval</span><span class="op">(),</span> <span class="bu">TimeUnit</span><span class="op">.</span><span class="fu">MILLISECONDS</span><span class="op">);</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>key <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                <span class="fu">processWatchKey</span><span class="op">(</span>key<span class="op">,</span> onClassFileEvent<span class="op">);</span>  <span class="co">// → Step 1.3</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                key<span class="op">.</span><span class="fu">reset</span><span class="op">();</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">InterruptedException</span> ignored<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">finally</span> <span class="op">{</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        watchService<span class="op">.</span><span class="fu">close</span><span class="op">();</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">processWatchKey</span><span class="op">(</span>WatchKey key<span class="op">,</span> Consumer<span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> eventHandler<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> WatchEvent<span class="op">&lt;?&gt;</span> event <span class="op">:</span> key<span class="op">.</span><span class="fu">pollEvents</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> Path changedPath <span class="op">=</span> <span class="fu">getFolder</span><span class="op">().</span><span class="fu">resolve</span><span class="op">((</span>Path<span class="op">)</span> event<span class="op">.</span><span class="fu">context</span><span class="op">());</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">isClassFile</span><span class="op">(</span>changedPath<span class="op">))</span> <span class="op">{</span>  <span class="co">// → Step 2.1</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> <span class="bu">Object</span> domainEvent <span class="op">=</span> <span class="fu">createClassFileEvent</span><span class="op">(</span>changedPath<span class="op">,</span> event<span class="op">.</span><span class="fu">kind</span><span class="op">());</span>  <span class="co">// → Step 2.2</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>                    eventHandler<span class="op">.</span><span class="fu">accept</span><span class="op">(</span>domainEvent<span class="op">);</span>  <span class="co">// → Phase 3</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>                <span class="fu">handleFileProcessingError</span><span class="op">(</span>changedPath<span class="op">,</span> e<span class="op">);</span>  <span class="co">// → Step 1.4</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The core event
+loop continuously polls the file system using configurable intervals,
+processing each file system event through a sophisticated filtering and
+transformation pipeline.</p>
+<h2 id="step-1.3-robust-error-handling-strategy">Step 1.3: Robust Error
+Handling Strategy</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">handleFileProcessingError</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> <span class="bu">IOException</span> error<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create error context for detailed logging</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> errorContext <span class="op">=</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;File: </span><span class="sc">%s</span><span class="st">, Error: </span><span class="sc">%s</span><span class="st">, Thread: </span><span class="sc">%s</span><span class="st">, Time: </span><span class="sc">%s</span><span class="st">&quot;</span><span class="op">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        error<span class="op">.</span><span class="fu">getMessage</span><span class="op">(),</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getName</span><span class="op">(),</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Log error but continue monitoring</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Error processing class file event: &quot;</span> <span class="op">+</span> errorContext<span class="op">);</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Optionally emit error event for system monitoring</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Object</span> errorEvent <span class="op">=</span> <span class="fu">createFileProcessingErrorEvent</span><span class="op">(</span>classFile<span class="op">,</span> error<span class="op">);</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Could be handled by error recovery systems</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Prevent error handling from breaking the monitoring loop</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to create error event: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">Object</span> <span class="fu">createFileProcessingErrorEvent</span><span class="op">(</span>Path file<span class="op">,</span> <span class="bu">IOException</span> error<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">FileProcessingError</span><span class="op">(</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        file<span class="op">,</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        error<span class="op">.</span><span class="fu">getMessage</span><span class="op">(),</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">(),</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getName</span><span class="op">()</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Error handling is
+designed to be non-disruptive - individual file processing errors don't
+break the monitoring loop, ensuring continuous operation even when
+dealing with problematic files.</p>
+<h2 id="step-1.4-thread-lifecycle-management">Step 1.4: Thread Lifecycle
+Management</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: FileMonitoringSession.java (Domain Layer)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">stop</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>isActive<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Signal monitoring thread to stop</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>monitoringThread <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        monitoringThread<span class="op">.</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Wait for graceful shutdown</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            monitoringThread<span class="op">.</span><span class="fu">join</span><span class="op">(</span><span class="dv">5000</span><span class="op">);</span> <span class="co">// 5 second timeout</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">InterruptedException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    isActive <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isHealthy</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> isActive <span class="op">&amp;&amp;</span> </span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>           monitoringThread <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> </span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>           monitoringThread<span class="op">.</span><span class="fu">isAlive</span><span class="op">()</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>           <span class="op">!</span>monitoringThread<span class="op">.</span><span class="fu">isInterrupted</span><span class="op">();</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Session
+management ensures clean startup and shutdown with proper thread
+coordination and health monitoring capabilities.</p>
+<h1 id="phase-2-intelligent-event-filtering-and-classification">Phase 2:
+Intelligent Event Filtering and Classification</h1>
+<p>This phase transforms raw file system events into classified,
+business-meaningful domain events through sophisticated filtering
+logic.</p>
+<h2 id="step-2.1-class-file-detection-and-filtering">Step 2.1: Class
+File Detection and Filtering</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isClassFile</span><span class="op">(</span><span class="dt">final</span> Path path<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>path <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> fileName <span class="op">=</span> path<span class="op">.</span><span class="fu">getFileName</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Primary filter: .class extension</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>fileName<span class="op">.</span><span class="fu">endsWith</span><span class="op">(</span>CLASS_FILE_EXTENSION<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Secondary filters for sophisticated detection</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">!</span><span class="fu">isTemporaryFile</span><span class="op">(</span>fileName<span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>           <span class="op">!</span><span class="fu">isBackupFile</span><span class="op">(</span>fileName<span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>           <span class="op">!</span><span class="fu">isSystemGeneratedFile</span><span class="op">(</span>fileName<span class="op">)</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>           <span class="fu">isValidClassFileName</span><span class="op">(</span>fileName<span class="op">);</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isTemporaryFile</span><span class="op">(</span><span class="bu">String</span> fileName<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fileName<span class="op">.</span><span class="fu">startsWith</span><span class="op">(</span><span class="st">&quot;.&quot;</span><span class="op">)</span> <span class="op">||</span>           <span class="co">// Hidden files</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>           fileName<span class="op">.</span><span class="fu">endsWith</span><span class="op">(</span><span class="st">&quot;.tmp&quot;</span><span class="op">)</span> <span class="op">||</span>          <span class="co">// Temporary files</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>           fileName<span class="op">.</span><span class="fu">endsWith</span><span class="op">(</span><span class="st">&quot;.bak&quot;</span><span class="op">)</span> <span class="op">||</span>          <span class="co">// Backup files</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>           fileName<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;~&quot;</span><span class="op">);</span>               <span class="co">// Editor backup files</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isSystemGeneratedFile</span><span class="op">(</span><span class="bu">String</span> fileName<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fileName<span class="op">.</span><span class="fu">startsWith</span><span class="op">(</span><span class="st">&quot;package-info&quot;</span><span class="op">)</span> <span class="op">||</span>    <span class="co">// Package info classes</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>           fileName<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;$&quot;</span><span class="op">)</span> <span class="op">&amp;&amp;</span>                  <span class="co">// Inner classes (conditionally)</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>           <span class="op">!</span><span class="fu">isRelevantInnerClass</span><span class="op">(</span>fileName<span class="op">);</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isRelevantInnerClass</span><span class="op">(</span><span class="bu">String</span> fileName<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Allow certain inner classes that might be hot-swappable</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fileName<span class="op">.</span><span class="fu">matches</span><span class="op">(</span><span class="st">&quot;.*</span><span class="sc">\\</span><span class="st">$</span><span class="sc">\\</span><span class="st">d+</span><span class="sc">\\</span><span class="st">.class&quot;</span><span class="op">)</span> <span class="op">||</span>     <span class="co">// Anonymous classes</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>           fileName<span class="op">.</span><span class="fu">matches</span><span class="op">(</span><span class="st">&quot;.*</span><span class="sc">\\</span><span class="st">$[A-Z].*</span><span class="sc">\\</span><span class="st">.class&quot;</span><span class="op">);</span>     <span class="co">// Named inner classes</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isValidClassFileName</span><span class="op">(</span><span class="bu">String</span> fileName<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate Java class naming conventions</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> className <span class="op">=</span> fileName<span class="op">.</span><span class="fu">substring</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> fileName<span class="op">.</span><span class="fu">length</span><span class="op">()</span> <span class="op">-</span> CLASS_FILE_EXTENSION<span class="op">.</span><span class="fu">length</span><span class="op">());</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> className<span class="op">.</span><span class="fu">matches</span><span class="op">(</span><span class="st">&quot;^[A-Za-z_$][A-Za-z0-9_$]*(?:</span><span class="sc">\\</span><span class="st">$[A-Za-z0-9_$]*)*$&quot;</span><span class="op">);</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The filtering
+logic implements sophisticated heuristics to identify relevant class
+files while excluding temporary files, system-generated classes, and
+invalid file names that would not be hot-swappable.</p>
+<h2 id="step-2.2-event-type-classification-and-creation">Step 2.2: Event
+Type Classification and Creation</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">Object</span> <span class="fu">createClassFileEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> WatchEvent<span class="op">.</span><span class="fu">Kind</span><span class="op">&lt;?&gt;</span> eventKind<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Classify the file system event type</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>eventKind <span class="op">==</span> StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_CREATE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createClassFileCreatedEvent</span><span class="op">(</span>classFile<span class="op">);</span>      <span class="co">// → Step 2.3a</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>eventKind <span class="op">==</span> StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_MODIFY</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createClassFileChangedEvent</span><span class="op">(</span>classFile<span class="op">);</span>      <span class="co">// → Step 2.3b</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>eventKind <span class="op">==</span> StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_DELETE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createClassFileDeletedEvent</span><span class="op">(</span>classFile<span class="op">);</span>      <span class="co">// → Step 2.3c</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>eventKind <span class="op">==</span> StandardWatchEventKinds<span class="op">.</span><span class="fu">OVERFLOW</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createOverflowEvent</span><span class="op">(</span>classFile<span class="op">);</span>              <span class="co">// → Step 2.3d</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Unknown event type - log and ignore</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Unknown watch event kind: &quot;</span> <span class="op">+</span> eventKind <span class="op">+</span> <span class="st">&quot; for file: &quot;</span> <span class="op">+</span> classFile<span class="op">);</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Each file system
+event type is mapped to a specific domain event creation strategy,
+ensuring that the appropriate rich domain event is generated with
+relevant contextual information.</p>
+<h2 id="step-2.3a-new-class-file-creation-handling">Step 2.3a: New Class
+File Creation Handling</h2>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassFileCreated <span class="fu">createClassFileCreatedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className <span class="op">=</span> <span class="fu">extractClassName</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> fileSize <span class="op">=</span> <span class="fu">waitForFileToBeWritten</span><span class="op">(</span>classFile<span class="op">);</span>  <span class="co">// → Step 2.4</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze the new class for additional context</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ClassCreationContext context <span class="op">=</span> <span class="fu">analyzeNewClass</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassFileCreated</span><span class="op">(</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        className<span class="op">,</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        fileSize<span class="op">,</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        context<span class="op">.</span><span class="fu">getCompilationSource</span><span class="op">(),</span>     <span class="co">// IDE, Maven, Gradle, etc.</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        context<span class="op">.</span><span class="fu">getClassType</span><span class="op">(),</span>             <span class="co">// Regular, Anonymous, Inner</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        context<span class="op">.</span><span class="fu">getPackageName</span><span class="op">()</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassCreationContext <span class="fu">analyzeNewClass</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze file location and naming patterns to determine context</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> packageName <span class="op">=</span> <span class="fu">derivePackageFromPath</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    ClassType classType <span class="op">=</span> <span class="fu">determineClassType</span><span class="op">(</span>classFile<span class="op">.</span><span class="fu">getFileName</span><span class="op">().</span><span class="fu">toString</span><span class="op">());</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    CompilationSource source <span class="op">=</span> <span class="fu">detectCompilationSource</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassCreationContext</span><span class="op">(</span>packageName<span class="op">,</span> classType<span class="op">,</span> source<span class="op">);</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> CompilationSource <span class="fu">detectCompilationSource</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    Path parent <span class="op">=</span> classFile<span class="op">.</span><span class="fu">getParent</span><span class="op">();</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Look for IDE-specific patterns</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>parent<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;target/classes&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> CompilationSource<span class="op">.</span><span class="fu">MAVEN</span><span class="op">;</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>parent<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;build/classes&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> CompilationSource<span class="op">.</span><span class="fu">GRADLE</span><span class="op">;</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>parent<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;out/production&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> CompilationSource<span class="op">.</span><span class="fu">INTELLIJ</span><span class="op">;</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>parent<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;bin&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> CompilationSource<span class="op">.</span><span class="fu">ECLIPSE</span><span class="op">;</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> CompilationSource<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: New class
+creation events include rich contextual information about the
+compilation environment, class type, and package structure to enable
+intelligent hot-swap decisions.</p>
+<h2 id="step-2.3b-existing-class-modification-handling">Step 2.3b:
+Existing Class Modification Handling</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassFileChanged <span class="fu">createClassFileChangedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className <span class="op">=</span> <span class="fu">extractClassName</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> fileSize <span class="op">=</span> Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze the nature of the change</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ClassChangeAnalysis analysis <span class="op">=</span> <span class="fu">analyzeClassChange</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ClassFileChanged<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        className<span class="op">,</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        fileSize<span class="op">,</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getChangeType</span><span class="op">(),</span>           <span class="co">// CONTENT, TIMESTAMP, SIZE</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getPreviousSize</span><span class="op">(),</span>         <span class="co">// For change comparison</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getChangeSignificance</span><span class="op">()</span>    <span class="co">// MINOR, MAJOR, STRUCTURAL</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassChangeAnalysis <span class="fu">analyzeClassChange</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Compare with previous state if available</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> currentSize <span class="op">=</span> Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    Instant lastModified <span class="op">=</span> Files<span class="op">.</span><span class="fu">getLastModifiedTime</span><span class="op">(</span>classFile<span class="op">).</span><span class="fu">toInstant</span><span class="op">();</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Determine change significance based on size difference</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    ChangeSignificance significance<span class="op">;</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span><span class="bu">Math</span><span class="op">.</span><span class="fu">abs</span><span class="op">(</span>currentSize <span class="op">-</span> <span class="fu">getPreviousSize</span><span class="op">(</span>classFile<span class="op">))</span> <span class="op">&lt;</span> <span class="dv">100</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>        significance <span class="op">=</span> ChangeSignificance<span class="op">.</span><span class="fu">MINOR</span><span class="op">;</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span><span class="bu">Math</span><span class="op">.</span><span class="fu">abs</span><span class="op">(</span>currentSize <span class="op">-</span> <span class="fu">getPreviousSize</span><span class="op">(</span>classFile<span class="op">))</span> <span class="op">&lt;</span> <span class="dv">1000</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>        significance <span class="op">=</span> ChangeSignificance<span class="op">.</span><span class="fu">MAJOR</span><span class="op">;</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>        significance <span class="op">=</span> ChangeSignificance<span class="op">.</span><span class="fu">STRUCTURAL</span><span class="op">;</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassChangeAnalysis</span><span class="op">(</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>        ChangeType<span class="op">.</span><span class="fu">CONTENT</span><span class="op">,</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>        <span class="fu">getPreviousSize</span><span class="op">(</span>classFile<span class="op">),</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>        significance<span class="op">,</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>        lastModified</span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Modification
+events include analysis of the change characteristics, enabling
+downstream processors to make informed decisions about hot-swap
+feasibility and strategy.</p>
+<h2 id="step-2.3c-class-file-deletion-handling">Step 2.3c: Class File
+Deletion Handling</h2>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassFileDeleted <span class="fu">createClassFileDeletedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className <span class="op">=</span> <span class="fu">extractClassName</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For deleted files, we can&#39;t analyze the file content</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// but we can provide context from the file path</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> DeletionContext context <span class="op">=</span> <span class="fu">analyzeDeletion</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ClassFileDeleted<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        className<span class="op">,</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        context<span class="op">.</span><span class="fu">getDeletionReason</span><span class="op">(),</span>        <span class="co">// USER_ACTION, CLEANUP, BUILD_CLEAN</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        context<span class="op">.</span><span class="fu">getRecoveryStrategy</span><span class="op">()</span>       <span class="co">// NONE, BACKUP_AVAILABLE, REGENERATE</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> DeletionContext <span class="fu">analyzeDeletion</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze deletion context based on file location and timing</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    DeletionReason reason <span class="op">=</span> DeletionReason<span class="op">.</span><span class="fu">USER_ACTION</span><span class="op">;</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    RecoveryStrategy recovery <span class="op">=</span> RecoveryStrategy<span class="op">.</span><span class="fu">NONE</span><span class="op">;</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check if this looks like a build clean operation</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span><span class="fu">isInBuildDirectory</span><span class="op">(</span>classFile<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        reason <span class="op">=</span> DeletionReason<span class="op">.</span><span class="fu">BUILD_CLEAN</span><span class="op">;</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        recovery <span class="op">=</span> RecoveryStrategy<span class="op">.</span><span class="fu">REGENERATE</span><span class="op">;</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check if backup files exist</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span><span class="fu">hasBackupFiles</span><span class="op">(</span>classFile<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>        recovery <span class="op">=</span> RecoveryStrategy<span class="op">.</span><span class="fu">BACKUP_AVAILABLE</span><span class="op">;</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">DeletionContext</span><span class="op">(</span>reason<span class="op">,</span> recovery<span class="op">);</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Deletion events
+include analysis of the deletion context and potential recovery
+strategies, enabling intelligent responses to file removal.</p>
+<h2 id="step-2.4-file-write-completion-detection">Step 2.4: File Write
+Completion Detection</h2>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">long</span> <span class="fu">waitForFileToBeWritten</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> fileSize <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> previousSize <span class="op">=</span> <span class="op">-</span><span class="dv">1</span><span class="op">;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> stableReadings <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> attempt <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> attempt <span class="op">&lt;</span> MAX_FILE_SIZE_RETRY_ATTEMPTS<span class="op">;</span> attempt<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>            fileSize <span class="op">=</span> Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Check if file size has stabilized</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>fileSize <span class="op">==</span> previousSize<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>                stableReadings<span class="op">++;</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>stableReadings <span class="op">&gt;=</span> REQUIRED_STABLE_READINGS<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span> <span class="co">// File write appears complete</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>                stableReadings <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> <span class="co">// Reset stability counter</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>                previousSize <span class="op">=</span> fileSize<span class="op">;</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>fileSize <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> attempt <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>                <span class="co">// File has content immediately - likely atomic write</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Thread</span><span class="op">.</span><span class="fu">sleep</span><span class="op">(</span>FILE_SIZE_RETRY_DELAY_MS<span class="op">);</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">InterruptedException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>            <span class="co">// File might still be being written</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>attempt <span class="op">==</span> MAX_FILE_SIZE_RETRY_ATTEMPTS <span class="op">-</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>                <span class="cf">throw</span> e<span class="op">;</span> <span class="co">// Re-throw on final attempt</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Wait and retry</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>                <span class="bu">Thread</span><span class="op">.</span><span class="fu">sleep</span><span class="op">(</span>FILE_SIZE_RETRY_DELAY_MS <span class="op">*</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">InterruptedException</span> ie<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>                <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fileSize<span class="op">;</span></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The file write
+completion detection uses multiple strategies to ensure that file
+content is fully written before processing, preventing issues with
+partially written class files.</p>
+<h1 id="phase-3-domain-event-enrichment-and-context">Phase 3: Domain
+Event Enrichment and Context</h1>
+<p>This phase enriches the basic file system events with rich domain
+context, creating comprehensive domain events that drive intelligent
+hot-swap decisions.</p>
+<h2 id="step-3.1-class-name-and-package-extraction">Step 3.1: Class Name
+and Package Extraction</h2>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">extractClassName</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> fileName <span class="op">=</span> classFile<span class="op">.</span><span class="fu">getFileName</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>fileName<span class="op">.</span><span class="fu">endsWith</span><span class="op">(</span>CLASS_FILE_EXTENSION<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> fileName<span class="op">.</span><span class="fu">substring</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> fileName<span class="op">.</span><span class="fu">length</span><span class="op">()</span> <span class="op">-</span> CLASS_FILE_EXTENSION<span class="op">.</span><span class="fu">length</span><span class="op">());</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fileName<span class="op">;</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">derivePackageFromPath</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Work backwards from the class file to find the package structure</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    Path parent <span class="op">=</span> classFile<span class="op">.</span><span class="fu">getParent</span><span class="op">();</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">StringBuilder</span> packageBuilder <span class="op">=</span> <span class="kw">new</span> <span class="bu">StringBuilder</span><span class="op">();</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Look for standard Java directory patterns</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="op">(</span>parent <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> dirName <span class="op">=</span> parent<span class="op">.</span><span class="fu">getFileName</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Stop at known root directories</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">isJavaSourceRoot</span><span class="op">(</span>dirName<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Build package name from directory structure</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>packageBuilder<span class="op">.</span><span class="fu">length</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>            packageBuilder<span class="op">.</span><span class="fu">insert</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> <span class="st">&quot;.&quot;</span><span class="op">);</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        packageBuilder<span class="op">.</span><span class="fu">insert</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> dirName<span class="op">);</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>        parent <span class="op">=</span> parent<span class="op">.</span><span class="fu">getParent</span><span class="op">();</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> packageBuilder<span class="op">.</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isJavaSourceRoot</span><span class="op">(</span><span class="bu">String</span> dirName<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> dirName<span class="op">.</span><span class="fu">equals</span><span class="op">(</span><span class="st">&quot;classes&quot;</span><span class="op">)</span> <span class="op">||</span>     <span class="co">// Maven/Gradle output</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>           dirName<span class="op">.</span><span class="fu">equals</span><span class="op">(</span><span class="st">&quot;java&quot;</span><span class="op">)</span> <span class="op">||</span>        <span class="co">// Source directory</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>           dirName<span class="op">.</span><span class="fu">equals</span><span class="op">(</span><span class="st">&quot;src&quot;</span><span class="op">)</span> <span class="op">||</span>         <span class="co">// Source root</span></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>           dirName<span class="op">.</span><span class="fu">equals</span><span class="op">(</span><span class="st">&quot;main&quot;</span><span class="op">)</span> <span class="op">||</span>        <span class="co">// Maven structure</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>           dirName<span class="op">.</span><span class="fu">equals</span><span class="op">(</span><span class="st">&quot;production&quot;</span><span class="op">);</span>    <span class="co">// IntelliJ structure</span></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The class name
+extraction goes beyond simple filename parsing to derive full package
+context from directory structure, enabling package-aware hot-swap
+decisions.</p>
+<h2 id="step-3.2-file-system-metadata-integration">Step 3.2: File System
+Metadata Integration</h2>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> FileSystemMetadata <span class="fu">gatherFileSystemMetadata</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    BasicFileAttributes attributes <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAttributes</span><span class="op">(</span>classFile<span class="op">,</span> BasicFileAttributes<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">FileSystemMetadata</span><span class="op">(</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        attributes<span class="op">.</span><span class="fu">size</span><span class="op">(),</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        attributes<span class="op">.</span><span class="fu">creationTime</span><span class="op">().</span><span class="fu">toInstant</span><span class="op">(),</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        attributes<span class="op">.</span><span class="fu">lastModifiedTime</span><span class="op">().</span><span class="fu">toInstant</span><span class="op">(),</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        attributes<span class="op">.</span><span class="fu">lastAccessTime</span><span class="op">().</span><span class="fu">toInstant</span><span class="op">(),</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">calculateFileHash</span><span class="op">(</span>classFile<span class="op">),</span>          <span class="co">// For change detection</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">detectFileEncoding</span><span class="op">(</span>classFile<span class="op">),</span>         <span class="co">// For bytecode analysis</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">getFilePermissions</span><span class="op">(</span>classFile<span class="op">)</span>          <span class="co">// For security analysis</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">calculateFileHash</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        <span class="bu">MessageDigest</span> md <span class="op">=</span> <span class="bu">MessageDigest</span><span class="op">.</span><span class="fu">getInstance</span><span class="op">(</span><span class="st">&quot;SHA-256&quot;</span><span class="op">);</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        <span class="dt">byte</span><span class="op">[]</span> fileBytes <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAllBytes</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">byte</span><span class="op">[]</span> hashBytes <span class="op">=</span> md<span class="op">.</span><span class="fu">digest</span><span class="op">(</span>fileBytes<span class="op">);</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Convert to hex string</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>        <span class="bu">StringBuilder</span> sb <span class="op">=</span> <span class="kw">new</span> <span class="bu">StringBuilder</span><span class="op">();</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">byte</span> b <span class="op">:</span> hashBytes<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>            sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;</span><span class="sc">%02x</span><span class="st">&quot;</span><span class="op">,</span> b<span class="op">));</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> sb<span class="op">.</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">NoSuchAlgorithmException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fallback to simple checksum</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">String</span><span class="op">.</span><span class="fu">valueOf</span><span class="op">(</span>Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>classFile<span class="op">));</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> FileEncoding <span class="fu">detectFileEncoding</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Java .class files have specific bytecode format</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>        <span class="dt">byte</span><span class="op">[]</span> header <span class="op">=</span> <span class="kw">new</span> <span class="dt">byte</span><span class="op">[</span><span class="dv">8</span><span class="op">];</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">(</span><span class="bu">InputStream</span> is <span class="op">=</span> Files<span class="op">.</span><span class="fu">newInputStream</span><span class="op">(</span>classFile<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>            <span class="dt">int</span> bytesRead <span class="op">=</span> is<span class="op">.</span><span class="fu">read</span><span class="op">(</span>header<span class="op">);</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>bytesRead <span class="op">&gt;=</span> <span class="dv">4</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Check for Java class file magic number</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>header<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xCA</span> <span class="op">&amp;&amp;</span> header<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xFE</span> <span class="op">&amp;&amp;</span> </span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>                    header<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xBA</span> <span class="op">&amp;&amp;</span> header<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xBE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">return</span> FileEncoding<span class="op">.</span><span class="fu">JAVA_BYTECODE</span><span class="op">;</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Ignore and return unknown</span></span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> FileEncoding<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: File system
+metadata provides additional context for hot-swap decisions, including
+file integrity verification through hashing and bytecode format
+validation.</p>
+<h2 id="step-3.3-development-environment-context-detection">Step 3.3:
+Development Environment Context Detection</h2>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> DevelopmentContext <span class="fu">detectDevelopmentContext</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    Path projectRoot <span class="op">=</span> <span class="fu">findProjectRoot</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    BuildSystem buildSystem <span class="op">=</span> <span class="fu">detectBuildSystem</span><span class="op">(</span>projectRoot<span class="op">);</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    IDE ide <span class="op">=</span> <span class="fu">detectIDE</span><span class="op">(</span>projectRoot<span class="op">);</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">DevelopmentContext</span><span class="op">(</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        projectRoot<span class="op">,</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        buildSystem<span class="op">,</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        ide<span class="op">,</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">detectJavaVersion</span><span class="op">(</span>classFile<span class="op">),</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">isTestClass</span><span class="op">(</span>classFile<span class="op">),</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">getModuleInfo</span><span class="op">(</span>classFile<span class="op">)</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BuildSystem <span class="fu">detectBuildSystem</span><span class="op">(</span>Path projectRoot<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>projectRoot <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> BuildSystem<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;pom.xml&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> BuildSystem<span class="op">.</span><span class="fu">MAVEN</span><span class="op">;</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;build.gradle&quot;</span><span class="op">))</span> <span class="op">||</span> </span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>               Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;build.gradle.kts&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> BuildSystem<span class="op">.</span><span class="fu">GRADLE</span><span class="op">;</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;build.xml&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> BuildSystem<span class="op">.</span><span class="fu">ANT</span><span class="op">;</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> BuildSystem<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> IDE <span class="fu">detectIDE</span><span class="op">(</span>Path projectRoot<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>projectRoot <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> IDE<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;.idea&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> IDE<span class="op">.</span><span class="fu">INTELLIJ</span><span class="op">;</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;.project&quot;</span><span class="op">))</span> <span class="op">&amp;&amp;</span> </span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a>               Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;.classpath&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> IDE<span class="op">.</span><span class="fu">ECLIPSE</span><span class="op">;</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>projectRoot<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span><span class="st">&quot;.vscode&quot;</span><span class="op">)))</span> <span class="op">{</span></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> IDE<span class="op">.</span><span class="fu">VSCODE</span><span class="op">;</span></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> IDE<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> JavaVersion <span class="fu">detectJavaVersion</span><span class="op">(</span>Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>        <span class="dt">byte</span><span class="op">[]</span> bytecode <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAllBytes</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>bytecode<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;=</span> <span class="dv">8</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Java class file version is at bytes 6-7 (major version)</span></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>            <span class="dt">int</span> majorVersion <span class="op">=</span> <span class="op">((</span>bytecode<span class="op">[</span><span class="dv">6</span><span class="op">]</span> <span class="op">&amp;</span> <span class="bn">0xFF</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="dv">8</span><span class="op">)</span> <span class="op">|</span> <span class="op">(</span>bytecode<span class="op">[</span><span class="dv">7</span><span class="op">]</span> <span class="op">&amp;</span> <span class="bn">0xFF</span><span class="op">);</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> JavaVersion<span class="op">.</span><span class="fu">fromMajorVersion</span><span class="op">(</span>majorVersion<span class="op">);</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Ignore and return unknown</span></span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> JavaVersion<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb14-64"><a href="#cb14-64" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Development
+environment detection provides crucial context for hot-swap
+compatibility decisions, enabling environment-specific optimization and
+error handling.</p>
+<h1 id="phase-4-event-validation-and-quality-assurance">Phase 4: Event
+Validation and Quality Assurance</h1>
+<p>Before domain events are passed to the application layer, they
+undergo validation to ensure completeness and consistency.</p>
+<h2 id="step-4.1-domain-event-validation">Step 4.1: Domain Event
+Validation</h2>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">validateDomainEvent</span><span class="op">(</span><span class="bu">Object</span> domainEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="kw">instanceof</span> ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">validateClassFileChangedEvent</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="kw">instanceof</span> ClassFileCreated event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">validateClassFileCreatedEvent</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="kw">instanceof</span> ClassFileDeleted event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">validateClassFileDeletedEvent</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span> <span class="co">// Unknown event type</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">validateClassFileChangedEvent</span><span class="op">(</span>ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">().</span><span class="fu">trim</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">()</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getFileSize</span><span class="op">()</span> <span class="op">&gt;=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getDetectionTimestamp</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getEventId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>           <span class="fu">isValidJavaClassName</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">validateClassFileCreatedEvent</span><span class="op">(</span>ClassFileCreated event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>           Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">())</span> <span class="op">&amp;&amp;</span>     <span class="co">// File must exist for creation events</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">().</span><span class="fu">trim</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">()</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getFileSize</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span>                <span class="co">// Created files should have content</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>           <span class="fu">isValidJavaClassName</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">validateClassFileDeletedEvent</span><span class="op">(</span>ClassFileDeleted event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">().</span><span class="fu">trim</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">()</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>           event<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>           <span class="fu">isValidJavaClassName</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Note: File doesn&#39;t need to exist for deletion events</span></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">boolean</span> <span class="fu">isValidJavaClassName</span><span class="op">(</span><span class="bu">String</span> className<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate Java class naming conventions</span></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>className <span class="op">==</span> <span class="kw">null</span> <span class="op">||</span> className<span class="op">.</span><span class="fu">trim</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Handle inner classes</span></span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span><span class="op">[]</span> parts <span class="op">=</span> className<span class="op">.</span><span class="fu">split</span><span class="op">(</span><span class="st">&quot;</span><span class="sc">\\</span><span class="st">$&quot;</span><span class="op">);</span></span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="bu">String</span> part <span class="op">:</span> parts<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>part<span class="op">.</span><span class="fu">matches</span><span class="op">(</span><span class="st">&quot;^[A-Za-z_][A-Za-z0-9_]*$&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Domain event
+validation ensures that only well-formed, complete events are passed to
+the application layer, preventing downstream processing errors.</p>
+<h2 id="step-4.2-event-consistency-verification">Step 4.2: Event
+Consistency Verification</h2>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">verifyEventConsistency</span><span class="op">(</span><span class="bu">Object</span> domainEvent<span class="op">,</span> Path originalPath<span class="op">,</span> WatchEvent<span class="op">.</span><span class="fu">Kind</span><span class="op">&lt;?&gt;</span> eventKind<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="kw">instanceof</span> ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Verify file still exists and is readable</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">())</span> <span class="op">||</span> <span class="op">!</span>Files<span class="op">.</span><span class="fu">isReadable</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">()))</span> <span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">EventConsistencyException</span><span class="op">(</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;ClassFileChanged event created for non-existent or unreadable file: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">()</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Verify file size consistency</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>            <span class="dt">long</span> actualSize <span class="op">=</span> Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">());</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span><span class="bu">Math</span><span class="op">.</span><span class="fu">abs</span><span class="op">(</span>actualSize <span class="op">-</span> event<span class="op">.</span><span class="fu">getFileSize</span><span class="op">())</span> <span class="op">&gt;</span> ACCEPTABLE_SIZE_VARIANCE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>                <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Warning: File size changed during event creation. &quot;</span> <span class="op">+</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;Expected: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getFileSize</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;, Actual: &quot;</span> <span class="op">+</span> actualSize<span class="op">);</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>            <span class="co">// File became inaccessible during processing</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">EventConsistencyException</span><span class="op">(</span><span class="st">&quot;File became inaccessible during event creation&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="kw">instanceof</span> ClassFileCreated event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Verify this is actually a creation, not a modification</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>            BasicFileAttributes attrs <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAttributes</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span> BasicFileAttributes<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>            Instant creationTime <span class="op">=</span> attrs<span class="op">.</span><span class="fu">creationTime</span><span class="op">().</span><span class="fu">toInstant</span><span class="op">();</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>            Instant eventTime <span class="op">=</span> event<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">();</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Allow some tolerance for file system time precision</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span><span class="bu">Duration</span><span class="op">.</span><span class="fu">between</span><span class="op">(</span>creationTime<span class="op">,</span> eventTime<span class="op">).</span><span class="fu">abs</span><span class="op">().</span><span class="fu">toSeconds</span><span class="op">()</span> <span class="op">&gt;</span> CREATION_TIME_TOLERANCE_SECONDS<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>                <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Warning: Creation event timestamp doesn&#39;t match file creation time&quot;</span><span class="op">);</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>            <span class="co">// File metadata unavailable</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Consistency
+verification catches race conditions and timing issues that could result
+in invalid or misleading domain events.</p>
+<h1 id="phase-5-event-enrichment-and-intelligence-integration">Phase 5:
+Event Enrichment and Intelligence Integration</h1>
+<p>The final phase adds intelligent analysis and contextual enrichment
+to create comprehensive domain events that enable sophisticated hot-swap
+decisions.</p>
+<h2 id="step-5.1-historical-context-integration">Step 5.1: Historical
+Context Integration</h2>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> HistoricalContext <span class="fu">gatherHistoricalContext</span><span class="op">(</span>Path classFile<span class="op">,</span> <span class="bu">String</span> className<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Integrate with flow intelligence to understand patterns</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    FlowDetectionPort flowDetector <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>FlowDetectionPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get recent events for this class</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>VersionedDomainEvent<span class="op">&gt;</span> recentEvents <span class="op">=</span> <span class="fu">getRecentEventsForClass</span><span class="op">(</span>className<span class="op">);</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Detect patterns in the event history</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        CompletableFuture<span class="op">&lt;</span><span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;&gt;</span> detectedFlows <span class="op">=</span> flowDetector<span class="op">.</span><span class="fu">detectFlows</span><span class="op">(</span>recentEvents<span class="op">);</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;</span> flows <span class="op">=</span> detectedFlows<span class="op">.</span><span class="fu">get</span><span class="op">(</span><span class="dv">1</span><span class="op">,</span> <span class="bu">TimeUnit</span><span class="op">.</span><span class="fu">SECONDS</span><span class="op">);</span> <span class="co">// Short timeout for real-time processing</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Calculate change frequency</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        ChangeFrequency frequency <span class="op">=</span> <span class="fu">calculateChangeFrequency</span><span class="op">(</span>recentEvents<span class="op">);</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Determine hot-swap success probability</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> successProbability <span class="op">=</span> <span class="fu">calculateHotSwapSuccessProbability</span><span class="op">(</span>flows<span class="op">,</span> recentEvents<span class="op">);</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HistoricalContext</span><span class="op">(</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>            recentEvents<span class="op">.</span><span class="fu">size</span><span class="op">(),</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>            frequency<span class="op">,</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>            flows<span class="op">,</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>            successProbability<span class="op">,</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>            <span class="fu">getLastSuccessfulHotSwap</span><span class="op">(</span>recentEvents<span class="op">),</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>            <span class="fu">getLastFailedHotSwap</span><span class="op">(</span>recentEvents<span class="op">)</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Return empty context if intelligence gathering fails</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> HistoricalContext<span class="op">.</span><span class="fu">empty</span><span class="op">();</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ChangeFrequency <span class="fu">calculateChangeFrequency</span><span class="op">(</span><span class="bu">List</span><span class="op">&lt;</span>VersionedDomainEvent<span class="op">&gt;</span> recentEvents<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>recentEvents<span class="op">.</span><span class="fu">size</span><span class="op">()</span> <span class="op">&lt;</span> <span class="dv">2</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ChangeFrequency<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate average time between changes</span></span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> totalTimeBetweenChanges <span class="op">=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">int</span> i <span class="op">=</span> <span class="dv">1</span><span class="op">;</span> i <span class="op">&lt;</span> recentEvents<span class="op">.</span><span class="fu">size</span><span class="op">();</span> i<span class="op">++)</span> <span class="op">{</span></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>        Instant current <span class="op">=</span> recentEvents<span class="op">.</span><span class="fu">get</span><span class="op">(</span>i<span class="op">).</span><span class="fu">getTimestamp</span><span class="op">();</span></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>        Instant previous <span class="op">=</span> recentEvents<span class="op">.</span><span class="fu">get</span><span class="op">(</span>i<span class="op">-</span><span class="dv">1</span><span class="op">).</span><span class="fu">getTimestamp</span><span class="op">();</span></span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>        totalTimeBetweenChanges <span class="op">+=</span> <span class="bu">Duration</span><span class="op">.</span><span class="fu">between</span><span class="op">(</span>previous<span class="op">,</span> current<span class="op">).</span><span class="fu">toMinutes</span><span class="op">();</span></span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> averageMinutes <span class="op">=</span> <span class="op">(</span><span class="dt">double</span><span class="op">)</span> totalTimeBetweenChanges <span class="op">/</span> <span class="op">(</span>recentEvents<span class="op">.</span><span class="fu">size</span><span class="op">()</span> <span class="op">-</span> <span class="dv">1</span><span class="op">);</span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>averageMinutes <span class="op">&lt;</span> <span class="dv">5</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ChangeFrequency<span class="op">.</span><span class="fu">VERY_HIGH</span><span class="op">;</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>averageMinutes <span class="op">&lt;</span> <span class="dv">30</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ChangeFrequency<span class="op">.</span><span class="fu">HIGH</span><span class="op">;</span></span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>averageMinutes <span class="op">&lt;</span> <span class="dv">120</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ChangeFrequency<span class="op">.</span><span class="fu">MEDIUM</span><span class="op">;</span></span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ChangeFrequency<span class="op">.</span><span class="fu">LOW</span><span class="op">;</span></span>
+<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">double</span> <span class="fu">calculateHotSwapSuccessProbability</span><span class="op">(</span><span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;</span> flows<span class="op">,</span> <span class="bu">List</span><span class="op">&lt;</span>VersionedDomainEvent<span class="op">&gt;</span> recentEvents<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Base probability</span></span>
+<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> baseProbability <span class="op">=</span> <span class="fl">0.8</span><span class="op">;</span></span>
+<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-65"><a href="#cb17-65" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Adjust based on detected flows</span></span>
+<span id="cb17-66"><a href="#cb17-66" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> flowConfidenceBonus <span class="op">=</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-67"><a href="#cb17-67" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">)</span></span>
+<span id="cb17-68"><a href="#cb17-68" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">average</span><span class="op">()</span></span>
+<span id="cb17-69"><a href="#cb17-69" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">orElse</span><span class="op">(</span><span class="fl">0.0</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.2</span><span class="op">;</span></span>
+<span id="cb17-70"><a href="#cb17-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-71"><a href="#cb17-71" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Adjust based on recent success/failure history</span></span>
+<span id="cb17-72"><a href="#cb17-72" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> recentSuccesses <span class="op">=</span> recentEvents<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-73"><a href="#cb17-73" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>event <span class="op">-&gt;</span> event <span class="kw">instanceof</span> ClassRedefinitionSucceeded<span class="op">)</span></span>
+<span id="cb17-74"><a href="#cb17-74" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">count</span><span class="op">();</span></span>
+<span id="cb17-75"><a href="#cb17-75" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> recentFailures <span class="op">=</span> recentEvents<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-76"><a href="#cb17-76" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>event <span class="op">-&gt;</span> event <span class="kw">instanceof</span> ClassRedefinitionFailed<span class="op">)</span></span>
+<span id="cb17-77"><a href="#cb17-77" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">count</span><span class="op">();</span></span>
+<span id="cb17-78"><a href="#cb17-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-79"><a href="#cb17-79" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> historicalAdjustment <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb17-80"><a href="#cb17-80" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>recentSuccesses <span class="op">+</span> recentFailures <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-81"><a href="#cb17-81" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> successRate <span class="op">=</span> <span class="op">(</span><span class="dt">double</span><span class="op">)</span> recentSuccesses <span class="op">/</span> <span class="op">(</span>recentSuccesses <span class="op">+</span> recentFailures<span class="op">);</span></span>
+<span id="cb17-82"><a href="#cb17-82" aria-hidden="true" tabindex="-1"></a>        historicalAdjustment <span class="op">=</span> <span class="op">(</span>successRate <span class="op">-</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.3</span><span class="op">;</span> <span class="co">// Adjust by up to 30%</span></span>
+<span id="cb17-83"><a href="#cb17-83" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-84"><a href="#cb17-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-85"><a href="#cb17-85" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">Math</span><span class="op">.</span><span class="fu">max</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="bu">Math</span><span class="op">.</span><span class="fu">min</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> baseProbability <span class="op">+</span> flowConfidenceBonus <span class="op">+</span> historicalAdjustment<span class="op">));</span></span>
+<span id="cb17-86"><a href="#cb17-86" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Historical
+context integration leverages ByteHot's flow intelligence to predict
+hot-swap success probability and provide insights for optimization.</p>
+<h2 id="step-5.2-final-event-enrichment-and-dispatch">Step 5.2: Final
+Event Enrichment and Dispatch</h2>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">Object</span> <span class="fu">enrichAndFinalizeEvent</span><span class="op">(</span><span class="bu">Object</span> baseEvent<span class="op">,</span> HistoricalContext history<span class="op">,</span> DevelopmentContext devContext<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>baseEvent <span class="kw">instanceof</span> ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">EnrichedClassFileChanged</span><span class="op">(</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>            event<span class="op">,</span>                              <span class="co">// Base event data</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>            history<span class="op">,</span>                            <span class="co">// Historical context</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>            devContext<span class="op">,</span>                         <span class="co">// Development environment context</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">currentTimeMillis</span><span class="op">(),</span>         <span class="co">// Processing timestamp</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getName</span><span class="op">(),</span>   <span class="co">// Processing thread</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>            <span class="fu">generateEventCorrelationId</span><span class="op">()</span>       <span class="co">// For event correlation</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>baseEvent <span class="kw">instanceof</span> ClassFileCreated event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">EnrichedClassFileCreated</span><span class="op">(</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>            event<span class="op">,</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>            history<span class="op">,</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>            devContext<span class="op">,</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">currentTimeMillis</span><span class="op">(),</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getName</span><span class="op">(),</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>            <span class="fu">generateEventCorrelationId</span><span class="op">()</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>baseEvent <span class="kw">instanceof</span> ClassFileDeleted event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">EnrichedClassFileDeleted</span><span class="op">(</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>            event<span class="op">,</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>            history<span class="op">,</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>            devContext<span class="op">,</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">currentTimeMillis</span><span class="op">(),</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getName</span><span class="op">(),</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>            <span class="fu">generateEventCorrelationId</span><span class="op">()</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> baseEvent<span class="op">;</span> <span class="co">// Return base event if enrichment not supported</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">generateEventCorrelationId</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">&quot;bytehot-&quot;</span> <span class="op">+</span> <span class="bu">System</span><span class="op">.</span><span class="fu">currentTimeMillis</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;-&quot;</span> <span class="op">+</span> </span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>           <span class="bu">Integer</span><span class="op">.</span><span class="fu">toHexString</span><span class="op">(</span><span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">hashCode</span><span class="op">());</span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The final
+enrichment step creates comprehensive domain events that carry all
+available context, enabling sophisticated downstream processing and
+decision-making.</p>
+<h1 id="flow-completion-intelligent-event-dispatch">Flow Completion:
+Intelligent Event Dispatch</h1>
+<p>The file change detection flow concludes by dispatching enriched
+domain events to the application layer, where they trigger the hot-swap
+processing pipeline.</p>
+<h2 id="final-event-handoff-to-application-layer">Final Event Handoff to
+Application Layer</h2>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: FileMonitoringSession.java (Domain Layer)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">handleFileEvent</span><span class="op">(</span><span class="bu">Object</span> enrichedEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Log the detection for monitoring</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">logEventDetection</span><span class="op">(</span>enrichedEvent<span class="op">);</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Dispatch to application layer</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        ByteHotApplication application <span class="op">=</span> <span class="fu">getApplication</span><span class="op">();</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>enrichedEvent <span class="kw">instanceof</span> EnrichedClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>            application<span class="op">.</span><span class="fu">accept</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getBaseEvent</span><span class="op">());</span>  <span class="co">// → Complete Hot-Swap Flow</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>enrichedEvent <span class="kw">instanceof</span> EnrichedClassFileCreated event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            application<span class="op">.</span><span class="fu">accept</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getBaseEvent</span><span class="op">());</span>  <span class="co">// → Complete Hot-Swap Flow</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>enrichedEvent <span class="kw">instanceof</span> EnrichedClassFileDeleted event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>            application<span class="op">.</span><span class="fu">handleDeletion</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getBaseEvent</span><span class="op">());</span>  <span class="co">// → Deletion Handling Flow</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">handleEventDispatchError</span><span class="op">(</span>enrichedEvent<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">logEventDetection</span><span class="op">(</span><span class="bu">Object</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> eventType <span class="op">=</span> event<span class="op">.</span><span class="fu">getClass</span><span class="op">().</span><span class="fu">getSimpleName</span><span class="op">();</span></span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> threadName <span class="op">=</span> <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getName</span><span class="op">();</span></span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span></span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;[</span><span class="sc">%s</span><span class="st">] [</span><span class="sc">%s</span><span class="st">] [</span><span class="sc">%s</span><span class="st">] File change detected: </span><span class="sc">%s</span><span class="st">&quot;</span><span class="op">,</span></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span> threadName<span class="op">,</span> eventType<span class="op">,</span> event</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">));</span></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The final
+dispatch ensures that enriched domain events are properly routed to the
+appropriate application layer handlers while maintaining comprehensive
+logging for monitoring and debugging.</p>
+<h1 id="cross-cutting-concerns-and-patterns">Cross-Cutting Concerns and
+Patterns</h1>
+<h2 id="performance-optimization-patterns">Performance Optimization
+Patterns</h2>
+<p>Throughout the flow, several performance optimizations are
+evident:</p>
+<ol>
+<li><strong><strong>Efficient File I/O</strong></strong>: Minimal file
+operations with strategic caching</li>
+<li><strong><strong>Intelligent Filtering</strong></strong>: Early
+elimination of irrelevant events</li>
+<li><strong><strong>Asynchronous Processing</strong></strong>:
+Non-blocking event handling</li>
+<li><strong><strong>Resource Management</strong></strong>: Proper
+cleanup of file watchers and threads</li>
+</ol>
+<h2 id="error-resilience-patterns">Error Resilience Patterns</h2>
+<p>The flow demonstrates sophisticated error handling:</p>
+<ol>
+<li><strong><strong>Graceful Degradation</strong></strong>: Individual
+failures don't break monitoring</li>
+<li><strong><strong>Context Preservation</strong></strong>: Error events
+maintain full context</li>
+<li><strong><strong>Recovery Strategies</strong></strong>: Automatic
+retry and fallback mechanisms</li>
+<li><strong><strong>Monitoring Integration</strong></strong>: All errors
+are logged and tracked</li>
+</ol>
+<h2 id="architectural-boundary-respect">Architectural Boundary
+Respect</h2>
+<p>The flow maintains clean architectural boundaries:</p>
+<ol>
+<li><strong><strong>Domain Purity</strong></strong>: File watching logic
+contains no infrastructure concerns</li>
+<li><strong><strong>Infrastructure Abstraction</strong></strong>: File
+system APIs are wrapped in domain services</li>
+<li><strong><strong>Event-Driven Decoupling</strong></strong>: Loose
+coupling through domain events</li>
+<li><strong><strong>Testability</strong></strong>: Each component can be
+tested independently</li>
+</ol>
+<h1 id="related-flow-documentation">Related Flow Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="complete-hot-swap-flow.org"><em>Complete Hot-Swap
+Flow</em></span>: The downstream processing triggered by file
+events</li>
+<li><span class="spurious-link"
+target="validation-flow.org"><em>Bytecode Validation Flow</em></span>:
+How detected changes are validated</li>
+<li><span class="spurious-link"
+target="error-recovery-flow.org"><em>Error Recovery Flow</em></span>:
+How file system errors are handled</li>
+<li><span class="spurious-link"
+target="flow-intelligence-learning-flow.org"><em>Flow Intelligence
+Learning</em></span>: How patterns are detected and learned</li>
+</ul>
+<h1 id="conclusion-foundation-of-reactive-architecture">Conclusion:
+Foundation of Reactive Architecture</h1>
+<p>The File Change Detection Flow demonstrates how sophisticated,
+real-time monitoring can be implemented while maintaining clean
+architecture principles. This flow provides the foundation for ByteHot's
+reactive hot-swap capabilities, transforming simple file system events
+into rich, contextual domain events that enable intelligent hot-swap
+decisions.</p>
+<p>The flow showcases the power of event-driven architecture combined
+with domain-driven design, proving that complex, performance-critical
+operations can be implemented with maintainable, testable code that
+respects architectural boundaries.</p>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

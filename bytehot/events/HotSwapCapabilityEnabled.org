@@ -1,0 +1,85 @@
+#+TITLE: HotSwapCapabilityEnabled - Hot-Swap Capability Verification and Enablement Event
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~HotSwapCapabilityEnabled~ event represents successful verification and enabling of hot-swap capabilities in the JVM, providing comprehensive capability information and instrumentation access for precise hot-swap coordination and intelligent capability management.
+
+* Event Structure and Capability Context
+
+** Core Instrumentation and Capability Information
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapCapabilityEnabled.java
+/**
+ * The instrumentation instance that supports hot-swapping
+ * @return the JVM instrumentation with hot-swap capabilities
+ */
+@Getter
+private final Instrumentation instrumentation;
+
+/**
+ * The preceding event that requested this capability check
+ * @return the ByteHotAttachRequested event that triggered capability verification
+ */
+@Getter
+private final ByteHotAttachRequested precedingEvent;
+#+END_SRC
+
+** Capability Query and Verification Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapCapabilityEnabled.java
+/**
+ * Returns whether class redefinition is supported
+ * @return true if class redefinition is supported for hot-swap operations
+ */
+public boolean canRedefineClasses() {
+    return instrumentation.isRedefineClassesSupported();
+}
+
+/**
+ * Returns whether class retransformation is supported
+ * @return true if class retransformation is supported for advanced hot-swap scenarios
+ */
+public boolean canRetransformClasses() {
+    return instrumentation.isRetransformClassesSupported();
+}
+
+@Override
+public ByteHotAttachRequested getPreceding() {
+    return precedingEvent;
+}
+#+END_SRC
+
+* Domain Response Event Role
+
+This event serves as a DomainResponseEvent that responds to ByteHotAttachRequested with successful capability verification, providing the system with confirmed hot-swap capabilities and instrumentation access for subsequent hot-swap operations.
+
+* Hot-Swap Capability Intelligence
+
+The event provides intelligent capability assessment:
+- **Class Redefinition Support**: Verification of basic hot-swap capability through JVM instrumentation
+- **Class Retransformation Support**: Advanced capability checking for sophisticated hot-swap scenarios  
+- **Instrumentation Access**: Direct access to JVM instrumentation for hot-swap operations
+- **Capability Validation**: Confirmed hot-swap readiness for the ByteHot system
+
+* Related Documentation
+
+- [[ByteHotAttachRequested.org][ByteHotAttachRequested]]: The original event that this responds to
+- [[ByteHotAgentAttached.org][ByteHotAgentAttached]]: Related agent attachment event
+- [[ByteHotNotStarted.org][ByteHotNotStarted]]: The failure counterpart event
+- [[../ByteHot.org][ByteHot]]: The domain aggregate that processes this event
+
+* Implementation Notes
+
+** Design Patterns Applied
+The event leverages several sophisticated design patterns:
+- **Domain Response Event Pattern**: Causal relationship tracking with capability context
+- **Capability Pattern**: Hot-swap capability verification and intelligent assessment
+- **Instrumentation Wrapper**: JVM instrumentation access with domain intelligence
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Events**: Comprehensive capability behavior beyond simple notification
+- **Domain Intelligence**: Built-in intelligence for capability assessment and verification
+- **Causal Relationships**: Clear causal tracking from request to capability enablement
+
+The HotSwapCapabilityEnabled event provides ByteHot's essential hot-swap capability foundation while maintaining comprehensive capability intelligence and causal relationship tracking for advanced hot-swap coordination scenarios.

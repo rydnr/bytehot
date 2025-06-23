@@ -1,0 +1,184 @@
+#+TITLE: EventSnapshotException - Revolutionary Event-Driven Error Context and Debugging Exception
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~EventSnapshotException~ class serves as ByteHot's revolutionary event-driven error context and debugging exception, providing comprehensive event snapshot capture, advanced debugging context, and intelligent error reproduction for precise bug analysis and automated debugging intelligence. This critical domain exception transforms traditional stack traces into comprehensive event-driven debugging information, enabling precise bug reproduction through complete event history and system state capture.
+
+* Domain Architecture Role
+
+** Event-Driven Error Context and Debugging Foundation
+EventSnapshotException serves as the comprehensive event-driven error context and debugging foundation:
+- Provides revolutionary exception with complete event context for precise bug reproduction
+- Enables comprehensive debugging information through event snapshot and error context integration
+- Supports intelligent error analysis and reproduction coordination through domain-driven exception patterns
+- Acts as the authoritative foundation for advanced debugging and error reproduction operations
+
+* Event Snapshot Exception Structure and Context Capture
+
+** Core Event Context and Debugging Information
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotException.java
+/**
+ * Complete event snapshot at time of error for comprehensive debugging context
+ */
+@NonNull
+private final EventSnapshot eventSnapshot;
+
+/**
+ * Environmental context when error occurred for system state analysis
+ */
+@NonNull
+private final ErrorContext errorContext;
+
+/**
+ * Original exception that triggered the snapshot for error chain analysis
+ */
+@Nullable
+private final Throwable originalException;
+#+END_SRC
+
+** Core Construction and Context Creation Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotException.java
+/**
+ * Creates a new EventSnapshotException with complete context and debugging information
+ * @param message error message for exception description
+ * @param eventSnapshot complete event history and context for debugging
+ * @param errorContext environmental context for system state analysis
+ * @param originalException the original exception (can be null) for error chain
+ */
+public EventSnapshotException(
+        @NonNull final String message,
+        @NonNull final EventSnapshot eventSnapshot,
+        @NonNull final ErrorContext errorContext,
+        @Nullable final Throwable originalException) {
+    super(message, originalException);
+    this.eventSnapshot = eventSnapshot;
+    this.errorContext = errorContext;
+    this.originalException = originalException;
+}
+
+/**
+ * Creates a new EventSnapshotException wrapping an existing exception with complete context
+ * @param originalException the exception to wrap for enhanced debugging
+ * @param eventSnapshot complete event history and context for analysis
+ * @param errorContext environmental context for system state capture
+ */
+public EventSnapshotException(
+        @NonNull final Throwable originalException,
+        @NonNull final EventSnapshot eventSnapshot,
+        @NonNull final ErrorContext errorContext) {
+    this(
+        "Event-driven error: " + originalException.getMessage(),
+        eventSnapshot,
+        errorContext,
+        originalException
+    );
+}
+#+END_SRC
+
+* Advanced Debugging and Analysis Operations
+
+** Comprehensive Debugging Report Generation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotException.java
+/**
+ * Gets a comprehensive debugging report with complete event context and analysis
+ * @return detailed error report with event context, causal analysis, and reproduction information
+ */
+@NonNull
+public String getDebuggingReport() {
+    StringBuilder report = new StringBuilder();
+    
+    // Header and basic error information
+    report.append("=== ByteHot Event-Driven Error Report ===\n\n");
+    report.append("ERROR: ").append(getMessage()).append("\n");
+    if (originalException != null) {
+        report.append("ORIGINAL: ").append(originalException.getClass().getSimpleName())
+              .append(": ").append(originalException.getMessage()).append("\n");
+    }
+    report.append("TIME: ").append(errorContext.getCapturedAt()).append("\n\n");
+    
+    // Context summary and event history
+    report.append("CONTEXT SUMMARY:\n");
+    report.append("- ").append(errorContext.getContextSummary()).append("\n");
+    report.append("- ").append(eventSnapshot.getSummary()).append("\n\n");
+    
+    // Event history details
+    report.append("EVENT HISTORY (").append(eventSnapshot.getEventCount()).append(" events):\n");
+    eventSnapshot.getEventHistory().forEach(event -> {
+        report.append("  • ").append(event.getTimestamp())
+              .append(" - ").append(event.getEventType())
+              .append(" (v").append(event.getAggregateVersion()).append(")\n");
+    });
+    
+    // Causal analysis and reproduction information
+    CausalChain causalChain = getCausalChain();
+    if (causalChain != null) {
+        report.append("\nCAUSAL ANALYSIS:\n");
+        report.append("- ").append(causalChain.getDescription()).append("\n");
+        causalChain.getDebuggingSuggestions().forEach(suggestion -> 
+            report.append("- Suggestion: ").append(suggestion).append("\n")
+        );
+    }
+    
+    // System state and reproduction information
+    report.append("\nSYSTEM STATE:\n");
+    report.append("- Memory usage: ").append(String.format("%.1f%%", errorContext.getMemoryUsagePercentage() * 100)).append("\n");
+    report.append("- Thread: ").append(errorContext.getThreadName()).append("\n");
+    
+    report.append("\nREPRODUCTION INFO:\n");
+    report.append("- Snapshot ID: ").append(eventSnapshot.getSnapshotId()).append("\n");
+    report.append("- Reproducible: ").append(isLikelyReproducible()).append("\n");
+    
+    return report.toString();
+}
+#+END_SRC
+
+** Error Classification and Visitor Pattern Implementation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventSnapshotException.java
+/**
+ * Accepts an error classifier and returns the appropriate error type
+ * @param classifier the error classifier visitor for type determination
+ * @return the error type for event snapshot exceptions
+ */
+@Override
+public ErrorType acceptClassifier(final ErrorClassifier classifier) {
+    return classifier.classifyEventSnapshotException(this);
+}
+
+/**
+ * Accepts an error severity assessor and returns the appropriate severity
+ * @param assessor the error severity assessor visitor for severity determination
+ * @return the error severity for event snapshot exceptions
+ */
+@Override
+public ErrorSeverity acceptSeverityAssessor(final ErrorSeverityAssessor assessor) {
+    return assessor.assessEventSnapshotException(this);
+}
+#+END_SRC
+
+* Related Documentation
+
+- [[EventSnapshot.org][EventSnapshot]]: Event snapshot encapsulated in this exception
+- [[ErrorContext.org][ErrorContext]]: Error context captured in this exception
+- [[CausalChain.org][CausalChain]]: Causal analysis available through event snapshot
+- [[ErrorClassifiable.org][ErrorClassifiable]]: Interface implemented by this exception
+- [[EventSnapshotGenerator.org][EventSnapshotGenerator]]: Service creating snapshots for this exception
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Exception Design Pattern**: Revolutionary exception with comprehensive debugging context
+- **Visitor Pattern**: Double dispatch for polymorphic error classification
+- **Composite Pattern**: Complex debugging information composition
+- **Strategy Pattern**: Different debugging report generation strategies
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Exceptions**: Revolutionary exception behavior with complete event-driven context
+- **Domain Intelligence**: Built-in intelligence for debugging analysis and reproduction assessment
+- **Infrastructure Independence**: Pure domain logic with comprehensive debugging capabilities
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+The EventSnapshotException class provides ByteHot's revolutionary event-driven error foundation while maintaining comprehensive debugging capabilities, sophisticated error reproduction intelligence, and extensibility for advanced debugging scenarios throughout the entire intelligent hot-swap system lifecycle.

@@ -1,0 +1,545 @@
+#+TITLE: InstanceUpdateException - Instance Update Failure Exception
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =InstanceUpdateException= class represents exceptions that occur during instance update operations in ByteHot. It provides detailed context about instance update failures, enabling precise error handling and recovery strategies for failed hot-swap operations.
+
+** Key Responsibilities
+- Represent instance update operation failures
+- Provide detailed context about the failure
+- Include information about affected instances and update methods
+- Support error recovery and rollback decision making
+- Enable precise error classification and handling
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdateException.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: InstanceUpdateException.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: InstanceUpdateException
+ *
+ * Responsibilities:
+ *   - Represent instance update operation failures
+ *   - Provide detailed failure context and affected instances
+ *   - Support error recovery and rollback decisions
+ *
+ * Collaborators:
+ *   - InstanceUpdater: Throws this exception when updates fail
+ *   - ErrorHandler: Handles and classifies these exceptions
+ *   - InstanceUpdateMethod: Context for the failed update method
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * Exception thrown when instance update operations fail
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class InstanceUpdateException extends RuntimeException {
+
+    /**
+     * Class name for which instance update failed
+     */
+    private final String className;
+
+    /**
+     * Update method that was attempted
+     */
+    private final InstanceUpdateMethod updateMethod;
+
+    /**
+     * Number of instances that were successfully updated before failure
+     */
+    private final int instancesUpdatedBeforeFailure;
+
+    /**
+     * Number of instances that failed to update
+     */
+    private final int instancesFailedToUpdate;
+
+    /**
+     * List of specific failure reasons for individual instances
+     */
+    private final List<InstanceFailureReason> instanceFailureReasons;
+
+    /**
+     * Whether framework integration was being used
+     */
+    private final boolean frameworkIntegrationUsed;
+
+    /**
+     * Additional context information about the failure
+     */
+    private final String failureContext;
+
+    /**
+     * Creates a new instance update exception
+     */
+    public InstanceUpdateException(final String message, final String className,
+                                 final InstanceUpdateMethod updateMethod,
+                                 final int instancesUpdatedBeforeFailure,
+                                 final int instancesFailedToUpdate,
+                                 final List<InstanceFailureReason> instanceFailureReasons,
+                                 final boolean frameworkIntegrationUsed,
+                                 final String failureContext,
+                                 final Throwable cause) {
+        super(buildDetailedMessage(message, className, updateMethod, instancesUpdatedBeforeFailure,
+                                 instancesFailedToUpdate, failureContext), cause);
+        this.className = className;
+        this.updateMethod = updateMethod;
+        this.instancesUpdatedBeforeFailure = instancesUpdatedBeforeFailure;
+        this.instancesFailedToUpdate = instancesFailedToUpdate;
+        this.instanceFailureReasons = new CopyOnWriteArrayList<>(instanceFailureReasons);
+        this.frameworkIntegrationUsed = frameworkIntegrationUsed;
+        this.failureContext = failureContext;
+    }
+
+    /**
+     * Creates an instance update exception for complete failure
+     */
+    public static InstanceUpdateException completeFailure(final String className,
+                                                        final InstanceUpdateMethod updateMethod,
+                                                        final int totalInstances,
+                                                        final String failureReason,
+                                                        final Throwable cause) {
+        final List<InstanceFailureReason> reasons = List.of(
+            new InstanceFailureReason("ALL_INSTANCES", failureReason, cause)
+        );
+        return new InstanceUpdateException(
+            "Complete instance update failure",
+            className,
+            updateMethod,
+            0,
+            totalInstances,
+            reasons,
+            false,
+            "All instances failed to update: " + failureReason,
+            cause
+        );
+    }
+
+    /**
+     * Creates an instance update exception for partial failure
+     */
+    public static InstanceUpdateException partialFailure(final String className,
+                                                       final InstanceUpdateMethod updateMethod,
+                                                       final int successfulUpdates,
+                                                       final int failedUpdates,
+                                                       final List<InstanceFailureReason> failureReasons,
+                                                       final boolean frameworkIntegrationUsed) {
+        return new InstanceUpdateException(
+            "Partial instance update failure",
+            className,
+            updateMethod,
+            successfulUpdates,
+            failedUpdates,
+            failureReasons,
+            frameworkIntegrationUsed,
+            String.format("Partial failure: %d succeeded, %d failed", successfulUpdates, failedUpdates),
+            null
+        );
+    }
+
+    /**
+     * Creates an instance update exception for framework integration failure
+     */
+    public static InstanceUpdateException frameworkFailure(final String className,
+                                                          final InstanceUpdateMethod updateMethod,
+                                                          final String frameworkName,
+                                                          final Throwable cause) {
+        final List<InstanceFailureReason> reasons = List.of(
+            new InstanceFailureReason("FRAMEWORK_INTEGRATION", 
+                                    "Framework integration failed: " + frameworkName, cause)
+        );
+        return new InstanceUpdateException(
+            "Framework integration failure during instance update",
+            className,
+            updateMethod,
+            0,
+            -1, // Unknown number of instances
+            reasons,
+            true,
+            "Framework " + frameworkName + " integration failed",
+            cause
+        );
+    }
+
+    /**
+     * Returns the total number of instances that were processed
+     */
+    public int getTotalInstancesProcessed() {
+        return instancesUpdatedBeforeFailure + instancesFailedToUpdate;
+    }
+
+    /**
+     * Returns whether this was a complete failure (no instances updated)
+     */
+    public boolean isCompleteFailure() {
+        return instancesUpdatedBeforeFailure == 0 && instancesFailedToUpdate > 0;
+    }
+
+    /**
+     * Returns whether this was a partial failure (some instances updated)
+     */
+    public boolean isPartialFailure() {
+        return instancesUpdatedBeforeFailure > 0 && instancesFailedToUpdate > 0;
+    }
+
+    /**
+     * Returns whether the failure was related to framework integration
+     */
+    public boolean isFrameworkRelated() {
+        return frameworkIntegrationUsed || 
+               instanceFailureReasons.stream()
+                   .anyMatch(reason -> reason.getFailureType().contains("FRAMEWORK"));
+    }
+
+    /**
+     * Returns the success rate before failure as a percentage
+     */
+    public double getSuccessRateBeforeFailure() {
+        final int total = getTotalInstancesProcessed();
+        if (total == 0) {
+            return 0.0;
+        }
+        return (double) instancesUpdatedBeforeFailure / total * 100.0;
+    }
+
+    /**
+     * Returns whether the failure indicates a systemic issue
+     */
+    public boolean indicatesSystemicIssue() {
+        // Complete failure or high failure rate suggests systemic issue
+        return isCompleteFailure() || getSuccessRateBeforeFailure() < 50.0;
+    }
+
+    /**
+     * Returns the most common failure reason
+     */
+    public String getMostCommonFailureReason() {
+        return instanceFailureReasons.stream()
+            .map(InstanceFailureReason::getFailureReason)
+            .collect(java.util.stream.Collectors.groupingBy(
+                java.util.function.Function.identity(),
+                java.util.stream.Collectors.counting()))
+            .entrySet().stream()
+            .max(java.util.Map.Entry.comparingByValue())
+            .map(java.util.Map.Entry::getKey)
+            .orElse("Unknown failure reason");
+    }
+
+    /**
+     * Returns whether retry might be successful
+     */
+    public boolean isRetryPossible() {
+        // Retry possible if not a complete failure and not framework-related
+        return !isCompleteFailure() && !isFrameworkRelated() &&
+               !indicatesSystemicIssue();
+    }
+
+    /**
+     * Builds detailed error message
+     */
+    private static String buildDetailedMessage(final String message, final String className,
+                                             final InstanceUpdateMethod updateMethod,
+                                             final int successfulUpdates, final int failedUpdates,
+                                             final String failureContext) {
+        return String.format("%s for class %s using method %s: %d successful, %d failed. Context: %s",
+                           message, className, updateMethod, successfulUpdates, failedUpdates, failureContext);
+    }
+
+    /**
+     * Represents failure reason for individual instances
+     */
+    @Getter
+    public static class InstanceFailureReason {
+        private final String failureType;
+        private final String failureReason;
+        private final Throwable cause;
+
+        public InstanceFailureReason(final String failureType, final String failureReason, final Throwable cause) {
+            this.failureType = failureType;
+            this.failureReason = failureReason;
+            this.cause = cause;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s: %s", failureType, failureReason);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "InstanceUpdateException{" +
+               "className='" + className + '\'' +
+               ", updateMethod=" + updateMethod +
+               ", successfulUpdates=" + instancesUpdatedBeforeFailure +
+               ", failedUpdates=" + instancesFailedToUpdate +
+               ", frameworkUsed=" + frameworkIntegrationUsed +
+               ", partialFailure=" + isPartialFailure() +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Exception Creation and Handling
+
+#+end_src
+// Complete failure scenario
+try {
+    instanceUpdater.updateInstances(targetClass, newBytecode);
+} catch (Exception e) {
+    throw InstanceUpdateException.completeFailure(
+        targetClass.getName(),
+        InstanceUpdateMethod.REFLECTION,
+        instanceCount,
+        "Reflection access denied",
+        e
+    );
+}
+
+// Partial failure scenario
+List<InstanceFailureReason> failureReasons = Arrays.asList(
+    new InstanceUpdateException.InstanceFailureReason(
+        "REFLECTION_ERROR", 
+        "Field access denied", 
+        securityException
+    ),
+    new InstanceUpdateException.InstanceFailureReason(
+        "STATE_CORRUPTION", 
+        "Instance state inconsistent", 
+        null
+    )
+);
+
+throw InstanceUpdateException.partialFailure(
+    className,
+    InstanceUpdateMethod.REFLECTION,
+    5, // successful updates
+    3, // failed updates
+    failureReasons,
+    false // no framework integration
+);
+#+end_src
+
+** Exception Analysis and Recovery Decision
+
+#+begin_src java
+public void handleInstanceUpdateException(InstanceUpdateException exception) {
+    logger.error("Instance update failed: {}", exception.getMessage());
+    
+    // Analyze failure characteristics
+    if (exception.isCompleteFailure()) {
+        logger.error("Complete failure - no instances updated successfully");
+        
+        if (exception.indicatesSystemicIssue()) {
+            // Systemic issue - may need emergency measures
+            errorHandler.handleCriticalError(exception);
+        } else {
+            // Isolated failure - attempt alternative strategy
+            attemptAlternativeUpdateStrategy(exception);
+        }
+        
+    } else if (exception.isPartialFailure()) {
+        logger.warn("Partial failure: {:.1f}% success rate", 
+                   exception.getSuccessRateBeforeFailure());
+        
+        // Preserve successful updates, retry failed ones
+        retryFailedInstances(exception);
+    }
+    
+    // Framework-specific handling
+    if (exception.isFrameworkRelated()) {
+        logger.warn("Framework integration issue detected");
+        fallbackToNonFrameworkStrategy(exception);
+    }
+    
+    // Determine if retry is worthwhile
+    if (exception.isRetryPossible()) {
+        logger.info("Retry possible for failed instances");
+        scheduleRetryOperation(exception);
+    } else {
+        logger.warn("Retry not recommended - requires manual intervention");
+        escalateToManualIntervention(exception);
+    }
+}
+#+end_src
+
+** Failure Pattern Analysis
+
+#+end_src
+public void analyzeFailurePatterns(List<InstanceUpdateException> exceptions) {
+    Map<String, Integer> failureReasonCounts = new HashMap<>();
+    Map<InstanceUpdateMethod, Integer> methodFailureCounts = new HashMap<>();
+    
+    for (InstanceUpdateException exception : exceptions) {
+        // Count failure reasons
+        String commonReason = exception.getMostCommonFailureReason();
+        failureReasonCounts.merge(commonReason, 1, Integer::sum);
+        
+        // Count method failures
+        methodFailureCounts.merge(exception.getUpdateMethod(), 1, Integer::sum);
+        
+        // Analyze failure patterns
+        if (exception.isFrameworkRelated()) {
+            logger.warn("Framework-related failure pattern detected for class: {}", 
+                       exception.getClassName());
+        }
+        
+        if (exception.indicatesSystemicIssue()) {
+            logger.error("Systemic issue pattern for method: {}", 
+                        exception.getUpdateMethod());
+        }
+    }
+    
+    // Report most common failure reasons
+    failureReasonCounts.entrySet().stream()
+        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+        .limit(5)
+        .forEach(entry -> 
+            logger.info("Common failure reason: {} ({} occurrences)", 
+                       entry.getKey(), entry.getValue()));
+    
+    // Report problematic update methods
+    methodFailureCounts.entrySet().stream()
+        .sorted(Map.Entry.<InstanceUpdateMethod, Integer>comparingByValue().reversed())
+        .forEach(entry -> 
+            logger.info("Method {} failed {} times", 
+                       entry.getKey(), entry.getValue()));
+}
+#+end_src
+
+** Recovery Strategy Selection
+
+#+begin_src java
+public RecoveryStrategy selectRecoveryStrategy(InstanceUpdateException exception) {
+    // Complete failure strategies
+    if (exception.isCompleteFailure()) {
+        if (exception.indicatesSystemicIssue()) {
+            return RecoveryStrategy.EMERGENCY_SHUTDOWN;
+        } else if (exception.isFrameworkRelated()) {
+            return RecoveryStrategy.FALLBACK_MODE;
+        } else {
+            return RecoveryStrategy.ROLLBACK_CHANGES;
+        }
+    }
+    
+    // Partial failure strategies
+    if (exception.isPartialFailure()) {
+        if (exception.getSuccessRateBeforeFailure() > 80.0) {
+            // High success rate - preserve and retry
+            return RecoveryStrategy.PRESERVE_CURRENT_STATE;
+        } else {
+            // Low success rate - rollback safer
+            return RecoveryStrategy.ROLLBACK_CHANGES;
+        }
+    }
+    
+    // Framework-related failures
+    if (exception.isFrameworkRelated()) {
+        return RecoveryStrategy.FALLBACK_MODE;
+    }
+    
+    // Default strategy
+    return RecoveryStrategy.RETRY_OPERATION;
+}
+#+end_src
+
+** Monitoring and Alerting
+
+#+end_src
+public void monitorInstanceUpdateFailures(InstanceUpdateException exception) {
+    // Track failure metrics
+    failureMetrics.recordInstanceUpdateFailure(
+        exception.getClassName(),
+        exception.getUpdateMethod(),
+        exception.isPartialFailure()
+    );
+    
+    // Send alerts based on failure characteristics
+    if (exception.isCompleteFailure() && exception.indicatesSystemicIssue()) {
+        alertManager.sendCriticalAlert(
+            "Systemic instance update failure",
+            exception.getClassName(),
+            exception.getUpdateMethod()
+        );
+    }
+    
+    if (exception.isFrameworkRelated()) {
+        alertManager.sendAlert(
+            "Framework integration failure",
+            "Framework issues detected during instance update: " + 
+            exception.getClassName()
+        );
+    }
+    
+    // Track partial failure rates
+    if (exception.isPartialFailure()) {
+        double successRate = exception.getSuccessRateBeforeFailure();
+        if (successRate < 90.0) {
+            alertManager.sendAlert(
+                "Low instance update success rate",
+                String.format("Success rate: %.1f%% for class %s", 
+                             successRate, exception.getClassName())
+            );
+        }
+    }
+}
+#+end_src
+
+* Architecture Notes
+
+** Exception Design Principles
+- Rich context information for precise error handling
+- Clear distinction between complete and partial failures
+- Framework integration failure detection and handling
+- Support for automated recovery decision making
+
+** Error Recovery Integration
+- Provides sufficient information for recovery strategy selection
+- Supports both automated and manual intervention workflows
+- Enables precise rollback and retry decision making
+- Integration with monitoring and alerting systems
+
+** Failure Analysis Support
+- Detailed failure reason tracking for pattern analysis
+- Success rate calculation for failure impact assessment
+- Framework integration failure detection
+- Systemic issue identification for escalation procedures

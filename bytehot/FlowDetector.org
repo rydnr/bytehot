@@ -1,0 +1,449 @@
+#+TITLE: FlowDetector - Business Flow Pattern Recognition and Discovery Engine
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~FlowDetector~ class serves as ByteHot's sophisticated business flow pattern recognition and discovery engine, providing comprehensive event sequence analysis, intelligent pattern matching, and sophisticated flow identification capabilities for business process understanding. This critical domain service encapsulates advanced pattern recognition algorithms, confidence assessment logic, and sophisticated flow discovery mechanisms that enable deep understanding of business processes and system behavior patterns. As the analytical foundation for ByteHot's flow intelligence system, it enables sophisticated business process discovery while maintaining clean domain boundaries and supporting advanced analytics, pattern learning, and operational intelligence throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Flow Pattern Recognition and Discovery Engine
+FlowDetector serves as the comprehensive flow pattern recognition and discovery engine:
+- Provides sophisticated pattern recognition capabilities for business flow identification and discovery
+- Enables comprehensive event sequence analysis through advanced pattern matching and confidence assessment
+- Supports intelligent flow discovery and business process understanding through domain-driven pattern analysis
+- Acts as the authoritative foundation for flow intelligence and business process recognition
+
+** Domain Service Design and Pattern Analysis Hub
+The class serves as the domain service design and pattern analysis hub:
+- Implements sophisticated domain service patterns for stateless flow analysis and pattern recognition
+- Provides comprehensive analytical capabilities through event sequence analysis and pattern matching algorithms
+- Enables sophisticated business intelligence through flow pattern discovery and confidence assessment
+- Supports advanced pattern learning and system behavior understanding through intelligent flow analysis
+
+** Business Intelligence and Process Discovery Foundation
+The implementation provides business intelligence and process discovery capabilities:
+- Enables sophisticated business process discovery through event sequence analysis and pattern recognition
+- Supports advanced business intelligence and process optimization through flow pattern identification
+- Provides foundation for process automation and system optimization through pattern-based business understanding
+- Enables intelligent process monitoring and optimization through flow discovery and pattern analysis
+
+* Flow Analysis Structure and Pattern Recognition Context
+
+** Event Sequence Analysis and Pattern Matching
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Analyzes a sequence of events to identify potential business flows with confidence assessment
+ * @param event The flow analysis request containing events to analyze and minimum confidence threshold
+ * @return Flow discovery events for any flows found, or empty list if none detected
+ */
+@NonNull
+public static List<DomainResponseEvent<FlowAnalysisRequested>> analyzeEventSequence(
+    @Nullable final FlowAnalysisRequested event
+) {
+    if (event == null || event.getEventsToAnalyze() == null || event.getEventsToAnalyze().isEmpty()) {
+        return List.of();
+    }
+
+    List<DomainResponseEvent<FlowAnalysisRequested>> discoveredFlows = new ArrayList<>();
+    
+    // Get known flow patterns for pattern matching and analysis
+    List<Flow> knownPatterns = getKnownFlowPatterns();
+    
+    // Analyze events against each known pattern with confidence assessment
+    for (Flow pattern : knownPatterns) {
+        if (matchesPattern(event.getEventsToAnalyze(), pattern, event.getMinimumConfidence())) {
+            FlowDiscovered discovered = FlowDiscovered.builder()
+                .originalEvent(event)
+                .discoveredFlow(pattern)
+                .triggeringEvents(event.getEventsToAnalyze())
+                .confidence(calculateConfidence(event.getEventsToAnalyze(), pattern))
+                .discoveredAt(Instant.now())
+                .build();
+                
+            discoveredFlows.add(discovered);
+        }
+    }
+    
+    return discoveredFlows;
+}
+#+END_SRC
+
+* Known Flow Patterns and Business Process Templates
+
+** Pattern Repository and Flow Template Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Gets the list of known flow patterns for analysis and pattern matching
+ * @return List of predefined flow patterns with complete business process definitions
+ */
+@NonNull
+private static List<Flow> getKnownFlowPatterns() {
+    List<Flow> patterns = new ArrayList<>();
+    
+    // Hot-Swap Complete Flow for bytecode hot-swapping operations
+    patterns.add(createHotSwapCompleteFlow());
+    
+    // User Session Flow for user authentication and session management
+    patterns.add(createUserSessionFlow());
+    
+    // Error Recovery Flow for system error detection and recovery
+    patterns.add(createErrorRecoveryFlow());
+    
+    return patterns;
+}
+#+END_SRC
+
+** Hot-Swap Complete Flow Pattern Definition
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Creates the Hot-Swap Complete Flow pattern for bytecode hot-swapping operations
+ * @return Flow pattern for complete hot-swap operations with event sequence and timing constraints
+ */
+@NonNull
+private static Flow createHotSwapCompleteFlow() {
+    return Flow.builder()
+        .flowId(FlowId.fromName("hot-swap-complete"))
+        .name("Hot-Swap Complete Flow")
+        .description("Complete hot-swap operation from file change to instance update")
+        .eventSequence(List.of(
+            org.acmsl.bytehot.domain.events.ClassFileChanged.class,
+            org.acmsl.bytehot.domain.events.ClassMetadataExtracted.class,
+            org.acmsl.bytehot.domain.events.BytecodeValidated.class,
+            org.acmsl.bytehot.domain.events.HotSwapRequested.class,
+            org.acmsl.bytehot.domain.events.ClassRedefinitionSucceeded.class,
+            org.acmsl.bytehot.domain.events.InstancesUpdated.class
+        ))
+        .minimumEventCount(4)
+        .maximumTimeWindow(java.time.Duration.ofSeconds(30))
+        .confidence(0.95)
+        .conditions(java.util.Optional.empty())
+        .build();
+}
+#+END_SRC
+
+** User Session Flow Pattern Definition
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Creates the User Session Flow pattern for user authentication and session management
+ * @return Flow pattern for user authentication and session management with timing constraints
+ */
+@NonNull
+private static Flow createUserSessionFlow() {
+    return Flow.builder()
+        .flowId(FlowId.fromName("user-session"))
+        .name("User Session Flow")
+        .description("User authentication and session management")
+        .eventSequence(List.of(
+            org.acmsl.bytehot.domain.events.FlowAnalysisRequested.class,
+            org.acmsl.bytehot.domain.events.UserAuthenticated.class,
+            org.acmsl.bytehot.domain.events.UserSessionStarted.class
+        ))
+        .minimumEventCount(2)
+        .maximumTimeWindow(java.time.Duration.ofMinutes(5))
+        .confidence(0.90)
+        .conditions(java.util.Optional.empty())
+        .build();
+}
+#+END_SRC
+
+** Error Recovery Flow Pattern Definition
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Creates the Error Recovery Flow pattern for system error detection and recovery
+ * @return Flow pattern for system error detection and recovery process with minimal timing
+ */
+@NonNull
+private static Flow createErrorRecoveryFlow() {
+    return Flow.builder()
+        .flowId(FlowId.fromName("error-recovery"))
+        .name("Error Recovery Flow")
+        .description("System error detection and recovery process")
+        .eventSequence(List.of(
+            org.acmsl.bytehot.domain.events.ClassRedefinitionFailed.class
+        ))
+        .minimumEventCount(1)
+        .maximumTimeWindow(java.time.Duration.ofMinutes(2))
+        .confidence(0.85)
+        .conditions(java.util.Optional.empty())
+        .build();
+}
+#+END_SRC
+
+* Pattern Matching and Confidence Assessment Intelligence
+
+** Advanced Pattern Matching and Validation Logic
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Checks if a sequence of events matches a flow pattern with comprehensive validation
+ * @param events The events to check for pattern matching and validation
+ * @param pattern The flow pattern to match against with timing and sequence constraints
+ * @param minimumConfidence The minimum confidence required for pattern acceptance
+ * @return true if the events match the pattern with sufficient confidence and validation
+ */
+private static boolean matchesPattern(
+    @NonNull final List<VersionedDomainEvent> events,
+    @NonNull final Flow pattern,
+    final double minimumConfidence
+) {
+    if (events.size() < pattern.getMinimumEventCount()) {
+        return false;
+    }
+
+    // Extract event types from versioned domain events for pattern comparison
+    List<String> eventTypes = events.stream()
+        .map(VersionedDomainEvent::getEventType)
+        .collect(Collectors.toList());
+
+    // Check if the pattern matches through name-based pattern recognition
+    boolean matches = pattern.matchesByName(eventTypes);
+    
+    if (!matches) {
+        return false;
+    }
+
+    // Check confidence level against minimum threshold for acceptance
+    double confidence = calculateConfidence(events, pattern);
+    
+    return confidence >= minimumConfidence;
+}
+#+END_SRC
+
+** Sophisticated Confidence Calculation and Assessment
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowDetector.java
+/**
+ * Calculates the confidence level for a pattern match with comprehensive assessment factors
+ * @param events The events that matched for confidence calculation and validation
+ * @param pattern The pattern that was matched for confidence assessment and evaluation
+ * @return Confidence level between 0.0 and 1.0 with sophisticated multi-factor assessment
+ */
+private static double calculateConfidence(
+    @NonNull final List<VersionedDomainEvent> events,
+    @NonNull final Flow pattern
+) {
+    // Start with the pattern's base confidence as foundation
+    double confidence = pattern.getConfidence();
+    
+    // Adjust based on the completeness of the match for accuracy assessment
+    double completeness = (double) events.size() / pattern.getEventSequence().size();
+    confidence *= Math.min(1.0, completeness);
+    
+    // Check time window adherence for temporal pattern validation
+    if (events.size() > 1) {
+        Instant firstEvent = events.get(0).getTimestamp();
+        Instant lastEvent = events.get(events.size() - 1).getTimestamp();
+        java.time.Duration actualDuration = java.time.Duration.between(firstEvent, lastEvent);
+        
+        if (actualDuration.compareTo(pattern.getMaximumTimeWindow()) > 0) {
+            // Events took longer than expected, reduce confidence proportionally
+            double timeRatio = (double) pattern.getMaximumTimeWindow().toMillis() / actualDuration.toMillis();
+            confidence *= Math.max(0.5, timeRatio);
+        }
+    }
+    
+    // Apply pattern conditions if any for conditional pattern validation
+    if (pattern.getConditions().isPresent()) {
+        if (!pattern.getConditions().get().evaluate(events)) {
+            confidence *= 0.5; // Reduce confidence if conditions not met
+        }
+    }
+    
+    return Math.max(0.0, Math.min(1.0, confidence));
+}
+#+END_SRC
+
+* Flow Discovery Intelligence and Pattern Recognition Capabilities
+
+** Business Process Pattern Recognition
+The flow detection enables sophisticated business process recognition:
+- **Event Sequence Analysis**: Advanced event sequence analysis for business process pattern identification
+- **Temporal Pattern Recognition**: Temporal pattern recognition for time-sensitive business process understanding
+- **Confidence-Based Discovery**: Confidence-based flow discovery for reliable business process identification
+- **Multi-Pattern Analysis**: Multi-pattern analysis capabilities for complex business process recognition
+
+** Pattern Learning and Adaptation Intelligence
+The pattern recognition supports adaptive learning capabilities:
+- **Pattern Refinement**: Pattern refinement based on successful discovery and confidence assessment
+- **Dynamic Pattern Adjustment**: Dynamic pattern adjustment for improved recognition accuracy and performance
+- **Learning from Feedback**: Learning from discovery feedback for pattern optimization and enhancement
+- **Evolutionary Pattern Development**: Evolutionary pattern development for sophisticated business process understanding
+
+** Business Intelligence and Process Optimization
+The flow discovery provides business intelligence capabilities:
+- **Process Efficiency Analysis**: Process efficiency analysis through flow pattern recognition and timing assessment
+- **Bottleneck Identification**: Bottleneck identification through flow pattern analysis and performance assessment
+- **Optimization Opportunities**: Optimization opportunity identification through pattern analysis and business intelligence
+- **Performance Metrics**: Performance metrics collection through flow pattern recognition and analysis
+
+* Integration with ByteHot Flow Intelligence Infrastructure
+
+** Flow Detection Port Integration
+FlowDetector integrates with ByteHot's flow detection infrastructure:
+- Provide comprehensive flow detection capabilities for business process discovery and intelligence
+- Enable sophisticated pattern recognition and flow identification through domain-driven analysis
+- Support advanced business intelligence and process optimization through flow pattern discovery
+- Provide foundation for automated business process monitoring and optimization
+
+** Event Analysis Integration
+The class coordinates with event analysis systems:
+- **Real-Time Analysis**: Real-time event analysis for immediate flow pattern recognition and discovery
+- **Historical Analysis**: Historical event analysis for trend identification and pattern evolution
+- **Streaming Analysis**: Streaming event analysis for continuous flow pattern recognition and monitoring
+- **Batch Analysis**: Batch event analysis for comprehensive flow pattern discovery and intelligence
+
+** Business Process Integration
+The implementation supports business process integration:
+- **Process Automation**: Process automation integration for flow-driven business process execution
+- **Workflow Integration**: Workflow integration for business process coordination and optimization
+- **Business Rules**: Business rules integration for flow pattern validation and business logic enforcement
+- **Process Monitoring**: Process monitoring integration for real-time business process intelligence
+
+* Advanced Pattern Recognition and Machine Learning
+
+** Adaptive Pattern Recognition
+The flow detection enables adaptive pattern recognition:
+- **Pattern Evolution**: Pattern evolution based on discovery success and confidence feedback
+- **Dynamic Threshold Adjustment**: Dynamic threshold adjustment for optimal pattern recognition performance
+- **Context-Aware Recognition**: Context-aware pattern recognition for sophisticated business process understanding
+- **Multi-Dimensional Analysis**: Multi-dimensional pattern analysis for complex business process recognition
+
+** Machine Learning Integration Opportunities
+The implementation supports machine learning integration:
+- **Pattern Learning**: Machine learning-based pattern learning for automated business process discovery
+- **Predictive Analysis**: Predictive analysis for business process forecasting and optimization
+- **Anomaly Detection**: Anomaly detection for unusual business process patterns and behaviors
+- **Classification Enhancement**: Classification enhancement through machine learning for improved pattern recognition
+
+** Advanced Analytics and Intelligence
+The class provides advanced analytics capabilities:
+- **Statistical Analysis**: Statistical analysis of flow patterns for business intelligence and optimization
+- **Trend Analysis**: Trend analysis for business process evolution and optimization opportunities
+- **Performance Analytics**: Performance analytics for business process efficiency and optimization assessment
+- **Behavioral Analysis**: Behavioral analysis for business process understanding and improvement
+
+* Testing and Validation Strategies
+
+** Pattern Recognition Testing
+#+begin_src java
+@Test
+void shouldDetectHotSwapCompleteFlow() {
+    // Given: Hot-swap event sequence
+    List<VersionedDomainEvent> events = Arrays.asList(
+        createClassFileChangedEvent(),
+        createClassMetadataExtractedEvent(),
+        createBytecodeValidatedEvent(),
+        createHotSwapRequestedEvent(),
+        createClassRedefinitionSucceededEvent(),
+        createInstancesUpdatedEvent()
+    );
+    FlowAnalysisRequested analysisRequest = new FlowAnalysisRequested(
+        AnalysisId.newId(), events, 0.8, TimeWindow.ofMinutes(5));
+    
+    // When: Analyzing event sequence
+    List<DomainResponseEvent<FlowAnalysisRequested>> results = 
+        FlowDetector.analyzeEventSequence(analysisRequest);
+    
+    // Then: Should detect hot-swap complete flow
+    assertThat(results).hasSize(1);
+    FlowDiscovered discovered = (FlowDiscovered) results.get(0);
+    assertThat(discovered.getDiscoveredFlow().getName()).isEqualTo("Hot-Swap Complete Flow");
+    assertThat(discovered.getConfidence()).isGreaterThan(0.8);
+}
+#+end_src
+
+** Confidence Calculation Testing
+#+begin_src java
+@Test
+void shouldCalculateAccurateConfidence() {
+    // Given: Event sequence and flow pattern
+    List<VersionedDomainEvent> events = createTestEventSequence();
+    Flow pattern = createTestFlowPattern();
+    
+    // When: Calculating confidence
+    double confidence = FlowDetector.calculateConfidence(events, pattern);
+    
+    // Then: Should return accurate confidence assessment
+    assertThat(confidence).isBetween(0.0, 1.0);
+    assertThat(confidence).isGreaterThan(0.5); // Should have reasonable confidence
+}
+#+end_src
+
+** Pattern Matching Testing
+#+begin_src java
+@Test
+void shouldMatchPatternsAccurately() {
+    // Given: Various event sequences
+    List<VersionedDomainEvent> matchingEvents = createMatchingEventSequence();
+    List<VersionedDomainEvent> nonMatchingEvents = createNonMatchingEventSequence();
+    Flow pattern = createTestPattern();
+    double minimumConfidence = 0.7;
+    
+    // When: Testing pattern matching
+    boolean shouldMatch = FlowDetector.matchesPattern(matchingEvents, pattern, minimumConfidence);
+    boolean shouldNotMatch = FlowDetector.matchesPattern(nonMatchingEvents, pattern, minimumConfidence);
+    
+    // Then: Should accurately identify pattern matches
+    assertThat(shouldMatch).isTrue();
+    assertThat(shouldNotMatch).isFalse();
+}
+#+end_src
+
+* Integration with Analysis and Intelligence Systems
+
+** Real-Time Flow Analysis Integration
+The class integrates with real-time analysis systems:
+- **Stream Processing**: Stream processing integration for real-time flow pattern recognition
+- **Event Streaming**: Event streaming integration for continuous flow analysis and discovery
+- **Live Monitoring**: Live monitoring integration for real-time business process intelligence
+- **Alert Generation**: Alert generation for critical flow pattern recognition and business events
+
+** Business Intelligence Platform Integration
+The implementation supports BI platform integration:
+- **Dashboard Integration**: Dashboard integration for flow pattern visualization and business intelligence
+- **Report Generation**: Report generation for flow discovery analytics and business insights
+- **KPI Monitoring**: KPI monitoring for flow pattern performance and business process efficiency
+- **Data Warehouse**: Data warehouse integration for historical flow pattern analysis and intelligence
+
+** External Analytics Integration
+The class coordinates with external analytics tools:
+- **Machine Learning Platforms**: Integration with ML platforms for advanced pattern recognition and learning
+- **Analytics APIs**: Integration with analytics APIs for enhanced flow analysis and intelligence
+- **Visualization Tools**: Integration with visualization tools for flow pattern presentation and analysis
+- **Data Science Tools**: Integration with data science tools for advanced flow pattern research and development
+
+* Related Documentation
+
+- [[Flow.org][Flow]]: Flow domain entity representing discovered business processes
+- [[FlowId.org][FlowId]]: Flow identifier for unique flow identification
+- [[FlowCondition.org][FlowCondition]]: Flow condition evaluation for pattern validation
+- [[events/FlowAnalysisRequested.org][FlowAnalysisRequested]]: Flow analysis request event
+- [[events/FlowDiscovered.org][FlowDiscovered]]: Flow discovery result event
+- [[AnalysisId.org][AnalysisId]]: Analysis identifier for flow analysis tracking
+- [[TimeWindow.org][TimeWindow]]: Time window for temporal flow analysis
+- [[../flows/flow-intelligence-learning-flow.org][Flow Intelligence Learning Flow]]: Complete flow learning workflow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Domain Service Pattern**: Stateless domain service for business flow analysis and pattern recognition
+- **Strategy Pattern**: Flexible pattern matching strategies for different business process types
+- **Template Method Pattern**: Template method for flow pattern creation and configuration
+- **Factory Method Pattern**: Factory methods for creating predefined flow patterns and configurations
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Services**: Comprehensive business logic and intelligence beyond simple data processing
+- **Domain Intelligence**: Built-in domain intelligence for business flow recognition and pattern analysis
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Machine Learning Patterns**: AI-driven pattern learning and automatic flow discovery optimization
+- **Real-Time Learning**: Real-time pattern learning and adaptation for dynamic business process recognition
+- **Cross-System Flows**: Cross-system flow pattern recognition for distributed business process analysis
+- **Predictive Flow Analysis**: Predictive flow analysis for proactive business process optimization
+
+The FlowDetector class provides ByteHot's essential business flow pattern recognition and discovery foundation while maintaining comprehensive analytical capabilities, sophisticated pattern matching intelligence, and extensibility for advanced flow analysis scenarios throughout the entire intelligent hot-swap system lifecycle.

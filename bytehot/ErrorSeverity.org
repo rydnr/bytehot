@@ -1,0 +1,465 @@
+#+TITLE: ErrorSeverity - Error Classification by Impact Level
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =ErrorSeverity= enum provides a systematic classification of errors based on their severity and impact level in ByteHot operations. This classification enables appropriate response strategies, escalation procedures, and resource allocation for error handling.
+
+** Key Responsibilities
+- Classify errors by their severity and system impact
+- Support escalation and response strategy selection
+- Enable priority-based error handling and resource allocation
+- Provide human-readable severity descriptions for monitoring
+- Support error analysis and pattern detection by severity level
+
+* Enum Definition
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorSeverity.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: ErrorSeverity.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: ErrorSeverity
+ *
+ * Responsibilities:
+ *   - Classify errors by severity and impact level
+ *   - Support escalation and response strategy selection
+ *   - Enable priority-based error handling
+ *
+ * Collaborators:
+ *   - ErrorHandler: Uses severity for response determination
+ *   - ErrorResult: Contains severity classification
+ *   - RecoveryStrategy: Selected based on severity level
+ */
+package org.acmsl.bytehot.domain;
+
+/**
+ * Classification of error severity levels in ByteHot operations
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public enum ErrorSeverity {
+
+    /**
+     * Informational messages that don't represent actual errors
+     */
+    INFO("Informational message", 0),
+
+    /**
+     * Warning conditions that should be monitored but don't prevent operation
+     */
+    WARNING("Warning condition requiring monitoring", 1),
+
+    /**
+     * Error conditions that prevent normal operation but system remains stable
+     */
+    ERROR("Error preventing normal operation", 2),
+
+    /**
+     * Critical conditions that may compromise system stability
+     */
+    CRITICAL("Critical condition compromising stability", 3),
+
+    /**
+     * Fatal errors that require immediate shutdown or intervention
+     */
+    FATAL("Fatal error requiring immediate intervention", 4);
+
+    /**
+     * Human-readable description of the severity level
+     */
+    private final String description;
+
+    /**
+     * Numeric severity level for comparison and prioritization
+     */
+    private final int level;
+
+    /**
+     * Creates a new error severity with description and level
+     * @param description human-readable description
+     * @param level numeric level for comparison
+     */
+    ErrorSeverity(final String description, final int level) {
+        this.description = description;
+        this.level = level;
+    }
+
+    /**
+     * Gets the human-readable description of this severity level
+     * @return description of the severity
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Gets the numeric level for comparison and prioritization
+     * @return numeric severity level
+     */
+    public int getLevel() {
+        return level;
+    }
+
+    /**
+     * Returns whether this severity level indicates an actual error condition
+     * @return true if this represents an error (ERROR or higher)
+     */
+    public boolean isError() {
+        return level >= ERROR.level;
+    }
+
+    /**
+     * Returns whether this severity level requires immediate attention
+     * @return true if immediate attention is required (CRITICAL or higher)
+     */
+    public boolean requiresImmediateAttention() {
+        return level >= CRITICAL.level;
+    }
+
+    /**
+     * Returns whether this severity level indicates a fatal condition
+     * @return true if condition is fatal
+     */
+    public boolean isFatal() {
+        return this == FATAL;
+    }
+
+    /**
+     * Returns whether this severity level indicates a critical condition
+     * @return true if condition is critical or fatal
+     */
+    public boolean isCritical() {
+        return level >= CRITICAL.level;
+    }
+
+    /**
+     * Returns whether this severity is higher than the given severity
+     * @param other the severity to compare against
+     * @return true if this severity is higher
+     */
+    public boolean isHigherThan(final ErrorSeverity other) {
+        return this.level > other.level;
+    }
+
+    /**
+     * Returns whether this severity is lower than the given severity
+     * @param other the severity to compare against
+     * @return true if this severity is lower
+     */
+    public boolean isLowerThan(final ErrorSeverity other) {
+        return this.level < other.level;
+    }
+
+    /**
+     * Returns whether this severity is at least as high as the given severity
+     * @param other the severity to compare against
+     * @return true if this severity is at least as high
+     */
+    public boolean isAtLeast(final ErrorSeverity other) {
+        return this.level >= other.level;
+    }
+
+    /**
+     * Returns the maximum severity between this and another severity
+     * @param other the other severity to compare
+     * @return the higher severity level
+     */
+    public ErrorSeverity max(final ErrorSeverity other) {
+        return this.level >= other.level ? this : other;
+    }
+
+    /**
+     * Returns the minimum severity between this and another severity
+     * @param other the other severity to compare
+     * @return the lower severity level
+     */
+    public ErrorSeverity min(final ErrorSeverity other) {
+        return this.level <= other.level ? this : other;
+    }
+
+    /**
+     * Returns the escalation path for this severity level
+     * @return next higher severity level, or FATAL if already at maximum
+     */
+    public ErrorSeverity escalate() {
+        switch (this) {
+            case INFO:
+                return WARNING;
+            case WARNING:
+                return ERROR;
+            case ERROR:
+                return CRITICAL;
+            case CRITICAL:
+            case FATAL:
+                return FATAL;
+            default:
+                return FATAL;
+        }
+    }
+
+    /**
+     * Returns the de-escalation path for this severity level
+     * @return next lower severity level, or INFO if already at minimum
+     */
+    public ErrorSeverity deEscalate() {
+        switch (this) {
+            case FATAL:
+                return CRITICAL;
+            case CRITICAL:
+                return ERROR;
+            case ERROR:
+                return WARNING;
+            case WARNING:
+            case INFO:
+                return INFO;
+            default:
+                return INFO;
+        }
+    }
+
+    /**
+     * Returns the color code typically associated with this severity level
+     * @return color code for UI display
+     */
+    public String getColorCode() {
+        switch (this) {
+            case INFO:
+                return "#007bff";    // Blue
+            case WARNING:
+                return "#ffc107";    // Yellow
+            case ERROR:
+                return "#dc3545";    // Red
+            case CRITICAL:
+                return "#fd7e14";    // Orange
+            case FATAL:
+                return "#6f42c1";    // Purple
+            default:
+                return "#6c757d";    // Gray
+        }
+    }
+
+    /**
+     * Returns the response time threshold for this severity level
+     * @return response time in minutes
+     */
+    public int getResponseTimeMinutes() {
+        switch (this) {
+            case INFO:
+                return 1440;  // 24 hours
+            case WARNING:
+                return 240;   // 4 hours
+            case ERROR:
+                return 60;    // 1 hour
+            case CRITICAL:
+                return 15;    // 15 minutes
+            case FATAL:
+                return 5;     // 5 minutes
+            default:
+                return 60;    // Default 1 hour
+        }
+    }
+
+    @Override
+    public String toString() {
+        return description;
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Severity-Based Error Handling
+
+#+end_src
+public void handleError(Throwable error, String operation) {
+    ErrorSeverity severity = determineSeverity(error, operation);
+    
+    if (severity.requiresImmediateAttention()) {
+        // Critical or fatal errors need immediate response
+        alertManager.sendImmediateAlert(error, severity);
+        
+        if (severity.isFatal()) {
+            // Initiate emergency shutdown
+            emergencyManager.initiateShutdown(error);
+        } else {
+            // Critical - escalate to operations team
+            escalationManager.escalateToOps(error, severity);
+        }
+    } else if (severity.isError()) {
+        // Regular errors - log and attempt recovery
+        logger.error("Operation failed: " + operation, error);
+        recoveryManager.attemptRecovery(error, severity);
+    } else {
+        // Warnings and info - just log
+        logger.warn("Operation warning in {}: {}", operation, error.getMessage());
+    }
+}
+#+end_src
+
+** Severity Comparison and Escalation
+
+#+begin_src java
+public void manageSeverityEscalation(ErrorSeverity currentSeverity, int errorCount) {
+    ErrorSeverity escalatedSeverity = currentSeverity;
+    
+    // Escalate based on error frequency
+    if (errorCount > 10 && currentSeverity.isLowerThan(ErrorSeverity.ERROR)) {
+        escalatedSeverity = currentSeverity.escalate();
+        logger.info("Escalating severity from {} to {} due to error frequency", 
+                   currentSeverity, escalatedSeverity);
+    }
+    
+    // Check if we've reached critical thresholds
+    if (escalatedSeverity.isAtLeast(ErrorSeverity.CRITICAL)) {
+        triggerCriticalErrorProtocols(escalatedSeverity);
+    }
+    
+    // Update monitoring thresholds
+    updateMonitoringThresholds(escalatedSeverity);
+}
+#+end_src
+
+** Severity-Based Resource Allocation
+
+#+end_src
+public void allocateResourcesBasedOnSeverity(ErrorSeverity severity) {
+    int threadPoolSize;
+    int retryAttempts;
+    Duration timeout;
+    
+    switch (severity) {
+        case INFO:
+        case WARNING:
+            threadPoolSize = 2;
+            retryAttempts = 1;
+            timeout = Duration.ofMinutes(5);
+            break;
+            
+        case ERROR:
+            threadPoolSize = 5;
+            retryAttempts = 3;
+            timeout = Duration.ofMinutes(2);
+            break;
+            
+        case CRITICAL:
+            threadPoolSize = 10;
+            retryAttempts = 5;
+            timeout = Duration.ofSeconds(30);
+            break;
+            
+        case FATAL:
+            threadPoolSize = 20;
+            retryAttempts = 10;
+            timeout = Duration.ofSeconds(10);
+            break;
+            
+        default:
+            threadPoolSize = 2;
+            retryAttempts = 1;
+            timeout = Duration.ofMinutes(5);
+    }
+    
+    resourceManager.configureForSeverity(severity, threadPoolSize, retryAttempts, timeout);
+}
+#+end_src
+
+** Monitoring and Alerting Configuration
+
+#+begin_src java
+public void configureMonitoringBySeverity(ErrorSeverity severity) {
+    MonitoringConfig config = new MonitoringConfig();
+    
+    // Set response time requirements
+    config.setResponseTimeMinutes(severity.getResponseTimeMinutes());
+    
+    // Configure alert channels
+    if (severity.isFatal()) {
+        config.addAlertChannel("sms");
+        config.addAlertChannel("phone");
+        config.addAlertChannel("pager");
+    } else if (severity.isCritical()) {
+        config.addAlertChannel("email");
+        config.addAlertChannel("slack");
+    } else if (severity.isError()) {
+        config.addAlertChannel("email");
+    }
+    
+    // Set escalation rules
+    if (severity.requiresImmediateAttention()) {
+        config.enableAutoEscalation(Duration.ofMinutes(5));
+    }
+    
+    monitoringSystem.updateConfig(severity, config);
+}
+#+end_src
+
+** Severity Aggregation and Reporting
+
+#+end_src
+public SeverityReport generateSeverityReport(List<ErrorResult> errors) {
+    Map<ErrorSeverity, Integer> severityCounts = new EnumMap<>(ErrorSeverity.class);
+    ErrorSeverity maxSeverity = ErrorSeverity.INFO;
+    Duration totalResponseTime = Duration.ZERO;
+    
+    for (ErrorResult error : errors) {
+        ErrorSeverity severity = error.getSeverity();
+        
+        // Count occurrences by severity
+        severityCounts.merge(severity, 1, Integer::sum);
+        
+        // Track maximum severity encountered
+        maxSeverity = maxSeverity.max(severity);
+        
+        // Accumulate response times
+        totalResponseTime = totalResponseTime.plus(getResponseTime(error));
+    }
+    
+    return new SeverityReport(severityCounts, maxSeverity, totalResponseTime, errors.size());
+}
+#+end_src
+
+* Architecture Notes
+
+** Hierarchical Severity Classification
+- Numeric levels enable easy comparison and ordering
+- Clear escalation and de-escalation paths
+- Support for threshold-based decision making
+- Integration with monitoring and alerting systems
+
+** Response Strategy Integration
+- Direct mapping from severity to response requirements
+- Configurable response time thresholds by severity level
+- Automatic escalation based on severity and frequency
+- Resource allocation optimization based on severity
+
+** Operational Integration
+- Color coding for visual severity indication
+- Alert channel configuration by severity level
+- Escalation procedures tied to severity classification
+- Reporting and analysis capabilities across severity levels

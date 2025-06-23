@@ -1,0 +1,155 @@
+#+TITLE: InstrumentationService - Core Domain Service for JVM Instrumentation
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
+
+* InstrumentationService
+
+** Overview
+
+The =InstrumentationService= is a core domain service that provides a clean abstraction over JVM instrumentation capabilities. This service replaces the previous port/adapter pattern for instrumentation, centralizing all JVM instrumentation operations into a single, well-defined domain service.
+
+** Architecture Role
+
+*** Domain Service Pattern
+The =InstrumentationService= follows the Domain Service pattern from Domain-Driven Design:
+- Encapsulates domain logic that doesn't naturally belong to any entity or value object
+- Provides stateless operations related to JVM instrumentation
+- Abstracts complex JVM instrumentation details from domain aggregates
+
+*** Replacement of Port/Adapter Pattern
+Previously, ByteHot used:
+- =InstrumentationPort= (domain interface)
+- =InstrumentationAdapter= (infrastructure implementation)
+
+This has been simplified to:
+- =InstrumentationService= (domain service interface)
+- Concrete implementations in the infrastructure layer
+
+** Core Capabilities
+
+*** Class Redefinition Support
+#+begin_src java
+boolean isRedefineClassesSupported();
+void redefineClasses(ClassDefinition... definitions) throws HotSwapException;
+#+end_src
+
+Provides the fundamental capability to redefine classes at runtime, which is the core of ByteHot's hot-swapping functionality.
+
+*** Class Retransformation Support
+#+begin_src java
+boolean isRetransformClassesSupported();
+#+end_src
+
+Checks whether the JVM supports class retransformation, enabling more advanced hot-swap scenarios.
+
+*** Class Discovery and Validation
+#+begin_src java
+Class<?>[] getAllLoadedClasses();
+boolean isModifiable(Class<?> theClass);
+Class<?> findLoadedClass(String className);
+#+end_src
+
+Enables discovery and validation of loaded classes to determine hot-swap eligibility.
+
+** Integration with Domain Aggregates
+
+*** HotSwapManager Integration
+The =HotSwapManager= aggregate uses =InstrumentationService= for:
+- Validating class redefinition capabilities
+- Performing actual class redefinitions
+- Discovering loaded classes for hot-swap operations
+
+#+begin_src java
+public class HotSwapManager {
+    private final InstrumentationService instrumentationService;
+    
+    public void performHotSwap(ClassDefinition definition) throws HotSwapException {
+        if (instrumentationService.isRedefineClassesSupported()) {
+            instrumentationService.redefineClasses(definition);
+        }
+    }
+}
+#+end_src
+
+*** BytecodeValidator Integration
+The =BytecodeValidator= leverages =InstrumentationService= to:
+- Check class modification compatibility
+- Validate redefinition constraints
+- Ensure JVM capability alignment
+
+** Service Responsibilities
+
+*** Primary Responsibilities
+- Abstract JVM instrumentation capabilities for domain layer
+- Provide type-safe interface for class redefinition operations
+- Encapsulate instrumentation capability detection logic
+- Maintain clean separation between domain and infrastructure concerns
+
+*** Invariants
+- All redefinition operations must check capabilities before execution
+- Service remains stateless and thread-safe
+- Exceptions are properly translated to domain-specific types
+- No direct dependency on infrastructure instrumentation libraries
+
+** Implementation Strategy
+
+*** Interface Definition
+The service is defined as a domain interface in the domain layer:
+#+begin_src java
+package org.acmsl.bytehot.domain;
+
+public interface InstrumentationService {
+    // Core instrumentation operations
+}
+#+end_src
+
+*** Infrastructure Implementation
+Concrete implementations reside in the infrastructure layer and handle:
+- Integration with =java.lang.instrument.Instrumentation=
+- JVM-specific capability detection
+- Error handling and exception translation
+- Performance optimization for instrumentation operations
+
+** Advantages Over Port/Adapter Pattern
+
+*** Simplified Architecture
+- Reduces complexity by eliminating separate port and adapter concepts
+- Creates direct service-based interaction model
+- Maintains clear domain/infrastructure separation
+
+*** Improved Clarity
+- Service name clearly indicates instrumentation domain responsibility
+- Eliminates confusion between ports and adapters
+- Provides single point of truth for instrumentation capabilities
+
+*** Enhanced Maintainability
+- Centralized instrumentation logic in one service interface
+- Simplified dependency injection and testing
+- Clearer evolution path for instrumentation enhancements
+
+** Testing Strategy
+
+*** Unit Testing
+- Mock =InstrumentationService= for aggregate testing
+- Test capability detection logic separately
+- Validate exception handling and edge cases
+
+*** Integration Testing
+- Test real JVM instrumentation capabilities
+- Validate class redefinition workflows end-to-end
+- Ensure proper error propagation from infrastructure
+
+** Future Evolution
+
+*** Potential Enhancements
+- Support for advanced instrumentation features
+- Integration with newer JVM instrumentation APIs
+- Performance optimization for high-frequency operations
+- Enhanced debugging and monitoring capabilities
+
+*** Backward Compatibility
+- Service interface allows for implementation evolution
+- Infrastructure changes don't affect domain logic
+- Clear migration path for instrumentation improvements
+
+This =InstrumentationService= represents a significant architectural improvement in ByteHot's approach to JVM instrumentation, providing a cleaner, more maintainable abstraction that better serves the domain's needs while maintaining strict architectural boundaries.

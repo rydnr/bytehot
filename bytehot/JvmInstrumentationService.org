@@ -1,0 +1,292 @@
+#+TITLE: JvmInstrumentationService - Concrete JVM Instrumentation Implementation
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
+
+* JvmInstrumentationService
+
+** Overview
+
+The =JvmInstrumentationService= class provides a concrete implementation of the =InstrumentationService= interface, serving as the primary bridge between ByteHot's domain layer and the JVM's native instrumentation capabilities. This class wraps the standard =java.lang.instrument.Instrumentation= API to provide domain-specific instrumentation services with proper error handling and domain event integration.
+
+** Architecture Role
+
+*** Domain Service Implementation
+The =JvmInstrumentationService= implements the Domain Service pattern:
+- Provides concrete implementation of =InstrumentationService= interface
+- Encapsulates JVM-specific instrumentation logic
+- Maintains domain boundaries while accessing infrastructure capabilities
+- Translates infrastructure exceptions to domain-specific exceptions
+
+*** Adapter Pattern Implementation
+While residing in the domain layer, this class acts as an adapter:
+- Adapts JVM =Instrumentation= API to domain service interface
+- Provides domain-friendly method signatures and error handling
+- Translates between infrastructure and domain exception models
+- Maintains clean separation between domain logic and JVM specifics
+
+** Core Implementation
+
+*** Constructor and Initialization
+#+begin_src java
+public JvmInstrumentationService(final Instrumentation instrumentation) {
+    if (instrumentation == null) {
+        throw new IllegalArgumentException("Instrumentation cannot be null");
+    }
+    this.instrumentation = instrumentation;
+}
+#+end_src
+
+The constructor ensures robust initialization:
+- **Null Check**: Validates instrumentation instance is provided
+- **Fail-Fast**: Throws meaningful exception for invalid parameters
+- **Immutable State**: Stores instrumentation reference as final field
+- **Domain Contracts**: Maintains domain service reliability expectations
+
+*** Capability Detection Methods
+
+**** Class Redefinition Support
+#+begin_src java
+@Override
+public boolean isRedefineClassesSupported() {
+    return instrumentation.isRedefineClassesSupported();
+}
+#+end_src
+
+Direct delegation to JVM capability detection:
+- **JVM Query**: Checks native JVM redefinition support
+- **Hot-Swap Foundation**: Fundamental capability for hot-swapping
+- **Runtime Detection**: Determines capability at runtime for robustness
+- **Boolean Contract**: Simple true/false response for domain logic
+
+**** Class Retransformation Support
+#+begin_src java
+@Override
+public boolean isRetransformClassesSupported() {
+    return instrumentation.isRetransformClassesSupported();
+}
+#+end_src
+
+Advanced capability detection for retransformation:
+- **Advanced Feature**: Checks for more sophisticated transformation support
+- **Future Enhancement**: Enables advanced transformation scenarios
+- **Capability Awareness**: Allows domain logic to adapt based on JVM capabilities
+- **Compatibility Check**: Ensures code works across different JVM versions
+
+### Class Redefinition Operations
+
+#### Multiple Class Redefinition
+#+begin_src java
+@Override
+public void redefineClasses(final ClassDefinition... definitions) throws HotSwapException {
+    try {
+        instrumentation.redefineClasses(definitions);
+    } catch (final ClassNotFoundException e) {
+        throw createHotSwapException("Class not found during redefinition", e);
+    } catch (final UnmodifiableClassException e) {
+        throw createHotSwapException("Class is not modifiable", e);
+    } catch (final UnsupportedOperationException e) {
+        throw createHotSwapException("Redefinition not supported", e);
+    } catch (final Exception e) {
+        throw createHotSwapException("Unexpected error during class redefinition", e);
+    }
+}
+#+end_src
+
+Comprehensive error handling for batch class redefinition:
+- **Batch Operation**: Supports multiple class redefinitions atomically
+- **Exception Translation**: Converts JVM exceptions to domain exceptions
+- **Specific Error Handling**: Different handling for different failure types
+- **Domain Event Integration**: Creates appropriate domain events for failures
+
+#### Single Class Redefinition
+#+begin_src java
+@Override
+public void redefineClass(final Class<?> targetClass, final byte[] newBytecode) throws HotSwapException {
+    final ClassDefinition definition = new ClassDefinition(targetClass, newBytecode);
+    redefineClasses(definition);
+}
+#+end_src
+
+Convenience method for single class redefinition:
+- **Single Class Focus**: Simplifies common single-class redefinition scenarios
+- **Bytecode Integration**: Direct integration with bytecode arrays
+- **Delegation Pattern**: Leverages batch operation for consistency
+- **API Simplification**: Provides simpler interface for common use cases
+
+### Class Discovery and Analysis
+
+#### Loaded Class Enumeration
+#+begin_src java
+@Override
+public Class<?>[] getAllLoadedClasses() {
+    return instrumentation.getAllLoadedClasses();
+}
+#+end_src
+
+Direct access to all loaded classes:
+- **Complete Enumeration**: Returns all classes currently loaded in JVM
+- **Hot-Swap Planning**: Enables analysis of redefinition candidates
+- **System State**: Provides insight into current JVM class loading state
+- **Direct Delegation**: Leverages JVM's native class tracking
+
+#### Class Modifiability Check
+#+begin_src java
+@Override
+public boolean isModifiableClass(final Class<?> theClass) {
+    return instrumentation.isModifiableClass(theClass);
+}
+#+end_src
+
+Checks whether specific classes can be modified:
+- **Pre-validation**: Enables validation before attempting redefinition
+- **Class-Specific**: Provides class-level modification capability detection
+- **Safety Check**: Prevents attempts to modify unmodifiable classes
+- **JVM Integration**: Uses JVM's native modifiability detection
+
+#### Class Lookup by Name
+#+begin_src java
+@Override
+public Class<?> findLoadedClass(final String className) {
+    final Class<?>[] loadedClasses = instrumentation.getAllLoadedClasses();
+    for (final Class<?> clazz : loadedClasses) {
+        if (clazz.getName().equals(className)) {
+            return clazz;
+        }
+    }
+    return null;
+}
+#+end_src
+
+Finds loaded classes by name:
+- **Name-Based Lookup**: Enables class discovery by string name
+- **Linear Search**: Simple but reliable implementation for class finding
+- **Null Return**: Returns null when class not found (following Java conventions)
+- **Hot-Swap Support**: Enables finding classes for redefinition by name
+
+### Error Handling and Domain Integration
+
+#### Domain Exception Creation
+#+begin_src java
+protected HotSwapException createHotSwapException(final String reason, final Throwable cause) {
+    final ClassRedefinitionFailed failureEvent = 
+        new ClassRedefinitionFailed(
+            "Unknown", // className - would need to be passed in
+            null,      // classFile - would need to be passed in
+            reason,
+            cause.getMessage(),
+            "Check bytecode compatibility and retry",
+            java.time.Instant.now()
+        );
+    return new HotSwapException(failureEvent, cause);
+}
+#+end_src
+
+Creates domain-specific exceptions with event integration:
+- **Domain Event Creation**: Creates =ClassRedefinitionFailed= events for failures
+- **Rich Context**: Provides detailed failure information
+- **Troubleshooting Guidance**: Includes recommended recovery actions
+- **Timestamp Integration**: Records failure time for debugging and analysis
+- **Cause Preservation**: Maintains original exception chain for debugging
+
+## Integration with Domain Architecture
+
+### Service Interface Compliance
+The =JvmInstrumentationService= fully implements the =InstrumentationService= interface:
+- **Complete Implementation**: Implements all interface methods
+- **Contract Compliance**: Adheres to interface contracts and expectations
+- **Behavioral Consistency**: Provides predictable behavior across all operations
+- **Exception Specifications**: Follows interface exception specifications
+
+### Domain Event Integration
+The service integrates with ByteHot's event-driven architecture:
+- **Failure Events**: Creates =ClassRedefinitionFailed= events for failures
+- **Event Sourcing**: Supports event-driven error tracking and analysis
+- **Domain Consistency**: Maintains consistency with domain event patterns
+- **Debugging Support**: Provides rich event context for troubleshooting
+
+### Hot-Swap Manager Integration
+The service serves as the primary instrumentation provider for =HotSwapManager=:
+- **Capability Queries**: Provides capability information for operation planning
+- **Class Redefinition**: Performs actual bytecode redefinition operations
+- **Error Reporting**: Reports failures through domain-appropriate mechanisms
+- **State Queries**: Provides information about loaded classes and their state
+
+## Design Principles
+
+### Encapsulation of JVM Complexity
+The service encapsulates JVM instrumentation complexity:
+- **API Simplification**: Provides domain-appropriate interface over JVM APIs
+- **Error Translation**: Converts JVM exceptions to domain exceptions
+- **Capability Abstraction**: Abstracts JVM capability detection
+- **State Management**: Manages JVM state queries in domain-friendly way
+
+### Fail-Fast Design
+The service implements fail-fast principles:
+- **Constructor Validation**: Validates dependencies at construction time
+- **Immediate Feedback**: Provides immediate feedback for invalid operations
+- **Clear Exceptions**: Throws meaningful exceptions for error conditions
+- **Defensive Programming**: Validates inputs and state consistently
+
+### Domain Boundary Maintenance
+Despite JVM integration, the service maintains domain boundaries:
+- **Domain Exceptions**: Uses domain-specific exception types
+- **Domain Events**: Creates domain events for significant operations
+- **Domain Interface**: Implements domain service interface
+- **Clean Abstractions**: Provides clean abstractions over infrastructure
+
+## Error Scenarios and Handling
+
+### Class Not Found Errors
+When attempting to redefine non-existent classes:
+- **Detection**: Catches =ClassNotFoundException= from JVM
+- **Translation**: Converts to =HotSwapException= with descriptive message
+- **Event Creation**: Creates =ClassRedefinitionFailed= event
+- **Recovery Guidance**: Provides actionable recovery suggestions
+
+### Unmodifiable Class Errors
+When attempting to modify system or final classes:
+- **Detection**: Catches =UnmodifiableClassException= from JVM
+- **Validation Support**: Provides pre-validation through =isModifiableClass=
+- **Clear Messaging**: Explains why modification is not possible
+- **Alternative Guidance**: Suggests alternative approaches when applicable
+
+### Unsupported Operation Errors
+When JVM doesn't support required operations:
+- **Capability Detection**: Provides pre-flight capability checking
+- **Clear Exceptions**: Explains which operations are not supported
+- **Graceful Degradation**: Enables fallback strategies in calling code
+- **Environment Documentation**: Helps identify JVM configuration issues
+
+## Performance Considerations
+
+### Direct JVM Integration
+The service provides direct access to JVM capabilities:
+- **Minimal Overhead**: Direct delegation to JVM APIs
+- **No Caching**: Relies on JVM's native performance characteristics
+- **Batch Operations**: Supports efficient batch class redefinition
+- **Native Performance**: Leverages JVM's optimized instrumentation implementation
+
+### Memory Management
+The service manages memory efficiently:
+- **No State Caching**: Doesn't cache JVM state that might become stale
+- **Direct References**: Uses direct references to JVM-managed data
+- **Automatic Cleanup**: Relies on JVM garbage collection for memory management
+- **Minimal Footprint**: Maintains minimal memory footprint through stateless design
+
+## Testing Considerations
+
+### Instrumentation Mock Support
+The service design supports testing:
+- **Interface Implementation**: Can be mocked through =InstrumentationService= interface
+- **Dependency Injection**: Instrumentation instance can be mocked for testing
+- **Exception Testing**: Exception paths can be tested through mock instrumentation
+- **Capability Testing**: JVM capabilities can be simulated for comprehensive testing
+
+### Integration Testing
+Real instrumentation testing considerations:
+- **JVM Agent Required**: Integration tests require JVM agent setup
+- **Class Loading**: Tests must manage class loading and redefinition carefully
+- **Isolation**: Tests must ensure proper isolation between redefinition operations
+- **Cleanup**: Tests must clean up modified classes appropriately
+
+The =JvmInstrumentationService= provides a robust, domain-appropriate implementation of JVM instrumentation capabilities, serving as the foundation for ByteHot's hot-swapping functionality while maintaining clean domain boundaries and comprehensive error handling.

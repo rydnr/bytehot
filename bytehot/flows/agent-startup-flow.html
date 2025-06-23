@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flows/agent-startup-flow - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview">Overview</h1>
+<p>This flow documents the complete ByteHot agent initialization
+process, from JVM attachment to fully operational hot-swap monitoring.
+This is the foundational flow that establishes the runtime environment
+for all other ByteHot operations.</p>
+<h2 id="flow-trigger">Flow Trigger</h2>
+<ul>
+<li><strong><strong>Starting Event</strong></strong>: JVM agent
+attachment (premain or agentmain)</li>
+<li><strong><strong>Ending Event</strong></strong>: <code
+class="verbatim">HotSwapCapabilityEnabled</code> for monitored
+classes</li>
+<li><strong><strong>Duration</strong></strong>: 100-2000ms depending on
+configuration complexity</li>
+<li><strong><strong>Criticality</strong></strong>: Critical - Required
+for all ByteHot functionality</li>
+</ul>
+<h1 id="flow-participants">Flow Participants</h1>
+<h2 id="primary-actors">Primary Actors</h2>
+<ul>
+<li><code class="verbatim">ByteHotAgent</code> (Infrastructure): JVM
+agent entry point</li>
+<li><code class="verbatim">ByteHotApplication</code> (Application):
+Application layer coordinator</li>
+<li><code class="verbatim">InstrumentationProvider</code> (Domain): JVM
+instrumentation access</li>
+<li><code class="verbatim">ClassFileWatcher</code> (Infrastructure):
+File system monitoring setup</li>
+</ul>
+<h2 id="secondary-actors">Secondary Actors</h2>
+<ul>
+<li><code class="verbatim">WatchConfiguration</code> (Domain):
+Configuration management</li>
+<li><code class="verbatim">Ports</code> (Domain): Dependency injection
+coordination</li>
+<li>Various adapters for external integrations</li>
+</ul>
+<h1 id="agent-attachment-flow">Agent Attachment Flow</h1>
+<h2 id="phase-1-jvm-agent-initialization">Phase 1: JVM Agent
+Initialization</h2>
+<pre><code>[ JVM Startup ] --agent-attachment--&gt; [ ByteHotAgent.premain() ] --initialization--&gt; [ Agent Setup ]
+</code></pre>
+<p>The flow begins when the JVM loads the ByteHot agent:</p>
+<ol>
+<li><strong><strong>JVM Agent Loading</strong></strong>: JVM loads
+ByteHot agent through:
+<ul>
+<li><strong><strong>Startup attachment</strong></strong>: <code
+class="verbatim">-javaagent:bytehot.jar</code> JVM argument</li>
+<li><strong><strong>Runtime attachment</strong></strong>: Dynamic
+attachment via Attach API</li>
+</ul></li>
+<li><strong><strong>Agent Entry Point</strong></strong>: <code
+class="verbatim">ByteHotAgent.premain()</code> or <code
+class="verbatim">ByteHotAgent.agentmain()</code> called</li>
+<li><strong><strong>Instrumentation Capture</strong></strong>: Agent
+captures <code class="verbatim">Instrumentation</code> instance for
+later use</li>
+<li><strong><strong>Initial Validation</strong></strong>: Verify JVM
+supports required capabilities:
+<ul>
+<li>Class redefinition support</li>
+<li>Bytecode instrumentation</li>
+<li>File system access permissions</li>
+</ul></li>
+</ol>
+<h2 id="phase-2-core-system-initialization">Phase 2: Core System
+Initialization</h2>
+<pre><code>[ ByteHotAgent ] --bootstrap--&gt; [ ByteHotApplication ] --ports-setup--&gt; [ Dependency Injection ]
+                                        |
+                                        v
+                                [ InstrumentationProvider Setup ]
+                                        |
+                                        v
+                                [ Configuration Loading ]
+</code></pre>
+<p>Core ByteHot system components are initialized:</p>
+<ol>
+<li><strong><strong>Application Bootstrap</strong></strong>: <code
+class="verbatim">ByteHotApplication</code> instance created</li>
+<li><strong><strong>Ports Configuration</strong></strong>: Dependency
+injection system setup:
+<ul>
+<li>Register infrastructure adapters</li>
+<li>Configure port-to-adapter mappings</li>
+<li>Validate adapter implementations</li>
+</ul></li>
+<li><strong><strong>Instrumentation Provider</strong></strong>: <code
+class="verbatim">InstrumentationProvider</code> configured with captured
+<code class="verbatim">Instrumentation</code></li>
+<li><strong><strong>Configuration Loading</strong></strong>: Load
+ByteHot configuration from:
+<ul>
+<li>JVM system properties</li>
+<li>Configuration files</li>
+<li>Environment variables</li>
+<li>Default settings</li>
+</ul></li>
+</ol>
+<h2 id="phase-3-watch-configuration-setup">Phase 3: Watch Configuration
+Setup</h2>
+<pre><code>[ Configuration ] --parsing--&gt; [ WatchConfiguration ] --validation--&gt; [ Watch Setup ]
+                                        |
+                                        v
+                                [ Path Registration ]
+                                        |
+                                        v
+                                [ File System Monitoring ]
+</code></pre>
+<p>File system monitoring is configured based on loaded
+configuration:</p>
+<ol>
+<li><strong><strong>Configuration Parsing</strong></strong>: <code
+class="verbatim">WatchConfiguration</code> processes configuration:
+<ul>
+<li>Watch paths (directories to monitor)</li>
+<li>File patterns to include/exclude</li>
+<li>Monitoring frequency and sensitivity</li>
+<li>Framework integration settings</li>
+</ul></li>
+<li><strong><strong>Path Validation</strong></strong>: Validate
+configured watch paths:
+<ul>
+<li>Directory existence and accessibility</li>
+<li>Read permissions verification</li>
+<li>Path canonicalization</li>
+</ul></li>
+<li><strong><strong>Watch Registration</strong></strong>: Register watch
+paths with file system:
+<ul>
+<li>Create <code class="verbatim">ClassFileWatcher</code> instances</li>
+<li>Configure file system event listeners</li>
+<li>Set up monitoring threads</li>
+</ul></li>
+<li><strong><strong>Event Integration</strong></strong>: Connect file
+watchers to event system</li>
+</ol>
+<h1 id="capability-enablement-flow">Capability Enablement Flow</h1>
+<h2 id="phase-4-hot-swap-capability-assessment">Phase 4: Hot-Swap
+Capability Assessment</h2>
+<pre><code>[ Class Discovery ] --analysis--&gt; [ Capability Assessment ] --enablement--&gt; [ HotSwapCapabilityEnabled ]
+</code></pre>
+<p>For each discovered class, assess and enable hot-swap
+capabilities:</p>
+<ol>
+<li><strong><strong>Class Discovery</strong></strong>: Identify classes
+eligible for hot-swap monitoring:
+<ul>
+<li>Classes in configured watch paths</li>
+<li>Classes matching inclusion patterns</li>
+<li>Classes not excluded by configuration</li>
+</ul></li>
+<li><strong><strong>Capability Assessment</strong></strong>: For each
+class, evaluate:
+<ul>
+<li>JVM redefinition support for class type</li>
+<li>Class modification compatibility</li>
+<li>Framework integration availability</li>
+<li>Security restrictions</li>
+</ul></li>
+<li><strong><strong>Capability Enablement</strong></strong>: Enable
+hot-swap for eligible classes:
+<ul>
+<li>Register class with instrumentation system</li>
+<li>Set up metadata tracking</li>
+<li>Configure framework integration if available</li>
+<li>Emit <code class="verbatim">HotSwapCapabilityEnabled</code>
+event</li>
+</ul></li>
+</ol>
+<h2 id="phase-5-event-system-activation">Phase 5: Event System
+Activation</h2>
+<pre><code>[ Component Setup ] --integration--&gt; [ Event System ] --activation--&gt; [ Monitoring Active ]
+</code></pre>
+<p>Activate the complete event-driven system:</p>
+<ol>
+<li><strong><strong>Event Bus Configuration</strong></strong>: Set up
+internal event routing</li>
+<li><strong><strong>Adapter Registration</strong></strong>: Register all
+infrastructure adapters:
+<ul>
+<li>File system event adapters</li>
+<li>JVM instrumentation adapters</li>
+<li>Framework integration adapters</li>
+<li>Monitoring and logging adapters</li>
+</ul></li>
+<li><strong><strong>Event Flow Validation</strong></strong>: Test event
+flow end-to-end</li>
+<li><strong><strong>Monitoring Activation</strong></strong>: Begin
+active monitoring for:
+<ul>
+<li>File system changes</li>
+<li>Class loading events</li>
+<li>System health metrics</li>
+</ul></li>
+</ol>
+<h1 id="configuration-loading-details">Configuration Loading
+Details</h1>
+<h2 id="configuration-sources-priority-order">Configuration Sources
+(Priority Order)</h2>
+<pre><code>[ JVM Properties ] --&gt; [ Config Files ] --&gt; [ Environment Variables ] --&gt; [ Defaults ]
+                |               |                      |                    |
+                v               v                      v                    v
+        [ Property Merger ] --&gt; [ Validation ] --&gt; [ WatchConfiguration ]
+</code></pre>
+<p>Configuration is loaded from multiple sources with defined
+precedence:</p>
+<ol>
+<li><strong><strong>JVM System Properties</strong></strong>: Highest
+priority
+<ul>
+<li><code
+class="verbatim">-Dbytehot.watch.paths=/path/to/classes</code></li>
+<li><code class="verbatim">-Dbytehot.monitoring.enabled=true</code></li>
+<li><code
+class="verbatim">-Dbytehot.framework.integration=spring</code></li>
+</ul></li>
+<li><strong><strong>Configuration Files</strong></strong>: Second
+priority
+<ul>
+<li><code class="verbatim">bytehot.properties</code> in classpath</li>
+<li><code class="verbatim">bytehot.yml</code> in working directory</li>
+<li>User-specified configuration file</li>
+</ul></li>
+<li><strong><strong>Environment Variables</strong></strong>: Third
+priority
+<ul>
+<li><code class="verbatim">BYTEHOT_WATCH_PATHS</code></li>
+<li><code class="verbatim">BYTEHOT_MONITORING_ENABLED</code></li>
+<li><code class="verbatim">BYTEHOT_FRAMEWORK_INTEGRATION</code></li>
+</ul></li>
+<li><strong><strong>Default Values</strong></strong>: Lowest priority
+<ul>
+<li>Built-in sensible defaults</li>
+<li>Framework-specific defaults</li>
+<li>Platform-specific defaults</li>
+</ul></li>
+</ol>
+<h2 id="configuration-validation">Configuration Validation</h2>
+<pre><code>[ Raw Configuration ] --&gt; [ Schema Validation ] --&gt; [ Path Validation ] --&gt; [ Permission Check ]
+</code></pre>
+<p>Configuration undergoes comprehensive validation:</p>
+<ol>
+<li><strong><strong>Schema Validation</strong></strong>: Ensure
+configuration structure is correct</li>
+<li><strong><strong>Path Validation</strong></strong>: Verify all
+specified paths exist and are accessible</li>
+<li><strong><strong>Permission Checking</strong></strong>: Confirm
+ByteHot has required permissions</li>
+<li><strong><strong>Consistency Checking</strong></strong>: Validate
+configuration combinations make sense</li>
+<li><strong><strong>Security Validation</strong></strong>: Ensure no
+security policy violations</li>
+</ol>
+<h1 id="error-handling-during-startup">Error Handling During
+Startup</h1>
+<h2 id="critical-error-flow">Critical Error Flow</h2>
+<pre><code>[ Startup Error ] --&gt; [ Error Classification ] --&gt; [ Fallback Strategy ] --&gt; [ Graceful Degradation ]
+</code></pre>
+<p>When critical errors occur during startup:</p>
+<ol>
+<li><strong><strong>Error Classification</strong></strong>: Determine
+error severity and type:
+<ul>
+<li><strong><strong>Fatal</strong></strong>: JVM incompatibility,
+missing permissions</li>
+<li><strong><strong>Critical</strong></strong>: Configuration errors,
+missing resources</li>
+<li><strong><strong>Warning</strong></strong>: Non-essential feature
+failures</li>
+</ul></li>
+<li><strong><strong>Fallback Strategies</strong></strong>:
+<ul>
+<li><strong><strong>Fatal Errors</strong></strong>: Agent startup fails
+with clear error message</li>
+<li><strong><strong>Critical Errors</strong></strong>: Continue with
+reduced functionality</li>
+<li><strong><strong>Warnings</strong></strong>: Log warning and continue
+with full functionality</li>
+</ul></li>
+<li><strong><strong>Graceful Degradation</strong></strong>: For
+non-fatal errors:
+<ul>
+<li>Disable affected features</li>
+<li>Use default configurations where possible</li>
+<li>Enable monitoring for manual intervention</li>
+</ul></li>
+</ol>
+<h2 id="permission-error-flow">Permission Error Flow</h2>
+<pre><code>[ Permission Denied ] --&gt; [ Alternative Path ] --&gt; [ Reduced Functionality ] --&gt; [ User Notification ]
+</code></pre>
+<p>When permission errors prevent full functionality:</p>
+<ol>
+<li><strong><strong>Alternative Path Discovery</strong></strong>: Find
+alternative approaches</li>
+<li><strong><strong>Functionality Reduction</strong></strong>: Disable
+features requiring unavailable permissions</li>
+<li><strong><strong>User Notification</strong></strong>: Clearly
+communicate limitations and solutions</li>
+</ol>
+<h1 id="performance-optimization-during-startup">Performance
+Optimization During Startup</h1>
+<h2 id="parallel-initialization">Parallel Initialization</h2>
+<pre><code>[ Configuration Loading ] --parallel--&gt; [ File System Setup ]
+           |                                     |
+           v                                     v
+[ Component Setup ] --parallel--&gt; [ Framework Detection ]
+           |                                     |
+           v                                     v
+[ Event System ] --sync--&gt; [ Startup Completion ]
+</code></pre>
+<p>Startup operations are parallelized where possible:</p>
+<ol>
+<li><strong><strong>Parallel Configuration</strong></strong>: Load
+configuration while setting up other components</li>
+<li><strong><strong>Concurrent Setup</strong></strong>: Initialize
+independent systems concurrently</li>
+<li><strong><strong>Optimistic Framework Detection</strong></strong>:
+Detect frameworks in background</li>
+<li><strong><strong>Lazy Initialization</strong></strong>: Defer
+non-critical setup until first use</li>
+</ol>
+<h2 id="resource-pre-allocation">Resource Pre-allocation</h2>
+<pre><code>[ Startup ] --&gt; [ Thread Pool Setup ] --&gt; [ Memory Pre-allocation ] --&gt; [ Cache Initialization ]
+</code></pre>
+<p>Pre-allocate resources to avoid startup delays during operation:</p>
+<ol>
+<li><strong><strong>Thread Pool Setup</strong></strong>: Create
+monitoring and processing thread pools</li>
+<li><strong><strong>Memory Pre-allocation</strong></strong>: Allocate
+buffers and caches</li>
+<li><strong><strong>Framework Integration</strong></strong>: Initialize
+framework adapters</li>
+<li><strong><strong>Monitoring Setup</strong></strong>: Prepare
+monitoring and metrics collection</li>
+</ol>
+<h1 id="startup-flow-variations">Startup Flow Variations</h1>
+<h2 id="dynamic-attachment-flow">Dynamic Attachment Flow</h2>
+<pre><code>[ Running JVM ] --&gt; [ Attach API ] --&gt; [ Agent Loading ] --&gt; [ Late Initialization ]
+</code></pre>
+<p>When ByteHot attaches to an already running JVM:</p>
+<ol>
+<li><strong><strong>Attach API Usage</strong></strong>: Use JVM Attach
+API to load agent</li>
+<li><strong><strong>Late Initialization</strong></strong>: Initialize
+with already-loaded classes</li>
+<li><strong><strong>Existing Class Discovery</strong></strong>: Identify
+classes already eligible for hot-swap</li>
+<li><strong><strong>Retroactive Enablement</strong></strong>: Enable
+hot-swap for existing classes</li>
+</ol>
+<h2 id="framework-specific-startup">Framework-Specific Startup</h2>
+<pre><code>[ Framework Detection ] --&gt; [ Framework Adapter ] --&gt; [ Integration Setup ] --&gt; [ Enhanced Capabilities ]
+</code></pre>
+<p>When specific frameworks are detected:</p>
+<ol>
+<li><strong><strong>Framework Detection</strong></strong>: Identify
+Spring, CDI, Guice, etc.</li>
+<li><strong><strong>Adapter Selection</strong></strong>: Choose
+appropriate framework adapter</li>
+<li><strong><strong>Integration Setup</strong></strong>: Configure
+framework-specific features</li>
+<li><strong><strong>Enhanced Capabilities</strong></strong>: Enable
+framework-optimized hot-swap strategies</li>
+</ol>
+<h2 id="minimal-startup-flow">Minimal Startup Flow</h2>
+<pre><code>[ Essential Only ] --&gt; [ Basic Monitoring ] --&gt; [ On-Demand Features ]
+</code></pre>
+<p>For resource-constrained environments:</p>
+<ol>
+<li><strong><strong>Essential Components Only</strong></strong>:
+Initialize only critical components</li>
+<li><strong><strong>Basic Monitoring</strong></strong>: Minimal file
+system monitoring</li>
+<li><strong><strong>On-Demand Feature Loading</strong></strong>: Load
+additional features as needed</li>
+</ol>
+<h1 id="startup-flow-invariants">Startup Flow Invariants</h1>
+<h2 id="pre-conditions">Pre-conditions</h2>
+<ul>
+<li>JVM supports required instrumentation capabilities</li>
+<li>ByteHot has necessary file system permissions</li>
+<li>Valid configuration is available</li>
+</ul>
+<h2 id="post-conditions">Post-conditions</h2>
+<ul>
+<li>Agent is fully initialized and operational</li>
+<li>File system monitoring is active for configured paths</li>
+<li>Hot-swap capabilities are enabled for eligible classes</li>
+<li>Event system is operational and routing events correctly</li>
+</ul>
+<h2 id="system-state-guarantees">System State Guarantees</h2>
+<ul>
+<li>No partial initialization states that could cause inconsistency</li>
+<li>All registered components are fully functional</li>
+<li>Error conditions result in clear failure modes</li>
+<li>System is ready to handle hot-swap operations</li>
+</ul>
+<h1 id="monitoring-and-observability">Monitoring and Observability</h1>
+<h2 id="startup-metrics">Startup Metrics</h2>
+<ul>
+<li>Total startup duration</li>
+<li>Component initialization times</li>
+<li>Configuration loading performance</li>
+<li>Framework detection results</li>
+<li>Error counts by type</li>
+</ul>
+<h2 id="health-checks">Health Checks</h2>
+<ul>
+<li>Agent operational status</li>
+<li>File system monitoring status</li>
+<li>Event system health</li>
+<li>Framework integration status</li>
+<li>Configuration validity</li>
+</ul>
+<h2 id="startup-events">Startup Events</h2>
+<ul>
+<li><code class="verbatim">ByteHotAgentAttached</code>: Agent
+successfully attached</li>
+<li><code class="verbatim">WatchPathConfigured</code>: Each watch path
+successfully configured</li>
+<li><code class="verbatim">HotSwapCapabilityEnabled</code>: Hot-swap
+enabled for each eligible class</li>
+<li>Configuration loading events</li>
+<li>Error events for any startup issues</li>
+</ul>
+<h1 id="architecture-integration">Architecture Integration</h1>
+<p>This startup flow establishes the foundation for ByteHot's
+architecture:</p>
+<h2 id="hexagonal-architecture-setup">Hexagonal Architecture Setup</h2>
+<ul>
+<li>Ports and adapters properly configured</li>
+<li>Domain layer isolated from infrastructure concerns</li>
+<li>Clear boundaries between layers established</li>
+</ul>
+<h2 id="event-driven-system-activation">Event-Driven System
+Activation</h2>
+<ul>
+<li>Event routing infrastructure operational</li>
+<li>All components connected to event system</li>
+<li>Event flow validated end-to-end</li>
+</ul>
+<h2 id="domain-driven-design-foundation">Domain-Driven Design
+Foundation</h2>
+<ul>
+<li>Core domain concepts properly initialized</li>
+<li>Aggregates ready to process events</li>
+<li>Repository patterns established for configuration management</li>
+</ul>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flows/agent-startup-initialization-flow - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1
+id="overview-building-the-foundation-for-runtime-hot-swapping">Overview:
+Building the Foundation for Runtime Hot-Swapping</h1>
+<p>The Agent Startup and Initialization Flow represents the foundational
+bootstrap process that transforms a standard JVM into a ByteHot-enabled
+runtime environment capable of sophisticated hot-swapping operations.
+This flow demonstrates ByteHot's integration with the JVM
+instrumentation API, establishment of monitoring capabilities, and
+initialization of the complete event-driven architecture. Unlike simple
+agent loading, this flow shows the sophisticated initialization sequence
+that creates a fully operational, intelligent hot-swap system.</p>
+<h2 id="flow-participants-and-their-roles">Flow Participants and Their
+Roles</h2>
+<ul>
+<li><strong><strong>ByteHotAgent</strong></strong>: JVM agent entry
+point and instrumentation coordinator (Infrastructure)</li>
+<li><strong><strong>ByteHotApplication</strong></strong>: Application
+layer orchestration and dependency injection (Application)</li>
+<li><strong><strong>InstrumentationProvider</strong></strong>: JVM
+instrumentation abstraction (Domain)</li>
+<li><strong><strong>ConfigurationAdapter</strong></strong>: System
+configuration and environment setup (Infrastructure)</li>
+<li><strong><strong>WatchConfiguration</strong></strong>: File system
+monitoring configuration (Domain)</li>
+<li><strong><strong>UserContextResolver</strong></strong>: Automatic
+user identification and registration (Domain)</li>
+<li><strong><strong>EventStorePort</strong></strong>: Event sourcing
+infrastructure initialization (Domain)</li>
+<li><strong><strong>AgentCapabilities</strong></strong>: Capability
+discovery and validation (Domain)</li>
+</ul>
+<h2 id="what-this-flow-demonstrates">What This Flow Demonstrates</h2>
+<ul>
+<li><strong><strong>JVM instrumentation integration</strong></strong>
+with sophisticated capability detection</li>
+<li><strong><strong>Dependency injection and port
+configuration</strong></strong> across architectural layers</li>
+<li><strong><strong>Configuration discovery and
+validation</strong></strong> for different environments</li>
+<li><strong><strong>User auto-discovery and session
+initialization</strong></strong> for personalized experience</li>
+<li><strong><strong>Event sourcing infrastructure
+bootstrap</strong></strong> for complete system observability</li>
+</ul>
+<h2 id="the-initialization-pipeline">The Initialization Pipeline</h2>
+<pre><code>JVM Startup → Agent Attach → Instrumentation → Configuration → Dependency Injection → Monitoring Setup → Capability Validation
+     ↓             ↓           ↓                ↓               ↓                    ↓                ↓
+  Process        premain()   API Access      File Discovery    Port Resolution    File Watching    Ready State
+   Launch                                                                                         
+</code></pre>
+<h1 id="phase-1-jvm-agent-attachment-and-instrumentation-access">Phase
+1: JVM Agent Attachment and Instrumentation Access</h1>
+<p>The flow begins when the JVM loads the ByteHot agent, either at
+startup (premain) or dynamically (agentmain).</p>
+<h2 id="step-1.1-agent-entry-point-and-initial-setup">Step 1.1: Agent
+Entry Point and Initial Setup</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotAgent.java (Infrastructure Layer)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> ByteHotAgent <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Premain entry point for agent startup with JVM launch</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">premain</span><span class="op">(</span><span class="bu">String</span> agentArgs<span class="op">,</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Capture startup timestamp for performance analysis</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> Instant startupTime <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Parse agent arguments and environment</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> AgentConfiguration config <span class="op">=</span> <span class="fu">parseAgentConfiguration</span><span class="op">(</span>agentArgs<span class="op">);</span>  <span class="co">// → Step 1.2</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Initialize core instrumentation capabilities</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> InstrumentationProvider provider <span class="op">=</span> <span class="fu">initializeInstrumentation</span><span class="op">(</span>instrumentation<span class="op">);</span>  <span class="co">// → Step 1.3</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Bootstrap the application layer with instrumentation</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> ByteHotApplication application <span class="op">=</span> <span class="fu">bootstrapApplication</span><span class="op">(</span>config<span class="op">,</span> provider<span class="op">,</span> startupTime<span class="op">);</span>  <span class="co">// → Phase 2</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Register shutdown hooks for clean termination</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>            <span class="fu">registerShutdownHooks</span><span class="op">(</span>application<span class="op">);</span>  <span class="co">// → Step 1.4</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Emit agent attachment success event</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            <span class="fu">emitAgentAttachmentEvent</span><span class="op">(</span>application<span class="op">,</span> startupTime<span class="op">,</span> config<span class="op">);</span>  <span class="co">// → Step 1.5</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>            <span class="fu">handleAgentStartupFailure</span><span class="op">(</span>e<span class="op">,</span> agentArgs<span class="op">);</span>  <span class="co">// → Step 1.6</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Agentmain entry point for dynamic agent attachment</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">agentmain</span><span class="op">(</span><span class="bu">String</span> agentArgs<span class="op">,</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Dynamic attachment requires additional validation</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>            <span class="fu">validateDynamicAttachmentSupport</span><span class="op">(</span>instrumentation<span class="op">);</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Use same initialization flow as premain</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>            <span class="fu">premain</span><span class="op">(</span>agentArgs<span class="op">,</span> instrumentation<span class="op">);</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>            <span class="fu">handleDynamicAttachmentFailure</span><span class="op">(</span>e<span class="op">,</span> agentArgs<span class="op">);</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The agent entry
+points handle both startup and dynamic attachment scenarios, providing
+comprehensive error handling and environment validation from the
+earliest possible moment.</p>
+<h2 id="step-1.2-agent-configuration-parsing-and-validation">Step 1.2:
+Agent Configuration Parsing and Validation</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotAgent.java (Infrastructure Layer)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> AgentConfiguration <span class="fu">parseAgentConfiguration</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> agentArgs<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> AgentConfigurationBuilder builder <span class="op">=</span> <span class="kw">new</span> <span class="fu">AgentConfigurationBuilder</span><span class="op">();</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Parse command-line arguments if provided</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>agentArgs <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>agentArgs<span class="op">.</span><span class="fu">trim</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">parseAgentArguments</span><span class="op">(</span>agentArgs<span class="op">,</span> builder<span class="op">);</span>  <span class="co">// → Step 1.2a</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load configuration from system properties</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">loadSystemPropertyConfiguration</span><span class="op">(</span>builder<span class="op">);</span>  <span class="co">// → Step 1.2b</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load configuration from environment variables</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">loadEnvironmentConfiguration</span><span class="op">(</span>builder<span class="op">);</span>  <span class="co">// → Step 1.2c</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Apply default configuration for missing values</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">applyDefaultConfiguration</span><span class="op">(</span>builder<span class="op">);</span>  <span class="co">// → Step 1.2d</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate final configuration</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> AgentConfiguration config <span class="op">=</span> builder<span class="op">.</span><span class="fu">build</span><span class="op">();</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">validateAgentConfiguration</span><span class="op">(</span>config<span class="op">);</span>  <span class="co">// → Step 1.2e</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> config<span class="op">;</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">parseAgentArguments</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> agentArgs<span class="op">,</span> <span class="dt">final</span> AgentConfigurationBuilder builder<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Parse agent arguments: &quot;watchPath=/src/main/java,pollingInterval=500,logLevel=DEBUG&quot;</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span><span class="op">[]</span> arguments <span class="op">=</span> agentArgs<span class="op">.</span><span class="fu">split</span><span class="op">(</span><span class="st">&quot;,&quot;</span><span class="op">);</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> argument <span class="op">:</span> arguments<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span><span class="op">[]</span> keyValue <span class="op">=</span> argument<span class="op">.</span><span class="fu">split</span><span class="op">(</span><span class="st">&quot;=&quot;</span><span class="op">,</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>keyValue<span class="op">.</span><span class="fu">length</span> <span class="op">==</span> <span class="dv">2</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">String</span> key <span class="op">=</span> keyValue<span class="op">[</span><span class="dv">0</span><span class="op">].</span><span class="fu">trim</span><span class="op">();</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">String</span> value <span class="op">=</span> keyValue<span class="op">[</span><span class="dv">1</span><span class="op">].</span><span class="fu">trim</span><span class="op">();</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">switch</span> <span class="op">(</span>key<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;watchPath&quot;</span> <span class="op">-&gt;</span> builder<span class="op">.</span><span class="fu">withWatchPath</span><span class="op">(</span>Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span>value<span class="op">));</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;pollingInterval&quot;</span> <span class="op">-&gt;</span> builder<span class="op">.</span><span class="fu">withPollingInterval</span><span class="op">(</span><span class="bu">Integer</span><span class="op">.</span><span class="fu">parseInt</span><span class="op">(</span>value<span class="op">));</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;logLevel&quot;</span> <span class="op">-&gt;</span> builder<span class="op">.</span><span class="fu">withLogLevel</span><span class="op">(</span>LogLevel<span class="op">.</span><span class="fu">valueOf</span><span class="op">(</span>value<span class="op">.</span><span class="fu">toUpperCase</span><span class="op">()));</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;enableDiagnostics&quot;</span> <span class="op">-&gt;</span> builder<span class="op">.</span><span class="fu">withDiagnosticsEnabled</span><span class="op">(</span><span class="bu">Boolean</span><span class="op">.</span><span class="fu">parseBoolean</span><span class="op">(</span>value<span class="op">));</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;maxRetries&quot;</span> <span class="op">-&gt;</span> builder<span class="op">.</span><span class="fu">withMaxRetries</span><span class="op">(</span><span class="bu">Integer</span><span class="op">.</span><span class="fu">parseInt</span><span class="op">(</span>value<span class="op">));</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;userAutoDiscovery&quot;</span> <span class="op">-&gt;</span> builder<span class="op">.</span><span class="fu">withUserAutoDiscovery</span><span class="op">(</span><span class="bu">Boolean</span><span class="op">.</span><span class="fu">parseBoolean</span><span class="op">(</span>value<span class="op">));</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>                <span class="kw">default</span> <span class="op">-&gt;</span> <span class="fu">logUnknownAgentArgument</span><span class="op">(</span>key<span class="op">,</span> value<span class="op">);</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Configuration
+parsing is highly flexible, supporting multiple sources with clear
+precedence rules and comprehensive validation to prevent startup
+failures.</p>
+<h2 id="step-1.3-instrumentation-provider-initialization">Step 1.3:
+Instrumentation Provider Initialization</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: InstrumentationProvider.java (Domain Service)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> InstrumentationProvider <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">Set</span><span class="op">&lt;</span>AgentCapability<span class="op">&gt;</span> supportedCapabilities<span class="op">;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> InstrumentationMetrics metrics<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">static</span> InstrumentationProvider <span class="fu">initialize</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">)</span> <span class="kw">throws</span> InstrumentationException <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validate instrumentation API availability</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">validateInstrumentationAPI</span><span class="op">(</span>instrumentation<span class="op">);</span>  <span class="co">// → Step 1.3a</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Discover supported capabilities</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Set</span><span class="op">&lt;</span>AgentCapability<span class="op">&gt;</span> capabilities <span class="op">=</span> <span class="fu">discoverCapabilities</span><span class="op">(</span>instrumentation<span class="op">);</span>  <span class="co">// → Step 1.3b</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize performance metrics</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> InstrumentationMetrics metrics <span class="op">=</span> <span class="kw">new</span> <span class="fu">InstrumentationMetrics</span><span class="op">(</span>instrumentation<span class="op">);</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create provider instance</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> InstrumentationProvider provider <span class="op">=</span> <span class="kw">new</span> <span class="fu">InstrumentationProvider</span><span class="op">(</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            instrumentation<span class="op">,</span> </span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">,</span> </span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>            metrics</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validate critical capabilities</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        provider<span class="op">.</span><span class="fu">validateCriticalCapabilities</span><span class="op">();</span>  <span class="co">// → Step 1.3c</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> provider<span class="op">;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">validateInstrumentationAPI</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">)</span> <span class="kw">throws</span> InstrumentationException <span class="op">{</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Verify basic instrumentation functionality</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>instrumentation <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">InstrumentationException</span><span class="op">(</span><span class="st">&quot;Instrumentation API not available&quot;</span><span class="op">);</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check for required capabilities</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>instrumentation<span class="op">.</span><span class="fu">isRetransformClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">InstrumentationException</span><span class="op">(</span><span class="st">&quot;Class retransformation not supported by JVM&quot;</span><span class="op">);</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>instrumentation<span class="op">.</span><span class="fu">isRedefineClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">InstrumentationException</span><span class="op">(</span><span class="st">&quot;Class redefinition not supported by JVM&quot;</span><span class="op">);</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Verify we can access loaded classes</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">Class</span><span class="op">&lt;?&gt;[]</span> loadedClasses <span class="op">=</span> instrumentation<span class="op">.</span><span class="fu">getAllLoadedClasses</span><span class="op">();</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>loadedClasses<span class="op">.</span><span class="fu">length</span> <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>                <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">InstrumentationException</span><span class="op">(</span><span class="st">&quot;Cannot access loaded classes through instrumentation&quot;</span><span class="op">);</span></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">InstrumentationException</span><span class="op">(</span><span class="st">&quot;Failed to access loaded classes&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">static</span> <span class="bu">Set</span><span class="op">&lt;</span>AgentCapability<span class="op">&gt;</span> <span class="fu">discoverCapabilities</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Set</span><span class="op">&lt;</span>AgentCapability<span class="op">&gt;</span> capabilities <span class="op">=</span> <span class="bu">EnumSet</span><span class="op">.</span><span class="fu">noneOf</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Basic redefinition capabilities</span></span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">isRedefineClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span><span class="fu">add</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">CLASS_REDEFINITION</span><span class="op">);</span></span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">isRetransformClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span><span class="fu">add</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">CLASS_RETRANSFORMATION</span><span class="op">);</span></span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Advanced capabilities</span></span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">isNativeMethodPrefixSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span><span class="fu">add</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">NATIVE_METHOD_PREFIX</span><span class="op">);</span></span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check for module system support (Java 9+)</span></span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">isModuleSystemAvailable</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span><span class="fu">add</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">MODULE_REDEFINITION</span><span class="op">);</span></span>
+<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check for enhanced hot-swap features</span></span>
+<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">supportsEnhancedHotSwap</span><span class="op">(</span>instrumentation<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a>            capabilities<span class="op">.</span><span class="fu">add</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">ENHANCED_HOT_SWAP</span><span class="op">);</span></span>
+<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> capabilities<span class="op">;</span></span>
+<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-85"><a href="#cb4-85" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Instrumentation
+provider initialization performs comprehensive capability discovery and
+validation, ensuring ByteHot only enables features that are actually
+supported by the current JVM.</p>
+<h2 id="step-1.4-shutdown-hook-registration">Step 1.4: Shutdown Hook
+Registration</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotAgent.java (Infrastructure Layer)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">registerShutdownHooks</span><span class="op">(</span><span class="dt">final</span> ByteHotApplication application<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">Thread</span> shutdownHook <span class="op">=</span> <span class="kw">new</span> <span class="bu">Thread</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Graceful application shutdown</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>            application<span class="op">.</span><span class="fu">shutdown</span><span class="op">();</span>  <span class="co">// → Step 1.4a</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Log but don&#39;t fail shutdown</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Error during ByteHot shutdown: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">},</span> <span class="st">&quot;ByteHot-Shutdown-Hook&quot;</span><span class="op">);</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Register with JVM</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Runtime</span><span class="op">.</span><span class="fu">getRuntime</span><span class="op">().</span><span class="fu">addShutdownHook</span><span class="op">(</span>shutdownHook<span class="op">);</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Shutdown hooks
+ensure clean termination of ByteHot operations when the JVM exits,
+preventing resource leaks and ensuring proper state preservation.</p>
+<h1
+id="phase-2-application-layer-bootstrap-and-dependency-injection">Phase
+2: Application Layer Bootstrap and Dependency Injection</h1>
+<p>The application layer is initialized with comprehensive dependency
+injection and port configuration.</p>
+<h2 id="step-2.1-application-bootstrap-orchestration">Step 2.1:
+Application Bootstrap Orchestration</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> ByteHotApplication <span class="fu">bootstrap</span><span class="op">(</span><span class="dt">final</span> AgentConfiguration config<span class="op">,</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>                                         <span class="dt">final</span> InstrumentationProvider instrumentation<span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>                                         <span class="dt">final</span> Instant startupTime<span class="op">)</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create application instance</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ByteHotApplication application <span class="op">=</span> <span class="kw">new</span> <span class="fu">ByteHotApplication</span><span class="op">(</span>config<span class="op">,</span> instrumentation<span class="op">,</span> startupTime<span class="op">);</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Phase 1: Infrastructure initialization</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    application<span class="op">.</span><span class="fu">initializeInfrastructure</span><span class="op">();</span>  <span class="co">// → Step 2.2</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Phase 2: Domain service configuration</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    application<span class="op">.</span><span class="fu">configureDomainServices</span><span class="op">();</span>  <span class="co">// → Step 2.3</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Phase 3: Port and adapter binding</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    application<span class="op">.</span><span class="fu">bindPortsAndAdapters</span><span class="op">();</span>  <span class="co">// → Step 2.4</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Phase 4: Event sourcing setup</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    application<span class="op">.</span><span class="fu">initializeEventSourcing</span><span class="op">();</span>  <span class="co">// → Step 2.5</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Phase 5: Monitoring initialization</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    application<span class="op">.</span><span class="fu">initializeMonitoring</span><span class="op">();</span>  <span class="co">// → Step 2.6</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Phase 6: Capability validation and activation</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    application<span class="op">.</span><span class="fu">activateCapabilities</span><span class="op">();</span>  <span class="co">// → Step 2.7</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> application<span class="op">;</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Application
+bootstrap follows a carefully orchestrated sequence to ensure all
+components are initialized in the correct dependency order.</p>
+<h2 id="step-2.2-infrastructure-initialization">Step 2.2: Infrastructure
+Initialization</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">initializeInfrastructure</span><span class="op">()</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize configuration adapter</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">configurationAdapter</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">ConfigurationAdapter</span><span class="op">(</span>config<span class="op">);</span>  <span class="co">// → Step 2.2a</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Load and validate system configuration</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> SystemConfiguration systemConfig <span class="op">=</span> configurationAdapter<span class="op">.</span><span class="fu">loadSystemConfiguration</span><span class="op">();</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">validateSystemConfiguration</span><span class="op">(</span>systemConfig<span class="op">);</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize file system adapters</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">fileSystemAdapter</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">FileSystemAdapter</span><span class="op">(</span>systemConfig<span class="op">.</span><span class="fu">getFileSystemConfig</span><span class="op">());</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize serialization support</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">serializationSupport</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">EventSerializationSupport</span><span class="op">(</span>systemConfig<span class="op">.</span><span class="fu">getSerializationConfig</span><span class="op">());</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize logging infrastructure</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">loggingAdapter</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">LoggingAdapter</span><span class="op">(</span>systemConfig<span class="op">.</span><span class="fu">getLoggingConfig</span><span class="op">());</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize metrics collection</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">metricsAdapter</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">MetricsAdapter</span><span class="op">(</span>systemConfig<span class="op">.</span><span class="fu">getMetricsConfig</span><span class="op">());</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Failed to initialize infrastructure&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">validateSystemConfiguration</span><span class="op">(</span><span class="dt">final</span> SystemConfiguration systemConfig<span class="op">)</span> <span class="kw">throws</span> <span class="bu">ConfigurationException</span> <span class="op">{</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate watch path exists and is accessible</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Path watchPath <span class="op">=</span> systemConfig<span class="op">.</span><span class="fu">getWatchPath</span><span class="op">();</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>watchPath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">ConfigurationException</span><span class="op">(</span><span class="st">&quot;Watch path does not exist: &quot;</span> <span class="op">+</span> watchPath<span class="op">);</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">isDirectory</span><span class="op">(</span>watchPath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">ConfigurationException</span><span class="op">(</span><span class="st">&quot;Watch path is not a directory: &quot;</span> <span class="op">+</span> watchPath<span class="op">);</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">isReadable</span><span class="op">(</span>watchPath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">ConfigurationException</span><span class="op">(</span><span class="st">&quot;Watch path is not readable: &quot;</span> <span class="op">+</span> watchPath<span class="op">);</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate polling interval</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">int</span> pollingInterval <span class="op">=</span> systemConfig<span class="op">.</span><span class="fu">getPollingInterval</span><span class="op">();</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>pollingInterval <span class="op">&lt;</span> <span class="dv">10</span> <span class="op">||</span> pollingInterval <span class="op">&gt;</span> <span class="dv">10000</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">ConfigurationException</span><span class="op">(</span><span class="st">&quot;Invalid polling interval: &quot;</span> <span class="op">+</span> pollingInterval <span class="op">+</span> <span class="st">&quot;ms (must be 10-10000)&quot;</span><span class="op">);</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate event store configuration</span></span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">validateEventStoreConfiguration</span><span class="op">(</span>systemConfig<span class="op">.</span><span class="fu">getEventStoreConfig</span><span class="op">());</span></span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Infrastructure
+initialization includes comprehensive validation to catch configuration
+issues early in the startup process.</p>
+<h2 id="step-2.3-domain-service-configuration">Step 2.3: Domain Service
+Configuration</h2>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">configureDomainServices</span><span class="op">()</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize core domain services</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">bytecodeValidator</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">BytecodeValidator</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">hotSwapManager</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">HotSwapManager</span><span class="op">(</span>instrumentation<span class="op">);</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">classFileWatcher</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassFileWatcher</span><span class="op">(</span>config<span class="op">.</span><span class="fu">getWatchPath</span><span class="op">(),</span> config<span class="op">.</span><span class="fu">getPollingInterval</span><span class="op">());</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize user management services</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">userContextResolver</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">UserContextResolver</span><span class="op">(</span>config<span class="op">);</span>  <span class="co">// → Step 2.3a</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">userSession</span> <span class="op">=</span> <span class="fu">initializeUserSession</span><span class="op">();</span>  <span class="co">// → Step 2.3b</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize flow detection services</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">flowDetector</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">FlowDetector</span><span class="op">();</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize error handling services</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">errorHandler</span> <span class="op">=</span> <span class="kw">new</span> <span class="bu">ErrorHandler</span><span class="op">(</span>config<span class="op">.</span><span class="fu">getErrorHandlingConfig</span><span class="op">());</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize state preservation services</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">statePreserver</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">StatePreserver</span><span class="op">(</span>config<span class="op">.</span><span class="fu">getStatePreservationConfig</span><span class="op">());</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Failed to configure domain services&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> UserSession <span class="fu">initializeUserSession</span><span class="op">()</span> <span class="kw">throws</span> UserManagementException <span class="op">{</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Auto-discover user information</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> UserDiscoveryResult discovery <span class="op">=</span> userContextResolver<span class="op">.</span><span class="fu">discoverUser</span><span class="op">();</span>  <span class="co">// → Step 2.3c</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>discovery<span class="op">.</span><span class="fu">isSuccessful</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create session for discovered user</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> User user <span class="op">=</span> discovery<span class="op">.</span><span class="fu">getUser</span><span class="op">();</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> UserSession session <span class="op">=</span> UserSession<span class="op">.</span><span class="fu">start</span><span class="op">(</span>user<span class="op">,</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">());</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Emit user session started event</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        <span class="fu">emitUserSessionStarted</span><span class="op">(</span>session<span class="op">);</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> session<span class="op">;</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create anonymous session with auto-registration capability</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> UserSession<span class="op">.</span><span class="fu">createAnonymous</span><span class="op">(</span>Instant<span class="op">.</span><span class="fu">now</span><span class="op">());</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Domain service
+configuration includes automatic user discovery and session
+initialization, creating a personalized experience from system
+startup.</p>
+<h2 id="step-2.4-port-and-adapter-binding">Step 2.4: Port and Adapter
+Binding</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">bindPortsAndAdapters</span><span class="op">()</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create ports registry</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> PortsRegistry registry <span class="op">=</span> <span class="kw">new</span> <span class="fu">PortsRegistry</span><span class="op">();</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Bind event store port and adapter</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventStorePort eventStorePort <span class="op">=</span> registry<span class="op">.</span><span class="fu">createPort</span><span class="op">(</span>EventStorePort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> FilesystemEventStoreAdapter eventStoreAdapter <span class="op">=</span> <span class="kw">new</span> <span class="fu">FilesystemEventStoreAdapter</span><span class="op">(</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>            config<span class="op">.</span><span class="fu">getEventStorePath</span><span class="op">(),</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>            serializationSupport</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        registry<span class="op">.</span><span class="fu">bind</span><span class="op">(</span>eventStorePort<span class="op">,</span> eventStoreAdapter<span class="op">);</span>  <span class="co">// → Step 2.4a</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Bind event emitter port and adapter</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventEmitterPort eventEmitterPort <span class="op">=</span> registry<span class="op">.</span><span class="fu">createPort</span><span class="op">(</span>EventEmitterPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventEmitterAdapter eventEmitterAdapter <span class="op">=</span> <span class="kw">new</span> <span class="fu">EventEmitterAdapter</span><span class="op">(</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>            config<span class="op">.</span><span class="fu">getEmissionTarget</span><span class="op">(),</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>            config<span class="op">.</span><span class="fu">getLogPath</span><span class="op">()</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>        registry<span class="op">.</span><span class="fu">bind</span><span class="op">(</span>eventEmitterPort<span class="op">,</span> eventEmitterAdapter<span class="op">);</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Bind flow detection port and adapter</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> FlowDetectionPort flowDetectionPort <span class="op">=</span> registry<span class="op">.</span><span class="fu">createPort</span><span class="op">(</span>FlowDetectionPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> FilesystemFlowStoreAdapter flowStoreAdapter <span class="op">=</span> <span class="kw">new</span> <span class="fu">FilesystemFlowStoreAdapter</span><span class="op">(</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>            config<span class="op">.</span><span class="fu">getFlowStorePath</span><span class="op">(),</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>            serializationSupport</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>        registry<span class="op">.</span><span class="fu">bind</span><span class="op">(</span>flowDetectionPort<span class="op">,</span> flowStoreAdapter<span class="op">);</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Bind configuration port and adapter</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> ConfigurationPort configurationPort <span class="op">=</span> registry<span class="op">.</span><span class="fu">createPort</span><span class="op">(</span>ConfigurationPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>        registry<span class="op">.</span><span class="fu">bind</span><span class="op">(</span>configurationPort<span class="op">,</span> configurationAdapter<span class="op">);</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Configure dependency injection for domain layer</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>        Ports<span class="op">.</span><span class="fu">initialize</span><span class="op">(</span>registry<span class="op">);</span>  <span class="co">// → Step 2.4b</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Failed to bind ports and adapters&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">validatePortBinding</span><span class="op">(</span><span class="dt">final</span> PortsRegistry registry<span class="op">)</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Verify all critical ports are bound</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> <span class="bu">Port</span><span class="op">&gt;&gt;</span> criticalPorts <span class="op">=</span> <span class="bu">List</span><span class="op">.</span><span class="fu">of</span><span class="op">(</span></span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>        EventStorePort<span class="op">.</span><span class="fu">class</span><span class="op">,</span></span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>        EventEmitterPort<span class="op">.</span><span class="fu">class</span><span class="op">,</span></span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>        FlowDetectionPort<span class="op">.</span><span class="fu">class</span><span class="op">,</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>        ConfigurationPort<span class="op">.</span><span class="fu">class</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> <span class="bu">Port</span><span class="op">&gt;</span> portClass <span class="op">:</span> criticalPorts<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>registry<span class="op">.</span><span class="fu">isBound</span><span class="op">(</span>portClass<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Critical port not bound: &quot;</span> <span class="op">+</span> portClass<span class="op">.</span><span class="fu">getSimpleName</span><span class="op">());</span></span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Test port connectivity</span></span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">Port</span> port <span class="op">=</span> registry<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>portClass<span class="op">);</span></span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>            port<span class="op">.</span><span class="fu">validateConnection</span><span class="op">();</span></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Port connection validation failed: &quot;</span> <span class="op">+</span> portClass<span class="op">.</span><span class="fu">getSimpleName</span><span class="op">(),</span> e<span class="op">);</span></span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Port and adapter
+binding establishes the complete infrastructure abstraction that enables
+the domain layer to operate without infrastructure dependencies.</p>
+<h2 id="step-2.5-event-sourcing-infrastructure-setup">Step 2.5: Event
+Sourcing Infrastructure Setup</h2>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">initializeEventSourcing</span><span class="op">()</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize event store with validation</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventStorePort eventStore <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventStorePort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">validateEventStore</span><span class="op">(</span>eventStore<span class="op">);</span>  <span class="co">// → Step 2.5a</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize event snapshot generator</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">eventSnapshotGenerator</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">EventSnapshotGenerator</span><span class="op">(</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            eventStore<span class="op">,</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>            config<span class="op">.</span><span class="fu">getSnapshotConfig</span><span class="op">()</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize causal chain tracking</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">causalChainTracker</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">CausalChainTracker</span><span class="op">(</span>eventStore<span class="op">);</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Set up event replay capability</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">eventReplayEngine</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">EventReplayEngine</span><span class="op">(</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            eventStore<span class="op">,</span> </span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>            serializationSupport<span class="op">,</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>            <span class="kw">this</span><span class="op">::</span>replayEventHandler</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create initial system snapshot</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">createInitialSystemSnapshot</span><span class="op">();</span>  <span class="co">// → Step 2.5b</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Start background event archival if configured</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>config<span class="op">.</span><span class="fu">getEventArchivalConfig</span><span class="op">().</span><span class="fu">isEnabled</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>            <span class="fu">startEventArchivalProcess</span><span class="op">();</span>  <span class="co">// → Step 2.5c</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Failed to initialize event sourcing&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">validateEventStore</span><span class="op">(</span><span class="dt">final</span> EventStorePort eventStore<span class="op">)</span> <span class="kw">throws</span> EventStoreException <span class="op">{</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Test basic store operations</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create test event</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> TestEvent testEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">TestEvent</span><span class="op">(</span><span class="st">&quot;startup-validation&quot;</span><span class="op">,</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">());</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Test save operation</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>        eventStore<span class="op">.</span><span class="fu">save</span><span class="op">(</span>testEvent<span class="op">);</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Test retrieval operation</span></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>VersionedDomainEvent<span class="op">&gt;</span> retrievedEvents <span class="op">=</span> eventStore<span class="op">.</span><span class="fu">findEvents</span><span class="op">(</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>            testEvent<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>            testEvent<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">(),</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>            <span class="dv">0L</span><span class="op">,</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>            <span class="dv">1L</span></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>        <span class="op">).</span><span class="fu">get</span><span class="op">(</span><span class="dv">5</span><span class="op">,</span> <span class="bu">TimeUnit</span><span class="op">.</span><span class="fu">SECONDS</span><span class="op">);</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>retrievedEvents<span class="op">.</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">EventStoreException</span><span class="op">(</span><span class="st">&quot;Event store validation failed: saved event not retrievable&quot;</span><span class="op">);</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Clean up test event</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>        eventStore<span class="op">.</span><span class="fu">delete</span><span class="op">(</span>testEvent<span class="op">);</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">EventStoreException</span><span class="op">(</span><span class="st">&quot;Event store validation failed&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Event sourcing
+initialization includes comprehensive testing to ensure the persistence
+infrastructure is fully operational before ByteHot begins normal
+operations.</p>
+<h1 id="phase-3-monitoring-and-capability-activation">Phase 3:
+Monitoring and Capability Activation</h1>
+<p>The final phase activates file system monitoring and validates that
+all hot-swap capabilities are operational.</p>
+<h2 id="step-3.1-file-system-monitoring-activation">Step 3.1: File
+System Monitoring Activation</h2>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">initializeMonitoring</span><span class="op">()</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Start file system monitoring</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">startFileSystemMonitoring</span><span class="op">();</span>  <span class="co">// → Step 3.1a</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize performance monitoring</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">startPerformanceMonitoring</span><span class="op">();</span>  <span class="co">// → Step 3.1b</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize error monitoring</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">startErrorMonitoring</span><span class="op">();</span>  <span class="co">// → Step 3.1c</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Initialize user activity monitoring</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">startUserActivityMonitoring</span><span class="op">();</span>  <span class="co">// → Step 3.1d</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Failed to initialize monitoring&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">startFileSystemMonitoring</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create monitoring session</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> sessionId <span class="op">=</span> <span class="fu">generateSessionId</span><span class="op">();</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> FileMonitoringSession monitoringSession <span class="op">=</span> <span class="kw">new</span> <span class="fu">FileMonitoringSession</span><span class="op">(</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>        sessionId<span class="op">,</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>        config<span class="op">.</span><span class="fu">getWatchPath</span><span class="op">(),</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>        config<span class="op">.</span><span class="fu">getWatchConfiguration</span><span class="op">()</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Start monitoring with event handler</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>    monitoringSession<span class="op">.</span><span class="fu">start</span><span class="op">(</span><span class="kw">this</span><span class="op">::</span>handleFileSystemEvent<span class="op">);</span>  <span class="co">// → Step 3.1e</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Store session for lifecycle management</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">activeMonitoringSessions</span><span class="op">.</span><span class="fu">add</span><span class="op">(</span>monitoringSession<span class="op">);</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Emit monitoring started event</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchPathConfigured configuredEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">WatchPathConfigured</span><span class="op">(</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>        config<span class="op">.</span><span class="fu">getWatchPath</span><span class="op">(),</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>        config<span class="op">.</span><span class="fu">getWatchConfiguration</span><span class="op">(),</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>        sessionId<span class="op">,</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">emitEvent</span><span class="op">(</span>configuredEvent<span class="op">);</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">handleFileSystemEvent</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Object</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Route file system events to domain processing</span></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> ClassFileChanged classFileEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> DomainResponseEvent<span class="op">&lt;?&gt;</span> response <span class="op">=</span> <span class="fu">accept</span><span class="op">(</span>classFileEvent<span class="op">);</span>  <span class="co">// → Complete Hot-Swap Flow</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Emit response event</span></span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>response <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>                <span class="fu">emitEvent</span><span class="op">(</span>response<span class="op">);</span></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Handle file system event processing errors</span></span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a>        <span class="fu">handleFileSystemEventError</span><span class="op">(</span>event<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: File system
+monitoring activation creates the primary event source that drives the
+entire hot-swap system, establishing the reactive foundation for
+development workflow integration.</p>
+<h2 id="step-3.2-capability-validation-and-system-ready-state">Step 3.2:
+Capability Validation and System Ready State</h2>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">activateCapabilities</span><span class="op">()</span> <span class="kw">throws</span> BootstrapException <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validate all system capabilities</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> CapabilityValidationResult validation <span class="op">=</span> <span class="fu">validateSystemCapabilities</span><span class="op">();</span>  <span class="co">// → Step 3.2a</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>validation<span class="op">.</span><span class="fu">allCapabilitiesValid</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>            <span class="fu">handleCapabilityValidationFailures</span><span class="op">(</span>validation<span class="op">);</span>  <span class="co">// → Step 3.2b</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Activate hot-swap capabilities</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">activateHotSwapCapabilities</span><span class="op">();</span>  <span class="co">// → Step 3.2c</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Emit system ready event</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">emitSystemReadyEvent</span><span class="op">();</span>  <span class="co">// → Step 3.2d</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Log successful startup</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">logSuccessfulStartup</span><span class="op">();</span>  <span class="co">// → Step 3.2e</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BootstrapException</span><span class="op">(</span><span class="st">&quot;Failed to activate capabilities&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> CapabilityValidationResult <span class="fu">validateSystemCapabilities</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> CapabilityValidationResult result <span class="op">=</span> <span class="kw">new</span> <span class="fu">CapabilityValidationResult</span><span class="op">();</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate instrumentation capabilities</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    result<span class="op">.</span><span class="fu">addValidation</span><span class="op">(</span><span class="st">&quot;instrumentation&quot;</span><span class="op">,</span> <span class="fu">validateInstrumentationCapabilities</span><span class="op">());</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate file system capabilities</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    result<span class="op">.</span><span class="fu">addValidation</span><span class="op">(</span><span class="st">&quot;filesystem&quot;</span><span class="op">,</span> <span class="fu">validateFileSystemCapabilities</span><span class="op">());</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate event sourcing capabilities</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>    result<span class="op">.</span><span class="fu">addValidation</span><span class="op">(</span><span class="st">&quot;event_sourcing&quot;</span><span class="op">,</span> <span class="fu">validateEventSourcingCapabilities</span><span class="op">());</span></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate serialization capabilities</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>    result<span class="op">.</span><span class="fu">addValidation</span><span class="op">(</span><span class="st">&quot;serialization&quot;</span><span class="op">,</span> <span class="fu">validateSerializationCapabilities</span><span class="op">());</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate user management capabilities</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>    result<span class="op">.</span><span class="fu">addValidation</span><span class="op">(</span><span class="st">&quot;user_management&quot;</span><span class="op">,</span> <span class="fu">validateUserManagementCapabilities</span><span class="op">());</span></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Validate monitoring capabilities</span></span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>    result<span class="op">.</span><span class="fu">addValidation</span><span class="op">(</span><span class="st">&quot;monitoring&quot;</span><span class="op">,</span> <span class="fu">validateMonitoringCapabilities</span><span class="op">());</span></span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result<span class="op">;</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">activateHotSwapCapabilities</span><span class="op">()</span> <span class="kw">throws</span> CapabilityActivationException <span class="op">{</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Activate class redefinition capability</span></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">getCapabilities</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">CLASS_REDEFINITION</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>        <span class="fu">enableClassRedefinition</span><span class="op">();</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Activate class retransformation capability</span></span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">getCapabilities</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">CLASS_RETRANSFORMATION</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>        <span class="fu">enableClassRetransformation</span><span class="op">();</span></span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Activate enhanced hot-swap if supported</span></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">getCapabilities</span><span class="op">().</span><span class="fu">contains</span><span class="op">(</span>AgentCapability<span class="op">.</span><span class="fu">ENHANCED_HOT_SWAP</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>        <span class="fu">enableEnhancedHotSwap</span><span class="op">();</span></span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Emit capability enabled events</span></span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> AgentCapability capability <span class="op">:</span> instrumentation<span class="op">.</span><span class="fu">getCapabilities</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> HotSwapCapabilityEnabled capabilityEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">HotSwapCapabilityEnabled</span><span class="op">(</span></span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true" tabindex="-1"></a>            capability<span class="op">,</span></span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true" tabindex="-1"></a>            config<span class="op">.</span><span class="fu">getWatchPath</span><span class="op">(),</span></span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true" tabindex="-1"></a>            Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true" tabindex="-1"></a>        <span class="fu">emitEvent</span><span class="op">(</span>capabilityEvent<span class="op">);</span></span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">emitSystemReadyEvent</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">Duration</span> startupDuration <span class="op">=</span> <span class="bu">Duration</span><span class="op">.</span><span class="fu">between</span><span class="op">(</span>startupTime<span class="op">,</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">());</span></span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ByteHotAgentAttached readyEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">ByteHotAgentAttached</span><span class="op">(</span></span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true" tabindex="-1"></a>        instrumentation<span class="op">.</span><span class="fu">getCapabilities</span><span class="op">(),</span></span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true" tabindex="-1"></a>        config<span class="op">.</span><span class="fu">getWatchPath</span><span class="op">(),</span></span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true" tabindex="-1"></a>        userSession<span class="op">.</span><span class="fu">getUser</span><span class="op">().</span><span class="fu">getId</span><span class="op">(),</span></span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true" tabindex="-1"></a>        startupDuration<span class="op">,</span></span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb12-85"><a href="#cb12-85" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb12-86"><a href="#cb12-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-87"><a href="#cb12-87" aria-hidden="true" tabindex="-1"></a>    <span class="fu">emitEvent</span><span class="op">(</span>readyEvent<span class="op">);</span></span>
+<span id="cb12-88"><a href="#cb12-88" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Capability
+activation performs final validation that all ByteHot features are
+operational and emits the system ready event that signals full
+operational status.</p>
+<h1 id="phase-4-startup-performance-analysis-and-optimization">Phase 4:
+Startup Performance Analysis and Optimization</h1>
+<p>The system analyzes its own startup performance and optimizes future
+initialization cycles.</p>
+<h2 id="step-4.1-startup-metrics-collection-and-analysis">Step 4.1:
+Startup Metrics Collection and Analysis</h2>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: StartupPerformanceAnalyzer.java (Domain Service)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> StartupPerformanceAnalyzer <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">analyzeStartupPerformance</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Duration</span> totalStartupTime<span class="op">,</span> </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                        <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">Duration</span><span class="op">&gt;</span> phaseTimings<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Collect detailed timing metrics</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> StartupMetrics metrics <span class="op">=</span> <span class="fu">collectStartupMetrics</span><span class="op">(</span>totalStartupTime<span class="op">,</span> phaseTimings<span class="op">);</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Analyze performance against benchmarks</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> PerformanceAnalysis analysis <span class="op">=</span> <span class="fu">analyzePerformance</span><span class="op">(</span>metrics<span class="op">);</span>  <span class="co">// → Step 4.1a</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Identify optimization opportunities</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;</span> opportunities <span class="op">=</span> <span class="fu">identifyOptimizations</span><span class="op">(</span>analysis<span class="op">);</span>  <span class="co">// → Step 4.1b</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Apply automatic optimizations if safe</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">applyAutomaticOptimizations</span><span class="op">(</span>opportunities<span class="op">);</span>  <span class="co">// → Step 4.1c</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Store performance data for trend analysis</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        <span class="fu">storePerformanceData</span><span class="op">(</span>metrics<span class="op">,</span> analysis<span class="op">);</span>  <span class="co">// → Step 4.1d</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> PerformanceAnalysis <span class="fu">analyzePerformance</span><span class="op">(</span><span class="dt">final</span> StartupMetrics metrics<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> PerformanceAnalysisBuilder analysis <span class="op">=</span> <span class="kw">new</span> <span class="fu">PerformanceAnalysisBuilder</span><span class="op">();</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Analyze total startup time</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>metrics<span class="op">.</span><span class="fu">getTotalStartupTime</span><span class="op">().</span><span class="fu">compareTo</span><span class="op">(</span>ACCEPTABLE_STARTUP_TIME<span class="op">)</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>            analysis<span class="op">.</span><span class="fu">addIssue</span><span class="op">(</span>PerformanceIssue<span class="op">.</span><span class="fu">SLOW_STARTUP</span><span class="op">,</span> metrics<span class="op">.</span><span class="fu">getTotalStartupTime</span><span class="op">());</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Analyze individual phase timings</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Map</span><span class="op">.</span><span class="fu">Entry</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">Duration</span><span class="op">&gt;</span> phaseEntry <span class="op">:</span> metrics<span class="op">.</span><span class="fu">getPhaseTimings</span><span class="op">().</span><span class="fu">entrySet</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">String</span> phase <span class="op">=</span> phaseEntry<span class="op">.</span><span class="fu">getKey</span><span class="op">();</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">Duration</span> phaseDuration <span class="op">=</span> phaseEntry<span class="op">.</span><span class="fu">getValue</span><span class="op">();</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">Duration</span> expectedDuration <span class="op">=</span> <span class="fu">getExpectedPhaseDuration</span><span class="op">(</span>phase<span class="op">);</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>phaseDuration<span class="op">.</span><span class="fu">compareTo</span><span class="op">(</span>expectedDuration<span class="op">.</span><span class="fu">multipliedBy</span><span class="op">(</span><span class="dv">2</span><span class="op">))</span> <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>                analysis<span class="op">.</span><span class="fu">addIssue</span><span class="op">(</span>PerformanceIssue<span class="op">.</span><span class="fu">SLOW_PHASE</span><span class="op">,</span> phase<span class="op">,</span> phaseDuration<span class="op">);</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Analyze resource usage during startup</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>        <span class="fu">analyzeResourceUsage</span><span class="op">(</span>metrics<span class="op">,</span> analysis<span class="op">);</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Analyze dependency initialization order</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>        <span class="fu">analyzeDependencyOrder</span><span class="op">(</span>metrics<span class="op">,</span> analysis<span class="op">);</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> analysis<span class="op">.</span><span class="fu">build</span><span class="op">();</span></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;</span> <span class="fu">identifyOptimizations</span><span class="op">(</span><span class="dt">final</span> PerformanceAnalysis analysis<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;</span> opportunities <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Configuration loading optimizations</span></span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>analysis<span class="op">.</span><span class="fu">hasSlowPhase</span><span class="op">(</span><span class="st">&quot;configuration_loading&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ConfigurationCachingOptimization</span><span class="op">());</span></span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">LazyConfigurationLoadingOptimization</span><span class="op">());</span></span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Event store initialization optimizations</span></span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>analysis<span class="op">.</span><span class="fu">hasSlowPhase</span><span class="op">(</span><span class="st">&quot;event_sourcing_init&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">EventStorePrewarmingOptimization</span><span class="op">());</span></span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ParallelEventStoreInitOptimization</span><span class="op">());</span></span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a>        <span class="co">// File system monitoring optimizations</span></span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>analysis<span class="op">.</span><span class="fu">hasSlowPhase</span><span class="op">(</span><span class="st">&quot;monitoring_init&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-67"><a href="#cb13-67" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">WatchServiceOptimization</span><span class="op">());</span></span>
+<span id="cb13-68"><a href="#cb13-68" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">LazyMonitoringActivationOptimization</span><span class="op">());</span></span>
+<span id="cb13-69"><a href="#cb13-69" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-70"><a href="#cb13-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-71"><a href="#cb13-71" aria-hidden="true" tabindex="-1"></a>        <span class="co">// User discovery optimizations</span></span>
+<span id="cb13-72"><a href="#cb13-72" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>analysis<span class="op">.</span><span class="fu">hasSlowPhase</span><span class="op">(</span><span class="st">&quot;user_discovery&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-73"><a href="#cb13-73" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">UserContextCachingOptimization</span><span class="op">());</span></span>
+<span id="cb13-74"><a href="#cb13-74" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">AsynchronousUserDiscoveryOptimization</span><span class="op">());</span></span>
+<span id="cb13-75"><a href="#cb13-75" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-76"><a href="#cb13-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-77"><a href="#cb13-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> opportunities<span class="op">;</span></span>
+<span id="cb13-78"><a href="#cb13-78" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-79"><a href="#cb13-79" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Startup
+performance analysis enables ByteHot to continuously improve its
+initialization time through data-driven optimization.</p>
+<h2 id="step-4.2-adaptive-startup-optimization">Step 4.2: Adaptive
+Startup Optimization</h2>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: AdaptiveStartupOptimizer.java (Domain Service)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> AdaptiveStartupOptimizer <span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">optimizeStartupSequence</span><span class="op">(</span><span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;</span> opportunities<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Group optimizations by safety level</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span>SafetyLevel<span class="op">,</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;&gt;</span> groupedOptimizations <span class="op">=</span> </span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>            opportunities<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">groupingBy</span><span class="op">(</span>OptimizationOpportunity<span class="op">::</span>getSafetyLevel<span class="op">));</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Apply safe optimizations immediately</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        <span class="fu">applySafeOptimizations</span><span class="op">(</span>groupedOptimizations<span class="op">.</span><span class="fu">get</span><span class="op">(</span>SafetyLevel<span class="op">.</span><span class="fu">SAFE</span><span class="op">));</span>  <span class="co">// → Step 4.2a</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Schedule conservative optimizations for next startup</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scheduleConservativeOptimizations</span><span class="op">(</span>groupedOptimizations<span class="op">.</span><span class="fu">get</span><span class="op">(</span>SafetyLevel<span class="op">.</span><span class="fu">CONSERVATIVE</span><span class="op">));</span>  <span class="co">// → Step 4.2b</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Require explicit approval for experimental optimizations</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">requestApprovalForExperimentalOptimizations</span><span class="op">(</span>groupedOptimizations<span class="op">.</span><span class="fu">get</span><span class="op">(</span>SafetyLevel<span class="op">.</span><span class="fu">EXPERIMENTAL</span><span class="op">));</span>  <span class="co">// → Step 4.2c</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">applySafeOptimizations</span><span class="op">(</span><span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;</span> safeOptimizations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> OptimizationOpportunity optimization <span class="op">:</span> safeOptimizations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> OptimizationResult result <span class="op">=</span> optimization<span class="op">.</span><span class="fu">apply</span><span class="op">();</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>result<span class="op">.</span><span class="fu">isSuccessful</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">logOptimizationSuccess</span><span class="op">(</span>optimization<span class="op">,</span> result<span class="op">);</span></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">storeOptimizationResult</span><span class="op">(</span>optimization<span class="op">,</span> result<span class="op">);</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">logOptimizationFailure</span><span class="op">(</span>optimization<span class="op">,</span> result<span class="op">);</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// Safe optimizations that fail are simply logged, not retried</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a>                <span class="fu">logOptimizationException</span><span class="op">(</span>optimization<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Continue with other optimizations even if one fails</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">scheduleConservativeOptimizations</span><span class="op">(</span><span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>OptimizationOpportunity<span class="op">&gt;</span> conservativeOptimizations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create optimization configuration for next startup</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> StartupOptimizationConfig optimizationConfig <span class="op">=</span> <span class="kw">new</span> <span class="fu">StartupOptimizationConfig</span><span class="op">();</span></span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> OptimizationOpportunity optimization <span class="op">:</span> conservativeOptimizations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Add optimization to configuration with validation requirements</span></span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>            optimizationConfig<span class="op">.</span><span class="fu">addOptimization</span><span class="op">(</span></span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>                optimization<span class="op">,</span></span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>                <span class="kw">true</span><span class="op">,</span>  <span class="co">// require validation</span></span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>                <span class="fu">createValidationCriteria</span><span class="op">(</span>optimization<span class="op">)</span></span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Store configuration for next startup</span></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a>        <span class="fu">storeOptimizationConfig</span><span class="op">(</span>optimizationConfig<span class="op">);</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Notify user about scheduled optimizations</span></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a>        <span class="fu">notifyUserAboutScheduledOptimizations</span><span class="op">(</span>conservativeOptimizations<span class="op">);</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Adaptive startup
+optimization enables ByteHot to improve its performance over time while
+maintaining system stability through careful safety analysis.</p>
+<h1 id="cross-cutting-startup-patterns">Cross-Cutting Startup
+Patterns</h1>
+<h2 id="configuration-cascade-pattern">Configuration Cascade
+Pattern</h2>
+<p>Configuration is loaded from multiple sources with clear
+precedence:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration precedence (highest to lowest):</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Agent arguments (explicit user specification)</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. System properties (runtime configuration)</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Environment variables (deployment configuration)</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Configuration files (persistent configuration)</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Default values (fallback configuration)</span></span></code></pre></div>
+<h2 id="graceful-degradation-pattern">Graceful Degradation Pattern</h2>
+<p>Startup continues even when non-critical components fail:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Pattern for graceful degradation during startup</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">initializeOptionalComponent</span><span class="op">();</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">logComponentInitializationFailure</span><span class="op">(</span>e<span class="op">);</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">disableRelatedFeatures</span><span class="op">();</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">continueWithReducedFunctionality</span><span class="op">();</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="dependency-validation-pattern">Dependency Validation
+Pattern</h2>
+<p>All critical dependencies are validated before activation:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Pattern for dependency validation</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">validateDependency</span><span class="op">(</span>Dependency dependency<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>dependency<span class="op">.</span><span class="fu">isAvailable</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">DependencyException</span><span class="op">(</span><span class="st">&quot;Critical dependency unavailable&quot;</span><span class="op">);</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>dependency<span class="op">.</span><span class="fu">isCompatible</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">DependencyException</span><span class="op">(</span><span class="st">&quot;Dependency version incompatible&quot;</span><span class="op">);</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    dependency<span class="op">.</span><span class="fu">validateConnection</span><span class="op">();</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="startup-completion-and-system-state">Startup Completion and
+System State</h1>
+<h2 id="successful-startup-indicators">Successful Startup
+Indicators</h2>
+<p>A successful ByteHot startup is indicated by:</p>
+<ul>
+<li>All critical capabilities validated and activated</li>
+<li>File system monitoring operational</li>
+<li>Event sourcing infrastructure ready</li>
+<li>User session established</li>
+<li>Performance within acceptable parameters</li>
+</ul>
+<h2 id="system-health-monitoring">System Health Monitoring</h2>
+<p>Post-startup system health is continuously monitored:</p>
+<ul>
+<li>JVM instrumentation API responsiveness</li>
+<li>File system event processing latency</li>
+<li>Event store write/read performance</li>
+<li>Memory usage and garbage collection impact</li>
+</ul>
+<h2 id="integration-validation">Integration Validation</h2>
+<p>ByteHot validates its integration with the host application:</p>
+<ul>
+<li>No interference with application class loading</li>
+<li>Minimal performance impact on normal operations</li>
+<li>Proper isolation of ByteHot operations</li>
+<li>Clean resource management</li>
+</ul>
+<h1 id="conclusion-foundation-for-intelligent-hot-swapping">Conclusion:
+Foundation for Intelligent Hot-Swapping</h1>
+<p>The Agent Startup and Initialization Flow demonstrates how ByteHot
+transforms a standard JVM into an intelligent, hot-swap-enabled
+development environment through sophisticated bootstrap procedures. By
+carefully orchestrating instrumentation access, dependency injection,
+configuration management, and capability activation, ByteHot creates a
+robust foundation that supports all other system operations while
+maintaining performance and reliability.</p>
+<p>This flow shows how complex system initialization can be managed
+through clean architectural principles, comprehensive error handling,
+and adaptive optimization to create a system that not only starts
+reliably but improves its performance over time.</p>
+<h2 id="related-flow-documentation">Related Flow Documentation</h2>
+<ul>
+<li><span class="spurious-link"
+target="complete-hot-swap-flow.org"><em>Complete Hot-Swap
+Flow</em></span>: Core hot-swap operations enabled by startup</li>
+<li><span class="spurious-link"
+target="file-change-detection-flow.org"><em>File Change Detection
+Flow</em></span>: Monitoring activated during startup</li>
+<li><span class="spurious-link"
+target="user-management-flow.org"><em>User Management Flow</em></span>:
+User discovery performed during startup</li>
+</ul>
+<h2 id="next-steps-for-startup-evolution">Next Steps for Startup
+Evolution</h2>
+<ol>
+<li><strong><strong>Predictive Startup Optimization</strong></strong>:
+Use machine learning to predict optimal startup configurations</li>
+<li><strong><strong>Distributed Startup Coordination</strong></strong>:
+Support for multi-JVM ByteHot deployments</li>
+<li><strong><strong>Container Integration</strong></strong>: Specialized
+startup procedures for containerized environments</li>
+<li><strong><strong>IDE Integration</strong></strong>: Direct
+integration with development environment startup procedures</li>
+</ol>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

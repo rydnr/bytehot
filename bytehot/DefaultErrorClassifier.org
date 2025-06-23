@@ -1,0 +1,53 @@
+#+TITLE: DefaultErrorClassifier - Default Error Classification Implementation
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~DefaultErrorClassifier~ class provides the default implementation of error classification using the double dispatch pattern, offering comprehensive type-specific error classification for all supported exception types in ByteHot.
+
+* Implementation Structure
+
+** Core Classification Methods
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/DefaultErrorClassifier.java
+/**
+ * Singleton instance for global error classification access
+ */
+private static final DefaultErrorClassifier INSTANCE = new DefaultErrorClassifier();
+
+/**
+ * Gets the singleton instance for default error classification
+ * @return the default error classifier instance
+ */
+public static DefaultErrorClassifier getInstance() {
+    return INSTANCE;
+}
+
+@Override
+public ErrorType classifyBytecodeValidationException(final BytecodeValidationException exception) {
+    return ErrorType.VALIDATION_ERROR;
+}
+
+@Override  
+public ErrorType classifyHotSwapException(final HotSwapException exception) {
+    return ErrorType.REDEFINITION_FAILURE;
+}
+
+@Override
+public ErrorType classifyEventSnapshotException(final EventSnapshotException exception) {
+    // Delegate to the original exception if available
+    Throwable originalException = exception.getOriginalException();
+    if (originalException != null) {
+        return classifyThrowable(originalException);
+    }
+    return ErrorType.UNKNOWN_ERROR;
+}
+#+END_SRC
+
+* Related Documentation
+
+- [[ErrorClassifier.org][ErrorClassifier]]: Interface implemented by this class
+- [[ErrorType.org][ErrorType]]: Error types returned by classification
+- [[ErrorClassifiable.org][ErrorClassifiable]]: Interface using this classifier
+
+The DefaultErrorClassifier provides ByteHot's standard error classification implementation using the visitor pattern.

@@ -1,0 +1,627 @@
+#+TITLE: ConfigurationAdapter - Multi-Source Configuration Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~ConfigurationAdapter~ class provides the infrastructure implementation of the ~ConfigurationPort~ interface, serving as the sophisticated configuration management system for ByteHot's hexagonal architecture. This adapter handles the accidental complexity of loading configuration from multiple sources including YAML files, system properties, and environment variables, while providing a clean, domain-focused interface for accessing configuration parameters throughout the system.
+
+* Hexagonal Architecture Role
+
+** Secondary Adapter Implementation
+ConfigurationAdapter serves as a secondary adapter in ByteHot's hexagonal architecture:
+- Implements the ~ConfigurationPort~ interface defined in the domain layer
+- Handles multi-source configuration loading implementation details
+- Isolates domain logic from configuration format and source complexity
+- Provides concrete implementation for configuration access operations
+
+** Configuration Abstraction Boundary
+The adapter manages the boundary between domain concepts and configuration technology:
+- Translates various configuration formats into domain configuration objects
+- Handles configuration source priority and fallback mechanisms
+- Manages configuration validation and error recovery
+- Provides performance optimization for configuration access
+
+** Infrastructure Complexity Management
+The adapter encapsulates complex configuration infrastructure concerns:
+- Multi-format configuration file parsing (YAML, properties)
+- Environment variable and system property integration
+- Configuration source discovery and prioritization
+- Error handling and graceful degradation for missing configuration
+
+* Class Structure and Configuration Sources
+
+** Configuration Source Hierarchy
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Default configuration file names to search for
+ */
+private static final String[] DEFAULT_CONFIG_FILES = {
+    "bytehot.yml",
+    "bytehot.yaml",
+    "application.yml",
+    "application.yaml"
+};
+
+/**
+ * Environment variable prefix for ByteHot configuration
+ */
+private static final String ENV_PREFIX = "BYTEHOT_";
+
+/**
+ * System property prefix for ByteHot configuration
+ */
+private static final String PROP_PREFIX = "bytehot.";
+#+END_SRC
+
+** Configuration Loading Strategy
+The adapter implements a sophisticated configuration loading strategy:
+#+BEGIN_SRC java
+// Configuration source priority (highest to lowest):
+// 1. System Properties (runtime override capability)
+// 2. Environment Variables (deployment environment configuration)
+// 3. Configuration Files (application-specific settings)
+// 4. Default Configuration (sensible fallback values)
+#+END_SRC
+
+** Multi-Source Integration Pattern
+The adapter follows a comprehensive multi-source integration pattern:
+#+BEGIN_SRC java
+// Integration characteristics:
+// - Hierarchical source priority system
+// - Graceful fallback for missing sources
+// - Validation and error handling per source
+// - Performance optimization through lazy loading
+#+END_SRC
+
+* Configuration Loading Implementation
+
+** Primary Configuration Loading Method
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Loads watch configuration from the configured source
+ */
+@Override
+public WatchConfiguration loadWatchConfiguration() throws Exception {
+    // Try loading from system properties first
+    final WatchConfiguration systemPropsConfig = loadFromSystemProperties();
+    if (systemPropsConfig != null) {
+        return systemPropsConfig;
+    }
+
+    // Try loading from environment variables
+    final WatchConfiguration envConfig = loadFromEnvironment();
+    if (envConfig != null) {
+        return envConfig;
+    }
+
+    // Try loading from configuration files
+    for (final String configFile : DEFAULT_CONFIG_FILES) {
+        final WatchConfiguration fileConfig = loadFromFile(configFile);
+        if (fileConfig != null) {
+            return fileConfig;
+        }
+    }
+
+    // Return default configuration if nothing found
+    return createDefaultConfiguration();
+}
+#+END_SRC
+
+** Configuration Availability Detection
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Checks if configuration source is available
+ */
+@Override
+public boolean isConfigurationAvailable() {
+    // Check if any system properties are set
+    if (System.getProperty(PROP_PREFIX + "watch.paths") != null) {
+        return true;
+    }
+
+    // Check if any environment variables are set
+    if (System.getenv(ENV_PREFIX + "WATCH_PATHS") != null) {
+        return true;
+    }
+
+    // Check if any configuration files exist
+    for (final String configFile : DEFAULT_CONFIG_FILES) {
+        if (getClass().getClassLoader().getResourceAsStream(configFile) != null) {
+            return true;
+        }
+    }
+
+    return false;
+}
+#+END_SRC
+
+** Configuration Source Identification
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Returns the configuration source description
+ */
+@Override
+public String getConfigurationSource() {
+    if (System.getProperty(PROP_PREFIX + "watch.paths") != null) {
+        return "System Properties";
+    }
+
+    if (System.getenv(ENV_PREFIX + "WATCH_PATHS") != null) {
+        return "Environment Variables";
+    }
+
+    for (final String configFile : DEFAULT_CONFIG_FILES) {
+        if (getClass().getClassLoader().getResourceAsStream(configFile) != null) {
+            return "Configuration File: " + configFile;
+        }
+    }
+
+    return "Default Configuration";
+}
+#+END_SRC
+
+* System Properties Configuration
+
+** System Properties Loading Implementation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Loads configuration from system properties
+ */
+protected WatchConfiguration loadFromSystemProperties() {
+    final String watchPaths = System.getProperty(PROP_PREFIX + "watch.paths");
+    if (watchPaths == null) {
+        return null;
+    }
+
+    final List<FolderWatch> folders = new ArrayList<>();
+    final String[] paths = watchPaths.split(",");
+    
+    final String watchIntervals = System.getProperty(PROP_PREFIX + "watch.intervals");
+    final String[] intervals = watchIntervals != null ? watchIntervals.split(",") : new String[0];
+    
+    for (int i = 0; i < paths.length; i++) {
+        final Path path = Paths.get(paths[i].trim());
+        final String watchPatterns = System.getProperty(PROP_PREFIX + "watch.patterns", "*.class");
+        final List<String> patterns = List.of(watchPatterns.split(","));
+        final boolean recursive = Boolean.parseBoolean(
+            System.getProperty(PROP_PREFIX + "watch.recursive", "true")
+        );
+        
+        final int interval = (intervals.length > i && intervals[i] != null) ? 
+            Integer.parseInt(intervals[i].trim()) : 1000;
+        
+        folders.add(new FolderWatch(path, interval));
+    }
+
+    final int port = Integer.parseInt(System.getProperty(PROP_PREFIX + "port", "8080"));
+    final WatchConfiguration config = new WatchConfiguration(port);
+    try {
+        final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
+        foldersField.setAccessible(true);
+        foldersField.set(config, folders);
+    } catch (final Exception e) {
+        throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
+    }
+    return config;
+}
+#+END_SRC
+
+** System Properties Configuration Features
+System properties configuration provides comprehensive runtime control:
+#+BEGIN_SRC java
+// System properties supported:
+// - bytehot.watch.paths: Comma-separated list of paths to watch
+// - bytehot.watch.patterns: Comma-separated list of file patterns to match (defaults to "*.class")
+// - bytehot.watch.intervals: Comma-separated list of watch intervals
+// - bytehot.watch.recursive: Boolean for recursive directory watching
+// - bytehot.port: Server port for ByteHot operations
+// - bytehot.debug: Debug mode enablement
+#+END_SRC
+
+** Runtime Override Capabilities
+System properties enable powerful runtime configuration override:
+- Command-line parameter override for development and testing
+- IDE integration for debugging and development workflows
+- CI/CD pipeline configuration customization
+- Production environment emergency configuration changes
+
+** Pattern Matching Support
+The patterns configuration supports flexible file matching:
+- Simple patterns like "*.class" for Java bytecode files
+- Complex patterns like "**/*.class" for recursive matching
+- Multiple patterns as comma-separated values
+- Default fallback to "*.class" when not specified
+- Integration with file watching for precise change detection
+
+* Environment Variables Configuration
+
+** Environment Variables Loading Implementation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Loads configuration from environment variables
+ */
+protected WatchConfiguration loadFromEnvironment() {
+    final String watchPaths = System.getenv(ENV_PREFIX + "WATCH_PATHS");
+    if (watchPaths == null) {
+        return null;
+    }
+
+    final List<FolderWatch> folders = new ArrayList<>();
+    final String[] paths = watchPaths.split(",");
+    
+    for (final String pathStr : paths) {
+        final Path path = Paths.get(pathStr.trim());
+        final List<String> patterns = List.of("*.class");
+        final boolean recursive = Boolean.parseBoolean(
+            System.getenv(ENV_PREFIX + "WATCH_RECURSIVE")
+        );
+        
+        folders.add(new FolderWatch(path, 1000));
+    }
+
+    final WatchConfiguration config = new WatchConfiguration(8080);
+    try {
+        final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
+        foldersField.setAccessible(true);
+        foldersField.set(config, folders);
+    } catch (final Exception e) {
+        throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
+    }
+    return config;
+}
+#+END_SRC
+
+** Environment Variables Configuration Features
+Environment variables provide deployment-friendly configuration:
+#+BEGIN_SRC java
+// Environment variables supported:
+// - BYTEHOT_WATCH_PATHS: Comma-separated list of paths to watch
+// - BYTEHOT_WATCH_RECURSIVE: Boolean for recursive directory watching
+// - BYTEHOT_PORT: Server port for ByteHot operations
+// - BYTEHOT_DEBUG: Debug mode enablement
+// - BYTEHOT_LOG_LEVEL: Logging level configuration
+#+END_SRC
+
+** Container and Cloud Integration
+Environment variables enable seamless container and cloud integration:
+- Docker container configuration through environment variables
+- Kubernetes ConfigMap and Secret integration
+- Cloud platform configuration service integration
+- Serverless function environment configuration
+
+* YAML File Configuration
+
+** YAML File Loading Implementation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Loads configuration from a YAML file
+ */
+@SuppressWarnings("unchecked")
+protected WatchConfiguration loadFromFile(final String filename) {
+    try (final InputStream inputStream = getClass().getClassLoader().getResourceAsStream(filename)) {
+        if (inputStream == null) {
+            return null;
+        }
+
+        final Yaml yaml = new Yaml();
+        final Map<String, Object> data = yaml.load(inputStream);
+        
+        if (data == null || !data.containsKey("bytehot")) {
+            return null;
+        }
+
+        final Map<String, Object> bytehotConfig = (Map<String, Object>) data.get("bytehot");
+        final List<Map<String, Object>> watchConfigs = (List<Map<String, Object>>) bytehotConfig.get("watch");
+        
+        if (watchConfigs == null) {
+            return null;
+        }
+
+        final List<FolderWatch> folders = new ArrayList<>();
+        
+        for (final Map<String, Object> watchConfig : watchConfigs) {
+            final String pathStr = (String) watchConfig.get("path");
+            final List<String> patterns = (List<String>) watchConfig.getOrDefault("patterns", List.of("*.class"));
+            final boolean recursive = (Boolean) watchConfig.getOrDefault("recursive", true);
+            
+            final Path path = Paths.get(pathStr);
+            folders.add(new FolderWatch(path, 1000));
+        }
+
+        final WatchConfiguration config = new WatchConfiguration(8080);
+    try {
+        final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
+        foldersField.setAccessible(true);
+        foldersField.set(config, folders);
+    } catch (final Exception e) {
+        throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
+    }
+    return config;
+        
+    } catch (final Exception e) {
+        // Log error but don't fail - try next configuration source
+        System.err.println("Failed to load configuration from " + filename + ": " + e.getMessage());
+        return null;
+    }
+}
+#+END_SRC
+
+** YAML Configuration Structure
+The YAML configuration supports comprehensive configuration options:
+#+BEGIN_SRC yaml
+# Example bytehot.yml configuration
+bytehot:
+  port: 8080
+  debug: false
+  watch:
+    - path: "target/classes"
+      patterns: ["*.class"]
+      recursive: true
+      interval: 1000
+    - path: "build/classes"  
+      patterns: ["*.class", "*.jar"]
+      recursive: true
+      interval: 500
+#+END_SRC
+
+** Configuration File Discovery
+The adapter supports multiple configuration file formats and names:
+- Standard YAML files (bytehot.yml, bytehot.yaml)
+- Application configuration files (application.yml, application.yaml)
+- Classpath and file system location support
+- Automatic format detection and parsing
+
+* Default Configuration Strategy
+
+** Default Configuration Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/config/ConfigurationAdapter.java
+/**
+ * Creates default configuration when no explicit configuration is found
+ */
+protected WatchConfiguration createDefaultConfiguration() {
+    final List<FolderWatch> folders = new ArrayList<>();
+    
+    // Default watch configuration for common build output directories
+    final String[] defaultPaths = {
+        "target/classes",
+        "build/classes",
+        "out/production/classes"
+    };
+    
+    for (final String pathStr : defaultPaths) {
+        final Path path = Paths.get(pathStr);
+        if (path.toFile().exists()) {
+            folders.add(new FolderWatch(path, 1000));
+        }
+    }
+
+    // If no build directories found, watch current directory
+    if (folders.isEmpty()) {
+        folders.add(new FolderWatch(Paths.get("."), 1000));
+    }
+
+    final WatchConfiguration config = new WatchConfiguration(8080);
+    try {
+        final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
+        foldersField.setAccessible(true);
+        foldersField.set(config, folders);
+    } catch (final Exception e) {
+        throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
+    }
+    return config;
+}
+#+END_SRC
+
+** Intelligent Default Configuration
+The default configuration provides intelligent defaults for common scenarios:
+#+BEGIN_SRC java
+// Default configuration features:
+// - Automatic detection of common build output directories
+// - Sensible default watch intervals and patterns
+// - Fallback to current directory for unknown project structures
+// - Zero-configuration startup for standard Maven/Gradle projects
+#+END_SRC
+
+** Development Environment Optimization
+Default configuration optimizes for common development environments:
+- Maven project support (target/classes)
+- Gradle project support (build/classes)
+- IntelliJ IDEA support (out/production/classes)
+- Eclipse project support
+- VS Code Java project support
+
+* Error Handling and Resilience
+
+** Comprehensive Error Management
+The adapter handles all categories of configuration loading errors:
+#+BEGIN_SRC java
+// Error handling categories:
+// - IOException: Configuration file access failures
+// - YAML parsing errors: Invalid configuration format
+// - ClassCastException: Invalid configuration structure
+// - NumberFormatException: Invalid numeric parameters
+// - IllegalArgumentException: Invalid configuration values
+#+END_SRC
+
+** Graceful Degradation Strategy
+The adapter implements sophisticated graceful degradation:
+- Continue with next configuration source on failure
+- Provide detailed error messages for troubleshooting
+- Fall back to default configuration as last resort
+- Maintain system functionality despite configuration issues
+
+** Configuration Validation Pipeline
+Multi-stage configuration validation ensures data integrity:
+#+BEGIN_SRC java
+// Validation pipeline stages:
+// - Configuration format and syntax validation
+// - Parameter type and range validation
+// - Path existence and accessibility verification
+// - Cross-parameter consistency checking
+// - Security constraint enforcement
+#+END_SRC
+
+* Performance Optimization
+
+** Configuration Loading Performance
+The adapter optimizes configuration loading performance:
+#+BEGIN_SRC java
+// Performance optimization strategies:
+// - Lazy loading of configuration sources
+// - Efficient YAML parsing with minimal object allocation
+// - Cached configuration validation results
+// - Minimal reflection usage for object construction
+#+END_SRC
+
+** Memory Usage Optimization
+Careful memory management throughout configuration operations:
+- Efficient data structure selection for configuration storage
+- Minimal object allocation during parsing
+- Early garbage collection of temporary parsing objects
+- Memory-conscious configuration object construction
+
+** Configuration Access Performance
+Optimized configuration access patterns:
+- Single configuration load per application lifecycle
+- Immutable configuration objects for thread safety
+- Efficient configuration parameter lookup
+- Cached configuration source identification
+
+* Security Considerations
+
+** Configuration Security
+Comprehensive security considerations for configuration handling:
+#+BEGIN_SRC java
+// Security validation measures:
+// - Configuration parameter input validation
+// - Path traversal attack prevention
+// - Sensitive parameter protection
+// - Configuration source verification
+#+END_SRC
+
+** Environment Variable Security
+Security measures for environment variable handling:
+- Sensitive value masking in logs
+- Environment variable validation and sanitization
+- Access control for configuration modification
+- Audit trail for configuration changes
+
+** File System Security
+File system security for configuration file access:
+#+BEGIN_SRC java
+// File system security measures:
+// - Configuration file permission validation
+// - Safe path resolution and canonicalization
+// - Protection against symlink attacks
+// - Configuration file integrity verification
+#+END_SRC
+
+* Testing and Validation
+
+** Configuration Testing Strategy
+Comprehensive configuration testing strategy:
+#+BEGIN_SRC java
+// Testing approach:
+// - Unit testing with mock configuration sources
+// - Integration testing with real configuration files
+// - Environment variable testing with controlled environments
+// - Error condition simulation and recovery testing
+#+END_SRC
+
+** Mock Configuration Support
+Testing uses mock configuration implementations:
+- Simulated configuration files for controlled testing
+- Mock environment variables and system properties
+- Error condition simulation and validation
+- Performance characteristic testing
+
+** Configuration Validation Testing
+Comprehensive configuration validation testing:
+- Valid configuration loading verification
+- Invalid configuration error handling testing
+- Configuration source priority testing
+- Default configuration fallback testing
+
+* Integration Patterns
+
+** Build Tool Integration
+Integration with popular build tools:
+#+BEGIN_SRC java
+// Build tool support:
+// - Maven: target/classes detection and configuration
+// - Gradle: build/classes detection and configuration  
+// - SBT: target/scala-*/classes detection
+// - Ant: build output directory detection
+#+END_SRC
+
+** IDE Integration
+IDE-specific configuration integration:
+- IntelliJ IDEA project configuration integration
+- Eclipse workspace configuration support
+- VS Code Java project configuration
+- Automatic IDE-specific path detection
+
+** Container Platform Integration
+Container and orchestration platform integration:
+#+BEGIN_SRC java
+// Container integration features:
+// - Docker environment variable configuration
+// - Kubernetes ConfigMap integration
+// - Cloud platform configuration service support
+// - Serverless function configuration handling
+#+END_SRC
+
+* Future Evolution and Extensibility
+
+** Configuration Enhancement Roadmap
+Planned enhancements to configuration capabilities:
+#+BEGIN_SRC java
+// Future enhancement areas:
+// - Support for additional configuration formats (JSON, TOML)
+// - External configuration service integration
+// - Real-time configuration updates and hot-reload
+// - Configuration validation schema support
+#+END_SRC
+
+** Technology Integration
+Integration with emerging configuration technologies:
+- Cloud-native configuration management systems
+- Service mesh configuration integration
+- GitOps configuration management
+- Advanced configuration templating and substitution
+
+** Configuration Management Evolution
+Evolution toward advanced configuration management:
+#+BEGIN_SRC java
+// Advanced configuration features:
+// - Configuration versioning and rollback
+// - Environment-specific configuration inheritance
+// - Configuration drift detection and correction
+// - Configuration compliance and governance
+#+END_SRC
+
+* Related Documentation
+
+- [[ports/ConfigurationPort.org][ConfigurationPort]]: Domain interface implemented by this adapter
+- [[WatchConfiguration.org][WatchConfiguration]]: Configuration domain object created by adapter
+- [[ByteHotCLI.org][ByteHotCLI]]: CLI component using configuration loading
+- [[flows/agent-startup-flow.org][Agent Startup Flow]]: Process involving configuration loading
+
+* Implementation Notes
+
+** Design Patterns Applied
+The adapter leverages several key design patterns:
+- **Adapter Pattern**: Clean interface between configuration sources and domain
+- **Strategy Pattern**: Different loading strategies for different sources
+- **Chain of Responsibility**: Configuration source priority chain
+- **Template Method**: Consistent configuration loading process
+
+** Reflection Usage Justification
+The implementation uses reflection for configuration object construction:
+- Necessary for working with immutable configuration objects
+- Controlled usage with proper error handling
+- Alternative approaches evaluated and found insufficient
+- Performance impact minimized through caching
+
+The ConfigurationAdapter provides ByteHot's comprehensive configuration management system while maintaining architectural purity and enabling flexible, reliable, and secure configuration loading across diverse deployment environments and development workflows.

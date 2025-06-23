@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ports/InstrumentationPort - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview">Overview</h1>
+<p>The <code>InstrumentationPort</code> interface defines the contract
+for JVM instrumentation operations within ByteHot's hexagonal
+architecture. This port abstracts the complex JVM instrumentation API,
+enabling safe class redefinition while protecting the domain logic from
+low-level JVM implementation details.</p>
+<h1 id="hexagonal-architecture-role">Hexagonal Architecture Role</h1>
+<h2 id="secondary-port-classification">Secondary Port
+Classification</h2>
+<p>InstrumentationPort serves as a secondary port in ByteHot's hexagonal
+architecture, representing the domain's need to modify running JVM
+behavior. It defines how the domain layer requests changes to the
+external JVM environment without being coupled to specific
+instrumentation implementations.</p>
+<h2 id="domain-jvm-boundary">Domain-JVM Boundary</h2>
+<p>This port manages the critical boundary between domain logic and JVM
+runtime:</p>
+<ul>
+<li>Abstracts java.lang.instrument.Instrumentation complexity</li>
+<li>Hides JVM version-specific instrumentation variations</li>
+<li>Enables instrumentation strategy evolution without domain
+changes</li>
+<li>Isolates domain logic from JVM API evolution and deprecation</li>
+</ul>
+<h2 id="safety-and-reliability-gateway">Safety and Reliability
+Gateway</h2>
+<p>The port provides a controlled interface for dangerous
+operations:</p>
+<ul>
+<li>Class redefinition validation and safety checks</li>
+<li>Error handling and recovery for failed instrumentation</li>
+<li>Resource management for instrumentation operations</li>
+<li>Rollback capabilities for failed hot-swap attempts</li>
+</ul>
+<h1 id="interface-definition-and-contract">Interface Definition and
+Contract</h1>
+<h2 id="core-instrumentation-operations">Core Instrumentation
+Operations</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationPort.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Redefines a class with new bytecode</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">clazz</span><span class="co"> </span>the class to redefine</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">newBytecode</span><span class="co"> </span>the new bytecode for the class</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">Exception</span><span class="co"> </span>if redefinition fails</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">redefineClass</span><span class="op">(</span><span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz<span class="op">,</span> <span class="dt">byte</span><span class="op">[]</span> newBytecode<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span><span class="op">;</span></span></code></pre></div>
+<h2 id="capability-discovery-operations">Capability Discovery
+Operations</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationPort.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if class redefinition is supported</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> true if redefinition is available</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="dt">boolean</span> <span class="fu">isRedefineClassesSupported</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if retransformation is supported</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> true if retransformation is available</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="dt">boolean</span> <span class="fu">isRetransformClassesSupported</span><span class="op">();</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if instrumentation is available</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> true if JVM instrumentation is operational</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="dt">boolean</span> <span class="fu">isInstrumentationAvailable</span><span class="op">();</span></span></code></pre></div>
+<h2 id="runtime-introspection-operations">Runtime Introspection
+Operations</h2>
+<div class="sourceCode" id="cb3"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationPort.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Gets all loaded classes</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> array of all loaded classes</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">Class</span><span class="op">&lt;?&gt;[]</span> <span class="fu">getAllLoadedClasses</span><span class="op">();</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Returns the object size for the given object</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">objectToSize</span><span class="co"> </span>the object to measure</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> size in bytes</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="dt">long</span> <span class="fu">getObjectSize</span><span class="op">(</span><span class="bu">Object</span> objectToSize<span class="op">);</span></span></code></pre></div>
+<h1 id="class-redefinition-operations">Class Redefinition
+Operations</h1>
+<h2 id="redefinition-process-management">Redefinition Process
+Management</h2>
+<p>The <code>redefineClass</code> method orchestrates the critical
+hot-swap operation:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Usage pattern:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 1. Validate bytecode compatibility</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">validateBytecodeCompatibility</span><span class="op">(</span>clazz<span class="op">,</span> newBytecode<span class="op">);</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 2. Create backup for rollback</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> originalBytecode <span class="op">=</span> <span class="fu">getCurrentBytecode</span><span class="op">(</span>clazz<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 3. Perform redefinition</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    instrumentationPort<span class="op">.</span><span class="fu">redefineClass</span><span class="op">(</span>clazz<span class="op">,</span> newBytecode<span class="op">);</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 4. Verify successful redefinition</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">verifyRedefinitionSuccess</span><span class="op">(</span>clazz<span class="op">);</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 5. Emit success event</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">emit</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassRedefinitionSucceeded</span><span class="op">(</span>clazz<span class="op">.</span><span class="fu">getName</span><span class="op">()));</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 6. Handle failure with rollback if possible</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">handleRedefinitionFailure</span><span class="op">(</span>clazz<span class="op">,</span> originalBytecode<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="redefinition-safety-protocols">Redefinition Safety
+Protocols</h2>
+<p>The implementation ensures safe redefinition through multiple safety
+layers:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Safety protocol layers:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Pre-redefinition validation</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Bytecode structural compatibility</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">//    - JVM limitation compliance</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Method signature preservation</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Field compatibility verification</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">//</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Redefinition execution</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Atomic operation execution</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Immediate failure detection</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Resource state preservation</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">//</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Post-redefinition verification</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Class functionality validation</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Instance state consistency checks</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">//    - Framework integration verification</span></span></code></pre></div>
+<h2 id="redefinition-limitations-management">Redefinition Limitations
+Management</h2>
+<p>The port manages JVM redefinition limitations:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM redefinition limitations:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Method signature changes are not supported</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Field addition/removal restrictions apply</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Constructor modifications are prohibited</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class hierarchy changes are not allowed</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Interface additions/removals are restricted</span></span></code></pre></div>
+<h1 id="capability-discovery-and-validation">Capability Discovery and
+Validation</h1>
+<h2 id="runtime-capability-assessment">Runtime Capability
+Assessment</h2>
+<p>Capability discovery methods enable dynamic feature availability:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Capability-based feature enablement:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>instrumentationPort<span class="op">.</span><span class="fu">isRedefineClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Full hot-swap capabilities available</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">enableAdvancedHotSwap</span><span class="op">();</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>instrumentationPort<span class="op">.</span><span class="fu">isRetransformClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Limited transformation capabilities</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">enableBasicTransformation</span><span class="op">();</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Fallback to compilation-time strategies</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">disableRuntimeModification</span><span class="op">();</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="jvm-version-compatibility">JVM Version Compatibility</h2>
+<p>The port abstracts JVM version-specific capabilities:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM version handling:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 8+: Basic redefinition support</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 11+: Enhanced instrumentation features</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 17+: Improved security and performance</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Future versions: Automatic capability detection</span></span></code></pre></div>
+<h2 id="platform-specific-adaptations">Platform-Specific
+Adaptations</h2>
+<p>Different JVM implementations may have varying capabilities:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM implementation variations:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - HotSpot JVM: Full instrumentation support</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - OpenJ9 JVM: Alternative instrumentation features</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - GraalVM: Limited instrumentation in native mode</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Custom JVMs: Vendor-specific capabilities</span></span></code></pre></div>
+<h1 id="runtime-introspection-capabilities">Runtime Introspection
+Capabilities</h1>
+<h2 id="class-loading-analysis">Class Loading Analysis</h2>
+<p>The <code>getAllLoadedClasses</code> method enables comprehensive
+class analysis:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Class loading analysis uses:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Class</span><span class="op">&lt;?&gt;[]</span> loadedClasses <span class="op">=</span> instrumentationPort<span class="op">.</span><span class="fu">getAllLoadedClasses</span><span class="op">();</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Hot-swap candidate identification</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">List</span><span class="op">&lt;</span><span class="bu">Class</span><span class="op">&lt;?&gt;&gt;</span> candidates <span class="op">=</span> <span class="bu">Arrays</span><span class="op">.</span><span class="fu">stream</span><span class="op">(</span>loadedClasses<span class="op">)</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">filter</span><span class="op">(</span><span class="kw">this</span><span class="op">::</span>isHotSwapCandidate<span class="op">)</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">collect</span><span class="op">(</span><span class="fu">toList</span><span class="op">());</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Instance tracking setup</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz <span class="op">:</span> candidates<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    instanceTracker<span class="op">.</span><span class="fu">startTracking</span><span class="op">(</span>clazz<span class="op">);</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Memory usage analysis</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="dt">long</span> totalMemory <span class="op">=</span> <span class="bu">Arrays</span><span class="op">.</span><span class="fu">stream</span><span class="op">(</span>loadedClasses<span class="op">)</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">mapToLong</span><span class="op">(</span>instrumentationPort<span class="op">::</span>getObjectSize<span class="op">)</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span><span class="fu">sum</span><span class="op">();</span></span></code></pre></div>
+<h2 id="memory-profiling-integration">Memory Profiling Integration</h2>
+<p>The <code>getObjectSize</code> method enables memory-aware hot-swap
+operations:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Memory-aware processing:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">shouldProceedWithHotSwap</span><span class="op">(</span><span class="bu">Object</span> instance<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> instanceSize <span class="op">=</span> instrumentationPort<span class="op">.</span><span class="fu">getObjectSize</span><span class="op">(</span>instance<span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>instanceSize <span class="op">&gt;</span> LARGE_OBJECT_THRESHOLD<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Use memory-efficient hot-swap strategy</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">processLargeInstanceHotSwap</span><span class="op">(</span>instance<span class="op">);</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Use standard hot-swap approach</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">processStandardHotSwap</span><span class="op">(</span>instance<span class="op">);</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="performance-monitoring-support">Performance Monitoring
+Support</h2>
+<p>Runtime introspection enables performance optimization:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance monitoring integration:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class loading performance tracking</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory usage optimization</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Hot-swap operation timing</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource utilization analysis</span></span></code></pre></div>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="instrumentation-failure-management">Instrumentation Failure
+Management</h2>
+<p>The port provides comprehensive error handling:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error categories and handling:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    instrumentationPort<span class="op">.</span><span class="fu">redefineClass</span><span class="op">(</span>clazz<span class="op">,</span> newBytecode<span class="op">);</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">UnsupportedOperationException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// JVM limitation encountered</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">handleUnsupportedRedefinition</span><span class="op">(</span>clazz<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">ClassFormatError</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Invalid bytecode provided</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">handleInvalidBytecode</span><span class="op">(</span>clazz<span class="op">,</span> newBytecode<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">VerifyError</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Bytecode verification failure</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">handleVerificationFailure</span><span class="op">(</span>clazz<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">NoClassDefFoundError</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Class dependency issue</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">handleDependencyFailure</span><span class="op">(</span>clazz<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// General instrumentation failure</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">handleGeneralInstrumentationFailure</span><span class="op">(</span>clazz<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="rollback-and-recovery-strategies">Rollback and Recovery
+Strategies</h2>
+<p>Failed instrumentation operations trigger recovery mechanisms:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recovery strategy implementation:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">handleRedefinitionFailure</span><span class="op">(</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz<span class="op">,</span> </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> originalBytecode<span class="op">,</span> </span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Exception</span> failure</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 1. Attempt immediate rollback</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>originalBytecode <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>            instrumentationPort<span class="op">.</span><span class="fu">redefineClass</span><span class="op">(</span>clazz<span class="op">,</span> originalBytecode<span class="op">);</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>            <span class="fu">emit</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassRollbackSucceeded</span><span class="op">(</span>clazz<span class="op">.</span><span class="fu">getName</span><span class="op">()));</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> rollbackFailure<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 2. Emergency recovery procedures</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">initiateEmergencyRecovery</span><span class="op">(</span>clazz<span class="op">,</span> failure<span class="op">,</span> rollbackFailure<span class="op">);</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 3. Log detailed failure information</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">logInstrumentationFailure</span><span class="op">(</span>clazz<span class="op">,</span> failure<span class="op">);</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 4. Emit failure event with context</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">emit</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span>clazz<span class="op">.</span><span class="fu">getName</span><span class="op">(),</span> failure<span class="op">));</span></span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="security-and-safety-considerations">Security and Safety
+Considerations</h1>
+<h2 id="permission-management">Permission Management</h2>
+<p>Instrumentation operations require careful permission management:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security considerations:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Agent attachment permissions required</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class modification privileges needed</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Security manager compatibility</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Module system integration (Java 9+)</span></span></code></pre></div>
+<h2 id="validation-and-verification">Validation and Verification</h2>
+<p>The port enforces safety through validation:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Safety validation layers:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Bytecode structural validation</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. JVM compatibility verification</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Security policy compliance</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Resource usage limitations</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Operation logging and auditing</span></span></code></pre></div>
+<h2 id="audit-trail-generation">Audit Trail Generation</h2>
+<p>All instrumentation operations generate comprehensive audit
+trails:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Audit information captured:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Operation timestamp and duration</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - User context and session information</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class and bytecode details</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Success/failure status and error details</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance metrics and resource usage</span></span></code></pre></div>
+<h1 id="testing-and-mock-implementation">Testing and Mock
+Implementation</h1>
+<h2 id="test-support-infrastructure">Test Support Infrastructure</h2>
+<p>The port interface enables comprehensive testing:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mock implementation for testing:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MockInstrumentationPort <span class="kw">implements</span> InstrumentationPort <span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">Class</span><span class="op">&lt;?&gt;,</span> <span class="dt">byte</span><span class="op">[]&gt;</span> redefinedClasses <span class="op">=</span> <span class="kw">new</span> <span class="bu">HashMap</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">boolean</span> instrumentationAvailable <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">boolean</span> redefineSupported <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Override</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">redefineClass</span><span class="op">(</span><span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz<span class="op">,</span> <span class="dt">byte</span><span class="op">[]</span> newBytecode<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span> <span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>instrumentationAvailable<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalStateException</span><span class="op">(</span><span class="st">&quot;Instrumentation not available&quot;</span><span class="op">);</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Simulate redefinition</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        redefinedClasses<span class="op">.</span><span class="fu">put</span><span class="op">(</span>clazz<span class="op">,</span> newBytecode<span class="op">);</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Emit test event</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        testEventBus<span class="op">.</span><span class="fu">emit</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassRedefinitionSucceeded</span><span class="op">(</span>clazz<span class="op">.</span><span class="fu">getName</span><span class="op">()));</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Test-specific methods</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">simulateInstrumentationFailure</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">instrumentationAvailable</span> <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">Class</span><span class="op">&lt;?&gt;,</span> <span class="dt">byte</span><span class="op">[]&gt;</span> <span class="fu">getRedefinedClasses</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="bu">HashMap</span><span class="op">&lt;&gt;(</span>redefinedClasses<span class="op">);</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="test-scenario-support">Test Scenario Support</h2>
+<p>Mock implementations enable comprehensive test scenarios:</p>
+<ul>
+<li>Successful redefinition simulation</li>
+<li>Various failure condition testing</li>
+<li>Capability limitation simulation</li>
+<li>Performance characteristics testing</li>
+</ul>
+<h1 id="performance-and-optimization">Performance and Optimization</h1>
+<h2 id="instrumentation-performance">Instrumentation Performance</h2>
+<p>JVM instrumentation operations are optimized for performance:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance optimization strategies:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Bytecode caching to avoid redundant operations</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Batch redefinition for multiple classes</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Memory-efficient bytecode handling</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Parallel processing where safe</span></span></code></pre></div>
+<h2 id="resource-management">Resource Management</h2>
+<p>The port manages instrumentation resources carefully:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Resource management areas:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Bytecode buffer management</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class metadata caching</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instrumentation thread pooling</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory usage monitoring</span></span></code></pre></div>
+<h2 id="scalability-considerations">Scalability Considerations</h2>
+<p>The instrumentation system scales effectively:</p>
+<ul>
+<li>Concurrent redefinition support where safe</li>
+<li>Resource pooling for instrumentation operations</li>
+<li>Efficient class lookup and management</li>
+<li>Memory-aware operation scheduling</li>
+</ul>
+<h1 id="integration-with-domain-events">Integration with Domain
+Events</h1>
+<h2 id="event-driven-instrumentation">Event-Driven Instrumentation</h2>
+<p>Instrumentation operations integrate with domain events:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event integration pattern:</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> DomainResponseEvent<span class="op">&lt;</span>HotSwapRequested<span class="op">&gt;</span> <span class="fu">handleHotSwapRequest</span><span class="op">(</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    HotSwapRequested event</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz <span class="op">=</span> <span class="bu">Class</span><span class="op">.</span><span class="fu">forName</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>        instrumentationPort<span class="op">.</span><span class="fu">redefineClass</span><span class="op">(</span>clazz<span class="op">,</span> event<span class="op">.</span><span class="fu">getNewBytecode</span><span class="op">());</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> DomainResponseEvent<span class="op">.</span><span class="fu">success</span><span class="op">(</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">ClassRedefinitionSucceeded</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()),</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>            event</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> DomainResponseEvent<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span> e<span class="op">),</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>            event</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-sourcing-support">Event Sourcing Support</h2>
+<p>Instrumentation operations generate events for complete
+auditability:</p>
+<ul>
+<li>Operation initiation events</li>
+<li>Progress tracking events</li>
+<li>Success/failure outcome events</li>
+<li>Performance metrics events</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><a
+href="../infrastructure/InstrumentationAdapter.org">InstrumentationAdapter</a>:
+Primary java.lang.instrument implementation</li>
+<li><a href="../events/HotSwapRequested.org">HotSwapRequested</a>: Event
+that triggers instrumentation operations</li>
+<li><a
+href="../events/ClassRedefinitionSucceeded.org">ClassRedefinitionSucceeded</a>:
+Successful instrumentation outcome</li>
+<li><a
+href="../events/ClassRedefinitionFailed.org">ClassRedefinitionFailed</a>:
+Failed instrumentation outcome</li>
+<li><a href="../Ports.org">Ports</a>: Port resolution and dependency
+injection</li>
+</ul>
+<h1 id="future-evolution">Future Evolution</h1>
+<h2 id="enhanced-instrumentation-capabilities">Enhanced Instrumentation
+Capabilities</h2>
+<p>Anticipated improvements to instrumentation:</p>
+<ul>
+<li>Advanced bytecode transformation capabilities</li>
+<li>Dynamic class loading and unloading support</li>
+<li>Enhanced performance monitoring integration</li>
+<li>Advanced rollback and recovery mechanisms</li>
+</ul>
+<h2 id="jvm-integration-enhancements">JVM Integration Enhancements</h2>
+<p>Future instrumentation enhancements:</p>
+<ul>
+<li>Module system integration improvements</li>
+<li>Enhanced security framework integration</li>
+<li>Advanced profiling and monitoring capabilities</li>
+<li>Next-generation JVM feature support</li>
+</ul>
+<p>The InstrumentationPort interface provides ByteHot's critical
+interface to JVM runtime modification capabilities while maintaining
+architectural purity and enabling safe, reliable hot-swap operations
+through comprehensive validation, error handling, and recovery
+mechanisms.</p>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+#+TITLE: FlowCondition - Flow Pattern Validation and Business Rule Engine Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~FlowCondition~ class serves as ByteHot's sophisticated flow pattern validation and business rule engine value object, providing comprehensive condition evaluation, advanced pattern matching logic, and intelligent flow validation capabilities for precise business flow detection and pattern recognition. This critical domain value object encapsulates conditional logic, validation rules, and sophisticated evaluation mechanisms that enable precise flow pattern matching and business rule enforcement. As the validation foundation for ByteHot's flow intelligence system, it enables comprehensive flow validation while maintaining clean domain boundaries and supporting advanced pattern analytics, conditional intelligence, and operational validation throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Flow Pattern Validation and Business Rule Engine Foundation
+FlowCondition serves as the comprehensive flow pattern validation and business rule engine foundation:
+- Provides sophisticated conditional logic for flow pattern validation and business rule enforcement
+- Enables comprehensive pattern matching and validation through advanced condition evaluation and intelligence
+- Supports intelligent flow validation and business process verification through domain-driven conditional logic
+- Acts as the authoritative foundation for flow validation operations and pattern recognition coordination
+
+** Value Object Design and Immutable Condition Context
+The class serves as the value object design and immutable condition context:
+- Implements sophisticated value object patterns with immutable condition encapsulation and evaluation methods
+- Provides comprehensive condition validation and consistency through domain-driven design principles
+- Enables condition composition and correlation capabilities for complex flow validation scenarios
+- Supports condition optimization and performance enhancement through efficient value object design
+
+** Business Rule Intelligence and Pattern Recognition Hub
+The implementation provides business rule intelligence and pattern recognition capabilities:
+- Enables sophisticated business rule intelligence through comprehensive condition evaluation and validation
+- Supports advanced pattern recognition and flow validation through conditional logic and assessment
+- Provides foundation for flow analytics and business intelligence through condition-driven correlation
+- Enables intelligent flow monitoring and optimization through condition-driven validation and assessment
+
+* Flow Condition Structure and Validation Context
+
+** Core Condition Identity and Description Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Name of the condition for identification and management
+ */
+@Getter
+@NonNull
+private final String name;
+
+/**
+ * Description of what this condition checks for validation understanding
+ */
+@Getter
+@NonNull
+private final String description;
+#+END_SRC
+
+** Conditional Logic and Evaluation Engine Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Predicate function that evaluates the condition with sophisticated logic
+ */
+@Getter
+@NonNull
+private final Predicate<List<VersionedDomainEvent>> condition;
+#+END_SRC
+
+** Core Condition Evaluation and Validation Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Evaluates this condition against a list of events with comprehensive validation
+ * @param events The events to evaluate for condition satisfaction and validation
+ * @return true if the condition is satisfied, false otherwise
+ */
+public boolean evaluate(@Nullable final List<VersionedDomainEvent> events) {
+    if (condition == null) {
+        return true;
+    }
+    
+    return condition.test(events);
+}
+#+END_SRC
+
+* Predefined Condition Factory Methods and Business Rules
+
+** User-Specific Condition and Identity Validation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Creates a condition that checks for user-specific events with identity validation
+ * @param userId The user ID to check for identity validation and correlation
+ * @return A condition that ensures all events belong to the specified user
+ */
+@NonNull
+public static FlowCondition sameUser(@NonNull final UserId userId) {
+    return FlowCondition.builder()
+        .name("Same User")
+        .description("All events must belong to user: " + userId.getValue())
+        .condition(events -> events.stream()
+            .allMatch(event -> userId.equals(event.getUserId())))
+        .build();
+}
+#+END_SRC
+
+** Temporal Condition and Time Window Validation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Creates a condition that checks for events within a time window
+ * @param maxDurationMillis Maximum duration between first and last event for temporal validation
+ * @return A condition that ensures events are within the time window
+ */
+@NonNull
+public static FlowCondition withinTimeWindow(final long maxDurationMillis) {
+    return FlowCondition.builder()
+        .name("Time Window")
+        .description("Events must occur within " + maxDurationMillis + "ms")
+        .condition(events -> {
+            if (events.size() < 2) {
+                return true;
+            }
+            
+            long firstTimestamp = events.get(0).getTimestamp().toEpochMilli();
+            long lastTimestamp = events.get(events.size() - 1).getTimestamp().toEpochMilli();
+            
+            return (lastTimestamp - firstTimestamp) <= maxDurationMillis;
+        })
+        .build();
+}
+#+END_SRC
+
+** Sequential Order Condition and Chronological Validation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Creates a condition that checks for sequential order of events
+ * @return A condition that ensures events are in chronological order
+ */
+@NonNull
+public static FlowCondition sequentialOrder() {
+    return FlowCondition.builder()
+        .name("Sequential Order")
+        .description("Events must be in chronological order")
+        .condition(events -> {
+            for (int i = 1; i < events.size(); i++) {
+                if (events.get(i).getTimestamp().isBefore(events.get(i - 1).getTimestamp())) {
+                    return false;
+                }
+            }
+            return true;
+        })
+        .build();
+}
+#+END_SRC
+
+** Composite Condition and Advanced Logic Composition
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Creates a composite condition that requires all provided conditions to be met
+ * @param conditions The conditions that must all be met for composite validation
+ * @return A condition that is satisfied only if all input conditions are satisfied
+ */
+@NonNull
+public static FlowCondition allOf(@NonNull final FlowCondition... conditions) {
+    return FlowCondition.builder()
+        .name("All Of")
+        .description("All conditions must be met")
+        .condition(events -> {
+            for (FlowCondition condition : conditions) {
+                if (!condition.condition.test(events)) {
+                    return false;
+                }
+            }
+            return true;
+        })
+        .build();
+}
+#+END_SRC
+
+** Enhanced Condition Factory Methods and Advanced Business Rules
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Creates a composite condition that requires any of the provided conditions to be met
+ * @param conditions The conditions where at least one must be met for disjunctive validation
+ * @return A condition that is satisfied if any input condition is satisfied
+ */
+@NonNull
+public static FlowCondition anyOf(@NonNull final FlowCondition... conditions) {
+    return FlowCondition.builder()
+        .name("Any Of")
+        .description("At least one condition must be met")
+        .condition(events -> {
+            for (FlowCondition condition : conditions) {
+                if (condition.condition.test(events)) {
+                    return true;
+                }
+            }
+            return false;
+        })
+        .build();
+}
+
+/**
+ * Creates a condition that requires a minimum number of events
+ * @param minimumCount The minimum number of events required for count validation
+ * @return A condition that ensures minimum event count is met
+ */
+@NonNull
+public static FlowCondition minimumEventCount(final int minimumCount) {
+    return FlowCondition.builder()
+        .name("Minimum Event Count")
+        .description("Must have at least " + minimumCount + " events")
+        .condition(events -> events != null && events.size() >= minimumCount)
+        .build();
+}
+
+/**
+ * Creates a condition that requires a maximum number of events
+ * @param maximumCount The maximum number of events allowed for count validation
+ * @return A condition that ensures maximum event count is not exceeded
+ */
+@NonNull
+public static FlowCondition maximumEventCount(final int maximumCount) {
+    return FlowCondition.builder()
+        .name("Maximum Event Count")
+        .description("Must have at most " + maximumCount + " events")
+        .condition(events -> events == null || events.size() <= maximumCount)
+        .build();
+}
+
+/**
+ * Creates a condition that checks for specific event types in sequence
+ * @param eventTypes The event types that must appear in order for sequence validation
+ * @return A condition that ensures specific event type sequence
+ */
+@NonNull
+public static FlowCondition eventTypeSequence(@NonNull final String... eventTypes) {
+    return FlowCondition.builder()
+        .name("Event Type Sequence")
+        .description("Events must follow specific type sequence: " + String.join(" -> ", eventTypes))
+        .condition(events -> {
+            if (events == null || events.size() < eventTypes.length) {
+                return false;
+            }
+            
+            for (int i = 0; i < eventTypes.length; i++) {
+                if (!eventTypes[i].equals(events.get(i).getEventType())) {
+                    return false;
+                }
+            }
+            return true;
+        })
+        .build();
+}
+
+/**
+ * Creates a condition that checks for events containing specific metadata
+ * @param metadataKey The metadata key to check for metadata validation
+ * @param metadataValue The metadata value to match for metadata validation
+ * @return A condition that ensures specific metadata presence
+ */
+@NonNull
+public static FlowCondition containsMetadata(@NonNull final String metadataKey, @NonNull final String metadataValue) {
+    return FlowCondition.builder()
+        .name("Contains Metadata")
+        .description("Events must contain metadata: " + metadataKey + "=" + metadataValue)
+        .condition(events -> events != null && events.stream()
+            .anyMatch(event -> metadataValue.equals(event.getMetadata().get(metadataKey))))
+        .build();
+}
+
+/**
+ * Creates a condition that validates event frequency within time windows
+ * @param maxEventsPerWindow Maximum events allowed per time window for frequency validation
+ * @param windowSizeMillis Size of the time window in milliseconds for frequency analysis
+ * @return A condition that ensures event frequency limits
+ */
+@NonNull
+public static FlowCondition eventFrequencyLimit(final int maxEventsPerWindow, final long windowSizeMillis) {
+    return FlowCondition.builder()
+        .name("Event Frequency Limit")
+        .description("Maximum " + maxEventsPerWindow + " events per " + windowSizeMillis + "ms window")
+        .condition(events -> {
+            if (events == null || events.size() <= maxEventsPerWindow) {
+                return true;
+            }
+            
+            // Check sliding windows
+            for (int i = 0; i <= events.size() - maxEventsPerWindow - 1; i++) {
+                long windowStart = events.get(i).getTimestamp().toEpochMilli();
+                long windowEnd = events.get(i + maxEventsPerWindow).getTimestamp().toEpochMilli();
+                
+                if (windowEnd - windowStart <= windowSizeMillis) {
+                    return false; // Too many events in this window
+                }
+            }
+            return true;
+        })
+        .build();
+}
+
+/**
+ * Creates a custom condition with user-defined logic
+ * @param name The name of the custom condition for identification
+ * @param description The description of the custom condition for understanding
+ * @param customCondition The custom predicate for condition evaluation
+ * @return A condition with custom validation logic
+ */
+@NonNull
+public static FlowCondition custom(@NonNull final String name, @NonNull final String description, 
+                                  @NonNull final Predicate<List<VersionedDomainEvent>> customCondition) {
+    return FlowCondition.builder()
+        .name(name)
+        .description(description)
+        .condition(customCondition)
+        .build();
+}
+#+END_SRC
+
+** Advanced Condition Intelligence and Analysis Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Gets condition complexity score for performance and optimization analysis
+ * @return complexity score from 1 (simple) to 10 (very complex)
+ */
+public int getComplexityScore() {
+    String lowerName = name.toLowerCase();
+    
+    if (lowerName.contains("custom")) {
+        return 10; // Custom conditions are most complex
+    }
+    if (lowerName.contains("all of") || lowerName.contains("any of")) {
+        return 8; // Composite conditions are complex
+    }
+    if (lowerName.contains("frequency") || lowerName.contains("sequence")) {
+        return 6; // Advanced patterns are moderately complex
+    }
+    if (lowerName.contains("time") || lowerName.contains("order")) {
+        return 4; // Temporal conditions are moderately simple
+    }
+    return 2; // Basic conditions are simple
+}
+
+/**
+ * Checks if this condition is deterministic (always produces same result for same input)
+ * @return true if condition is deterministic for performance optimization
+ */
+public boolean isDeterministic() {
+    // Most conditions are deterministic except custom ones that might use external state
+    return !name.toLowerCase().contains("custom");
+}
+
+/**
+ * Gets the expected performance impact of this condition
+ * @return performance impact assessment for optimization planning
+ */
+public ConditionPerformanceImpact getPerformanceImpact() {
+    int complexity = getComplexityScore();
+    
+    if (complexity <= 3) {
+        return ConditionPerformanceImpact.LOW;
+    } else if (complexity <= 6) {
+        return ConditionPerformanceImpact.MEDIUM;
+    } else {
+        return ConditionPerformanceImpact.HIGH;
+    }
+}
+
+/**
+ * Validates this condition against a test event set for condition health assessment
+ * @param testEvents Sample events for condition validation testing
+ * @return validation result with condition health and performance assessment
+ */
+public ConditionValidationResult validateCondition(@NonNull final List<VersionedDomainEvent> testEvents) {
+    java.util.List<String> issues = new java.util.ArrayList<>();
+    java.util.List<String> warnings = new java.util.ArrayList<>();
+    
+    try {
+        // Test condition execution
+        long startTime = System.nanoTime();
+        boolean result = evaluate(testEvents);
+        long executionTime = System.nanoTime() - startTime;
+        
+        // Performance analysis
+        if (executionTime > 1_000_000) { // 1ms
+            warnings.add("Condition execution took longer than expected: " + (executionTime / 1_000_000) + "ms");
+        }
+        
+        // Complexity analysis
+        if (getComplexityScore() > 7) {
+            warnings.add("High complexity condition may impact performance");
+        }
+        
+        return ConditionValidationResult.builder()
+            .isValid(true)
+            .issues(issues)
+            .warnings(warnings)
+            .executionTimeNanos(executionTime)
+            .complexityScore(getComplexityScore())
+            .performanceImpact(getPerformanceImpact())
+            .testResult(result)
+            .build();
+            
+    } catch (Exception e) {
+        issues.add("Condition execution failed: " + e.getMessage());
+        
+        return ConditionValidationResult.builder()
+            .isValid(false)
+            .issues(issues)
+            .warnings(warnings)
+            .executionTimeNanos(0L)
+            .complexityScore(getComplexityScore())
+            .performanceImpact(getPerformanceImpact())
+            .testResult(false)
+            .build();
+    }
+}
+#+END_SRC
+
+** Condition Analytics and Performance Value Objects
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowCondition.java
+/**
+ * Performance impact levels for condition optimization
+ */
+public enum ConditionPerformanceImpact {
+    LOW("Minimal performance impact"),
+    MEDIUM("Moderate performance impact"),
+    HIGH("Significant performance impact");
+    
+    private final String description;
+    
+    ConditionPerformanceImpact(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Condition validation result for health assessment and optimization
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class ConditionValidationResult {
+    /**
+     * Whether condition is valid and operational
+     */
+    private final boolean isValid;
+    
+    /**
+     * List of validation issues
+     */
+    private final java.util.List<String> issues;
+    
+    /**
+     * List of validation warnings
+     */
+    private final java.util.List<String> warnings;
+    
+    /**
+     * Condition execution time in nanoseconds
+     */
+    private final long executionTimeNanos;
+    
+    /**
+     * Condition complexity score
+     */
+    private final int complexityScore;
+    
+    /**
+     * Performance impact assessment
+     */
+    private final ConditionPerformanceImpact performanceImpact;
+    
+    /**
+     * Test evaluation result
+     */
+    private final boolean testResult;
+}
+#+END_SRC
+
+* Testing and Validation Strategies
+
+** Basic Condition Testing
+#+begin_src java
+@Test
+void shouldEvaluateBasicConditions() {
+    // Given: User-specific condition
+    UserId testUser = UserId.of("test-user");
+    FlowCondition userCondition = FlowCondition.sameUser(testUser);
+    
+    // When: Evaluating with matching events
+    List<VersionedDomainEvent> matchingEvents = createEventsForUser(testUser);
+    List<VersionedDomainEvent> nonMatchingEvents = createEventsForDifferentUser();
+    
+    // Then: Should validate correctly
+    assertThat(userCondition.evaluate(matchingEvents)).isTrue();
+    assertThat(userCondition.evaluate(nonMatchingEvents)).isFalse();
+    assertThat(userCondition.getName()).isEqualTo("Same User");
+}
+#+end_src
+
+** Temporal Condition Testing
+#+begin_src java
+@Test
+void shouldEvaluateTemporalConditions() {
+    // Given: Time window condition
+    FlowCondition timeCondition = FlowCondition.withinTimeWindow(5000L); // 5 seconds
+    FlowCondition orderCondition = FlowCondition.sequentialOrder();
+    
+    // When: Evaluating with time-based events
+    List<VersionedDomainEvent> quickEvents = createEventsWithinTimeWindow(3000L);
+    List<VersionedDomainEvent> slowEvents = createEventsWithinTimeWindow(10000L);
+    List<VersionedDomainEvent> orderedEvents = createOrderedEvents();
+    List<VersionedDomainEvent> unorderedEvents = createUnorderedEvents();
+    
+    // Then: Should validate temporal constraints
+    assertThat(timeCondition.evaluate(quickEvents)).isTrue();
+    assertThat(timeCondition.evaluate(slowEvents)).isFalse();
+    assertThat(orderCondition.evaluate(orderedEvents)).isTrue();
+    assertThat(orderCondition.evaluate(unorderedEvents)).isFalse();
+}
+#+end_src
+
+** Composite Condition Testing
+#+begin_src java
+@Test
+void shouldEvaluateCompositeConditions() {
+    // Given: Composite conditions
+    UserId testUser = UserId.of("test-user");
+    FlowCondition allCondition = FlowCondition.allOf(
+        FlowCondition.sameUser(testUser),
+        FlowCondition.sequentialOrder(),
+        FlowCondition.minimumEventCount(3)
+    );
+    
+    // When: Evaluating with various event sets
+    List<VersionedDomainEvent> validEvents = createValidEventSequence(testUser);
+    List<VersionedDomainEvent> invalidEvents = createInvalidEventSequence();
+    
+    // Then: Should validate composite logic
+    assertThat(allCondition.evaluate(validEvents)).isTrue();
+    assertThat(allCondition.evaluate(invalidEvents)).isFalse();
+    assertThat(allCondition.getName()).isEqualTo("All Of");
+}
+#+end_src
+
+* Related Documentation
+
+- [[Flow.org][Flow]]: Flow domain entity using this condition for validation
+- [[FlowDetector.org][FlowDetector]]: Flow detection service using conditions
+- [[FlowSearchCriteria.org][FlowSearchCriteria]]: Search criteria related to flow conditions
+- [[UserId.org][UserId]]: User identifier used in user-specific conditions
+- [[TimeWindow.org][TimeWindow]]: Time window related to temporal conditions
+- [[../flows/flow-intelligence-learning-flow.org][Flow Intelligence Learning Flow]]: Flow validation workflow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable condition with comprehensive evaluation and intelligence methods
+- **Strategy Pattern**: Pluggable condition evaluation strategies through predicate functions
+- **Factory Method Pattern**: Static factory methods for different condition types and compositions
+- **Composite Pattern**: Composite conditions combining multiple validation rules
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive condition behavior and intelligence beyond simple validation
+- **Domain Intelligence**: Built-in domain intelligence for condition evaluation and performance assessment
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Machine Learning Conditions**: AI-driven condition generation and optimization
+- **Dynamic Conditions**: Runtime condition modification and adaptive validation
+- **Performance Optimization**: Advanced performance optimization and condition caching
+- **Visual Condition Builder**: Visual interface for condition composition and management
+
+The FlowCondition class provides ByteHot's essential flow pattern validation and business rule engine foundation while maintaining comprehensive conditional logic capabilities, sophisticated evaluation intelligence, and extensibility for advanced validation scenarios throughout the entire intelligent hot-swap system lifecycle.

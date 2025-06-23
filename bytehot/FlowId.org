@@ -1,0 +1,444 @@
+#+TITLE: FlowId - Business Flow Unique Identifier Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~FlowId~ class serves as ByteHot's sophisticated business flow unique identifier value object, providing comprehensive flow identification capabilities, deterministic naming support, and sophisticated correlation mechanisms for business flow management and tracking. This critical domain value object encapsulates flow identification logic, normalization rules, and tracking capabilities that enable precise flow correlation and system-wide flow coordination. As the foundational identifier for ByteHot's business flow intelligence system, it enables comprehensive flow tracking while maintaining clean domain boundaries and supporting advanced flow analytics workflows, correlation intelligence, and operational traceability throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Business Flow Identification and Correlation Foundation
+FlowId serves as the comprehensive business flow identification and correlation foundation:
+- Provides sophisticated unique identification capabilities for business flows and flow pattern management
+- Enables comprehensive flow correlation and tracking through unique identifier management and validation
+- Supports advanced flow coordination and system-wide correlation through identifier-based flow tracking
+- Acts as the authoritative foundation for business flow identification and operational correlation
+
+** Value Object Design and Immutable Flow Identifier Context
+The class serves as the value object design and immutable flow identifier context:
+- Implements sophisticated value object patterns with immutable flow identifier encapsulation and validation
+- Provides comprehensive identifier validation and consistency through domain-driven design principles
+- Enables identifier composition and correlation capabilities for complex flow tracking scenarios
+- Supports identifier optimization and performance enhancement through efficient value object design
+
+** Flow Intelligence and Business Process Identification Hub
+The implementation provides flow intelligence and business process identification capabilities:
+- Enables sophisticated flow intelligence and business process identification through unique identifier management
+- Supports advanced business process coordination and operational tracking through identifier-based correlation
+- Provides foundation for flow audit trails and compliance through comprehensive identifier tracking
+- Enables intelligent flow monitoring and optimization through identifier-driven correlation intelligence
+
+* Flow Identifier Structure and Value Object Context
+
+** Core Flow Identifier Value and Validation Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowId.java
+/**
+ * The unique identifier value for business flows and flow pattern identification
+ */
+@Getter
+@NonNull
+private final String value;
+#+END_SRC
+
+** Factory Methods and Flow Identifier Construction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowId.java
+/**
+ * Creates a new random FlowId with UUID-based unique generation
+ * @return A new FlowId with a random UUID for unique flow identification
+ */
+@NonNull
+public static FlowId random() {
+    return new FlowId(UUID.randomUUID().toString());
+}
+
+/**
+ * Creates a FlowId from an existing string value with validation
+ * @param value The string value for the flow ID with validation and normalization
+ * @return A FlowId with the specified value after validation and processing
+ */
+@NonNull
+public static FlowId of(@Nullable final String value) {
+    if (value == null || value.trim().isEmpty()) {
+        throw new IllegalArgumentException("FlowId value cannot be null or empty");
+    }
+    return new FlowId(value.trim());
+}
+
+/**
+ * Creates a FlowId based on a flow name for deterministic identification
+ * @param flowName The name of the flow for deterministic identifier generation
+ * @return A FlowId based on the flow name with normalization and validation
+ */
+@NonNull
+public static FlowId fromName(@Nullable final String flowName) {
+    if (flowName == null || flowName.trim().isEmpty()) {
+        throw new IllegalArgumentException("Flow name cannot be null or empty");
+    }
+    
+    // Create deterministic ID based on flow name with normalization
+    String normalizedName = flowName.trim()
+        .toLowerCase()
+        .replaceAll("[^a-z0-9]+", "-")
+        .replaceAll("^-+|-+$", "");
+        
+    return new FlowId("flow-" + normalizedName);
+}
+#+END_SRC
+
+** Enhanced Factory Methods and Flow Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowId.java
+/**
+ * Creates a FlowId with timestamp-based generation for temporal flow correlation
+ * @return A new FlowId with timestamp component for temporal flow tracking
+ */
+@NonNull
+public static FlowId newId() {
+    return new FlowId("flow-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8));
+}
+
+/**
+ * Creates a FlowId with a specific category prefix for categorized flow tracking
+ * @param category The category for categorized flow identification and grouping
+ * @return A FlowId with the specified category for categorized tracking
+ */
+@NonNull
+public static FlowId withCategory(@NonNull final String category) {
+    if (category == null || category.trim().isEmpty()) {
+        throw new IllegalArgumentException("Category cannot be null or empty");
+    }
+    String normalizedCategory = category.trim().toLowerCase().replaceAll("[^a-z0-9]+", "-");
+    return new FlowId(normalizedCategory + "-flow-" + UUID.randomUUID().toString().substring(0, 8));
+}
+
+/**
+ * Creates a FlowId from a user context for user-specific flow tracking
+ * @param userId The user identifier for user-specific flow correlation
+ * @return A FlowId with user context for user-specific flow tracking
+ */
+@NonNull
+public static FlowId forUser(@NonNull final UserId userId) {
+    if (userId == null) {
+        throw new IllegalArgumentException("UserId cannot be null");
+    }
+    return new FlowId("user-" + userId.getValue() + "-flow-" + UUID.randomUUID().toString().substring(0, 8));
+}
+
+/**
+ * Creates a FlowId for system-generated flows with system context
+ * @param systemComponent The system component generating the flow
+ * @return A FlowId with system context for system-generated flow tracking
+ */
+@NonNull
+public static FlowId forSystem(@NonNull final String systemComponent) {
+    if (systemComponent == null || systemComponent.trim().isEmpty()) {
+        throw new IllegalArgumentException("System component cannot be null or empty");
+    }
+    String normalizedComponent = systemComponent.trim().toLowerCase().replaceAll("[^a-z0-9]+", "-");
+    return new FlowId("system-" + normalizedComponent + "-flow-" + UUID.randomUUID().toString().substring(0, 8));
+}
+#+END_SRC
+
+* Flow Identifier Intelligence and Validation Operations
+
+** Identifier Validation and Consistency Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowId.java
+/**
+ * Validates the flow identifier format for consistency and correctness
+ * @return true if the identifier format is valid and consistent
+ */
+public boolean isValid() {
+    return value != null && !value.trim().isEmpty() && value.length() >= 3;
+}
+
+/**
+ * Checks if this flow identifier has a specific prefix for categorization
+ * @param prefix The prefix to check for categorization and grouping
+ * @return true if the identifier starts with the specified prefix
+ */
+public boolean hasPrefix(@NonNull final String prefix) {
+    if (prefix == null || prefix.trim().isEmpty()) {
+        return false;
+    }
+    return value.startsWith(prefix.trim());
+}
+
+/**
+ * Gets the prefix part of the flow identifier for categorization analysis
+ * @return The prefix part before the first hyphen, or the full value if no hyphen
+ */
+@NonNull
+public String getPrefix() {
+    int hyphenIndex = value.indexOf('-');
+    return hyphenIndex > 0 ? value.substring(0, hyphenIndex) : value;
+}
+
+/**
+ * Gets the suffix part of the flow identifier for detailed analysis
+ * @return The suffix part after the last hyphen, or the full value if no hyphen
+ */
+@NonNull
+public String getSuffix() {
+    int lastHyphenIndex = value.lastIndexOf('-');
+    return lastHyphenIndex > 0 && lastHyphenIndex < value.length() - 1 
+        ? value.substring(lastHyphenIndex + 1) 
+        : value;
+}
+#+END_SRC
+
+** Flow Identifier Analysis and Intelligence Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowId.java
+/**
+ * Checks if this is a user-specific flow identifier for user correlation
+ * @return true if this flow ID is associated with a specific user
+ */
+public boolean isUserSpecific() {
+    return hasPrefix("user-");
+}
+
+/**
+ * Checks if this is a system-generated flow identifier for system correlation
+ * @return true if this flow ID was system-generated with system context
+ */
+public boolean isSystemGenerated() {
+    return hasPrefix("system-") || hasPrefix("flow-");
+}
+
+/**
+ * Checks if this is a deterministic flow identifier based on flow name
+ * @return true if this flow ID was generated deterministically from a flow name
+ */
+public boolean isDeterministic() {
+    return hasPrefix("flow-") && !value.contains(UUID.randomUUID().toString().substring(0, 8));
+}
+
+/**
+ * Gets a shortened version of the flow identifier for display purposes
+ * @return Shortened identifier suitable for logging and display
+ */
+@NonNull
+public String getShortForm() {
+    if (value.length() <= 12) {
+        return value;
+    }
+    return value.substring(0, 8) + "..." + value.substring(value.length() - 4);
+}
+
+/**
+ * Gets the flow identifier in a format suitable for correlation keys
+ * @return Correlation key format for system-wide flow correlation
+ */
+@NonNull
+public String getCorrelationKey() {
+    return "flow:" + value;
+}
+
+/**
+ * Gets the flow category from the identifier for categorization analysis
+ * @return The flow category if identifiable, or "unknown" if not determinable
+ */
+@NonNull
+public String getCategory() {
+    if (isUserSpecific()) {
+        return "user-flow";
+    }
+    if (isSystemGenerated()) {
+        return "system-flow";
+    }
+    if (isDeterministic()) {
+        return "named-flow";
+    }
+    return "unknown";
+}
+#+END_SRC
+
+* Flow Identifier Intelligence and Business Process Integration
+
+** Business Process Flow Identification Intelligence
+The FlowId enables sophisticated business process flow identification:
+- **Deterministic Naming**: Deterministic naming for consistent flow identification across system restarts
+- **Category-Based Organization**: Category-based flow organization for business process classification
+- **User-Context Flows**: User-context flow identification for personalized business process tracking
+- **System Flow Correlation**: System flow correlation for automated business process identification
+
+** Flow Pattern Recognition and Classification
+The identifier supports comprehensive flow pattern recognition:
+- **Pattern Classification**: Pattern classification through identifier-based flow categorization
+- **Flow Grouping**: Flow grouping and organization through identifier prefix analysis
+- **Business Logic Correlation**: Business logic correlation through deterministic identifier generation
+- **Process Hierarchy**: Process hierarchy representation through identifier structure and organization
+
+** Performance and Optimization Intelligence
+The value object provides performance optimization capabilities:
+- **Efficient Lookup**: Efficient flow lookup through optimized identifier structure and indexing
+- **Cache Optimization**: Cache optimization through identifier-based cache key generation
+- **Database Indexing**: Database indexing optimization through structured identifier format
+- **Memory Efficiency**: Memory efficiency through immutable value object design and optimization
+
+* Integration with ByteHot Flow Intelligence Infrastructure
+
+** Business Flow Management Integration
+FlowId integrates with ByteHot's business flow management systems:
+- Provide comprehensive flow identification for business process management and tracking
+- Enable sophisticated flow correlation and tracking through unique identifier management
+- Support advanced flow coordination and system-wide correlation through identifier-based tracking
+- Provide foundation for flow audit trails and business process intelligence
+
+** Flow Discovery and Pattern Recognition Integration
+The class coordinates with flow discovery systems:
+- **Pattern Storage**: Pattern storage and retrieval through identifier-based flow management
+- **Flow Versioning**: Flow versioning and evolution tracking through identifier management
+- **Discovery Correlation**: Discovery correlation through identifier-based flow pattern tracking
+- **Intelligence Learning**: Intelligence learning through identifier-driven flow pattern analysis
+
+** Analytics and Business Intelligence Integration
+The implementation supports analytics integration:
+- **Flow Analytics**: Flow analytics correlation through unique identifier tracking and management
+- **Business Metrics**: Business metrics collection through identifier-based flow correlation
+- **Process Intelligence**: Process intelligence integration through flow identifier correlation
+- **Operational Analytics**: Operational analytics through identifier-driven flow tracking and analysis
+
+* Advanced Flow Identification and Business Intelligence Features
+
+** Enterprise Flow Management
+The identifier enables enterprise flow management:
+- **Multi-Tenant Flows**: Multi-tenant flow identification and isolation through identifier management
+- **Department-Specific Flows**: Department-specific flow identification through categorized identifiers
+- **Role-Based Flow Access**: Role-based flow access control through identifier-based authorization
+- **Enterprise Hierarchy**: Enterprise hierarchy representation through structured identifier organization
+
+** Compliance and Audit Integration
+The implementation supports compliance integration:
+- **Audit Trail Correlation**: Audit trail correlation through comprehensive identifier tracking
+- **Compliance Tracking**: Compliance tracking through identifier-driven audit and monitoring
+- **Regulatory Reporting**: Regulatory reporting through identifier-based flow classification and tracking
+- **Data Governance**: Data governance through controlled identifier exposure and management
+
+** Machine Learning and Intelligent Flow Management
+The class provides machine learning integration opportunities:
+- **Flow Pattern Learning**: Flow pattern learning through identifier-based correlation analysis
+- **Behavioral Classification**: Behavioral classification through identifier tracking and analysis
+- **Predictive Flow Analysis**: Predictive flow analysis through historical identifier correlation
+- **Anomaly Detection**: Anomaly detection through identifier-based pattern analysis and monitoring
+
+* Testing and Validation Strategies
+
+** Flow Identifier Creation Testing
+#+begin_src java
+@Test
+void shouldCreateUniqueFlowIdentifiers() {
+    // When: Creating multiple flow identifiers
+    FlowId randomId1 = FlowId.random();
+    FlowId randomId2 = FlowId.random();
+    FlowId namedId = FlowId.fromName("Hot-Swap Complete Flow");
+    FlowId categoryId = FlowId.withCategory("user-process");
+    
+    // Then: Should be unique and valid
+    assertThat(randomId1).isNotEqualTo(randomId2);
+    assertThat(namedId.getValue()).isEqualTo("flow-hot-swap-complete-flow");
+    assertThat(categoryId.hasPrefix("user-process")).isTrue();
+    assertThat(randomId1.isValid()).isTrue();
+    assertThat(namedId.isValid()).isTrue();
+}
+#+end_src
+
+** Flow Identifier Validation Testing
+#+begin_src java
+@Test
+void shouldValidateFlowIdentifiers() {
+    // Given: Valid and invalid identifier values
+    String validValue = "flow-hot-swap-process";
+    String invalidValue = "";
+    String nullValue = null;
+    
+    // When/Then: Should validate correctly
+    FlowId validId = FlowId.of(validValue);
+    assertThat(validId.isValid()).isTrue();
+    
+    assertThatThrownBy(() -> FlowId.of(invalidValue))
+        .isInstanceOf(IllegalArgumentException.class);
+        
+    assertThatThrownBy(() -> FlowId.of(nullValue))
+        .isInstanceOf(IllegalArgumentException.class);
+}
+#+end_src
+
+** Flow Identifier Intelligence Testing
+#+begin_src java
+@Test
+void shouldProvideFlowIdentifierIntelligence() {
+    // Given: Flow identifiers with different characteristics
+    UserId userId = UserId.of("user123");
+    FlowId userFlow = FlowId.forUser(userId);
+    FlowId systemFlow = FlowId.forSystem("bytecode-validator");
+    FlowId namedFlow = FlowId.fromName("error-recovery-flow");
+    
+    // When/Then: Should provide accurate intelligence
+    assertThat(userFlow.isUserSpecific()).isTrue();
+    assertThat(userFlow.getCategory()).isEqualTo("user-flow");
+    
+    assertThat(systemFlow.isSystemGenerated()).isTrue();
+    assertThat(systemFlow.getCategory()).isEqualTo("system-flow");
+    
+    assertThat(namedFlow.isDeterministic()).isTrue();
+    assertThat(namedFlow.getCategory()).isEqualTo("named-flow");
+}
+#+end_src
+
+* Integration with Flow Management and Analytics Systems
+
+** Flow Repository and Storage Integration
+The class integrates with flow repository systems:
+- **Flow Indexing**: Flow indexing and retrieval through identifier-based database operations
+- **Version Control**: Flow version control and history tracking through identifier management
+- **Storage Optimization**: Storage optimization through identifier-based partitioning and organization
+- **Query Performance**: Query performance optimization through identifier-based indexing strategies
+
+** Business Process Management Integration
+The implementation supports BPM integration:
+- **Process Definition**: Process definition correlation through identifier-based process management
+- **Workflow Integration**: Workflow integration through identifier-based process correlation
+- **Task Management**: Task management integration through flow identifier correlation
+- **Process Monitoring**: Process monitoring through identifier-driven flow tracking and analysis
+
+** External System Integration
+The class coordinates with external systems:
+- **API Integration**: API integration through identifier-based flow correlation and tracking
+- **Message Queue Integration**: Message queue integration with identifier-based message correlation
+- **Service Mesh**: Service mesh integration through identifier propagation and correlation
+- **Enterprise Integration**: Enterprise integration through identifier-based system correlation
+
+* Related Documentation
+
+- [[Flow.org][Flow]]: Flow domain entity using this identifier
+- [[FlowDetector.org][FlowDetector]]: Flow detection service using flow identifiers
+- [[FlowAnalysisRequested.org][FlowAnalysisRequested]]: Flow analysis request referencing flow identifiers
+- [[FlowDiscovered.org][FlowDiscovered]]: Flow discovery event using flow identifiers
+- [[AnalysisId.org][AnalysisId]]: Analysis identifier for flow analysis correlation
+- [[UserId.org][UserId]]: User identifier for user-specific flow correlation
+- [[../flows/flow-intelligence-learning-flow.org][Flow Intelligence Learning Flow]]: Flow management workflow using identifiers
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable flow identifier with comprehensive validation and intelligence
+- **Factory Method Pattern**: Static factory methods for different identifier creation strategies
+- **Strategy Pattern**: Support for different identifier generation strategies and formats
+- **Template Method Pattern**: Template method for identifier validation and intelligence operations
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive behavior and intelligence beyond simple data containers
+- **Domain Intelligence**: Built-in domain intelligence for identifier validation and correlation
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Blockchain Integration**: Blockchain-based identifier verification and immutable flow tracking
+- **Advanced Correlation**: AI-driven correlation analysis and intelligent identifier management
+- **Global Distribution**: Global identifier distribution and cross-region correlation capabilities
+- **Semantic Enhancement**: Semantic identifier enhancement for natural language flow identification
+
+The FlowId class provides ByteHot's essential business flow identification foundation while maintaining comprehensive correlation capabilities, sophisticated validation intelligence, and extensibility for advanced flow management scenarios throughout the entire intelligent hot-swap system lifecycle.

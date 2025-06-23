@@ -1,0 +1,66 @@
+#+TITLE: ErrorSeverityAssessor - Error Severity Assessment Visitor Interface
+#+AUTHOR: ByteHot Development Team  
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~ErrorSeverityAssessor~ interface serves as ByteHot's error severity assessment visitor interface, providing comprehensive severity determination through the visitor pattern and double dispatch for precise error severity analysis.
+
+* Interface Structure and Severity Assessment Methods
+
+** Core Severity Assessment Methods
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorSeverityAssessor.java
+/**
+ * Assesses severity of a bytecode validation exception
+ * @param exception the bytecode validation exception for severity assessment
+ * @return the error severity with bytecode validation context
+ */
+ErrorSeverity assessBytecodeValidationException(BytecodeValidationException exception);
+
+/**
+ * Assesses severity of a hot-swap exception
+ * @param exception the hot-swap exception for severity assessment  
+ * @return the error severity with hot-swap context
+ */
+ErrorSeverity assessHotSwapException(HotSwapException exception);
+
+/**
+ * Assesses severity of an event snapshot exception
+ * @param exception the event snapshot exception for severity assessment
+ * @return the error severity with event snapshot context
+ */
+ErrorSeverity assessEventSnapshotException(EventSnapshotException exception);
+#+END_SRC
+
+** Generic Severity Assessment and Dispatch Logic
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorSeverityAssessor.java
+/**
+ * Helper method to assess any throwable by delegating to specific methods
+ * @param throwable the throwable to assess with comprehensive analysis
+ * @return the error severity with appropriate assessment
+ */
+default ErrorSeverity assessThrowable(Throwable throwable) {
+    // First check if it implements ErrorClassifiable
+    if (throwable instanceof ErrorClassifiable) {
+        return ((ErrorClassifiable) throwable).acceptSeverityAssessor(this);
+    }
+    
+    // Handle standard Java exceptions with severity analysis
+    if (throwable instanceof OutOfMemoryError) {
+        return assessOutOfMemoryError((OutOfMemoryError) throwable);
+    }
+    if (throwable instanceof SecurityException) {
+        return assessSecurityException((SecurityException) throwable);
+    }
+    
+    return assessGenericThrowable(throwable);
+}
+#+END_SRC
+
+* Related Documentation
+
+- [[ErrorClassifiable.org][ErrorClassifiable]]: Interface for exceptions that accept severity assessment
+- [[ErrorSeverity.org][ErrorSeverity]]: Severity levels returned by assessment methods
+- [[DefaultErrorSeverityAssessor.org][DefaultErrorSeverityAssessor]]: Default implementation
+
+The ErrorSeverityAssessor interface provides ByteHot's error severity assessment foundation through the visitor pattern.

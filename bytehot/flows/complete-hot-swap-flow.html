@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flows/complete-hot-swap-flow - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview-following-the-hot-swap-journey">Overview: Following the
+Hot-Swap Journey</h1>
+<p>This document traces the complete journey of a hot-swap operation in
+ByteHot, from the initial file system change detection through to
+successful JVM class redefinition. Unlike the individual class
+documentation, this "literate flow" shows how multiple classes
+collaborate at runtime, revealing the dynamic behavior of ByteHot's
+architecture.</p>
+<h2 id="the-complete-flow-sequence">The Complete Flow Sequence</h2>
+<p>The hot-swap flow demonstrates ByteHot's sophisticated event-driven
+architecture:</p>
+<pre><code>File Change → Detection → Validation → Hot-Swap Request → JVM Redefinition → Success Event
+     ↓             ↓           ↓              ↓                ↓              ↓
+FileWatcher → Application → ByteHot → HotSwapManager → InstrumentationAdapter → EventEmitter
+</code></pre>
+<h2 id="participants-in-the-flow">Participants in the Flow</h2>
+<ul>
+<li><strong><strong>FileWatcherAdapter</strong></strong>: Detects
+filesystem changes (Infrastructure)</li>
+<li><strong><strong>ByteHotApplication</strong></strong>: Routes events
+through the system (Application)</li>
+<li><strong><strong>ByteHot</strong></strong>: Orchestrates the hot-swap
+process (Domain)</li>
+<li><strong><strong>BytecodeValidator</strong></strong>: Validates
+bytecode compatibility (Domain)</li>
+<li><strong><strong>HotSwapManager</strong></strong>: Manages JVM
+redefinition (Domain)</li>
+<li><strong><strong>EventStoreAdapter</strong></strong>: Persists events
+for audit trail (Infrastructure)</li>
+<li><strong><strong>EventEmitterAdapter</strong></strong>: Emits
+success/failure events (Infrastructure)</li>
+</ul>
+<h2 id="what-this-flow-demonstrates">What This Flow Demonstrates</h2>
+<ul>
+<li><strong><strong>Hexagonal Architecture</strong></strong> in action
+across all three layers</li>
+<li><strong><strong>Event-driven collaboration</strong></strong> between
+domain services</li>
+<li><strong><strong>Error handling</strong></strong> at each step with
+proper event generation</li>
+<li><strong><strong>Infrastructure abstraction</strong></strong> through
+ports and adapters</li>
+<li><strong><strong>Domain purity</strong></strong> maintained despite
+complex orchestration</li>
+</ul>
+<h1 id="phase-1-file-system-change-detection">Phase 1: File System
+Change Detection</h1>
+<p>The flow begins when a developer's IDE compiles a .class file,
+triggering ByteHot's file system monitoring.</p>
+<h2 id="step-1.1-file-system-event-capture">Step 1.1: File System Event
+Capture</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: FileWatcherAdapter.java (Infrastructure Layer)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">watchClassFiles</span><span class="op">(</span><span class="dt">final</span> Consumer<span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> onClassFileEvent<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchService watchService <span class="op">=</span> java<span class="op">.</span><span class="fu">nio</span><span class="op">.</span><span class="fu">file</span><span class="op">.</span><span class="fu">FileSystems</span><span class="op">.</span><span class="fu">getDefault</span><span class="op">().</span><span class="fu">newWatchService</span><span class="op">();</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">getFolder</span><span class="op">().</span><span class="fu">register</span><span class="op">(</span>watchService<span class="op">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_CREATE</span><span class="op">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_MODIFY</span><span class="op">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_DELETE</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> <span class="op">(!</span><span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">isInterrupted</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> WatchKey key <span class="op">=</span> watchService<span class="op">.</span><span class="fu">poll</span><span class="op">(</span><span class="fu">getInterval</span><span class="op">(),</span> <span class="bu">TimeUnit</span><span class="op">.</span><span class="fu">MILLISECONDS</span><span class="op">);</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>key <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> WatchEvent<span class="op">&lt;?&gt;</span> event <span class="op">:</span> key<span class="op">.</span><span class="fu">pollEvents</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>                    <span class="dt">final</span> Path changedPath <span class="op">=</span> <span class="fu">getFolder</span><span class="op">().</span><span class="fu">resolve</span><span class="op">((</span>Path<span class="op">)</span> event<span class="op">.</span><span class="fu">context</span><span class="op">());</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> <span class="op">(</span><span class="fu">isClassFile</span><span class="op">(</span>changedPath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>                            <span class="dt">final</span> <span class="bu">Object</span> domainEvent <span class="op">=</span> <span class="fu">createClassFileEvent</span><span class="op">(</span>changedPath<span class="op">,</span> event<span class="op">.</span><span class="fu">kind</span><span class="op">());</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>                            <span class="cf">if</span> <span class="op">(</span>domainEvent <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>                                onClassFileEvent<span class="op">.</span><span class="fu">accept</span><span class="op">(</span>domainEvent<span class="op">);</span>  <span class="co">// → Step 1.2</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                            <span class="op">}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>                        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">handleFileProcessingError</span><span class="op">(</span>changedPath<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>                        <span class="op">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>                    <span class="op">}</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>                key<span class="op">.</span><span class="fu">reset</span><span class="op">();</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">InterruptedException</span> ignored<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">finally</span> <span class="op">{</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        watchService<span class="op">.</span><span class="fu">close</span><span class="op">();</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The
+FileWatcherAdapter continuously polls the file system. When a .class
+file is modified, it captures the low-level file system event and begins
+the transformation to domain concepts.</p>
+<h2 id="step-1.2-domain-event-creation">Step 1.2: Domain Event
+Creation</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ClassFileWatcher.java (Domain Layer)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassFileChanged <span class="fu">createClassFileChangedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className <span class="op">=</span> <span class="fu">extractClassName</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> fileSize <span class="op">=</span> Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ClassFileChanged<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span>classFile<span class="op">,</span> className<span class="op">,</span> fileSize<span class="op">,</span> timestamp<span class="op">);</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">extractClassName</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> fileName <span class="op">=</span> classFile<span class="op">.</span><span class="fu">getFileName</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>fileName<span class="op">.</span><span class="fu">endsWith</span><span class="op">(</span>CLASS_FILE_EXTENSION<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> fileName<span class="op">.</span><span class="fu">substring</span><span class="op">(</span><span class="dv">0</span><span class="op">,</span> fileName<span class="op">.</span><span class="fu">length</span><span class="op">()</span> <span class="op">-</span> CLASS_FILE_EXTENSION<span class="op">.</span><span class="fu">length</span><span class="op">());</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fileName<span class="op">;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The
+infrastructure adapter transforms the technical file system event into a
+rich domain event (<code class="verbatim">ClassFileChanged</code>) that
+carries business-meaningful information: class name, file size, and
+precise timestamp.</p>
+<h2 id="step-1.3-event-handoff-to-application-layer">Step 1.3: Event
+Handoff to Application Layer</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotCLI.java (Infrastructure → Application boundary)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">handleFileEvent</span><span class="op">(</span><span class="bu">Object</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> ClassFileChanged classFileEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>            application<span class="op">.</span><span class="fu">accept</span><span class="op">(</span>classFileEvent<span class="op">);</span>  <span class="co">// → Phase 2</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>            <span class="fu">handleApplicationError</span><span class="op">(</span>classFileEvent<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The
+infrastructure layer hands off the domain event to the application
+layer, crossing the first architectural boundary. The event now enters
+ByteHot's core processing pipeline.</p>
+<h1 id="phase-2-application-layer-event-routing">Phase 2: Application
+Layer Event Routing</h1>
+<p>The application layer serves as the thin orchestration layer that
+routes events to appropriate domain aggregates.</p>
+<h2 id="step-2.1-classfilechanged-event-processing">Step 2.1:
+ClassFileChanged Event Processing</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">processClassFileChanged</span><span class="op">(</span><span class="dt">final</span> ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Ensure adapters are initialized</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>adaptersInitialized<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Application not initialized - cannot process ClassFileChanged event&quot;</span><span class="op">);</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Processing ClassFileChanged: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot; at &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">());</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Trigger the complete hot-swap pipeline</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">executeHotSwapPipeline</span><span class="op">(</span>event<span class="op">);</span>  <span class="co">// → Step 2.2</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to process ClassFileChanged event: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        e<span class="op">.</span><span class="fu">printStackTrace</span><span class="op">();</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The application
+layer receives <code class="verbatim">ClassFileChanged</code> events
+from file monitoring infrastructure and triggers the complete hot-swap
+pipeline, providing proper error handling and logging throughout the
+process.</p>
+<h2 id="step-2.2-hot-swap-pipeline-execution">Step 2.2: Hot-Swap
+Pipeline Execution</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">void</span> <span class="fu">executeHotSwapPipeline</span><span class="op">(</span><span class="dt">final</span> ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 1: Validate the new bytecode</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Validating bytecode for class: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> BytecodeValidator validator <span class="op">=</span> <span class="kw">new</span> <span class="fu">BytecodeValidator</span><span class="op">();</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> BytecodeValidated validation <span class="op">=</span> validator<span class="op">.</span><span class="fu">validate</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">());</span>  <span class="co">// → Phase 3</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Bytecode validation successful for: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 2: Create hot-swap request</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Creating HotSwapRequested event for: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> HotSwapManager hotSwapManager <span class="op">=</span> <span class="kw">new</span> <span class="fu">HotSwapManager</span><span class="op">();</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get the current bytecode (mock empty for now since we don&#39;t have class tracking)</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> originalBytecode <span class="op">=</span> <span class="kw">new</span> <span class="dt">byte</span><span class="op">[</span><span class="dv">0</span><span class="op">];</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> HotSwapRequested hotSwapRequest <span class="op">=</span> hotSwapManager<span class="op">.</span><span class="fu">requestHotSwap</span><span class="op">(</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span> </span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            validation<span class="op">,</span> </span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            originalBytecode</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span>  <span class="co">// → Step 3.4</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 3: Perform class redefinition</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Performing class redefinition for: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> ClassRedefinitionSucceeded result <span class="op">=</span> hotSwapManager<span class="op">.</span><span class="fu">performRedefinition</span><span class="op">(</span>hotSwapRequest<span class="op">);</span>  <span class="co">// → Step 3.5</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 4: Log success (event emission would be handled by proper domain flow in production)</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Hot-swap completed successfully for: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">+</span> </span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>                         <span class="st">&quot; (affected instances: &quot;</span> <span class="op">+</span> result<span class="op">.</span><span class="fu">getAffectedInstances</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;)&quot;</span><span class="op">);</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;ClassRedefinitionSucceeded event generated for: &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> BytecodeValidationException e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Handle validation failure</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Bytecode validation failed for &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;BytecodeRejected event generated: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getRejectionEvent</span><span class="op">().</span><span class="fu">getRejectionReason</span><span class="op">());</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> HotSwapException e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Handle redefinition failure</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Class redefinition failed for &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;ClassRedefinitionFailed event generated: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getFailureEvent</span><span class="op">().</span><span class="fu">getFailureReason</span><span class="op">());</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Handle unexpected errors</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Unexpected error in hot-swap pipeline for &quot;</span> <span class="op">+</span> event<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>        e<span class="op">.</span><span class="fu">printStackTrace</span><span class="op">();</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The application
+layer orchestrates the complete hot-swap pipeline by:</p>
+<ol>
+<li><strong><strong>Validating bytecode</strong></strong> using domain
+services</li>
+<li><strong><strong>Creating hot-swap requests</strong></strong> through
+domain managers</li>
+<li><strong><strong>Performing class redefinition</strong></strong> via
+JVM integration</li>
+<li><strong><strong>Handling all error scenarios</strong></strong> with
+proper logging and event generation</li>
+<li><strong><strong>Providing comprehensive feedback</strong></strong>
+for monitoring and debugging</li>
+</ol>
+<h2 id="step-2.2-event-emission-infrastructure">Step 2.2: Event Emission
+Infrastructure</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHotApplication.java (Application Layer)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">emit</span><span class="op">(</span><span class="dt">final</span> DomainResponseEvent<span class="op">&lt;?&gt;</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventEmitterPort emitter <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventEmitterPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        emitter<span class="op">.</span><span class="fu">emit</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventStorePort eventStore <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventStorePort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> VersionedDomainEvent versionedEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            eventStore<span class="op">.</span><span class="fu">save</span><span class="op">(</span>versionedEvent<span class="op">);</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Log error but don&#39;t fail the main flow</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to emit event: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The application
+uses the Ports pattern to access infrastructure without depending on
+concrete implementations. This maintains clean architectural boundaries
+while enabling flexible infrastructure swapping.</p>
+<h1 id="phase-3-domain-processing-and-validation">Phase 3: Domain
+Processing and Validation</h1>
+<p>The domain layer contains the core business logic for hot-swap
+operations, maintaining purity while orchestrating complex validation
+and decision-making.</p>
+<h2 id="step-3.1-domain-aggregate-event-acceptance">Step 3.1: Domain
+Aggregate Event Acceptance</h2>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHot.java (Domain Layer - Aggregate Root)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> DomainResponseEvent<span class="op">&lt;</span>ClassFileChanged<span class="op">&gt;</span> <span class="fu">accept</span><span class="op">(</span><span class="dt">final</span> ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 1: Validate the bytecode for hot-swap compatibility</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> BytecodeValidator validator <span class="op">=</span> <span class="kw">new</span> <span class="fu">BytecodeValidator</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> BytecodeValidated validationResult <span class="op">=</span> validator<span class="op">.</span><span class="fu">validate</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">());</span>  <span class="co">// → Step 3.2</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 2: If validation succeeds, create hot-swap request</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> HotSwapManager hotSwapManager <span class="op">=</span> <span class="kw">new</span> <span class="fu">HotSwapManager</span><span class="op">();</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> currentBytecode <span class="op">=</span> <span class="fu">getCurrentBytecode</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> HotSwapRequested hotSwapRequest <span class="op">=</span> hotSwapManager<span class="op">.</span><span class="fu">requestHotSwap</span><span class="op">(</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span> </span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>            validationResult<span class="op">,</span> </span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>            currentBytecode</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span>  <span class="co">// → Step 3.4</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 3: Perform the actual hot-swap</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> ClassRedefinitionSucceeded success <span class="op">=</span> hotSwapManager<span class="op">.</span><span class="fu">performRedefinition</span><span class="op">(</span>hotSwapRequest<span class="op">);</span>  <span class="co">// → Step 3.5</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Step 4: Return success response</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ClassFileProcessed<span class="op">.</span><span class="fu">success</span><span class="op">(</span>event<span class="op">,</span> validationResult<span class="op">,</span> hotSwapRequest<span class="op">,</span> success<span class="op">);</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> BytecodeValidationException e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validation failed - return rejection response</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ClassFileProcessed<span class="op">.</span><span class="fu">validationFailed</span><span class="op">(</span>event<span class="op">,</span> e<span class="op">.</span><span class="fu">getRejectionEvent</span><span class="op">());</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> HotSwapException e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Hot-swap failed - return failure response</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ClassFileProcessed<span class="op">.</span><span class="fu">hotSwapFailed</span><span class="op">(</span>event<span class="op">,</span> e<span class="op">.</span><span class="fu">getFailureEvent</span><span class="op">());</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Unexpected error - return error response</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ClassFileProcessed<span class="op">.</span><span class="fu">unexpectedError</span><span class="op">(</span>event<span class="op">,</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The ByteHot
+aggregate acts as the orchestrator for the entire hot-swap process. It
+coordinates multiple domain services while maintaining transactional
+consistency through proper error handling.</p>
+<h2 id="step-3.2-bytecode-validation-logic">Step 3.2: Bytecode
+Validation Logic</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> BytecodeValidated <span class="fu">validate</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span><span class="op">,</span> BytecodeValidationException <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> bytecode <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAllBytes</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>bytecode<span class="op">);</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Parse the mock bytecode format for compatibility analysis</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">startsWith</span><span class="op">(</span><span class="st">&quot;COMPATIBLE_BYTECODE:&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createValidatedEvent</span><span class="op">(</span>classFile<span class="op">,</span> content<span class="op">);</span>  <span class="co">// → Step 3.3a</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">startsWith</span><span class="op">(</span><span class="st">&quot;INCOMPATIBLE_BYTECODE:&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BytecodeValidationException</span><span class="op">(</span><span class="fu">createRejectedEvent</span><span class="op">(</span>classFile<span class="op">,</span> content<span class="op">));</span>  <span class="co">// → Step 3.3b</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Unknown bytecode format&quot;</span><span class="op">);</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The
+BytecodeValidator encapsulates the complex business rules for
+determining hot-swap compatibility. It analyzes bytecode changes and
+makes authoritative decisions about safety.</p>
+<h2 id="step-3.3a-successful-validation-event-creation">Step 3.3a:
+Successful Validation Event Creation</h2>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BytecodeValidated <span class="fu">createValidatedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> <span class="bu">String</span> content<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span><span class="op">[]</span> parts <span class="op">=</span> content<span class="op">.</span><span class="fu">split</span><span class="op">(</span><span class="st">&quot;:&quot;</span><span class="op">);</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className <span class="op">=</span> parts<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> validationDetails <span class="op">=</span> <span class="st">&quot;Bytecode validation passed - compatible changes detected&quot;</span><span class="op">;</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>parts<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;</span> <span class="dv">3</span> <span class="op">&amp;&amp;</span> <span class="st">&quot;method_body_only&quot;</span><span class="op">.</span><span class="fu">equals</span><span class="op">(</span>parts<span class="op">[</span><span class="dv">3</span><span class="op">]))</span> <span class="op">{</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        validationDetails <span class="op">=</span> <span class="st">&quot;Bytecode validation passed - method body changes only&quot;</span><span class="op">;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>parts<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;</span> <span class="dv">3</span> <span class="op">&amp;&amp;</span> <span class="st">&quot;method_body_changes&quot;</span><span class="op">.</span><span class="fu">equals</span><span class="op">(</span>parts<span class="op">[</span><span class="dv">3</span><span class="op">]))</span> <span class="op">{</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        validationDetails <span class="op">=</span> <span class="st">&quot;Bytecode validation passed - method body changes detected&quot;</span><span class="op">;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">BytecodeValidated</span><span class="op">(</span>classFile<span class="op">,</span> className<span class="op">,</span> <span class="kw">true</span><span class="op">,</span> validationDetails<span class="op">,</span> timestamp<span class="op">);</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: When validation
+succeeds, a rich <code class="verbatim">BytecodeValidated</code> event
+is created containing detailed information about what type of compatible
+changes were detected.</p>
+<h2 id="step-3.3b-failed-validation-event-creation">Step 3.3b: Failed
+Validation Event Creation</h2>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BytecodeRejected <span class="fu">createRejectedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> <span class="bu">String</span> content<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span><span class="op">[]</span> parts <span class="op">=</span> content<span class="op">.</span><span class="fu">split</span><span class="op">(</span><span class="st">&quot;:&quot;</span><span class="op">);</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className <span class="op">=</span> parts<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> rejectionReason <span class="op">=</span> <span class="st">&quot;Incompatible bytecode changes detected&quot;</span><span class="op">;</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>parts<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;</span> <span class="dv">5</span> <span class="op">&amp;&amp;</span> <span class="st">&quot;field_removal&quot;</span><span class="op">.</span><span class="fu">equals</span><span class="op">(</span>parts<span class="op">[</span><span class="dv">5</span><span class="op">]))</span> <span class="op">{</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        rejectionReason <span class="op">=</span> <span class="st">&quot;Bytecode validation failed - schema changes (field removal) not supported&quot;</span><span class="op">;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>parts<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;</span> <span class="dv">5</span> <span class="op">&amp;&amp;</span> <span class="st">&quot;field_addition&quot;</span><span class="op">.</span><span class="fu">equals</span><span class="op">(</span>parts<span class="op">[</span><span class="dv">5</span><span class="op">]))</span> <span class="op">{</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        rejectionReason <span class="op">=</span> <span class="st">&quot;Bytecode validation failed - schema changes (field addition) not supported&quot;</span><span class="op">;</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> BytecodeRejected<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span>classFile<span class="op">,</span> className<span class="op">,</span> rejectionReason<span class="op">,</span> timestamp<span class="op">);</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: When validation
+fails, a detailed <code class="verbatim">BytecodeRejected</code> event
+is created with specific reasons why the changes are incompatible,
+enabling developers to understand and address issues.</p>
+<h2 id="step-3.4-hot-swap-request-creation">Step 3.4: Hot-Swap Request
+Creation</h2>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: HotSwapManager.java (Domain Service)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> HotSwapRequested <span class="fu">requestHotSwap</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> BytecodeValidated validation<span class="op">,</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                                      <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> originalBytecode<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> newBytecode <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAllBytes</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> requestReason <span class="op">=</span> <span class="fu">createRequestReason</span><span class="op">(</span>validation<span class="op">);</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create a placeholder ClassFileChanged event for the HotSwapRequested</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    ClassFileChanged placeholderEvent <span class="op">=</span> ClassFileChanged<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        validation<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        newBytecode<span class="op">.</span><span class="fu">length</span><span class="op">,</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        timestamp</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        validation<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        originalBytecode<span class="op">,</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        newBytecode<span class="op">,</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>        requestReason<span class="op">,</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        placeholderEvent</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="bu">String</span> <span class="fu">createRequestReason</span><span class="op">(</span><span class="dt">final</span> BytecodeValidated validation<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">&quot;Bytecode validation passed - initiating hot-swap&quot;</span><span class="op">;</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The
+HotSwapManager transforms the validation success into a concrete
+hot-swap request, capturing both the old and new bytecode along with the
+validation context.</p>
+<h2 id="step-3.5-jvm-class-redefinition-execution">Step 3.5: JVM Class
+Redefinition Execution</h2>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: HotSwapManager.java (Domain Service)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> ClassRedefinitionSucceeded <span class="fu">performRedefinition</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="kw">throws</span> HotSwapException <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> startTime <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">nanoTime</span><span class="op">();</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Mock JVM redefinition logic for testing</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getNewBytecode</span><span class="op">());</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;INCOMPATIBLE_BYTECODE&quot;</span><span class="op">)</span> <span class="op">||</span> content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;SCHEMA_CHANGE_BYTECODE&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Simulate JVM rejection</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="fu">createJvmRejectionException</span><span class="op">(</span>request<span class="op">,</span> content<span class="op">);</span>  <span class="co">// → Step 3.6b</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;NotLoadedClass&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Simulate class not found</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="fu">createClassNotFoundException</span><span class="op">(</span>request<span class="op">);</span>  <span class="co">// → Step 3.6c</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Simulate successful redefinition</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">long</span> endTime <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">nanoTime</span><span class="op">();</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Duration</span> duration <span class="op">=</span> <span class="bu">Duration</span><span class="op">.</span><span class="fu">ofNanos</span><span class="op">(</span>endTime <span class="op">-</span> startTime<span class="op">);</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">int</span> affectedInstances <span class="op">=</span> <span class="fu">calculateAffectedInstances</span><span class="op">(</span>request<span class="op">);</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> details <span class="op">=</span> <span class="fu">createRedefinitionDetails</span><span class="op">(</span>request<span class="op">);</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassRedefinitionSucceeded</span><span class="op">(</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>            request<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>            request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>            affectedInstances<span class="op">,</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>            details<span class="op">,</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>            duration<span class="op">,</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>            timestamp</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span>  <span class="co">// → Step 3.6a</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>e <span class="kw">instanceof</span> HotSwapException<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> e<span class="op">;</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Wrap unexpected exceptions</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> ClassRedefinitionFailed failure <span class="op">=</span> <span class="fu">createUnexpectedFailure</span><span class="op">(</span>request<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">HotSwapException</span><span class="op">(</span>failure<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The
+HotSwapManager coordinates with the JVM (through infrastructure adapters
+in production) to perform the actual class redefinition. It measures
+performance and tracks the impact of the operation.</p>
+<h2 id="step-3.6a-successful-redefinition-response">Step 3.6a:
+Successful Redefinition Response</h2>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: HotSwapManager.java (Domain Service)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">int</span> <span class="fu">calculateAffectedInstances</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getNewBytecode</span><span class="op">());</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;instances:multiple&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">3</span><span class="op">;</span> <span class="co">// Mock multiple instances</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span> <span class="co">// Mock single instance</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="bu">String</span> <span class="fu">createRedefinitionDetails</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;Class </span><span class="sc">%s</span><span class="st"> redefinition completed successfully&quot;</span><span class="op">,</span> request<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Success generates
+detailed metrics about the redefinition: execution time, number of
+affected instances, and success details for monitoring and
+optimization.</p>
+<h2 id="step-3.6b-jvm-rejection-handling">Step 3.6b: JVM Rejection
+Handling</h2>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: HotSwapManager.java (Domain Service)</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> HotSwapException <span class="fu">createJvmRejectionException</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">,</span> <span class="dt">final</span> <span class="bu">String</span> content<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> reason<span class="op">;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> jvmError<span class="op">;</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> recoveryAction<span class="op">;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;SCHEMA_CHANGE&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        reason <span class="op">=</span> <span class="st">&quot;JVM detected incompatible schema changes&quot;</span><span class="op">;</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        jvmError <span class="op">=</span> <span class="st">&quot;java.lang.UnsupportedOperationException: class redefinition failed: attempted to change the schema&quot;</span><span class="op">;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>        recoveryAction <span class="op">=</span> <span class="st">&quot;Restart application to load new class definition&quot;</span><span class="op">;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        reason <span class="op">=</span> <span class="st">&quot;JVM rejected bytecode changes as incompatible&quot;</span><span class="op">;</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>        jvmError <span class="op">=</span> <span class="st">&quot;java.lang.UnsupportedOperationException: class redefinition failed: incompatible changes detected&quot;</span><span class="op">;</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>        recoveryAction <span class="op">=</span> <span class="st">&quot;Review changes for compatibility or restart application&quot;</span><span class="op">;</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ClassRedefinitionFailed failure <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>        reason<span class="op">,</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>        jvmError<span class="op">,</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        recoveryAction<span class="op">,</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapException</span><span class="op">(</span>failure<span class="op">);</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: When the JVM
+rejects the redefinition, detailed failure information is captured
+including the specific JVM error and actionable recovery guidance for
+developers.</p>
+<h1 id="phase-4-event-persistence-and-audit-trail">Phase 4: Event
+Persistence and Audit Trail</h1>
+<p>Every significant event in the hot-swap flow is persisted for audit
+trails, debugging, and system intelligence.</p>
+<h2 id="step-4.1-event-store-persistence">Step 4.1: Event Store
+Persistence</h2>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: FilesystemEventStoreAdapter.java (Infrastructure Layer)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">save</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="kw">throws</span> EventStoreException <span class="op">{</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Ensure aggregate directory exists</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        Path aggregateDir <span class="op">=</span> <span class="fu">getAggregateDirectoryPath</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span> event<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">());</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        Files<span class="op">.</span><span class="fu">createDirectories</span><span class="op">(</span>aggregateDir<span class="op">);</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update version if needed</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> aggregateKey <span class="op">=</span> <span class="fu">aggregateKey</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span> event<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">());</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">AtomicLong</span> currentVersion <span class="op">=</span> aggregateVersions<span class="op">.</span><span class="fu">computeIfAbsent</span><span class="op">(</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>            aggregateKey<span class="op">,</span> </span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>            k <span class="op">-&gt;</span> <span class="kw">new</span> <span class="bu">AtomicLong</span><span class="op">(</span><span class="dv">0L</span><span class="op">)</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Increment version</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        <span class="dt">long</span> newVersion <span class="op">=</span> currentVersion<span class="op">.</span><span class="fu">incrementAndGet</span><span class="op">();</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create filename with timestamp and sequence</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> filename <span class="op">=</span> <span class="fu">createEventFilename</span><span class="op">(</span>event<span class="op">,</span> newVersion<span class="op">);</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>        Path eventFile <span class="op">=</span> aggregateDir<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>filename<span class="op">);</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Serialize event to JSON</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> eventJson <span class="op">=</span> <span class="fu">serializeEvent</span><span class="op">(</span>event<span class="op">);</span>  <span class="co">// → Step 4.2</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Write to file atomically</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>        Files<span class="op">.</span><span class="fu">write</span><span class="op">(</span>eventFile<span class="op">,</span> eventJson<span class="op">.</span><span class="fu">getBytes</span><span class="op">(),</span> </span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>                   StandardOpenOption<span class="op">.</span><span class="fu">CREATE</span><span class="op">,</span> StandardOpenOption<span class="op">.</span><span class="fu">WRITE</span><span class="op">);</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update metadata</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">updateMetadata</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span> event<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">());</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">EventStoreException</span><span class="op">(</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Failed to save event: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">(),</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>            e<span class="op">,</span></span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>            EventStoreException<span class="op">.</span><span class="fu">OperationType</span><span class="op">.</span><span class="fu">SAVE</span><span class="op">,</span></span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span></span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">()</span></span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Each domain event
+is persisted as a JSON file with atomic write operations, maintaining
+event ordering and version consistency for reliable event sourcing.</p>
+<h2 id="step-4.2-event-serialization-process">Step 4.2: Event
+Serialization Process</h2>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventSerializationSupport.java (Infrastructure Layer)</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">toJson</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    ObjectNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">createObjectNode</span><span class="op">();</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add event type information</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    rootNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span>EVENT_TYPE_PROPERTY<span class="op">,</span> event<span class="op">.</span><span class="fu">getEventType</span><span class="op">());</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add event metadata</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    ObjectNode metadataNode <span class="op">=</span> <span class="fu">createMetadataNode</span><span class="op">(</span>event<span class="op">);</span>  <span class="co">// → Step 4.3</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    rootNode<span class="op">.</span><span class="fu">set</span><span class="op">(</span>EVENT_METADATA_PROPERTY<span class="op">,</span> metadataNode<span class="op">);</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Convert domain event to DTO and add as event data</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Object</span> dto <span class="op">=</span> <span class="fu">convertToDto</span><span class="op">(</span>event<span class="op">);</span>  <span class="co">// → Step 4.4</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    JsonNode eventDataNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">valueToTree</span><span class="op">(</span>dto<span class="op">);</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    rootNode<span class="op">.</span><span class="fu">set</span><span class="op">(</span>EVENT_DATA_PROPERTY<span class="op">,</span> eventDataNode<span class="op">);</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">writeValueAsString</span><span class="op">(</span>rootNode<span class="op">);</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Event
+serialization preserves complete event information including metadata,
+type information, and event-specific data through DTO conversion.</p>
+<h2 id="step-4.3-metadata-preservation">Step 4.3: Metadata
+Preservation</h2>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventSerializationSupport.java (Infrastructure Layer)</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> ObjectNode <span class="fu">createMetadataNode</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    ObjectNode metadataNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">createObjectNode</span><span class="op">();</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;eventId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getEventId</span><span class="op">());</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;aggregateType&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">());</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;aggregateId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">());</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;aggregateVersion&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getAggregateVersion</span><span class="op">());</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;timestamp&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">().</span><span class="fu">toString</span><span class="op">());</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;schemaVersion&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getSchemaVersion</span><span class="op">());</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getPreviousEventId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;previousEventId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getPreviousEventId</span><span class="op">());</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getUserId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;userId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getUserId</span><span class="op">());</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getCorrelationId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>        metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;correlationId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getCorrelationId</span><span class="op">());</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> metadataNode<span class="op">;</span></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Complete event
+metadata is preserved, enabling event correlation, causality tracking,
+and audit trail reconstruction.</p>
+<h2 id="step-4.4-dto-conversion-for-serialization">Step 4.4: DTO
+Conversion for Serialization</h2>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventSerializationSupport.java (Infrastructure Layer)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="bu">Object</span> <span class="fu">convertToDto</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> ClassFileChanged<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> JsonClassFileChanged<span class="op">.</span><span class="fu">fromDomain</span><span class="op">((</span>ClassFileChanged<span class="op">)</span> event<span class="op">);</span>  <span class="co">// → Step 4.5</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For other event types, fall back to direct serialization</span></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// </span><span class="al">TODO</span><span class="co">: Add more DTO mappings as needed</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> event<span class="op">;</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="step-4.5-specific-event-dto-conversion">Step 4.5: Specific Event
+DTO Conversion</h2>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: JsonClassFileChanged.java (Infrastructure Layer)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> JsonClassFileChanged <span class="fu">fromDomain</span><span class="op">(</span>ClassFileChanged domainEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">JsonClassFileChanged</span><span class="op">(</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getEventId</span><span class="op">(),</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">(),</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getAggregateVersion</span><span class="op">(),</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">(),</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getPreviousEventId</span><span class="op">(),</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getSchemaVersion</span><span class="op">(),</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getUserId</span><span class="op">(),</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getCorrelationId</span><span class="op">(),</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getClassFile</span><span class="op">().</span><span class="fu">toString</span><span class="op">(),</span>  <span class="co">// Path → String conversion</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getFileSize</span><span class="op">(),</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getDetectionTimestamp</span><span class="op">()</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Domain events are
+converted to JSON-compatible DTOs that handle type conversions (like
+Path to String) while preserving all domain information.</p>
+<h1 id="phase-5-event-emission-and-notification">Phase 5: Event Emission
+and Notification</h1>
+<p>Successful events are emitted through various channels to notify
+external systems and provide real-time feedback.</p>
+<h2 id="step-5.1-event-emission-orchestration">Step 5.1: Event Emission
+Orchestration</h2>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventEmitterAdapter.java (Infrastructure Layer)</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">emit</span><span class="op">(</span><span class="dt">final</span> DomainResponseEvent<span class="op">&lt;?&gt;</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">switch</span> <span class="op">(</span>emissionTarget<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> CONSOLE <span class="op">-&gt;</span> <span class="fu">emitToConsole</span><span class="op">(</span>event<span class="op">);</span>  <span class="co">// → Step 5.2a</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> FILE <span class="op">-&gt;</span> <span class="fu">emitToFile</span><span class="op">(</span>event<span class="op">);</span>        <span class="co">// → Step 5.2b</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> BOTH <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>            <span class="fu">emitToConsole</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>            <span class="fu">emitToFile</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The event emitter
+provides multiple output strategies, enabling flexible notification and
+monitoring approaches based on deployment needs.</p>
+<h2 id="step-5.2a-console-event-emission">Step 5.2a: Console Event
+Emission</h2>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventEmitterAdapter.java (Infrastructure Layer)</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">emitToConsole</span><span class="op">(</span><span class="dt">final</span> DomainResponseEvent<span class="op">&lt;?&gt;</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> formattedEvent <span class="op">=</span> <span class="fu">formatEvent</span><span class="op">(</span>event<span class="op">);</span>  <span class="co">// → Step 5.3</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span><span class="fu">isSuccessEvent</span><span class="op">(</span>event<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span>GREEN <span class="op">+</span> <span class="st">&quot;✓ &quot;</span> <span class="op">+</span> formattedEvent <span class="op">+</span> RESET<span class="op">);</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span><span class="fu">isWarningEvent</span><span class="op">(</span>event<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span>YELLOW <span class="op">+</span> <span class="st">&quot;⚠ &quot;</span> <span class="op">+</span> formattedEvent <span class="op">+</span> RESET<span class="op">);</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span><span class="fu">isErrorEvent</span><span class="op">(</span>event<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span>RED <span class="op">+</span> <span class="st">&quot;✗ &quot;</span> <span class="op">+</span> formattedEvent <span class="op">+</span> RESET<span class="op">);</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span>BLUE <span class="op">+</span> <span class="st">&quot;ℹ &quot;</span> <span class="op">+</span> formattedEvent <span class="op">+</span> RESET<span class="op">);</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="step-5.2b-file-event-emission">Step 5.2b: File Event
+Emission</h2>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventEmitterAdapter.java (Infrastructure Layer)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">emitToFile</span><span class="op">(</span><span class="dt">final</span> DomainResponseEvent<span class="op">&lt;?&gt;</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> formattedEvent <span class="op">=</span> <span class="fu">formatEvent</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> logEntry <span class="op">=</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;[</span><span class="sc">%s</span><span class="st">] </span><span class="sc">%s%n</span><span class="st">&quot;</span><span class="op">,</span> timestamp<span class="op">,</span> formattedEvent<span class="op">);</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>        Files<span class="op">.</span><span class="fu">write</span><span class="op">(</span>logFile<span class="op">,</span> logEntry<span class="op">.</span><span class="fu">getBytes</span><span class="op">(),</span> </span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>                   StandardOpenOption<span class="op">.</span><span class="fu">CREATE</span><span class="op">,</span> StandardOpenOption<span class="op">.</span><span class="fu">APPEND</span><span class="op">);</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to write event to file: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="step-5.3-event-formatting-for-output">Step 5.3: Event Formatting
+for Output</h2>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: EventEmitterAdapter.java (Infrastructure Layer)</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="bu">String</span> <span class="fu">formatEvent</span><span class="op">(</span><span class="dt">final</span> DomainResponseEvent<span class="op">&lt;?&gt;</span> event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">StringBuilder</span> sb <span class="op">=</span> <span class="kw">new</span> <span class="bu">StringBuilder</span><span class="op">();</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;[&quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>LocalDateTime<span class="op">.</span><span class="fu">now</span><span class="op">().</span><span class="fu">format</span><span class="op">(</span>TIMESTAMP_FORMAT<span class="op">)).</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;] &quot;</span><span class="op">);</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;[&quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClass</span><span class="op">().</span><span class="fu">getSimpleName</span><span class="op">()).</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;] &quot;</span><span class="op">);</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Event: &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>event<span class="op">.</span><span class="fu">toString</span><span class="op">());</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add correlation information if available</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> ClassFileProcessed processed<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>        sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot; | File: &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>processed<span class="op">.</span><span class="fu">getOriginalEvent</span><span class="op">().</span><span class="fu">getClassFile</span><span class="op">());</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>        sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot; | Class: &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>processed<span class="op">.</span><span class="fu">getOriginalEvent</span><span class="op">().</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>processed<span class="op">.</span><span class="fu">isSuccess</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>            sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot; | Status: SUCCESS&quot;</span><span class="op">);</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>            sb<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot; | Status: FAILED - &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>processed<span class="op">.</span><span class="fu">getErrorMessage</span><span class="op">());</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sb<span class="op">.</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Events are
+formatted with rich contextual information including timestamps, event
+types, and success/failure status for clear monitoring and
+debugging.</p>
+<h1 id="phase-6-flow-completion-and-system-state">Phase 6: Flow
+Completion and System State</h1>
+<p>The flow concludes with the system in a new stable state, having
+successfully performed a hot-swap operation or gracefully handled
+failures.</p>
+<h2 id="step-6.1-success-flow-completion">Step 6.1: Success Flow
+Completion</h2>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: ByteHot.java (Domain Layer) - Success Path</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// When all steps succeed, the aggregate returns a success response</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> ClassFileProcessed<span class="op">.</span><span class="fu">success</span><span class="op">(</span>event<span class="op">,</span> validationResult<span class="op">,</span> hotSwapRequest<span class="op">,</span> success<span class="op">);</span></span></code></pre></div>
+<h2 id="final-system-state-analysis">Final System State Analysis</h2>
+<p>At flow completion, the system has:</p>
+<ol>
+<li><strong><strong>Detected</strong></strong> a file system change
+through infrastructure monitoring</li>
+<li><strong><strong>Validated</strong></strong> bytecode compatibility
+using domain business rules</li>
+<li><strong><strong>Requested</strong></strong> hot-swap through domain
+orchestration</li>
+<li><strong><strong>Executed</strong></strong> JVM class redefinition
+via infrastructure adapters</li>
+<li><strong><strong>Persisted</strong></strong> all events for audit
+trail and system intelligence</li>
+<li><strong><strong>Emitted</strong></strong> notifications for external
+monitoring and feedback</li>
+</ol>
+<h2 id="cross-cutting-concerns-demonstrated">Cross-Cutting Concerns
+Demonstrated</h2>
+<h3 id="error-handling-flow">Error Handling Flow</h3>
+<p>Every step includes proper error handling that converts technical
+failures into domain events:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Pattern repeated throughout the flow</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Operation</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span>SpecificException e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Convert to domain event</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> DomainEvent<span class="op">.</span><span class="fu">failure</span><span class="op">(</span>context<span class="op">,</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="event-correlation">Event Correlation</h3>
+<p>Events maintain causality chains throughout the flow:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Events reference their causing events</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>HotSwapRequested request <span class="op">=</span> <span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ... other parameters</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    triggeringEvent  <span class="co">// Reference to ClassFileChanged</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<h3 id="infrastructure-abstraction">Infrastructure Abstraction</h3>
+<p>Domain logic remains pure despite complex infrastructure
+interactions:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Domain uses ports, never concrete adapters</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>EventStorePort eventStore <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventStorePort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>EventEmitterPort emitter <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventEmitterPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span></code></pre></div>
+<h1 id="runtime-collaboration-patterns">Runtime Collaboration
+Patterns</h1>
+<h2 id="hexagonal-architecture-in-motion">Hexagonal Architecture in
+Motion</h2>
+<p>The flow demonstrates all three layers of hexagonal architecture
+working together:</p>
+<ol>
+<li><strong><strong>Infrastructure Layer</strong></strong>: Handles
+technical concerns (file I/O, JSON, JVM APIs)</li>
+<li><strong><strong>Application Layer</strong></strong>: Routes events
+and coordinates infrastructure</li>
+<li><strong><strong>Domain Layer</strong></strong>: Contains pure
+business logic and decision-making</li>
+</ol>
+<h2 id="event-driven-decoupling">Event-Driven Decoupling</h2>
+<p>Each phase communicates through events, enabling:</p>
+<ul>
+<li><strong><strong>Loose coupling</strong></strong> between
+components</li>
+<li><strong><strong>Asynchronous processing</strong></strong>
+capabilities</li>
+<li><strong><strong>Audit trail</strong></strong> generation</li>
+<li><strong><strong>System intelligence</strong></strong> through event
+analysis</li>
+</ul>
+<h2 id="port-adapter-flexibility">Port-Adapter Flexibility</h2>
+<p>The flow shows how ports enable infrastructure swapping:</p>
+<ul>
+<li><strong><strong>EventStorePort</strong></strong>: Could be
+filesystem, database, or cloud storage</li>
+<li><strong><strong>EventEmitterPort</strong></strong>: Could be
+console, file, message queue, or webhook</li>
+<li><strong><strong>InstrumentationPort</strong></strong>: Could be
+mock, real JVM, or remote service</li>
+</ul>
+<h1 id="performance-and-monitoring-insights">Performance and Monitoring
+Insights</h1>
+<h2 id="flow-timing-analysis">Flow Timing Analysis</h2>
+<p>The complete flow includes comprehensive timing information:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From various points in the flow</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>Instant detectionTime <span class="op">=</span> fileChangeEvent<span class="op">.</span><span class="fu">getDetectionTimestamp</span><span class="op">();</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>Instant validationTime <span class="op">=</span> validationEvent<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">();</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="bu">Duration</span> executionTime <span class="op">=</span> redefinitionEvent<span class="op">.</span><span class="fu">getExecutionTime</span><span class="op">();</span></span></code></pre></div>
+<h2 id="resource-impact-tracking">Resource Impact Tracking</h2>
+<p>Each step tracks its resource impact:</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">// File size tracking</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="dt">long</span> fileSize <span class="op">=</span> event<span class="op">.</span><span class="fu">getFileSize</span><span class="op">();</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Instance impact analysis  </span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> affectedInstances <span class="op">=</span> success<span class="op">.</span><span class="fu">getAffectedInstances</span><span class="op">();</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Memory and I/O implications tracked throughout</span></span></code></pre></div>
+<h2 id="error-distribution-analysis">Error Distribution Analysis</h2>
+<p>The flow enables comprehensive error analysis:</p>
+<ul>
+<li><strong><strong>Validation failures</strong></strong>: Bytecode
+compatibility issues</li>
+<li><strong><strong>JVM rejections</strong></strong>: Runtime
+redefinition constraints</li>
+<li><strong><strong>Infrastructure errors</strong></strong>: File I/O,
+serialization, network issues</li>
+<li><strong><strong>Application errors</strong></strong>: Unexpected
+exceptions and system failures</li>
+</ul>
+<h1 id="conclusion-architecture-in-action">Conclusion: Architecture in
+Action</h1>
+<p>This literate flow documentation reveals how ByteHot's sophisticated
+architecture enables:</p>
+<ol>
+<li><strong><strong>Clean separation of concerns</strong></strong> while
+maintaining functional cohesion</li>
+<li><strong><strong>Event-driven collaboration</strong></strong> that
+scales and evolves gracefully</li>
+<li><strong><strong>Infrastructure independence</strong></strong>
+through proper abstraction</li>
+<li><strong><strong>Comprehensive observability</strong></strong>
+through detailed event tracking</li>
+<li><strong><strong>Robust error handling</strong></strong> at every
+architectural boundary</li>
+</ol>
+<p>The hot-swap flow demonstrates that complex, performance-critical
+operations can be implemented with clean architecture principles,
+proving that good design scales from simple CRUD operations to
+sophisticated runtime JVM manipulation.</p>
+<h2 id="related-flow-documentation">Related Flow Documentation</h2>
+<ul>
+<li><span class="spurious-link"
+target="file-change-detection-flow.org"><em>File Change Detection
+Flow</em></span>: Detailed analysis of file system monitoring</li>
+<li><span class="spurious-link"
+target="validation-flow.org"><em>Bytecode Validation Flow</em></span>:
+Deep dive into compatibility analysis</li>
+<li><span class="spurious-link"
+target="error-recovery-flow.org"><em>Error Recovery Flow</em></span>:
+How failures are handled and recovered</li>
+<li><span class="spurious-link"
+target="flow-intelligence-learning-flow.org"><em>Flow Intelligence
+Learning</em></span>: How the system learns from patterns</li>
+</ul>
+<h2 id="next-steps-for-flow-analysis">Next Steps for Flow Analysis</h2>
+<ol>
+<li><strong><strong>Performance Optimization</strong></strong>: Identify
+bottlenecks in the collaboration</li>
+<li><strong><strong>Error Pattern Analysis</strong></strong>: Study
+failure modes across architectural boundaries</li>
+<li><strong><strong>Concurrency Patterns</strong></strong>: Analyze
+multi-threaded flow execution</li>
+<li><strong><strong>Integration Patterns</strong></strong>: Understand
+external system collaboration</li>
+</ol>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flows/error-recovery-flow - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview">Overview</h1>
+<p>This flow documents the comprehensive error handling and recovery
+process in ByteHot. It shows how the system detects, classifies, and
+recovers from various types of errors that can occur during hot-swap
+operations, ensuring system reliability and consistency.</p>
+<h2 id="flow-trigger">Flow Trigger</h2>
+<ul>
+<li><strong><strong>Starting Event</strong></strong>: Any error during
+ByteHot operations (validation, redefinition, instance updates)</li>
+<li><strong><strong>Ending Event</strong></strong>: <code
+class="verbatim">RecoveryResult</code> or <code
+class="verbatim">RollbackResult</code></li>
+<li><strong><strong>Duration</strong></strong>: 100ms - 30s depending on
+recovery strategy</li>
+<li><strong><strong>Criticality</strong></strong>: Critical - System
+stability and reliability</li>
+</ul>
+<h1 id="flow-participants">Flow Participants</h1>
+<h2 id="primary-actors">Primary Actors</h2>
+<ul>
+<li><code class="verbatim">ErrorHandler</code> (Domain): Central error
+processing and classification</li>
+<li><code class="verbatim">ErrorRecoveryManager</code> (Domain):
+Orchestrates recovery operations</li>
+<li><code class="verbatim">RollbackManager</code> (Domain): Manages
+rollback operations and snapshots</li>
+<li><code class="verbatim">RecoveryStrategy</code> (Domain): Defines
+recovery approaches</li>
+</ul>
+<h2 id="secondary-actors">Secondary Actors</h2>
+<ul>
+<li><code class="verbatim">StatePreserver</code> (Domain): Preserves and
+restores system state</li>
+<li><code class="verbatim">InstanceTracker</code> (Domain): Tracks
+affected instances</li>
+<li><code class="verbatim">FrameworkIntegration</code> (Domain):
+Framework-specific recovery</li>
+</ul>
+<h1 id="error-detection-and-classification-flow">Error Detection and
+Classification Flow</h1>
+<h2 id="phase-1-error-detection">Phase 1: Error Detection</h2>
+<pre><code>[ Operation Failure ] --exception--&gt; [ ErrorHandler ] --classify--&gt; [ ErrorType ]
+                                           |
+                                           v
+                                    [ ErrorSeverity Assessment ]
+                                           |
+                                           v
+                                    [ RecoveryStrategy Selection ]
+</code></pre>
+<p>When any ByteHot operation fails:</p>
+<ol>
+<li><strong><strong>Exception Capture</strong></strong>: Any component
+catches exception during operation</li>
+<li><strong><strong>Error Handler Invocation</strong></strong>: <code
+class="verbatim">ErrorHandler.handleError()</code> is called with:
+<ul>
+<li>Original exception</li>
+<li>Operation context (class name, operation type)</li>
+<li>Affected resources</li>
+</ul></li>
+<li><strong><strong>Error Classification</strong></strong>: Error is
+classified into <code class="verbatim">ErrorType</code>:
+<ul>
+<li><code class="verbatim">VALIDATION_ERROR</code>: Bytecode validation
+failures</li>
+<li><code class="verbatim">REDEFINITION_FAILURE</code>: JVM class
+redefinition rejections</li>
+<li><code class="verbatim">INSTANCE_UPDATE_ERROR</code>: Instance update
+failures</li>
+<li><code class="verbatim">CRITICAL_SYSTEM_ERROR</code>: System-level
+failures</li>
+<li><code class="verbatim">SECURITY_ERROR</code>: Security
+violations</li>
+<li><code class="verbatim">RESOURCE_ERROR</code>: Memory or resource
+exhaustion</li>
+</ul></li>
+<li><strong><strong>Severity Assessment</strong></strong>: Error
+severity is determined:
+<ul>
+<li><code class="verbatim">INFO</code>: Informational, no action
+needed</li>
+<li><code class="verbatim">WARNING</code>: Monitor but continue
+operation</li>
+<li><code class="verbatim">ERROR</code>: Prevents operation, recovery
+possible</li>
+<li><code class="verbatim">CRITICAL</code>: Compromises system
+stability</li>
+<li><code class="verbatim">FATAL</code>: Requires immediate
+intervention</li>
+</ul></li>
+</ol>
+<h2 id="phase-2-recovery-strategy-selection">Phase 2: Recovery Strategy
+Selection</h2>
+<pre><code>[ ErrorType + ErrorSeverity ] --mapping--&gt; [ RecoveryStrategy ]
+                                                  |
+                                                  v
+                                          [ Strategy Validation ]
+                                                  |
+                                                  v
+                                          [ Recovery Planning ]
+</code></pre>
+<p>Based on error classification, appropriate recovery strategy is
+selected:</p>
+<ol>
+<li><strong><strong>Strategy Mapping</strong></strong>: <code
+class="verbatim">ErrorHandler</code> maps error characteristics to
+recovery strategies:
+<ul>
+<li><code class="verbatim">VALIDATION_ERROR</code> → <code
+class="verbatim">REJECT_CHANGE</code></li>
+<li><code class="verbatim">REDEFINITION_FAILURE</code> → <code
+class="verbatim">ROLLBACK_CHANGES</code></li>
+<li><code class="verbatim">INSTANCE_UPDATE_ERROR</code> → <code
+class="verbatim">PRESERVE_CURRENT_STATE</code></li>
+<li><code class="verbatim">CRITICAL_SYSTEM_ERROR</code> → <code
+class="verbatim">EMERGENCY_SHUTDOWN</code></li>
+<li><code class="verbatim">RESOURCE_ERROR</code> → <code
+class="verbatim">FALLBACK_MODE</code></li>
+</ul></li>
+<li><strong><strong>Strategy Validation</strong></strong>: Selected
+strategy is validated for feasibility:
+<ul>
+<li>Check if rollback snapshots are available</li>
+<li>Verify system resources for recovery operation</li>
+<li>Validate manual intervention requirements</li>
+</ul></li>
+<li><strong><strong>Recovery Planning</strong></strong>: <code
+class="verbatim">ErrorRecoveryManager</code> creates recovery plan:
+<ul>
+<li>Sequence of <code class="verbatim">RecoveryAction</code> items</li>
+<li>Resource allocation requirements</li>
+<li>Time estimates and timeouts</li>
+<li>Rollback points and safety checks</li>
+</ul></li>
+</ol>
+<h1 id="recovery-execution-flows">Recovery Execution Flows</h1>
+<h2 id="simple-recovery-flow-rejectchange">Simple Recovery Flow
+(REJECT<sub>CHANGE</sub>)</h2>
+<pre><code>[ VALIDATION_ERROR ] --&gt; [ ErrorHandler ] --&gt; [ REJECT_CHANGE ] --&gt; [ RecoveryResult.success ]
+</code></pre>
+<p>For validation errors, the simplest recovery is rejecting the
+proposed change:</p>
+<ol>
+<li><strong><strong>Error Processing</strong></strong>: <code
+class="verbatim">ErrorHandler</code> receives <code
+class="verbatim">VALIDATION_ERROR</code></li>
+<li><strong><strong>Strategy Selection</strong></strong>: <code
+class="verbatim">REJECT_CHANGE</code> strategy selected</li>
+<li><strong><strong>Action Execution</strong></strong>: No system
+changes made, operation cancelled</li>
+<li><strong><strong>Result Reporting</strong></strong>: <code
+class="verbatim">RecoveryResult</code> indicates successful
+rejection</li>
+<li><strong><strong>System State</strong></strong>: System remains in
+original stable state</li>
+</ol>
+<h2 id="rollback-recovery-flow-rollbackchanges">Rollback Recovery Flow
+(ROLLBACK<sub>CHANGES</sub>)</h2>
+<pre><code>[ REDEFINITION_FAILURE ] --&gt; [ ErrorRecoveryManager ] --&gt; [ RollbackManager ]
+                                     |                           |
+                                     v                           v
+                             [ Recovery Planning ]      [ Snapshot Retrieval ]
+                                     |                           |
+                                     v                           v
+                             [ Rollback Execution ] &lt;-----------/
+                                     |
+                                     v
+                             [ RollbackResult ]
+</code></pre>
+<p>For redefinition failures, rollback to previous stable state:</p>
+<ol>
+<li><strong><strong>Error Analysis</strong></strong>: <code
+class="verbatim">ErrorRecoveryManager</code> analyzes <code
+class="verbatim">REDEFINITION_FAILURE</code></li>
+<li><strong><strong>Snapshot Identification</strong></strong>: <code
+class="verbatim">RollbackManager</code> locates appropriate
+snapshot</li>
+<li><strong><strong>Rollback Planning</strong></strong>: Recovery plan
+includes:
+<ul>
+<li>Class redefinition rollback</li>
+<li>Instance state restoration</li>
+<li>Framework integration updates</li>
+</ul></li>
+<li><strong><strong>Rollback Execution</strong></strong>:
+<ul>
+<li>Restore previous class definition</li>
+<li>Restore instance states from snapshot</li>
+<li>Update framework-managed instances</li>
+</ul></li>
+<li><strong><strong>Validation</strong></strong>: Verify system
+consistency after rollback</li>
+<li><strong><strong>Result Reporting</strong></strong>: <code
+class="verbatim">RollbackResult</code> with success metrics</li>
+</ol>
+<h2 id="complex-recovery-flow-multiple-strategies">Complex Recovery Flow
+(Multiple Strategies)</h2>
+<pre><code>[ INSTANCE_UPDATE_ERROR ] --&gt; [ ErrorRecoveryManager ] --&gt; [ Strategy Combination ]
+                                     |                            |
+                                     v                            v
+                            [ Parallel Recovery Actions ]   [ State Preservation ]
+                                     |                            |
+                                     v                            v
+                            [ Partial Success Handling ] &lt;-------/
+                                     |
+                                     v
+                            [ Recovery Completion ]
+</code></pre>
+<p>For complex failures requiring multiple recovery actions:</p>
+<ol>
+<li><strong><strong>Multi-Phase Recovery</strong></strong>: <code
+class="verbatim">ErrorRecoveryManager</code> orchestrates multiple
+strategies:
+<ul>
+<li><code class="verbatim">PRESERVE_CURRENT_STATE</code> for successful
+instances</li>
+<li><code class="verbatim">RETRY_OPERATION</code> for failed
+instances</li>
+<li><code class="verbatim">FALLBACK_MODE</code> if retries fail</li>
+</ul></li>
+<li><strong><strong>Parallel Execution</strong></strong>: Recovery
+actions executed concurrently where possible</li>
+<li><strong><strong>Progress Tracking</strong></strong>: Monitor
+individual action progress and overall recovery</li>
+<li><strong><strong>Partial Success Handling</strong></strong>: Handle
+scenarios where some actions succeed and others fail</li>
+<li><strong><strong>Consolidation</strong></strong>: Combine results
+from all recovery actions into final result</li>
+</ol>
+<h1 id="emergency-procedures">Emergency Procedures</h1>
+<h2 id="emergency-shutdown-flow">Emergency Shutdown Flow</h2>
+<pre><code>[ CRITICAL_SYSTEM_ERROR ] --&gt; [ ErrorHandler ] --&gt; [ EMERGENCY_SHUTDOWN ]
+                                     |                        |
+                                     v                        v
+                            [ Immediate Assessment ]   [ Shutdown Sequence ]
+                                     |                        |
+                                     v                        v
+                            [ Resource Cleanup ]      [ Service Termination ]
+</code></pre>
+<p>For critical system errors requiring immediate shutdown:</p>
+<ol>
+<li><strong><strong>Critical Error Detection</strong></strong>: <code
+class="verbatim">ErrorHandler</code> identifies <code
+class="verbatim">CRITICAL_SYSTEM_ERROR</code></li>
+<li><strong><strong>Emergency Protocol</strong></strong>: <code
+class="verbatim">EMERGENCY_SHUTDOWN</code> strategy activated</li>
+<li><strong><strong>Immediate Actions</strong></strong>:
+<ul>
+<li>Stop all ongoing hot-swap operations</li>
+<li>Preserve critical system state</li>
+<li>Release allocated resources</li>
+<li>Notify monitoring systems</li>
+</ul></li>
+<li><strong><strong>Graceful Termination</strong></strong>: Attempt
+graceful shutdown of ByteHot agent</li>
+<li><strong><strong>Last Resort</strong></strong>: Force termination if
+graceful shutdown fails</li>
+</ol>
+<h2 id="fallback-mode-flow">Fallback Mode Flow</h2>
+<pre><code>[ RESOURCE_ERROR ] --&gt; [ ErrorRecoveryManager ] --&gt; [ FALLBACK_MODE ]
+                              |                           |
+                              v                           v
+                      [ Reduced Functionality ]   [ Resource Management ]
+                              |                           |
+                              v                           v
+                      [ Monitoring Activation ]  &lt;-------/
+</code></pre>
+<p>For resource exhaustion, activate reduced functionality mode:</p>
+<ol>
+<li><strong><strong>Resource Assessment</strong></strong>: Evaluate
+available system resources</li>
+<li><strong><strong>Feature Reduction</strong></strong>: Disable
+non-essential ByteHot features:
+<ul>
+<li>Reduce monitoring frequency</li>
+<li>Limit concurrent operations</li>
+<li>Simplify instance update strategies</li>
+</ul></li>
+<li><strong><strong>Resource Conservation</strong></strong>: Implement
+resource-saving measures:
+<ul>
+<li>Garbage collection optimization</li>
+<li>Memory usage reduction</li>
+<li>CPU throttling</li>
+</ul></li>
+<li><strong><strong>Recovery Monitoring</strong></strong>: Monitor for
+resource availability improvement</li>
+<li><strong><strong>Gradual Restoration</strong></strong>: Gradually
+restore full functionality as resources become available</li>
+</ol>
+<h1 id="recovery-monitoring-and-analysis">Recovery Monitoring and
+Analysis</h1>
+<h2 id="recovery-performance-tracking">Recovery Performance
+Tracking</h2>
+<pre><code>[ Recovery Start ] --&gt; [ Action Tracking ] --&gt; [ Performance Metrics ] --&gt; [ Analysis Report ]
+                            |                          |
+                            v                          v
+                    [ Progress Updates ]      [ Success Rate Calculation ]
+</code></pre>
+<p>Throughout recovery operations:</p>
+<ol>
+<li><strong><strong>Action Tracking</strong></strong>: Monitor each
+<code class="verbatim">RecoveryAction</code>:
+<ul>
+<li>Start and end timestamps</li>
+<li>Success/failure status</li>
+<li>Resource consumption</li>
+<li>Error details for failures</li>
+</ul></li>
+<li><strong><strong>Performance Metrics</strong></strong>: Calculate
+recovery performance:
+<ul>
+<li>Total recovery duration</li>
+<li>Action success rates</li>
+<li>Resource utilization</li>
+<li>Strategy effectiveness</li>
+</ul></li>
+<li><strong><strong>Analysis and Reporting</strong></strong>: Generate
+recovery analysis:
+<ul>
+<li>Strategy effectiveness comparison</li>
+<li>Performance bottleneck identification</li>
+<li>Improvement recommendations</li>
+<li>Pattern detection for future optimizations</li>
+</ul></li>
+</ol>
+<h2 id="error-pattern-analysis">Error Pattern Analysis</h2>
+<pre><code>[ Error History ] --&gt; [ Pattern Detection ] --&gt; [ Strategy Optimization ]
+                           |                           |
+                           v                           v
+                   [ Trend Analysis ]          [ Configuration Updates ]
+</code></pre>
+<p>Long-term error analysis for system improvement:</p>
+<ol>
+<li><strong><strong>Pattern Detection</strong></strong>: Identify
+recurring error patterns:
+<ul>
+<li>Common error types and frequencies</li>
+<li>Temporal patterns (time-based failures)</li>
+<li>Class-specific error rates</li>
+<li>Environment-related failures</li>
+</ul></li>
+<li><strong><strong>Strategy Effectiveness</strong></strong>: Analyze
+recovery strategy performance:
+<ul>
+<li>Success rates by strategy type</li>
+<li>Recovery duration trends</li>
+<li>Resource consumption patterns</li>
+<li>Manual intervention requirements</li>
+</ul></li>
+<li><strong><strong>System Optimization</strong></strong>: Apply
+learnings to improve system:
+<ul>
+<li>Update default recovery strategies</li>
+<li>Adjust error classification thresholds</li>
+<li>Optimize recovery action sequences</li>
+<li>Enhance monitoring and alerting</li>
+</ul></li>
+</ol>
+<h1 id="flow-variations">Flow Variations</h1>
+<h2 id="cascading-failure-recovery">Cascading Failure Recovery</h2>
+<pre><code>[ Initial Failure ] --&gt; [ Recovery Attempt ] --&gt; [ Secondary Failure ] --&gt; [ Escalated Recovery ]
+</code></pre>
+<p>When recovery operations themselves fail:</p>
+<ol>
+<li><strong><strong>Secondary Error Detection</strong></strong>:
+Recovery failure triggers new error handling</li>
+<li><strong><strong>Escalated Strategy</strong></strong>: More
+aggressive recovery strategy selected</li>
+<li><strong><strong>Manual Intervention</strong></strong>: May require
+human intervention for resolution</li>
+</ol>
+<h2 id="partial-recovery-flow">Partial Recovery Flow</h2>
+<pre><code>[ Mixed Results ] --&gt; [ Partial Success Analysis ] --&gt; [ Targeted Retry ] --&gt; [ Final State ]
+</code></pre>
+<p>When some instances update successfully and others fail:</p>
+<ol>
+<li><strong><strong>Success Isolation</strong></strong>: Preserve
+successful updates</li>
+<li><strong><strong>Failure Analysis</strong></strong>: Analyze why
+specific instances failed</li>
+<li><strong><strong>Targeted Recovery</strong></strong>: Apply specific
+recovery to failed instances only</li>
+<li><strong><strong>State Consolidation</strong></strong>: Ensure
+overall system consistency</li>
+</ol>
+<h2 id="proactive-recovery-flow">Proactive Recovery Flow</h2>
+<pre><code>[ Warning Conditions ] --&gt; [ Preventive Actions ] --&gt; [ Risk Mitigation ] --&gt; [ Stability Enhancement ]
+</code></pre>
+<p>Before errors become critical:</p>
+<ol>
+<li><strong><strong>Early Warning Detection</strong></strong>: Monitor
+for conditions that may lead to errors</li>
+<li><strong><strong>Preventive Measures</strong></strong>: Take action
+before errors occur</li>
+<li><strong><strong>Risk Reduction</strong></strong>: Minimize
+likelihood of failure</li>
+<li><strong><strong>System Hardening</strong></strong>: Improve overall
+system resilience</li>
+</ol>
+<h1 id="recovery-flow-invariants">Recovery Flow Invariants</h1>
+<h2 id="pre-conditions">Pre-conditions</h2>
+<ul>
+<li>Error has been properly classified and severity assessed</li>
+<li>Appropriate recovery strategy has been selected and validated</li>
+<li>Required resources (snapshots, backups) are available</li>
+<li>System is in a known state before recovery begins</li>
+</ul>
+<h2 id="post-conditions">Post-conditions</h2>
+<ul>
+<li>System is in a stable, consistent state</li>
+<li>All affected instances are in a known, valid state</li>
+<li>Recovery operation has been logged and tracked</li>
+<li>System is ready for normal operations to resume</li>
+</ul>
+<h2 id="consistency-guarantees">Consistency Guarantees</h2>
+<ul>
+<li>No partial state updates that leave system inconsistent</li>
+<li>All recovery operations are atomic where possible</li>
+<li>Failed recovery operations are fully rolled back</li>
+<li>System invariants are maintained throughout recovery process</li>
+</ul>
+<h1 id="architecture-integration">Architecture Integration</h1>
+<h2 id="event-driven-recovery">Event-Driven Recovery</h2>
+<ul>
+<li>All recovery operations emit appropriate events</li>
+<li>Monitoring systems can track recovery progress</li>
+<li>Audit trails are maintained for compliance</li>
+<li>Downstream systems are notified of recovery outcomes</li>
+</ul>
+<h2 id="domain-driven-design-alignment">Domain-Driven Design
+Alignment</h2>
+<ul>
+<li>Recovery logic encapsulated in domain layer</li>
+<li>Infrastructure concerns separated from recovery business logic</li>
+<li>Recovery strategies modeled as domain concepts</li>
+<li>Clear boundaries between recovery and operational concerns</li>
+</ul>
+<h2 id="hexagonal-architecture-benefits">Hexagonal Architecture
+Benefits</h2>
+<ul>
+<li>Recovery system isolated from infrastructure details</li>
+<li>Multiple recovery adapters for different environments</li>
+<li>Testable recovery logic independent of external systems</li>
+<li>Pluggable recovery strategies for different scenarios</li>
+</ul>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

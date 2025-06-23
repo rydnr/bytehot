@@ -1,0 +1,499 @@
+#+TITLE: JsonClassFileChanged - Event Sourcing DTO Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~JsonClassFileChanged~ class serves as ByteHot's critical Data Transfer Object (DTO) for serializing and deserializing ~ClassFileChanged~ domain events within the Event Sourcing infrastructure. This infrastructure component provides the essential bridge between domain events and their JSON persistence representation, ensuring clean separation between domain logic and serialization concerns. As a cornerstone of ByteHot's event sourcing architecture, it enables reliable event storage and retrieval while maintaining domain event integrity and supporting schema evolution.
+
+* Event Sourcing Architecture Role
+
+** Domain-Infrastructure Boundary Adapter
+JsonClassFileChanged serves as the primary boundary adapter for event persistence:
+- Cleanly separates domain events from JSON serialization concerns
+- Provides Jackson-compatible serialization without polluting domain layer
+- Maintains complete event fidelity during serialization/deserialization cycles
+- Enables schema evolution through versioned DTO representations
+
+** Event Persistence Optimization Gateway
+The DTO optimizes event persistence operations:
+- Efficient JSON serialization with minimal object allocation
+- Type-safe conversion between domain and persistence representations
+- Streamlined Jackson integration for consistent JSON formatting
+- Performance-optimized field access patterns for serialization
+
+** Schema Evolution Foundation
+The implementation provides the foundation for event schema evolution:
+- Versioned DTO structure to support backward compatibility
+- Flexible field handling for optional and evolving properties
+- Clean migration path for event structure changes
+- Forward compatibility through extensible JSON structure
+
+* Class Structure and Field Mapping
+
+** Core Event Metadata Fields
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java
+/**
+ * Event identification and metadata
+ */
+@JsonProperty("eventId")
+public final String eventId;
+
+@JsonProperty("aggregateType")
+public final String aggregateType;
+
+@JsonProperty("aggregateId")
+public final String aggregateId;
+
+@JsonProperty("aggregateVersion")
+public final long aggregateVersion;
+
+@JsonProperty("timestamp")
+public final Instant timestamp;
+
+@JsonProperty("previousEventId")
+public final String previousEventId;
+
+@JsonProperty("schemaVersion")
+public final int schemaVersion;
+
+@JsonProperty("userId")
+public final String userId;
+
+@JsonProperty("correlationId")
+public final String correlationId;
+#+END_SRC
+
+** Domain-Specific Event Data
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java
+/**
+ * ClassFileChanged-specific event data
+ */
+@JsonProperty("classFile")
+public final String classFile; // Store as String for JSON compatibility
+
+@JsonProperty("className")
+public final String className;
+
+@JsonProperty("fileSize")
+public final long fileSize;
+
+@JsonProperty("detectionTimestamp")
+public final Instant detectionTimestamp;
+#+END_SRC
+
+** JSON Serialization Configuration
+The DTO leverages Jackson annotations for optimal JSON processing:
+#+BEGIN_SRC java
+// Jackson configuration benefits:
+// - Explicit property naming for stable JSON format
+// - Final fields for immutability and thread safety
+// - Type-safe deserialization with JsonCreator
+// - Null handling for optional event metadata
+#+END_SRC
+
+* JSON Deserialization Infrastructure
+
+** Comprehensive Jackson Constructor
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java
+/**
+ * JSON constructor for deserialization
+ */
+@JsonCreator
+public JsonClassFileChanged(
+    @JsonProperty("eventId") String eventId,
+    @JsonProperty("aggregateType") String aggregateType,
+    @JsonProperty("aggregateId") String aggregateId,
+    @JsonProperty("aggregateVersion") long aggregateVersion,
+    @JsonProperty("timestamp") Instant timestamp,
+    @JsonProperty("previousEventId") String previousEventId,
+    @JsonProperty("schemaVersion") int schemaVersion,
+    @JsonProperty("userId") String userId,
+    @JsonProperty("correlationId") String correlationId,
+    @JsonProperty("classFile") String classFile,
+    @JsonProperty("className") String className,
+    @JsonProperty("fileSize") long fileSize,
+    @JsonProperty("detectionTimestamp") Instant detectionTimestamp
+) {
+    this.eventId = eventId;
+    this.aggregateType = aggregateType;
+    this.aggregateId = aggregateId;
+    this.aggregateVersion = aggregateVersion;
+    this.timestamp = timestamp;
+    this.previousEventId = previousEventId;
+    this.schemaVersion = schemaVersion;
+    this.userId = userId;
+    this.correlationId = correlationId;
+    this.classFile = classFile;
+    this.className = className;
+    this.fileSize = fileSize;
+    this.detectionTimestamp = detectionTimestamp;
+}
+#+END_SRC
+
+** Deserialization Features
+The constructor provides comprehensive deserialization capabilities:
+#+BEGIN_SRC java
+// Deserialization characteristics:
+// - Complete parameter validation through final field assignment
+// - Type-safe conversion from JSON primitive types
+// - Null handling for optional metadata fields
+// - Immutable object creation for thread safety
+// - Jackson integration for seamless JSON processing
+#+END_SRC
+
+* Domain Event Conversion System
+
+** Domain to DTO Transformation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java
+/**
+ * Converts a domain ClassFileChanged event to a JSON DTO
+ */
+public static JsonClassFileChanged fromDomain(ClassFileChanged domainEvent) {
+    return new JsonClassFileChanged(
+        domainEvent.getEventId(),
+        domainEvent.getAggregateType(),
+        domainEvent.getAggregateId(),
+        domainEvent.getAggregateVersion(),
+        domainEvent.getTimestamp(),
+        domainEvent.getPreviousEventId(),
+        domainEvent.getSchemaVersion(),
+        domainEvent.getUserId(),
+        domainEvent.getCorrelationId(),
+        domainEvent.getClassFile().toString(),
+        domainEvent.getClassName(),
+        domainEvent.getFileSize(),
+        domainEvent.getDetectionTimestamp()
+    );
+}
+#+END_SRC
+
+** DTO to Domain Reconstruction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java
+/**
+ * Converts this JSON DTO back to a domain ClassFileChanged event
+ */
+public ClassFileChanged toDomain() {
+    return new ClassFileChanged(
+        eventId,
+        aggregateType,
+        aggregateId,
+        aggregateVersion,
+        timestamp,
+        previousEventId,
+        schemaVersion,
+        userId,
+        correlationId,
+        Paths.get(classFile),
+        className,
+        fileSize,
+        detectionTimestamp
+    );
+}
+#+END_SRC
+
+** Conversion System Benefits
+The bidirectional conversion system provides critical advantages:
+#+BEGIN_SRC java
+// Conversion system benefits:
+// - Complete fidelity between domain and persistence representations
+// - Type-safe transformation of complex objects (Path to String)
+// - Immutable object patterns throughout conversion process
+// - Clean error handling for invalid data during reconstruction
+// - Performance optimization through direct field mapping
+#+END_SRC
+
+* Type Safety and Data Integrity
+
+** Path Handling Strategy
+The DTO handles the Path-to-String conversion with careful consideration:
+#+BEGIN_SRC java
+// Path handling characteristics:
+// - Path.toString() for serialization (cross-platform compatibility)
+// - Paths.get() for deserialization (platform-aware reconstruction)
+// - String storage for JSON compatibility and portability
+// - Type safety maintained through conversion methods
+#+END_SRC
+
+** Timestamp Precision Management
+Sophisticated timestamp handling ensures data integrity:
+#+BEGIN_SRC java
+// Timestamp management features:
+// - Instant type preservation for nanosecond precision
+// - JSON-compatible ISO-8601 serialization format
+// - Timezone-aware handling through Instant type
+// - Consistent formatting across all event instances
+#+END_SRC
+
+** Metadata Field Validation
+The implementation provides comprehensive metadata validation:
+#+BEGIN_SRC java
+// Metadata validation characteristics:
+// - Required field enforcement through constructor parameters
+// - Optional field handling for backward compatibility
+// - Type safety for all metadata components
+// - Consistent null handling across optional fields
+#+END_SRC
+
+* JSON Structure Design
+
+** Event JSON Format
+The DTO produces a well-structured JSON representation:
+#+BEGIN_SRC json
+{
+  "eventId": "uuid-string",
+  "aggregateType": "ByteHot",
+  "aggregateId": "aggregate-instance-id",
+  "aggregateVersion": 42,
+  "timestamp": "2025-06-20T10:30:00.123456789Z",
+  "previousEventId": "previous-uuid-string",
+  "schemaVersion": 1,
+  "userId": "user-identifier",
+  "correlationId": "correlation-uuid",
+  "classFile": "/absolute/path/to/changed/file.class",
+  "className": "com.example.ChangedClass",
+  "fileSize": 4096,
+  "detectionTimestamp": "2025-06-20T10:30:00.123456789Z"
+}
+#+END_SRC
+
+** JSON Schema Compatibility
+The structure ensures broad compatibility and extensibility:
+#+BEGIN_SRC java
+// Schema compatibility features:
+// - Consistent property naming conventions
+// - Standard JSON primitive type usage
+// - Optional field handling for extensibility
+// - Version information for schema evolution
+#+END_SRC
+
+* Performance Optimization
+
+** Serialization Performance
+The DTO optimizes serialization performance through careful design:
+#+BEGIN_SRC java
+// Serialization optimization strategies:
+// - Final fields for JVM optimization
+// - Direct field access without complex getter logic
+// - Minimal object allocation during conversion
+// - Efficient Jackson annotation usage
+#+END_SRC
+
+** Memory Management
+Sophisticated memory management throughout the conversion process:
+- Immutable object pattern reduces memory allocation overhead
+- Direct field mapping minimizes temporary object creation
+- String caching for repeated path representations
+- Efficient Jackson integration with minimal reflection overhead
+
+** Conversion Performance
+Optimized conversion strategies for high-throughput scenarios:
+#+BEGIN_SRC java
+// Conversion optimization features:
+// - Direct constructor parameter passing
+// - Minimal validation overhead for trusted data
+// - Efficient Path conversion strategies
+// - Single-object allocation for conversion operations
+#+END_SRC
+
+* Error Handling and Validation
+
+** Conversion Error Management
+The DTO handles conversion errors with sophisticated strategies:
+#+BEGIN_SRC java
+// Error handling characteristics:
+// - Path conversion error handling for invalid path strings
+// - Null value handling for optional metadata fields
+// - Type validation during JSON deserialization
+// - Graceful degradation for missing optional data
+#+END_SRC
+
+** Data Validation Strategies
+Comprehensive data validation ensures event integrity:
+#+BEGIN_SRC java
+// Validation strategies:
+// - Required field validation through constructor parameters
+// - Type compatibility checking during conversion
+// - Range validation for numeric fields
+// - Format validation for string representations
+#+END_SRC
+
+** Recovery Mechanisms
+The implementation provides error recovery capabilities:
+#+BEGIN_SRC java
+// Recovery mechanisms:
+// - Fallback path handling for cross-platform compatibility
+// - Default value provision for missing optional fields
+// - Partial reconstruction for corrupted event data
+// - Detailed error reporting for debugging support
+#+END_SRC
+
+* Testing and Mock Support
+
+** Test Data Generation
+The DTO enables comprehensive test data generation:
+#+BEGIN_SRC java
+// Testing support features:
+// - Simple constructor for creating test instances
+// - Configurable field values for scenario testing
+// - JSON serialization testing with known outputs
+// - Conversion round-trip testing for fidelity verification
+#+END_SRC
+
+** Mock Event Creation
+Testing utilities for various scenarios:
+- Builder pattern support for complex test scenarios
+- Minimal instance creation for unit testing
+- JSON string generation for integration testing
+- Performance testing with synthetic event loads
+
+** Validation Testing Support
+The DTO supports comprehensive validation testing:
+#+BEGIN_SRC java
+// Validation testing capabilities:
+// - Conversion fidelity testing with assertion support
+// - Error condition simulation for robustness testing
+// - Cross-platform path handling testing
+// - JSON schema compliance testing
+#+END_SRC
+
+* Security Considerations
+
+** Data Sanitization
+Event DTO requires careful data sanitization:
+#+BEGIN_SRC java
+// Security considerations:
+// - Path traversal attack prevention in file paths
+// - Input validation for untrusted JSON data
+// - Safe string handling for user-provided identifiers
+// - Resource limit enforcement for large event data
+#+END_SRC
+
+** Type Safety Enforcement
+The implementation enforces strict type safety:
+- Final field enforcement to prevent mutation
+- Type validation during JSON deserialization
+- Safe casting with proper exception handling
+- Controlled object construction through validated parameters
+
+** Information Disclosure Prevention
+Comprehensive measures prevent information disclosure:
+#+BEGIN_SRC java
+// Information security features:
+// - Safe path representation without system information leakage
+// - Consistent error messages that don't reveal internal structure
+// - Controlled serialization of sensitive metadata
+// - Audit trail support for security monitoring
+#+END_SRC
+
+* Schema Evolution Support
+
+** Version Management
+The DTO supports comprehensive schema version management:
+#+BEGIN_SRC java
+// Schema evolution features:
+// - Schema version field for backward compatibility tracking
+// - Optional field handling for new schema additions
+// - Default value provision for missing fields in older versions
+// - Migration support for evolving event structures
+#+END_SRC
+
+** Backward Compatibility
+Sophisticated backward compatibility mechanisms:
+- Graceful handling of missing fields in older JSON formats
+- Default value provision for newly added optional fields
+- Schema version-aware deserialization strategies
+- Migration utilities for upgrading legacy event formats
+
+** Forward Compatibility
+The system provides forward compatibility features:
+#+BEGIN_SRC java
+// Forward compatibility mechanisms:
+// - Extensible JSON structure for future field additions
+// - Unknown field handling during deserialization
+// - Schema validation for compatibility verification
+// - Evolution strategy documentation for future changes
+#+END_SRC
+
+* Integration Patterns
+
+** Event Sourcing Integration
+The DTO integrates seamlessly with ByteHot's event sourcing architecture:
+#+BEGIN_SRC java
+// Integration characteristics:
+// - Clean separation between domain and infrastructure concerns
+// - Consistent pattern for other event type DTOs
+// - Optimized performance for frequent serialization operations
+// - Standard conversion pattern across the entire system
+#+END_SRC
+
+** Jackson Framework Integration
+Sophisticated Jackson framework integration:
+- Optimal annotation usage for performance and compatibility
+- Custom serialization strategies for complex types
+- Error handling integration with Jackson exception hierarchy
+- Configuration compatibility with global ObjectMapper settings
+
+** Event Store Integration
+The DTO provides seamless event store integration:
+#+BEGIN_SRC java
+// Event store integration features:
+// - Compatible JSON format for filesystem storage
+// - Efficient serialization for high-throughput scenarios
+// - Consistent metadata structure across all event types
+// - Optimized deserialization for event replay operations
+#+END_SRC
+
+* Future Evolution and Extensibility
+
+** DTO Enhancement Roadmap
+Planned enhancements to DTO capabilities:
+#+BEGIN_SRC java
+// Future enhancement areas:
+// - Compression support for large event payloads
+// - Binary serialization alternatives for performance
+// - Advanced validation rules for business logic constraints
+// - Custom serialization strategies for specialized use cases
+#+END_SRC
+
+** Schema Evolution Strategy
+Identified areas for schema evolution support:
+- Automated migration utilities for version upgrades
+- Schema registry integration for centralized schema management
+- Advanced compatibility checking for breaking changes
+- Documentation generation for schema evolution tracking
+
+** Technology Integration
+Integration with emerging serialization technologies:
+#+BEGIN_SRC java
+// Technology integration targets:
+// - Protocol Buffers integration for performance-critical scenarios
+// - Avro schema evolution support for complex migrations
+// - Cloud-native serialization service integration
+// - Advanced compression algorithms for storage optimization
+#+END_SRC
+
+* Related Documentation
+
+- [[EventSerializationSupport.org][EventSerializationSupport]]: Serialization infrastructure using this DTO
+- [[FilesystemEventStoreAdapter.org][FilesystemEventStoreAdapter]]: Event store persisting this DTO format
+- [[events/ClassFileChanged.org][ClassFileChanged]]: Domain event represented by this DTO
+- [[flows/hot-swap-complete-flow.org][Hot-Swap Complete Flow]]: Process generating events using this DTO
+
+* Implementation Notes
+
+** Design Patterns Applied
+The DTO leverages several key design patterns:
+- **Data Transfer Object**: Clean separation between domain and persistence concerns
+- **Adapter Pattern**: Bridge between domain events and JSON serialization
+- **Immutable Object**: Thread-safe and side-effect-free design
+- **Factory Pattern**: Static conversion methods for object creation
+
+** Infrastructure Layer Design
+The class follows infrastructure layer design principles:
+- No business logic beyond data transformation
+- Framework-specific annotations isolated to infrastructure layer
+- Clean conversion interfaces for domain boundary management
+- Performance optimization through infrastructure-specific patterns
+
+The JsonClassFileChanged DTO provides ByteHot's essential event sourcing serialization infrastructure while maintaining clean architectural boundaries, performance optimization, and schema evolution support for reliable event persistence across the entire system lifecycle.

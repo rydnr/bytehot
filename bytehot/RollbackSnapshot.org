@@ -1,0 +1,342 @@
+#+TITLE: RollbackSnapshot - State Preservation for Rollback Operations
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =RollbackSnapshot= class represents a snapshot of system state at a specific point in time, enabling rollback operations to restore the system to a previous stable state. It captures all necessary information to undo changes made during ByteHot operations.
+
+** Key Responsibilities
+- Capture comprehensive system state at snapshot creation time
+- Store class definitions, instance states, and metadata
+- Provide state restoration capabilities during rollback operations
+- Support validation of snapshot integrity and consistency
+- Enable cascading rollback through snapshot chains
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/RollbackSnapshot.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: RollbackSnapshot.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: RollbackSnapshot
+ *
+ * Responsibilities:
+ *   - Capture and store system state for rollback operations
+ *   - Enable state restoration to previous stable configurations
+ *   - Support cascading rollback through snapshot chains
+ *
+ * Collaborators:
+ *   - RollbackManager: Creates and manages snapshots
+ *   - StatePreserver: Used for instance state capture
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Captures system state at a specific point in time for rollback operations
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class RollbackSnapshot {
+
+    /**
+     * Unique identifier for this snapshot
+     */
+    private final String snapshotId;
+
+    /**
+     * Timestamp when this snapshot was created
+     */
+    private final Instant timestamp;
+
+    /**
+     * Class name this snapshot is associated with
+     */
+    private final String className;
+
+    /**
+     * Original bytecode before changes
+     */
+    private final byte[] originalBytecode;
+
+    /**
+     * Preserved instance states keyed by instance hash code
+     */
+    private final Map<Integer, Object> instanceStates;
+
+    /**
+     * Metadata about the operation that triggered this snapshot
+     */
+    private final Map<String, Object> operationMetadata;
+
+    /**
+     * Reference to the previous snapshot for cascading rollback
+     */
+    private final RollbackSnapshot previousSnapshot;
+
+    /**
+     * Whether this snapshot has been validated for integrity
+     */
+    private final boolean validated;
+
+    /**
+     * Creates a new rollback snapshot
+     */
+    private RollbackSnapshot(final String snapshotId, final String className, 
+                           final byte[] originalBytecode, final Map<Integer, Object> instanceStates,
+                           final Map<String, Object> operationMetadata, 
+                           final RollbackSnapshot previousSnapshot, final boolean validated) {
+        this.snapshotId = snapshotId;
+        this.timestamp = Instant.now();
+        this.className = className;
+        this.originalBytecode = originalBytecode.clone();
+        this.instanceStates = new ConcurrentHashMap<>(instanceStates);
+        this.operationMetadata = new ConcurrentHashMap<>(operationMetadata);
+        this.previousSnapshot = previousSnapshot;
+        this.validated = validated;
+    }
+
+    /**
+     * Creates a new rollback snapshot
+     */
+    public static RollbackSnapshot create(final String snapshotId, final String className,
+                                        final byte[] originalBytecode, final Map<Integer, Object> instanceStates,
+                                        final Map<String, Object> operationMetadata,
+                                        final RollbackSnapshot previousSnapshot) {
+        return new RollbackSnapshot(snapshotId, className, originalBytecode, instanceStates,
+                                  operationMetadata, previousSnapshot, false);
+    }
+
+    /**
+     * Creates a validated rollback snapshot
+     */
+    public static RollbackSnapshot createValidated(final String snapshotId, final String className,
+                                                 final byte[] originalBytecode, final Map<Integer, Object> instanceStates,
+                                                 final Map<String, Object> operationMetadata,
+                                                 final RollbackSnapshot previousSnapshot) {
+        return new RollbackSnapshot(snapshotId, className, originalBytecode, instanceStates,
+                                  operationMetadata, previousSnapshot, true);
+    }
+
+    /**
+     * Returns the number of instances captured in this snapshot
+     */
+    public int getInstanceCount() {
+        return instanceStates.size();
+    }
+
+    /**
+     * Returns the size of the original bytecode in bytes
+     */
+    public int getBytecodeSize() {
+        return originalBytecode.length;
+    }
+
+    /**
+     * Checks if this snapshot contains state for a specific instance
+     */
+    public boolean containsInstance(final Object instance) {
+        return instanceStates.containsKey(System.identityHashCode(instance));
+    }
+
+    /**
+     * Retrieves preserved state for a specific instance
+     */
+    public Object getInstanceState(final Object instance) {
+        return instanceStates.get(System.identityHashCode(instance));
+    }
+
+    /**
+     * Returns whether this snapshot is part of a chain (has previous snapshot)
+     */
+    public boolean hasChain() {
+        return previousSnapshot != null;
+    }
+
+    /**
+     * Returns the depth of the snapshot chain
+     */
+    public int getChainDepth() {
+        int depth = 1;
+        RollbackSnapshot current = previousSnapshot;
+        while (current != null) {
+            depth++;
+            current = current.getPreviousSnapshot();
+        }
+        return depth;
+    }
+
+    /**
+     * Validates the integrity of this snapshot
+     */
+    public boolean validateIntegrity() {
+        // Check that we have valid bytecode
+        if (originalBytecode == null || originalBytecode.length == 0) {
+            return false;
+        }
+
+        // Check that class name is valid
+        if (className == null || className.trim().isEmpty()) {
+            return false;
+        }
+
+        // Check that instance states are consistent
+        for (final Object state : instanceStates.values()) {
+            if (state == null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Returns metadata value for a specific key
+     */
+    public Object getMetadata(final String key) {
+        return operationMetadata.get(key);
+    }
+
+    /**
+     * Checks if metadata contains a specific key
+     */
+    public boolean hasMetadata(final String key) {
+        return operationMetadata.containsKey(key);
+    }
+
+    @Override
+    public String toString() {
+        return "RollbackSnapshot{" +
+               "id='" + snapshotId + '\'' +
+               ", className='" + className + '\'' +
+               ", instanceCount=" + getInstanceCount() +
+               ", bytecodeSize=" + getBytecodeSize() +
+               ", validated=" + validated +
+               ", chainDepth=" + getChainDepth() +
+               ", timestamp=" + timestamp +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Creating a Snapshot Before Hot-Swap Operation
+
+#+end_src
+// Before performing hot-swap operation
+Class<?> targetClass = MyService.class;
+byte[] currentBytecode = getCurrentBytecode(targetClass);
+Map<Integer, Object> instanceStates = preserveInstanceStates(targetClass);
+Map<String, Object> metadata = Map.of(
+    "operation", "hot-swap",
+    "trigger", "file-change",
+    "user", "system"
+);
+
+RollbackSnapshot snapshot = RollbackSnapshot.create(
+    UUID.randomUUID().toString(),
+    targetClass.getName(),
+    currentBytecode,
+    instanceStates,
+    metadata,
+    getPreviousSnapshot() // Can be null for first snapshot
+);
+
+// Validate snapshot before proceeding
+if (snapshot.validateIntegrity()) {
+    proceedWithHotSwap(snapshot);
+} else {
+    handleSnapshotError(snapshot);
+}
+#+end_src
+
+** Rollback Chain Management
+
+#+begin_src java
+// Creating a chain of snapshots
+RollbackSnapshot snapshot1 = RollbackSnapshot.create(id1, className, bytecode1, states1, meta1, null);
+RollbackSnapshot snapshot2 = RollbackSnapshot.create(id2, className, bytecode2, states2, meta2, snapshot1);
+RollbackSnapshot snapshot3 = RollbackSnapshot.create(id3, className, bytecode3, states3, meta3, snapshot2);
+
+// Rollback through the chain
+public void rollbackToSnapshot(RollbackSnapshot targetSnapshot) {
+    RollbackSnapshot current = getCurrentSnapshot();
+    while (current != null && !current.equals(targetSnapshot)) {
+        restoreFromSnapshot(current.getPreviousSnapshot());
+        current = current.getPreviousSnapshot();
+    }
+}
+#+end_src
+
+** Instance State Validation
+
+#+end_src
+// Check if snapshot contains specific instances
+List<Object> criticalInstances = getCriticalServiceInstances();
+for (Object instance : criticalInstances) {
+    if (!snapshot.containsInstance(instance)) {
+        logger.warn("Critical instance not captured in snapshot: " + instance);
+    }
+}
+
+// Retrieve and validate preserved states
+for (Object instance : criticalInstances) {
+    Object preservedState = snapshot.getInstanceState(instance);
+    if (preservedState != null) {
+        validatePreservedState(instance, preservedState);
+    }
+}
+#+end_src
+
+* Architecture Notes
+
+** Memento Pattern Implementation
+- RollbackSnapshot implements the Memento pattern for state preservation
+- Encapsulates internal state without exposing implementation details
+- Supports creation of snapshot chains for complex rollback scenarios
+- Thread-safe design using ConcurrentHashMap for concurrent access
+
+** State Preservation Strategy
+- Uses identity hash codes to track specific instance relationships
+- Preserves both bytecode and instance state for complete restoration
+- Supports metadata attachment for operation context and analysis
+- Validates snapshot integrity before allowing rollback operations
+
+** Chain Management
+- Supports linked snapshots for cascading rollback operations
+- Provides chain depth calculation for rollback planning
+- Enables rollback to any point in the operation history
+- Optimizes memory usage through selective state preservation

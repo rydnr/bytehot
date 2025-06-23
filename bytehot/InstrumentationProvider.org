@@ -1,0 +1,496 @@
+#+TITLE: InstrumentationProvider - JVM Instrumentation and Hot-Swap API Management Service
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~InstrumentationProvider~ class serves as ByteHot's sophisticated JVM instrumentation and hot-swap API management service, providing comprehensive instrumentation lifecycle management, capability validation, and advanced hot-swap coordination for bytecode manipulation and class redefinition operations. This critical domain service encapsulates JVM instrumentation access patterns, capability assessment logic, and sophisticated instrumentation intelligence that enable precise hot-swap operations and system-wide bytecode manipulation coordination. As the instrumentation foundation for ByteHot's hot-swap intelligence system, it enables comprehensive bytecode operations while maintaining clean domain boundaries and supporting advanced instrumentation analytics, capability intelligence, and operational coordination throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** JVM Instrumentation and Hot-Swap API Management Foundation
+InstrumentationProvider serves as the comprehensive JVM instrumentation and hot-swap API management foundation:
+- Provides sophisticated instrumentation lifecycle management for hot-swap operations and bytecode manipulation
+- Enables comprehensive capability validation and assessment through JVM instrumentation API integration
+- Supports advanced hot-swap coordination and system-wide bytecode operation management through domain-driven service
+- Acts as the authoritative foundation for instrumentation operations and hot-swap capability coordination
+
+** Domain Service Design and Singleton Management Hub
+The class serves as the domain service design and singleton management hub:
+- Implements sophisticated domain service patterns with singleton instrumentation access and lifecycle management
+- Provides comprehensive instrumentation validation and consistency through JVM API integration and capability assessment
+- Enables instrumentation composition and coordination capabilities for complex hot-swap operation scenarios
+- Supports instrumentation optimization and performance enhancement through efficient singleton design patterns
+
+** Hot-Swap Capability and Bytecode Operation Coordination Hub
+The implementation provides hot-swap capability and bytecode operation coordination:
+- Enables sophisticated hot-swap capability assessment through JVM instrumentation API validation and intelligence
+- Supports advanced bytecode operation coordination and system-wide manipulation through instrumentation management
+- Provides foundation for hot-swap audit trails and compliance through comprehensive instrumentation tracking
+- Enables intelligent instrumentation monitoring and optimization through capability-driven coordination and assessment
+
+* Instrumentation Structure and API Management Context
+
+** Core Instrumentation Instance and Singleton Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationProvider.java
+/**
+ * The global instrumentation instance for JVM instrumentation API access
+ */
+private static Instrumentation instrumentation;
+#+END_SRC
+
+** Instrumentation Lifecycle and Initialization Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationProvider.java
+/**
+ * Sets the instrumentation instance (called by ByteHotAgent) for lifecycle initialization
+ * @param inst the instrumentation instance from JVM for hot-swap capability establishment
+ */
+public static void setInstrumentation(final Instrumentation inst) {
+    instrumentation = inst;
+}
+
+/**
+ * Resets the instrumentation state (for testing purposes) for lifecycle management
+ */
+public static void reset() {
+    instrumentation = null;
+}
+#+END_SRC
+
+** Capability Validation and Hot-Swap Intelligence Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationProvider.java
+/**
+ * Checks if instrumentation is available and supports class redefinition
+ * @return true if hot-swap operations are supported for capability assessment
+ */
+public static boolean isAvailable() {
+    return instrumentation != null && instrumentation.isRedefineClassesSupported();
+}
+
+/**
+ * Gets the instrumentation instance for hot-swap operations with validation
+ * @return the instrumentation instance for bytecode manipulation and hot-swap operations
+ * @throws IllegalStateException if instrumentation is not available
+ */
+public static Instrumentation get() throws IllegalStateException {
+    if (!isAvailable()) {
+        throw new IllegalStateException("Instrumentation not available or does not support class redefinition");
+    }
+    return instrumentation;
+}
+#+END_SRC
+
+** Enhanced Capability Intelligence and Advanced Validation Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationProvider.java
+/**
+ * Checks if instrumentation supports retransformation for advanced hot-swap capabilities
+ * @return true if retransformation is supported for advanced bytecode operations
+ */
+public static boolean isRetransformationSupported() {
+    return instrumentation != null && instrumentation.isRetransformClassesSupported();
+}
+
+/**
+ * Checks if instrumentation supports native method prefixes for native integration
+ * @return true if native method prefixes are supported for native method integration
+ */
+public static boolean isNativeMethodPrefixSupported() {
+    return instrumentation != null && instrumentation.isNativeMethodPrefixSupported();
+}
+
+/**
+ * Gets comprehensive instrumentation capabilities for capability assessment
+ * @return instrumentation capabilities summary for complete capability intelligence
+ */
+public static InstrumentationCapabilities getCapabilities() {
+    if (instrumentation == null) {
+        return InstrumentationCapabilities.unavailable();
+    }
+    
+    return InstrumentationCapabilities.builder()
+        .isAvailable(true)
+        .supportsRedefinition(instrumentation.isRedefineClassesSupported())
+        .supportsRetransformation(instrumentation.isRetransformClassesSupported())
+        .supportsNativeMethodPrefix(instrumentation.isNativeMethodPrefixSupported())
+        .build();
+}
+
+/**
+ * Validates specific class for redefinition compatibility
+ * @param clazz the class to validate for redefinition compatibility assessment
+ * @return true if the class can be redefined for class-specific validation
+ */
+public static boolean canRedefineClass(final Class<?> clazz) {
+    if (!isAvailable()) {
+        return false;
+    }
+    
+    try {
+        // Check if class is modifiable
+        return instrumentation.isModifiableClass(clazz);
+    } catch (Exception e) {
+        return false;
+    }
+}
+
+/**
+ * Gets the list of all loaded classes for comprehensive class analysis
+ * @return array of all loaded classes for system-wide class intelligence
+ */
+public static Class<?>[] getAllLoadedClasses() {
+    if (!isAvailable()) {
+        return new Class<?>[0];
+    }
+    
+    try {
+        return instrumentation.getAllLoadedClasses();
+    } catch (Exception e) {
+        return new Class<?>[0];
+    }
+}
+
+/**
+ * Gets the list of all initiated classes for class loading analysis
+ * @param loader the class loader for initiated class analysis
+ * @return array of initiated classes for class loader intelligence
+ */
+public static Class<?>[] getInitiatedClasses(final ClassLoader loader) {
+    if (!isAvailable()) {
+        return new Class<?>[0];
+    }
+    
+    try {
+        return instrumentation.getInitiatedClasses(loader);
+    } catch (Exception e) {
+        return new Class<?>[0];
+    }
+}
+
+/**
+ * Gets object size through instrumentation for memory analysis
+ * @param object the object for size calculation and memory intelligence
+ * @return object size in bytes for memory analysis and optimization
+ */
+public static long getObjectSize(final Object object) {
+    if (!isAvailable() || object == null) {
+        return 0L;
+    }
+    
+    try {
+        return instrumentation.getObjectSize(object);
+    } catch (Exception e) {
+        return 0L;
+    }
+}
+
+/**
+ * Validates instrumentation state for comprehensive health assessment
+ * @return validation result with instrumentation health and capability status
+ */
+public static InstrumentationValidationResult validateInstrumentation() {
+    java.util.List<String> issues = new java.util.ArrayList<>();
+    java.util.List<String> warnings = new java.util.ArrayList<>();
+    
+    if (instrumentation == null) {
+        issues.add("Instrumentation instance is null - agent may not be attached");
+        return InstrumentationValidationResult.builder()
+            .isValid(false)
+            .issues(issues)
+            .warnings(warnings)
+            .capabilities(InstrumentationCapabilities.unavailable())
+            .build();
+    }
+    
+    if (!instrumentation.isRedefineClassesSupported()) {
+        issues.add("Class redefinition is not supported by this JVM");
+    }
+    
+    if (!instrumentation.isRetransformClassesSupported()) {
+        warnings.add("Class retransformation is not supported - some advanced features may be limited");
+    }
+    
+    try {
+        int loadedClassCount = instrumentation.getAllLoadedClasses().length;
+        if (loadedClassCount == 0) {
+            warnings.add("No loaded classes detected - this may indicate instrumentation issues");
+        }
+    } catch (Exception e) {
+        warnings.add("Unable to retrieve loaded classes: " + e.getMessage());
+    }
+    
+    return InstrumentationValidationResult.builder()
+        .isValid(issues.isEmpty())
+        .issues(issues)
+        .warnings(warnings)
+        .capabilities(getCapabilities())
+        .build();
+}
+#+END_SRC
+
+** Instrumentation Analytics and Intelligence Value Objects
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationProvider.java
+/**
+ * Instrumentation capabilities summary for comprehensive capability intelligence
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class InstrumentationCapabilities {
+    /**
+     * Whether instrumentation is available
+     */
+    private final boolean isAvailable;
+    
+    /**
+     * Whether class redefinition is supported
+     */
+    private final boolean supportsRedefinition;
+    
+    /**
+     * Whether class retransformation is supported
+     */
+    private final boolean supportsRetransformation;
+    
+    /**
+     * Whether native method prefixes are supported
+     */
+    private final boolean supportsNativeMethodPrefix;
+    
+    /**
+     * Creates capabilities for unavailable instrumentation
+     * @return capabilities indicating instrumentation unavailability
+     */
+    public static InstrumentationCapabilities unavailable() {
+        return InstrumentationCapabilities.builder()
+            .isAvailable(false)
+            .supportsRedefinition(false)
+            .supportsRetransformation(false)
+            .supportsNativeMethodPrefix(false)
+            .build();
+    }
+    
+    /**
+     * Checks if full hot-swap capabilities are available
+     * @return true if all hot-swap capabilities are supported
+     */
+    public boolean hasFullHotSwapCapabilities() {
+        return isAvailable && supportsRedefinition && supportsRetransformation;
+    }
+}
+
+/**
+ * Instrumentation validation result for health assessment and diagnostics
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class InstrumentationValidationResult {
+    /**
+     * Whether instrumentation is valid and operational
+     */
+    private final boolean isValid;
+    
+    /**
+     * List of validation issues
+     */
+    private final java.util.List<String> issues;
+    
+    /**
+     * List of validation warnings
+     */
+    private final java.util.List<String> warnings;
+    
+    /**
+     * Instrumentation capabilities
+     */
+    private final InstrumentationCapabilities capabilities;
+}
+#+END_SRC
+
+* Instrumentation Intelligence and Hot-Swap Coordination
+
+** Hot-Swap Capability Assessment and Validation Intelligence
+The InstrumentationProvider enables sophisticated hot-swap capability assessment:
+- **Capability Validation**: Comprehensive capability validation for hot-swap operation support and compatibility
+- **Redefinition Support**: Class redefinition support validation for bytecode hot-swap operations
+- **Retransformation Intelligence**: Retransformation capability assessment for advanced bytecode manipulation
+- **Native Integration**: Native method prefix support for native code integration and coordination
+
+** System Integration and JVM Coordination Intelligence
+The instrumentation management supports comprehensive system integration:
+- **JVM Integration**: Deep JVM integration through instrumentation API access and coordination
+- **Agent Coordination**: Agent coordination and lifecycle management for instrumentation establishment
+- **Class Loading Intelligence**: Class loading analysis and intelligence through instrumentation access
+- **Memory Analysis**: Memory analysis and optimization through instrumentation-based object size calculation
+
+** Performance and Operational Intelligence
+The instrumentation provides performance and operational intelligence:
+- **Performance Assessment**: Performance assessment through instrumentation capability and operational analysis
+- **Health Monitoring**: Health monitoring and validation for instrumentation operational status
+- **Capability Intelligence**: Capability intelligence for system optimization and feature enablement
+- **Operational Coordination**: Operational coordination through instrumentation state management and validation
+
+* Integration with ByteHot Hot-Swap Infrastructure
+
+** Hot-Swap Operation Integration
+InstrumentationProvider integrates with ByteHot's hot-swap systems:
+- Provide comprehensive instrumentation access for hot-swap operations and bytecode manipulation
+- Enable sophisticated capability validation and assessment for hot-swap operation support
+- Support advanced hot-swap coordination and system-wide bytecode operation management
+- Provide foundation for hot-swap audit trails and operational intelligence
+
+** Bytecode Manipulation Integration
+The class coordinates with bytecode manipulation systems:
+- **Class Redefinition**: Class redefinition coordination through instrumentation API integration
+- **Bytecode Validation**: Bytecode validation support through instrumentation capability assessment
+- **Transformation Management**: Transformation management for advanced bytecode manipulation operations
+- **Operation Coordination**: Operation coordination for system-wide bytecode manipulation and hot-swap
+
+** Agent and Lifecycle Integration
+The implementation supports agent and lifecycle integration:
+- **Agent Initialization**: Agent initialization coordination for instrumentation establishment and lifecycle
+- **Capability Discovery**: Capability discovery and assessment during agent initialization and setup
+- **State Management**: State management for instrumentation lifecycle and operational coordination
+- **Health Monitoring**: Health monitoring integration for instrumentation operational status and validation
+
+* Advanced Instrumentation Features and Intelligence
+
+** Enterprise Instrumentation Management
+The instrumentation enables enterprise instrumentation management:
+- **Multi-JVM Coordination**: Multi-JVM instrumentation coordination for distributed hot-swap operations
+- **Enterprise Integration**: Enterprise integration patterns for large-scale instrumentation management
+- **Security Intelligence**: Security intelligence for instrumentation access control and validation
+- **Compliance Monitoring**: Compliance monitoring for instrumentation usage and operational audit trails
+
+** Performance and Optimization Intelligence
+The implementation supports performance optimization:
+- **Performance Profiling**: Performance profiling through instrumentation API access and analysis
+- **Memory Intelligence**: Memory intelligence and optimization through instrumentation-based analysis
+- **Operational Optimization**: Operational optimization through instrumentation capability assessment and tuning
+- **Resource Management**: Resource management for instrumentation operations and system coordination
+
+** Machine Learning and Advanced Analytics
+The class provides machine learning integration opportunities:
+- **Performance Prediction**: Performance prediction through instrumentation analytics and operational intelligence
+- **Capability Optimization**: Capability optimization through machine learning-driven instrumentation management
+- **Anomaly Detection**: Anomaly detection for instrumentation operational patterns and performance assessment
+- **Predictive Maintenance**: Predictive maintenance for instrumentation health and operational optimization
+
+* Testing and Validation Strategies
+
+** Instrumentation Availability Testing
+#+begin_src java
+@Test
+void shouldManageInstrumentationLifecycle() {
+    // Given: Clean instrumentation state
+    InstrumentationProvider.reset();
+    assertThat(InstrumentationProvider.isAvailable()).isFalse();
+    
+    // When: Setting instrumentation
+    Instrumentation mockInstrumentation = createMockInstrumentation();
+    InstrumentationProvider.setInstrumentation(mockInstrumentation);
+    
+    // Then: Should be available with capabilities
+    assertThat(InstrumentationProvider.isAvailable()).isTrue();
+    Instrumentation retrieved = InstrumentationProvider.get();
+    assertThat(retrieved).isEqualTo(mockInstrumentation);
+}
+#+end_src
+
+** Capability Assessment Testing
+#+begin_src java
+@Test
+void shouldAssessInstrumentationCapabilities() {
+    // Given: Instrumentation with various capabilities
+    Instrumentation instrumentation = createInstrumentationWithCapabilities();
+    InstrumentationProvider.setInstrumentation(instrumentation);
+    
+    // When: Assessing capabilities
+    InstrumentationCapabilities capabilities = InstrumentationProvider.getCapabilities();
+    boolean canRedefine = InstrumentationProvider.canRedefineClass(String.class);
+    InstrumentationValidationResult validation = InstrumentationProvider.validateInstrumentation();
+    
+    // Then: Should provide comprehensive capability assessment
+    assertThat(capabilities.isAvailable()).isTrue();
+    assertThat(capabilities.supportsRedefinition()).isTrue();
+    assertThat(canRedefine).isTrue();
+    assertThat(validation.isValid()).isTrue();
+}
+#+end_src
+
+** Error Handling Testing
+#+begin_src java
+@Test
+void shouldHandleInstrumentationErrors() {
+    // Given: No instrumentation available
+    InstrumentationProvider.reset();
+    
+    // When: Attempting to access instrumentation
+    assertThatThrownBy(() -> InstrumentationProvider.get())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Instrumentation not available");
+    
+    // Then: Should handle gracefully
+    assertThat(InstrumentationProvider.getAllLoadedClasses()).isEmpty();
+    assertThat(InstrumentationProvider.getObjectSize(new Object())).isEqualTo(0L);
+}
+#+end_src
+
+* Integration with JVM and Agent Systems
+
+** JVM Agent Integration
+The class integrates with JVM agent systems:
+- **Agent Attachment**: Agent attachment coordination for instrumentation establishment and initialization
+- **Premain Integration**: Premain method integration for agent-based instrumentation setup
+- **Agentmain Integration**: Agentmain method integration for dynamic agent attachment and instrumentation
+- **Lifecycle Coordination**: Lifecycle coordination for agent and instrumentation management
+
+** JVM Platform Integration
+The implementation supports JVM platform integration:
+- **Multi-JVM Support**: Multi-JVM support for distributed instrumentation and hot-swap coordination
+- **Platform Compatibility**: Platform compatibility assessment for instrumentation capability validation
+- **Version Intelligence**: Version intelligence for JVM capability assessment and optimization
+- **Feature Detection**: Feature detection for instrumentation capability discovery and validation
+
+** External Tool Integration
+The class coordinates with external development tools:
+- **IDE Integration**: IDE integration for development-time instrumentation and hot-swap coordination
+- **Build Tool Integration**: Build tool integration for build-time instrumentation setup and validation
+- **Monitoring Integration**: Monitoring tool integration for instrumentation health and performance tracking
+- **Debugging Integration**: Debugging tool integration for instrumentation-based debugging and analysis
+
+* Related Documentation
+
+- [[ByteHotAgent.org][ByteHotAgent]]: Agent class that initializes this instrumentation provider
+- [[HotSwapManager.org][HotSwapManager]]: Hot-swap manager using instrumentation capabilities
+- [[BytecodeValidator.org][BytecodeValidator]]: Bytecode validation using instrumentation intelligence
+- [[InstanceUpdater.org][InstanceUpdater]]: Instance updater using instrumentation for hot-swap
+- [[ports/InstrumentationPort.org][InstrumentationPort]]: Port interface for instrumentation operations
+- [[../flows/complete-hot-swap-flow.org][Complete Hot-Swap Flow]]: Hot-swap workflow using instrumentation
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Singleton Pattern**: Singleton instrumentation access with global state management
+- **Domain Service Pattern**: Stateless domain service for instrumentation operations and coordination
+- **Factory Method Pattern**: Factory methods for capability assessment and validation result construction
+- **Strategy Pattern**: Support for different instrumentation validation and assessment strategies
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Services**: Comprehensive instrumentation behavior and intelligence beyond simple API access
+- **Domain Intelligence**: Built-in domain intelligence for instrumentation capability assessment and validation
+- **Infrastructure Independence**: Pure domain logic with minimal infrastructure dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Dynamic Instrumentation**: Dynamic instrumentation management with runtime capability discovery
+- **Advanced Validation**: Advanced validation with comprehensive compatibility checking and assessment
+- **Distributed Coordination**: Distributed instrumentation coordination for multi-JVM hot-swap operations
+- **AI-Driven Optimization**: AI-driven instrumentation optimization and performance enhancement
+
+The InstrumentationProvider class provides ByteHot's essential JVM instrumentation and hot-swap API management foundation while maintaining comprehensive capability assessment, sophisticated validation intelligence, and extensibility for advanced instrumentation scenarios throughout the entire intelligent hot-swap system lifecycle.

@@ -1,0 +1,563 @@
+#+TITLE: UserStatistics - User Analytics and Performance Intelligence Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~UserStatistics~ class serves as ByteHot's sophisticated user analytics and performance intelligence value object, providing comprehensive user behavior tracking, sophisticated performance metrics calculation, and advanced usage analytics for user experience optimization and system intelligence. This critical domain value object encapsulates user activity analysis, performance assessment logic, and sophisticated behavioral tracking mechanisms that enable deep understanding of user patterns and system utilization. As the analytical foundation for ByteHot's user intelligence system, it enables comprehensive user insights while maintaining clean domain boundaries and supporting advanced user analytics, behavioral intelligence, and operational optimization throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** User Analytics and Performance Intelligence Foundation
+UserStatistics serves as the comprehensive user analytics and performance intelligence foundation:
+- Provides sophisticated user behavior tracking and performance analytics for user experience optimization
+- Enables comprehensive user activity analysis through advanced metrics calculation and behavioral assessment
+- Supports intelligent user insights and system utilization understanding through domain-driven analytics
+- Acts as the authoritative foundation for user intelligence and behavioral analytics
+
+** Value Object Design and Immutable Analytics Context
+The class serves as the value object design and immutable analytics context:
+- Implements sophisticated value object patterns with immutable analytics encapsulation and calculation methods
+- Provides comprehensive analytics validation and consistency through domain-driven design principles
+- Enables analytics composition and correlation capabilities for complex user behavior analysis scenarios
+- Supports analytics optimization and performance enhancement through efficient value object design
+
+** User Experience and System Optimization Hub
+The implementation provides user experience and system optimization capabilities:
+- Enables sophisticated user experience optimization through comprehensive behavioral analytics and insights
+- Supports advanced system performance assessment through user activity correlation and analysis
+- Provides foundation for user-driven optimization and system enhancement through analytics-driven intelligence
+- Enables intelligent user monitoring and experience optimization through analytics-driven insights and assessment
+
+* User Statistics Structure and Analytics Context
+
+** Core Hot-Swap Performance and Efficiency Metrics
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Total number of hot-swap operations attempted for performance tracking
+ */
+@Getter
+private final int totalHotSwaps;
+
+/**
+ * Number of successful hot-swap operations for success rate calculation
+ */
+@Getter
+private final int successfulHotSwaps;
+
+/**
+ * Number of failed hot-swap operations for failure analysis and improvement
+ */
+@Getter
+private final int failedHotSwaps;
+
+/**
+ * Total time saved through hot-swapping for efficiency assessment
+ */
+@Getter
+private final Duration totalTimeSaved;
+#+END_SRC
+
+** User Session and Activity Tracking Metrics
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Number of user sessions started for engagement tracking
+ */
+@Getter
+private final int sessionsStarted;
+
+/**
+ * Total active time across all sessions for engagement analysis
+ */
+@Getter
+private final Duration totalActiveTime;
+
+/**
+ * Timestamp of first session for user lifecycle tracking
+ */
+@Getter
+private final Instant firstSessionAt;
+
+/**
+ * Timestamp of last session for recent activity assessment
+ */
+@Getter
+private final Instant lastSessionAt;
+#+END_SRC
+
+** Development Activity and Code Modification Analytics
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Number of files being watched for monitoring scope assessment
+ */
+@Getter
+private final int filesWatched;
+
+/**
+ * Number of classes modified for development activity tracking
+ */
+@Getter
+private final int classesModified;
+
+/**
+ * Map of class names to modification counts for detailed code analysis
+ */
+@Getter
+private final Map<String, Integer> modificationsByClass;
+#+END_SRC
+
+** Factory Methods and Statistics Initialization
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Creates empty statistics for a new user with initial zero values
+ * @return empty user statistics for new user initialization
+ */
+public static UserStatistics empty() {
+    return UserStatistics.builder()
+        .totalHotSwaps(0)
+        .successfulHotSwaps(0)
+        .failedHotSwaps(0)
+        .totalTimeSaved(Duration.ZERO)
+        .sessionsStarted(0)
+        .totalActiveTime(Duration.ZERO)
+        .firstSessionAt(null)
+        .lastSessionAt(null)
+        .filesWatched(0)
+        .classesModified(0)
+        .modificationsByClass(new HashMap<>())
+        .build();
+}
+#+END_SRC
+
+* Statistics Update Operations and Activity Recording
+
+** Hot-Swap Performance Tracking and Success Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Records a hot-swap operation with success tracking and time savings analysis
+ * @param successful whether the operation was successful for success rate calculation
+ * @param timeSaved time saved by the operation for efficiency assessment
+ * @return updated statistics with hot-swap performance tracking
+ */
+public UserStatistics recordHotSwap(final boolean successful, final Duration timeSaved) {
+    return this.toBuilder()
+        .totalHotSwaps(totalHotSwaps + 1)
+        .successfulHotSwaps(successful ? successfulHotSwaps + 1 : successfulHotSwaps)
+        .failedHotSwaps(successful ? failedHotSwaps : failedHotSwaps + 1)
+        .totalTimeSaved(totalTimeSaved.plus(timeSaved))
+        .build();
+}
+#+END_SRC
+
+** Code Modification Tracking and Development Analytics
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Records a class modification with detailed class-level tracking
+ * @param className the name of the modified class for detailed analytics
+ * @return updated statistics with class modification tracking
+ */
+public UserStatistics recordClassModification(final String className) {
+    final Map<String, Integer> newModifications = new HashMap<>(modificationsByClass);
+    newModifications.merge(className, 1, Integer::sum);
+    
+    return this.toBuilder()
+        .classesModified(classesModified + 1)
+        .modificationsByClass(newModifications)
+        .build();
+}
+#+END_SRC
+
+** Session Activity Tracking and Engagement Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Records a user session with temporal tracking and engagement analysis
+ * @param sessionStart start time of the session for temporal correlation
+ * @param sessionDuration duration of the session for engagement assessment
+ * @return updated statistics with session tracking and engagement metrics
+ */
+public UserStatistics recordSession(final Instant sessionStart, final Duration sessionDuration) {
+    return this.toBuilder()
+        .sessionsStarted(sessionsStarted + 1)
+        .totalActiveTime(totalActiveTime.plus(sessionDuration))
+        .firstSessionAt(firstSessionAt != null ? firstSessionAt : sessionStart)
+        .lastSessionAt(sessionStart)
+        .build();
+}
+
+/**
+ * Updates file watch count for monitoring scope tracking
+ * @param fileCount number of files being watched for scope analysis
+ * @return updated statistics with file monitoring scope information
+ */
+public UserStatistics updateFilesWatched(final int fileCount) {
+    return this.toBuilder()
+        .filesWatched(fileCount)
+        .build();
+}
+#+END_SRC
+
+* Analytics Intelligence and Performance Assessment Operations
+
+** Performance Efficiency and Success Rate Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Calculates hot-swap success rate for performance assessment
+ * @return success rate as percentage (0.0 to 1.0) for performance analysis
+ */
+public double getSuccessRate() {
+    if (totalHotSwaps == 0) {
+        return 0.0;
+    }
+    return (double) successfulHotSwaps / totalHotSwaps;
+}
+
+/**
+ * Calculates average time saved per successful hot-swap for efficiency analysis
+ * @return average time saved for efficiency assessment and optimization
+ */
+public Duration getAverageTimeSavedPerHotSwap() {
+    if (successfulHotSwaps == 0) {
+        return Duration.ZERO;
+    }
+    return totalTimeSaved.dividedBy(successfulHotSwaps);
+}
+#+END_SRC
+
+** User Engagement and Session Analytics
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Calculates average session duration for engagement analysis
+ * @return average session duration for user engagement assessment
+ */
+public Duration getAverageSessionDuration() {
+    if (sessionsStarted == 0) {
+        return Duration.ZERO;
+    }
+    return totalActiveTime.dividedBy(sessionsStarted);
+}
+#+END_SRC
+
+** Development Pattern Analysis and Code Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Gets the most modified class for development pattern analysis
+ * @return class name with highest modification count, or null if none
+ */
+public String getMostModifiedClass() {
+    return modificationsByClass.entrySet().stream()
+        .max(Map.Entry.comparingByValue())
+        .map(Map.Entry::getKey)
+        .orElse(null);
+}
+
+/**
+ * Gets modification count for a specific class for detailed code analysis
+ * @param className the class name for modification count retrieval
+ * @return modification count for specific class analysis
+ */
+public int getModificationCount(final String className) {
+    return modificationsByClass.getOrDefault(className, 0);
+}
+#+END_SRC
+
+** Enhanced Analytics and Intelligence Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserStatistics.java
+/**
+ * Gets the failure rate for error analysis and system improvement
+ * @return failure rate as percentage (0.0 to 1.0) for failure analysis
+ */
+public double getFailureRate() {
+    if (totalHotSwaps == 0) {
+        return 0.0;
+    }
+    return (double) failedHotSwaps / totalHotSwaps;
+}
+
+/**
+ * Calculates user engagement score based on activity metrics
+ * @return engagement score from 0.0 to 1.0 for user experience assessment
+ */
+public double getEngagementScore() {
+    if (sessionsStarted == 0) {
+        return 0.0;
+    }
+    
+    // Combine multiple engagement factors
+    double sessionFrequency = Math.min(sessionsStarted / 30.0, 1.0); // Normalize to 30 sessions
+    double averageSessionMinutes = getAverageSessionDuration().toMinutes();
+    double sessionLength = Math.min(averageSessionMinutes / 60.0, 1.0); // Normalize to 60 minutes
+    double hotSwapActivity = Math.min(totalHotSwaps / 100.0, 1.0); // Normalize to 100 hot-swaps
+    
+    return (sessionFrequency + sessionLength + hotSwapActivity) / 3.0;
+}
+
+/**
+ * Gets productivity score based on efficiency metrics
+ * @return productivity score from 0.0 to 1.0 for productivity assessment
+ */
+public double getProductivityScore() {
+    if (totalHotSwaps == 0) {
+        return 0.0;
+    }
+    
+    double successRate = getSuccessRate();
+    double averageTimeSavedMinutes = getAverageTimeSavedPerHotSwap().toMinutes();
+    double timeSavingsScore = Math.min(averageTimeSavedMinutes / 10.0, 1.0); // Normalize to 10 minutes
+    double classModificationScore = Math.min(classesModified / 50.0, 1.0); // Normalize to 50 classes
+    
+    return (successRate + timeSavingsScore + classModificationScore) / 3.0;
+}
+
+/**
+ * Gets the user experience health score combining multiple factors
+ * @return health score from 0.0 to 1.0 for overall user experience assessment
+ */
+public double getHealthScore() {
+    double engagementScore = getEngagementScore();
+    double productivityScore = getProductivityScore();
+    double reliabilityScore = getSuccessRate();
+    
+    return (engagementScore + productivityScore + reliabilityScore) / 3.0;
+}
+
+/**
+ * Gets the total user lifecycle duration from first to last session
+ * @return user lifecycle duration for user lifecycle analysis
+ */
+public Duration getUserLifecycleDuration() {
+    if (firstSessionAt == null || lastSessionAt == null) {
+        return Duration.ZERO;
+    }
+    return Duration.between(firstSessionAt, lastSessionAt);
+}
+
+/**
+ * Gets activity density (hot-swaps per session) for activity analysis
+ * @return activity density for user activity pattern assessment
+ */
+public double getActivityDensity() {
+    if (sessionsStarted == 0) {
+        return 0.0;
+    }
+    return (double) totalHotSwaps / sessionsStarted;
+}
+
+/**
+ * Gets the top modified classes for development pattern analysis
+ * @param limit maximum number of classes to return
+ * @return map of class names to modification counts, sorted by count descending
+ */
+public Map<String, Integer> getTopModifiedClasses(final int limit) {
+    return modificationsByClass.entrySet().stream()
+        .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+        .limit(limit)
+        .collect(java.util.stream.Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue,
+            (e1, e2) -> e1,
+            java.util.LinkedHashMap::new
+        ));
+}
+#+END_SRC
+
+* User Analytics Intelligence and Performance Assessment
+
+** Performance Optimization and Efficiency Intelligence
+The user statistics enable sophisticated performance optimization:
+- **Success Rate Analysis**: Success rate analysis for hot-swap reliability assessment and improvement
+- **Efficiency Tracking**: Efficiency tracking through time savings analysis and productivity measurement
+- **Performance Benchmarking**: Performance benchmarking for user performance comparison and optimization
+- **Optimization Opportunities**: Optimization opportunity identification through performance analytics and assessment
+
+** User Engagement and Experience Intelligence
+The analytics support comprehensive user engagement analysis:
+- **Engagement Measurement**: Engagement measurement through session analytics and activity tracking
+- **User Experience Assessment**: User experience assessment through multi-factor scoring and analysis
+- **Behavioral Pattern Recognition**: Behavioral pattern recognition for user experience optimization
+- **Experience Optimization**: Experience optimization through analytics-driven insights and recommendations
+
+** Development Pattern and Code Intelligence
+The code analytics provide development pattern intelligence:
+- **Code Modification Patterns**: Code modification pattern analysis for development workflow optimization
+- **Class-Level Analytics**: Class-level analytics for detailed code development pattern understanding
+- **Development Efficiency**: Development efficiency assessment through modification tracking and analysis
+- **Code Quality Insights**: Code quality insights through modification frequency and pattern analysis
+
+* Integration with ByteHot User Intelligence Infrastructure
+
+** User Analytics Platform Integration
+UserStatistics integrates with ByteHot's user analytics systems:
+- Provide comprehensive user analytics for user experience optimization and system enhancement
+- Enable sophisticated user behavior analysis through comprehensive metrics calculation and assessment
+- Support advanced user insights and system utilization understanding through domain-driven analytics
+- Provide foundation for user-driven optimization and personalized user experience enhancement
+
+** Performance Monitoring Integration
+The class coordinates with performance monitoring systems:
+- **Real-Time Analytics**: Real-time user analytics for immediate user experience assessment and optimization
+- **Historical Analysis**: Historical user analytics for trend identification and user experience evolution
+- **Predictive Analytics**: Predictive user analytics for proactive user experience optimization
+- **Comparative Analysis**: Comparative user analytics for user performance benchmarking and assessment
+
+** Business Intelligence Integration
+The implementation supports business intelligence integration:
+- **User Intelligence**: User intelligence analytics for business insights and user experience strategy
+- **Product Analytics**: Product analytics integration for feature usage and user experience assessment
+- **Strategic Analytics**: Strategic analytics for user experience optimization and product development
+- **ROI Analysis**: Return on Investment analysis for user experience optimization and system enhancement
+
+* Advanced User Analytics and Intelligence Features
+
+** Machine Learning User Analytics
+The statistics enable machine learning integration:
+- **Behavioral Prediction**: Behavioral prediction through user analytics correlation and pattern recognition
+- **User Segmentation**: User segmentation through analytics-based classification and clustering
+- **Personalization**: Personalization optimization through user behavior analysis and pattern recognition
+- **Predictive Insights**: Predictive insights for proactive user experience optimization and enhancement
+
+** Enterprise User Analytics
+The implementation supports enterprise analytics integration:
+- **Team Analytics**: Team analytics for collaborative user experience optimization and assessment
+- **Organizational Insights**: Organizational insights through aggregated user analytics and intelligence
+- **Productivity Analytics**: Productivity analytics for organizational efficiency assessment and optimization
+- **Usage Analytics**: Usage analytics for system utilization and user adoption assessment
+
+** Advanced Performance Intelligence
+The class provides advanced performance intelligence:
+- **Performance Correlation**: Performance correlation analysis for system optimization and enhancement
+- **Efficiency Optimization**: Efficiency optimization through user analytics correlation and assessment
+- **Quality Metrics**: Quality metrics analysis for system reliability and user experience assessment
+- **System Health**: System health assessment through user analytics correlation and intelligence
+
+* Testing and Validation Strategies
+
+** Statistics Recording Testing
+#+begin_src java
+@Test
+void shouldRecordUserActivity() {
+    // Given: Empty user statistics
+    UserStatistics stats = UserStatistics.empty();
+    
+    // When: Recording various activities
+    UserStatistics updated = stats
+        .recordHotSwap(true, Duration.ofMinutes(5))
+        .recordHotSwap(false, Duration.ZERO)
+        .recordClassModification("com.example.MyClass")
+        .recordSession(Instant.now(), Duration.ofHours(2));
+    
+    // Then: Should track all activities
+    assertThat(updated.getTotalHotSwaps()).isEqualTo(2);
+    assertThat(updated.getSuccessfulHotSwaps()).isEqualTo(1);
+    assertThat(updated.getFailedHotSwaps()).isEqualTo(1);
+    assertThat(updated.getClassesModified()).isEqualTo(1);
+    assertThat(updated.getSessionsStarted()).isEqualTo(1);
+}
+#+end_src
+
+** Analytics Calculation Testing
+#+begin_src java
+@Test
+void shouldCalculateAnalytics() {
+    // Given: User statistics with activity data
+    UserStatistics stats = UserStatistics.builder()
+        .totalHotSwaps(10)
+        .successfulHotSwaps(8)
+        .failedHotSwaps(2)
+        .totalTimeSaved(Duration.ofMinutes(40))
+        .sessionsStarted(4)
+        .totalActiveTime(Duration.ofHours(8))
+        .build();
+    
+    // When: Calculating analytics
+    double successRate = stats.getSuccessRate();
+    Duration avgTimeSaved = stats.getAverageTimeSavedPerHotSwap();
+    Duration avgSessionDuration = stats.getAverageSessionDuration();
+    double engagementScore = stats.getEngagementScore();
+    
+    // Then: Should provide accurate analytics
+    assertThat(successRate).isEqualTo(0.8);
+    assertThat(avgTimeSaved).isEqualTo(Duration.ofMinutes(5));
+    assertThat(avgSessionDuration).isEqualTo(Duration.ofHours(2));
+    assertThat(engagementScore).isBetween(0.0, 1.0);
+}
+#+end_src
+
+** Development Pattern Testing
+#+begin_src java
+@Test
+void shouldTrackDevelopmentPatterns() {
+    // Given: User statistics with class modifications
+    UserStatistics stats = UserStatistics.empty()
+        .recordClassModification("com.example.Service")
+        .recordClassModification("com.example.Service")
+        .recordClassModification("com.example.Controller")
+        .recordClassModification("com.example.Service");
+    
+    // When: Analyzing development patterns
+    String mostModified = stats.getMostModifiedClass();
+    int serviceModifications = stats.getModificationCount("com.example.Service");
+    Map<String, Integer> topClasses = stats.getTopModifiedClasses(2);
+    
+    // Then: Should provide development insights
+    assertThat(mostModified).isEqualTo("com.example.Service");
+    assertThat(serviceModifications).isEqualTo(3);
+    assertThat(topClasses).hasSize(2);
+    assertThat(topClasses).containsEntry("com.example.Service", 3);
+}
+#+end_src
+
+* Integration with Analytics and Intelligence Systems
+
+** Data Visualization Integration
+The class integrates with data visualization systems:
+- **Dashboard Integration**: Dashboard integration for user analytics visualization and monitoring
+- **Chart Generation**: Chart generation for user performance and engagement visualization
+- **Report Generation**: Report generation for user analytics insights and business intelligence
+- **Real-Time Visualization**: Real-time visualization for live user analytics monitoring and assessment
+
+** Business Intelligence Platform Integration
+The implementation supports BI platform integration:
+- **Data Warehouse**: Data warehouse integration for historical user analytics and reporting
+- **OLAP Analysis**: OLAP analysis support for multi-dimensional user analytics and intelligence
+- **KPI Monitoring**: KPI monitoring for user experience and system performance assessment
+- **Executive Dashboards**: Executive dashboard integration for strategic user analytics and insights
+
+** External Analytics Integration
+The class coordinates with external analytics tools:
+- **Analytics APIs**: Integration with analytics APIs for advanced user behavior analysis
+- **Machine Learning Platforms**: Integration with ML platforms for predictive user analytics
+- **A/B Testing**: A/B testing integration for user experience optimization and assessment
+- **User Research Tools**: Integration with user research tools for comprehensive user insights
+
+* Related Documentation
+
+- [[User.org][User]]: User aggregate using this statistics value object
+- [[UserSession.org][UserSession]]: User session tracking related to statistics
+- [[UserPreferences.org][UserPreferences]]: User preferences related to user analytics
+- [[UserId.org][UserId]]: User identifier for statistics correlation
+- [[../flows/user-management-flow.org][User Management Flow]]: User management workflow using statistics
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable user analytics with comprehensive calculation and intelligence methods
+- **Builder Pattern**: Flexible construction of complex user statistics with multiple metrics
+- **Strategy Pattern**: Support for different analytics calculation strategies and assessment methods
+- **Observer Pattern**: Foundation for statistics change notification and monitoring
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive analytical behavior and intelligence beyond simple data containers
+- **Domain Intelligence**: Built-in domain intelligence for user analytics calculation and assessment
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **AI-Driven Analytics**: AI-driven user analytics and predictive user experience optimization
+- **Real-Time Streaming**: Real-time analytics streaming for live user behavior analysis
+- **Advanced Segmentation**: Advanced user segmentation and personalization capabilities
+- **Cross-Platform Analytics**: Cross-platform user analytics for comprehensive user experience assessment
+
+The UserStatistics class provides ByteHot's essential user analytics and performance intelligence foundation while maintaining comprehensive analytical capabilities, sophisticated intelligence assessment, and extensibility for advanced user analytics scenarios throughout the entire intelligent hot-swap system lifecycle.

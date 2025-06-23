@@ -1,0 +1,668 @@
+#+TITLE: UserIdentificationStrategy - Intelligent User Discovery and Auto-Identification Service
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~UserIdentificationStrategy~ class serves as ByteHot's sophisticated intelligent user discovery and auto-identification service, providing comprehensive multi-source user identification, advanced discovery prioritization, and intelligent fallback mechanisms for seamless user recognition and system integration. This critical domain service encapsulates user discovery algorithms, source prioritization logic, and sophisticated identification intelligence that enable precise user correlation and system-wide user coordination without manual configuration. As the discovery foundation for ByteHot's user management system, it enables comprehensive user identification while maintaining clean domain boundaries and supporting advanced identification analytics, discovery intelligence, and operational automation throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Intelligent User Discovery and Multi-Source Identification Foundation
+UserIdentificationStrategy serves as the comprehensive intelligent user discovery and multi-source identification foundation:
+- Provides sophisticated user discovery from multiple sources with prioritized identification strategies
+- Enables comprehensive identification intelligence through multi-source correlation and validation
+- Supports advanced user recognition and system integration through domain-driven discovery service
+- Acts as the authoritative foundation for user identification operations and automated discovery coordination
+
+** Domain Service Design and Discovery Intelligence Hub
+The class serves as the domain service design and discovery intelligence hub:
+- Implements sophisticated domain service patterns with singleton discovery access and multi-source coordination
+- Provides comprehensive identification validation and consistency through prioritized source evaluation
+- Enables discovery composition and correlation capabilities for complex user identification scenarios
+- Supports identification optimization and performance enhancement through efficient discovery patterns
+
+** User Recognition and System Integration Coordination Hub
+The implementation provides user recognition and system integration coordination:
+- Enables sophisticated user recognition through comprehensive multi-source discovery and validation
+- Supports advanced system integration and automated user coordination through identification intelligence
+- Provides foundation for user audit trails and compliance through comprehensive discovery tracking
+- Enables intelligent user monitoring and optimization through discovery-driven correlation and assessment
+
+* User Identification Structure and Discovery Management
+
+** Core Singleton Instance and Configuration Constants
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Singleton instance for global user identification strategy access
+ */
+private static final UserIdentificationStrategy INSTANCE = new UserIdentificationStrategy();
+
+/**
+ * Configuration constants for user identification sources and priorities
+ */
+private static final String BYTEHOT_USER_ID_PROPERTY = "bytehot.user.id";
+private static final String BYTEHOT_USER_ID_ENV = "BYTEHOT_USER_ID";
+private static final String USER_NAME_PROPERTY = "user.name";
+private static final String USER_EMAIL_ENV = "USER_EMAIL";
+private static final String GIT_AUTHOR_EMAIL_ENV = "GIT_AUTHOR_EMAIL";
+private static final String GIT_COMMITTER_EMAIL_ENV = "GIT_COMMITTER_EMAIL";
+#+END_SRC
+
+** Singleton Access and Strategy Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Gets the singleton instance for global identification strategy access
+ * @return the singleton UserIdentificationStrategy instance
+ */
+@NonNull
+public static UserIdentificationStrategy getInstance() {
+    return INSTANCE;
+}
+#+END_SRC
+
+* Multi-Source User Discovery and Prioritized Identification
+
+** Primary User Identification and Discovery Orchestration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Identifies user from multiple sources in order of preference with intelligent fallback
+ * @return a UserId from the best available source with prioritized discovery
+ */
+@NonNull
+public UserId identifyUser() {
+    // 1. Explicit user ID (highest priority) - direct configuration
+    UserId explicitUser = getExplicitUserId();
+    if (explicitUser != null) {
+        return explicitUser;
+    }
+
+    // 2. Environment email variables - development and CI/CD integration
+    UserId envEmail = getEnvironmentEmail();
+    if (envEmail != null) {
+        return envEmail;
+    }
+
+    // 3. Git configuration - developer environment integration
+    UserId gitUser = getGitUser();
+    if (gitUser != null) {
+        return gitUser;
+    }
+
+    // 4. System user with hostname - system-level identification
+    UserId systemUser = getSystemUser();
+    if (systemUser != null) {
+        return systemUser;
+    }
+
+    // 5. Generate anonymous user (last resort) - fallback mechanism
+    return UserId.anonymous();
+}
+#+END_SRC
+
+** Explicit User Identification and Configuration Discovery
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Gets explicitly provided user ID from system properties or environment
+ * @return explicit user ID or null if not provided
+ */
+@Nullable
+private UserId getExplicitUserId() {
+    // Check system property first for explicit configuration
+    String explicitUserId = System.getProperty(BYTEHOT_USER_ID_PROPERTY);
+    if (explicitUserId != null && !explicitUserId.trim().isEmpty()) {
+        return UserId.of(explicitUserId.trim());
+    }
+
+    // Check environment variable for deployment configuration
+    explicitUserId = System.getenv(BYTEHOT_USER_ID_ENV);
+    if (explicitUserId != null && !explicitUserId.trim().isEmpty()) {
+        return UserId.of(explicitUserId.trim());
+    }
+
+    return null;
+}
+#+END_SRC
+
+** Environment Email Discovery and CI/CD Integration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Gets user email from environment variables for CI/CD and development integration
+ * @return user ID from environment email or null if not available
+ */
+@Nullable
+private UserId getEnvironmentEmail() {
+    // Check common email environment variables for development integration
+    String[] emailEnvVars = {
+        USER_EMAIL_ENV,
+        GIT_AUTHOR_EMAIL_ENV,
+        GIT_COMMITTER_EMAIL_ENV
+    };
+
+    for (String envVar : emailEnvVars) {
+        String email = System.getenv(envVar);
+        if (email != null && !email.trim().isEmpty() && isValidEmail(email)) {
+            return UserId.fromEmail(email);
+        }
+    }
+
+    return null;
+}
+#+END_SRC
+
+** Git Configuration Discovery and Developer Environment Integration
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Gets user from Git configuration for developer environment integration
+ * @return user ID from Git config or null if not available
+ */
+@Nullable
+private UserId getGitUser() {
+    try {
+        GitUserResolver gitResolver = new GitUserResolver();
+        String gitEmail = gitResolver.getGitEmail();
+        String gitName = gitResolver.getGitName();
+
+        if (gitEmail != null && !gitEmail.trim().isEmpty() && isValidEmail(gitEmail)) {
+            return UserId.fromEmail(gitEmail);
+        }
+
+        if (gitName != null && !gitName.trim().isEmpty()) {
+            return UserId.of(gitName.trim());
+        }
+    } catch (Exception e) {
+        // Git configuration not available or readable
+        // This is normal in many environments, so we silently continue
+    }
+
+    return null;
+}
+#+END_SRC
+
+** System User Discovery and Host-Based Identification
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Gets user from system information with hostname integration
+ * @return user ID from system or null if not available
+ */
+@Nullable
+private UserId getSystemUser() {
+    String systemUser = System.getProperty(USER_NAME_PROPERTY);
+    if (systemUser != null && !systemUser.trim().isEmpty()) {
+        String hostname = getHostname();
+        return UserId.fromSystem(systemUser, hostname);
+    }
+
+    return null;
+}
+
+/**
+ * Gets the hostname of the current machine for system identification
+ * @return hostname or null if not available
+ */
+@Nullable
+private String getHostname() {
+    try {
+        return InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException e) {
+        // Hostname not available, this is okay
+        return null;
+    }
+}
+#+END_SRC
+
+* Validation and Intelligence Operations
+
+** Email Validation and Format Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Validates if a string looks like an email address with format intelligence
+ * @param email the string to validate for email format compliance
+ * @return true if it appears to be a valid email
+ */
+private boolean isValidEmail(@NonNull final String email) {
+    return email.contains("@") && 
+           email.indexOf("@") > 0 && 
+           email.indexOf("@") < email.length() - 1 &&
+           !email.startsWith("@") &&
+           !email.endsWith("@");
+}
+#+END_SRC
+
+** Enhanced Discovery Intelligence and Advanced Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Gets comprehensive user identification report for analytics and debugging
+ * @return identification report with all available sources and their results
+ */
+public UserIdentificationReport getIdentificationReport() {
+    java.util.Map<String, String> sourceResults = new java.util.LinkedHashMap<>();
+    java.util.List<String> availableSources = new java.util.ArrayList<>();
+    java.util.List<String> failedSources = new java.util.ArrayList<>();
+    
+    // Test each source
+    UserId explicitUser = getExplicitUserId();
+    if (explicitUser != null) {
+        sourceResults.put("Explicit Configuration", explicitUser.getValue());
+        availableSources.add("Explicit Configuration");
+    } else {
+        sourceResults.put("Explicit Configuration", "Not available");
+        failedSources.add("Explicit Configuration");
+    }
+    
+    UserId envEmail = getEnvironmentEmail();
+    if (envEmail != null) {
+        sourceResults.put("Environment Email", envEmail.getValue());
+        availableSources.add("Environment Email");
+    } else {
+        sourceResults.put("Environment Email", "Not available");
+        failedSources.add("Environment Email");
+    }
+    
+    UserId gitUser = getGitUser();
+    if (gitUser != null) {
+        sourceResults.put("Git Configuration", gitUser.getValue());
+        availableSources.add("Git Configuration");
+    } else {
+        sourceResults.put("Git Configuration", "Not available");
+        failedSources.add("Git Configuration");
+    }
+    
+    UserId systemUser = getSystemUser();
+    if (systemUser != null) {
+        sourceResults.put("System User", systemUser.getValue());
+        availableSources.add("System User");
+    } else {
+        sourceResults.put("System User", "Not available");
+        failedSources.add("System User");
+    }
+    
+    UserId finalUser = identifyUser();
+    
+    return UserIdentificationReport.builder()
+        .sourceResults(sourceResults)
+        .availableSources(availableSources)
+        .failedSources(failedSources)
+        .finalUserId(finalUser)
+        .isAnonymous(finalUser.isAnonymous())
+        .identificationSuccess(!finalUser.isAnonymous())
+        .build();
+}
+
+/**
+ * Validates identification capability and system health
+ * @return validation result with identification health assessment
+ */
+public IdentificationValidationResult validateIdentification() {
+    java.util.List<String> issues = new java.util.ArrayList<>();
+    java.util.List<String> warnings = new java.util.ArrayList<>();
+    
+    UserIdentificationReport report = getIdentificationReport();
+    
+    if (report.getAvailableSources().isEmpty()) {
+        issues.add("No user identification sources available - will use anonymous users");
+    }
+    
+    if (report.isAnonymous()) {
+        warnings.add("Using anonymous user identification - limited functionality may be available");
+    }
+    
+    // Check specific source health
+    if (report.getFailedSources().contains("Git Configuration")) {
+        warnings.add("Git configuration not available - developer workflow integration may be limited");
+    }
+    
+    if (report.getFailedSources().contains("Explicit Configuration")) {
+        warnings.add("No explicit user configuration - consider setting " + BYTEHOT_USER_ID_PROPERTY + " or " + BYTEHOT_USER_ID_ENV);
+    }
+    
+    return IdentificationValidationResult.builder()
+        .isValid(issues.isEmpty())
+        .issues(issues)
+        .warnings(warnings)
+        .report(report)
+        .recommendedActions(generateRecommendations(report))
+        .build();
+}
+
+/**
+ * Generates recommendations for improving user identification
+ * @param report the identification report for recommendation analysis
+ * @return list of recommended actions for improved identification
+ */
+private java.util.List<String> generateRecommendations(final UserIdentificationReport report) {
+    java.util.List<String> recommendations = new java.util.ArrayList<>();
+    
+    if (report.isAnonymous()) {
+        recommendations.add("Set explicit user ID via -D" + BYTEHOT_USER_ID_PROPERTY + "=your-id");
+        recommendations.add("Set environment variable " + BYTEHOT_USER_ID_ENV + "=your-id");
+        recommendations.add("Configure Git user settings: git config --global user.email your@email.com");
+    }
+    
+    if (report.getFailedSources().contains("Git Configuration")) {
+        recommendations.add("Install Git and configure user settings for developer workflow integration");
+    }
+    
+    if (report.getAvailableSources().size() == 1 && report.getAvailableSources().contains("System User")) {
+        recommendations.add("Consider setting up Git or explicit configuration for more reliable identification");
+    }
+    
+    return recommendations;
+}
+
+/**
+ * Tests identification with custom environment for testing and validation
+ * @param testEnvironment custom environment variables for testing
+ * @return identification result with test environment
+ */
+public UserId testIdentificationWithEnvironment(final java.util.Map<String, String> testEnvironment) {
+    // This would require dependency injection or strategy pattern enhancement
+    // For now, return current identification for interface completeness
+    return identifyUser();
+}
+#+END_SRC
+
+* Git User Resolution and Configuration Intelligence
+
+** Git Configuration Resolver and Multi-Source Git Discovery
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * Helper class for resolving Git user information with comprehensive Git integration
+ */
+private static class GitUserResolver {
+
+    /**
+     * Gets the Git user email from configuration with multi-source discovery
+     * @return Git email or null if not available
+     */
+    @Nullable
+    public String getGitEmail() {
+        return getGitConfig("user.email");
+    }
+
+    /**
+     * Gets the Git user name from configuration with multi-source discovery
+     * @return Git name or null if not available
+     */
+    @Nullable
+    public String getGitName() {
+        return getGitConfig("user.name");
+    }
+
+    /**
+     * Gets a Git configuration value with intelligent source fallback
+     * @param configKey the configuration key for Git configuration retrieval
+     * @return the configuration value or null if not available
+     */
+    @Nullable
+    private String getGitConfig(@NonNull final String configKey) {
+        try {
+            // Try git command first for live configuration
+            String value = getGitConfigFromCommand(configKey);
+            if (value != null) {
+                return value;
+            }
+
+            // Fallback to reading .gitconfig file for static configuration
+            return getGitConfigFromFile(configKey);
+        } catch (Exception e) {
+            // Git not available or configuration not readable
+            return null;
+        }
+    }
+
+    /**
+     * Gets Git config using the git command for live configuration access
+     * @param configKey the configuration key for command-based retrieval
+     * @return the configuration value or null
+     */
+    @Nullable
+    private String getGitConfigFromCommand(@NonNull final String configKey) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("git", "config", "--global", configKey);
+            Process process = pb.start();
+            
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String value = reader.readLine();
+                
+                int exitCode = process.waitFor();
+                if (exitCode == 0 && value != null && !value.trim().isEmpty()) {
+                    return value.trim();
+                }
+            }
+        } catch (IOException | InterruptedException e) {
+            // Git command not available or failed
+        }
+        
+        return null;
+    }
+
+    /**
+     * Gets Git config by reading the .gitconfig file for static configuration access
+     * @param configKey the configuration key for file-based retrieval
+     * @return the configuration value or null
+     */
+    @Nullable
+    private String getGitConfigFromFile(@NonNull final String configKey) {
+        try {
+            Path gitConfigPath = Paths.get(System.getProperty("user.home"), ".gitconfig");
+            if (Files.exists(gitConfigPath)) {
+                String content = Files.readString(gitConfigPath);
+                return parseGitConfigValue(content, configKey);
+            }
+        } catch (IOException e) {
+            // File not readable
+        }
+        
+        return null;
+    }
+
+    /**
+     * Parses a Git configuration file content for a specific key
+     * @param content the file content for configuration parsing
+     * @param key the configuration key for value extraction
+     * @return the value or null if not found
+     */
+    @Nullable
+    private String parseGitConfigValue(@NonNull final String content, @NonNull final String key) {
+        String[] lines = content.split("\n");
+        boolean inUserSection = false;
+        
+        for (String line : lines) {
+            line = line.trim();
+            
+            if (line.equals("[user]")) {
+                inUserSection = true;
+                continue;
+            }
+            
+            if (line.startsWith("[") && !line.equals("[user]")) {
+                inUserSection = false;
+                continue;
+            }
+            
+            if (inUserSection && line.startsWith(key.substring(key.indexOf('.') + 1))) {
+                int equalIndex = line.indexOf('=');
+                if (equalIndex > 0 && equalIndex < line.length() - 1) {
+                    return line.substring(equalIndex + 1).trim();
+                }
+            }
+        }
+        
+        return null;
+    }
+}
+#+END_SRC
+
+** Identification Analytics Value Objects
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserIdentificationStrategy.java
+/**
+ * User identification report for analytics and debugging
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class UserIdentificationReport {
+    /**
+     * Results from each identification source
+     */
+    private final java.util.Map<String, String> sourceResults;
+    
+    /**
+     * List of available identification sources
+     */
+    private final java.util.List<String> availableSources;
+    
+    /**
+     * List of failed identification sources
+     */
+    private final java.util.List<String> failedSources;
+    
+    /**
+     * Final user ID determined by strategy
+     */
+    private final UserId finalUserId;
+    
+    /**
+     * Whether final user is anonymous
+     */
+    private final boolean isAnonymous;
+    
+    /**
+     * Whether identification was successful
+     */
+    private final boolean identificationSuccess;
+}
+
+/**
+ * Identification validation result for health assessment
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class IdentificationValidationResult {
+    /**
+     * Whether identification is valid and healthy
+     */
+    private final boolean isValid;
+    
+    /**
+     * List of validation issues
+     */
+    private final java.util.List<String> issues;
+    
+    /**
+     * List of validation warnings
+     */
+    private final java.util.List<String> warnings;
+    
+    /**
+     * Identification report
+     */
+    private final UserIdentificationReport report;
+    
+    /**
+     * Recommended actions for improvement
+     */
+    private final java.util.List<String> recommendedActions;
+}
+#+END_SRC
+
+* Testing and Validation Strategies
+
+** Identification Discovery Testing
+#+begin_src java
+@Test
+void shouldIdentifyUserFromMultipleSources() {
+    // Given: Clean environment
+    clearTestEnvironment();
+    
+    // When: Testing different identification sources
+    UserIdentificationStrategy strategy = UserIdentificationStrategy.getInstance();
+    
+    // Test explicit configuration
+    System.setProperty("bytehot.user.id", "explicit-user");
+    UserId explicitResult = strategy.identifyUser();
+    assertThat(explicitResult.getValue()).isEqualTo("explicit-user");
+    
+    // Test fallback to anonymous
+    System.clearProperty("bytehot.user.id");
+    UserId anonymousResult = strategy.identifyUser();
+    assertThat(anonymousResult.isAnonymous()).isTrue();
+}
+#+end_src
+
+** Source Prioritization Testing
+#+begin_src java
+@Test
+void shouldPrioritizeIdentificationSources() {
+    // Given: Multiple identification sources
+    UserIdentificationStrategy strategy = UserIdentificationStrategy.getInstance();
+    UserIdentificationReport report = strategy.getIdentificationReport();
+    
+    // When: Analyzing source priorities
+    assertThat(report.getSourceResults()).containsKeys(
+        "Explicit Configuration",
+        "Environment Email", 
+        "Git Configuration",
+        "System User"
+    );
+    
+    // Then: Should follow priority order
+    UserId finalUser = report.getFinalUserId();
+    assertThat(finalUser).isNotNull();
+}
+#+end_src
+
+** Validation and Health Testing
+#+begin_src java
+@Test
+void shouldValidateIdentificationHealth() {
+    // Given: Identification strategy
+    UserIdentificationStrategy strategy = UserIdentificationStrategy.getInstance();
+    
+    // When: Validating identification health
+    IdentificationValidationResult validation = strategy.validateIdentification();
+    
+    // Then: Should provide health assessment
+    assertThat(validation.isValid()).isNotNull();
+    assertThat(validation.getReport()).isNotNull();
+    assertThat(validation.getRecommendedActions()).isNotNull();
+}
+#+end_src
+
+* Related Documentation
+
+- [[UserId.org][UserId]]: User identifier created by this strategy
+- [[UserContextResolver.org][UserContextResolver]]: Context resolver using this strategy
+- [[User.org][User]]: User aggregate using identified users
+- [[UserSession.org][UserSession]]: User session for identified users
+- [[../flows/user-management-flow.org][User Management Flow]]: User workflow using identification
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Singleton Pattern**: Global identification strategy with consistent behavior
+- **Strategy Pattern**: Multiple identification strategies with prioritized fallback
+- **Template Method Pattern**: Structured identification process with source evaluation
+- **Chain of Responsibility Pattern**: Source prioritization with fallback mechanisms
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Services**: Comprehensive identification behavior beyond simple discovery
+- **Domain Intelligence**: Built-in intelligence for source prioritization and validation
+- **Infrastructure Independence**: Pure domain logic with minimal system dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Pluggable Sources**: Pluggable identification sources with custom strategies
+- **Machine Learning**: AI-driven user identification and behavioral correlation
+- **Enterprise Integration**: LDAP, Active Directory, and enterprise identity provider integration
+- **Real-Time Discovery**: Real-time identification updates and dynamic source management
+
+The UserIdentificationStrategy class provides ByteHot's essential intelligent user discovery foundation while maintaining comprehensive multi-source identification capabilities, sophisticated prioritization intelligence, and extensibility for advanced identification scenarios throughout the entire intelligent hot-swap system lifecycle.

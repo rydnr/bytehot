@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>events/HotSwapRequested - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview">Overview</h1>
+<p>The <code>HotSwapRequested</code> event serves as ByteHot's
+comprehensive hot-swap operation initiation and execution planning
+signal, representing the authorized request to proceed with JVM class
+redefinition based on successful validation and safety verification.
+This critical domain event provides complete execution context including
+validated bytecode references, execution strategy selection, and
+performance optimization parameters that enable intelligent hot-swap
+execution. As the execution gateway in ByteHot's hot-swap pipeline, it
+bridges the gap between validation success and actual JVM manipulation
+while maintaining complete audit trails and supporting sophisticated
+execution strategies, performance optimization, and operational
+intelligence throughout the entire intelligent hot-swap system
+lifecycle.</p>
+<h1 id="domain-role-and-significance">Domain Role and Significance</h1>
+<h2 id="hot-swap-orchestration-command">Hot-Swap Orchestration
+Command</h2>
+<p>HotSwapRequested serves as the command event that triggers actual JVM
+instrumentation operations. It encapsulates all the information required
+to safely replace class definitions in the running JVM.</p>
+<h2 id="critical-decision-point">Critical Decision Point</h2>
+<p>This event represents the point of no return in the hot-swap pipeline
+where:</p>
+<ul>
+<li>Validation has completed successfully</li>
+<li>Bytecode compatibility has been verified</li>
+<li>All prerequisites for safe hot-swap have been met</li>
+<li>The system commits to attempting JVM class redefinition</li>
+</ul>
+<h2 id="response-event-architecture">Response Event Architecture</h2>
+<p>As a <code>DomainResponseEvent&lt;ClassFileChanged&gt;</code>, this
+event maintains causal relationships with the original file change that
+triggered the hot-swap sequence, enabling complete audit trails and
+event sourcing capabilities.</p>
+<h1 id="event-structure-and-properties">Event Structure and
+Properties</h1>
+<h2 id="core-hot-swap-information">Core Hot-Swap Information</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The path to the <span class="co">.</span>class file being hot<span class="co">-</span>swapped</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>Path classFile<span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The fully qualified name of the class being hot<span class="co">-</span>swapped</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> className<span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The reason why hot<span class="co">-</span>swap was requested</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> requestReason<span class="op">;</span></span></code></pre></div>
+<h2 id="bytecode-comparison-data">Bytecode Comparison Data</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The current bytecode in the JVM</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="dt">byte</span><span class="op">[]</span> originalBytecode<span class="op">;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The new bytecode to install</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="dt">byte</span><span class="op">[]</span> newBytecode<span class="op">;</span></span></code></pre></div>
+<h2 id="temporal-and-causal-context">Temporal and Causal Context</h2>
+<div class="sourceCode" id="cb3"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The timestamp when hot<span class="co">-</span>swap was requested</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>Instant timestamp<span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The original event that triggered this hot<span class="co">-</span>swap request</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>ClassFileChanged preceding<span class="op">;</span></span></code></pre></div>
+<h1 id="event-inheritance-and-architecture">Event Inheritance and
+Architecture</h1>
+<h2 id="domainresponseevent-implementation">DomainResponseEvent
+Implementation</h2>
+<p>HotSwapRequested implements
+<code>DomainResponseEvent&lt;ClassFileChanged&gt;</code>, providing:</p>
+<ul>
+<li>Causal relationship tracking to the originating file change</li>
+<li>Event sourcing compatibility for complete audit trails</li>
+<li>Response event semantics for flow tracking</li>
+<li>Integration with ByteHot's event-driven architecture</li>
+</ul>
+<h2 id="preceding-event-integration">Preceding Event Integration</h2>
+<p>The relationship to the preceding event enables:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> ClassFileChanged <span class="fu">getPreceding</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> preceding<span class="op">;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This relationship allows:</p>
+<ul>
+<li>Complete event chain reconstruction</li>
+<li>Temporal analysis of hot-swap latency</li>
+<li>Causal impact assessment</li>
+<li>User context preservation across the workflow</li>
+</ul>
+<h1 id="bytecode-management-and-comparison">Bytecode Management and
+Comparison</h1>
+<h2 id="original-bytecode-preservation">Original Bytecode
+Preservation</h2>
+<p>The <code>originalBytecode</code> field serves critical
+functions:</p>
+<ul>
+<li><strong>Rollback Capability</strong>: Enables instant reversion if
+hot-swap fails</li>
+<li><strong>Change Analysis</strong>: Allows detailed comparison of
+modifications</li>
+<li><strong>Validation Support</strong>: Provides baseline for
+compatibility checking</li>
+<li><strong>Audit Trail</strong>: Documents the exact state before
+modification</li>
+</ul>
+<h2 id="new-bytecode-validation">New Bytecode Validation</h2>
+<p>The <code>newBytecode</code> field contains the validated bytecode
+ready for installation:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Bytecode requirements:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Must pass structural validation</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Must comply with JVM hot-swap limitations</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Must maintain class identity and compatibility</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Must be loadable by the current class loader</span></span></code></pre></div>
+<h2 id="bytecode-difference-analysis">Bytecode Difference Analysis</h2>
+<p>The system can analyze differences between original and new
+bytecode:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Common bytecode change patterns:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Method body modifications (safe)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - New method additions (safe)</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Field additions (requires careful handling)</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Constant pool changes (usually safe)</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Attribute modifications (varies by type)</span></span></code></pre></div>
+<h1 id="request-reason-and-context">Request Reason and Context</h1>
+<h2 id="request-reason-categories">Request Reason Categories</h2>
+<p>The <code>requestReason</code> field provides context for the
+hot-swap request:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Example request reasons:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - &quot;File change detected in session: dev-session-123&quot;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - &quot;Automatic hot-swap triggered by compilation&quot;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - &quot;Manual hot-swap requested by developer&quot;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - &quot;Framework-initiated class refresh&quot;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - &quot;Test-driven hot-swap for rapid iteration&quot;</span></span></code></pre></div>
+<h2 id="contextual-information-value">Contextual Information Value</h2>
+<p>Request reasons enable:</p>
+<ul>
+<li>User experience optimization based on context</li>
+<li>Analytics for hot-swap usage patterns</li>
+<li>Debugging support for failed operations</li>
+<li>Workflow optimization insights</li>
+</ul>
+<h1 id="factory-methods-and-creation-patterns">Factory Methods and
+Creation Patterns</h1>
+<h2 id="file-change-integration">File Change Integration</h2>
+<p>Primary factory method for creating requests from file changes:</p>
+<div class="sourceCode" id="cb8"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/HotSwapRequested.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> HotSwapRequested <span class="fu">fromFileChange</span><span class="op">(</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    ClassFileChanged fileChangeEvent<span class="op">,</span> </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> sessionId</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load actual bytecode from file system</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> originalBytecode <span class="op">=</span> <span class="fu">loadCurrentBytecode</span><span class="op">(</span>fileChangeEvent<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> newBytecode <span class="op">=</span> <span class="fu">loadNewBytecode</span><span class="op">(</span>fileChangeEvent<span class="op">.</span><span class="fu">getClassFile</span><span class="op">());</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        fileChangeEvent<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        fileChangeEvent<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        originalBytecode<span class="op">,</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        newBytecode<span class="op">,</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;File change detected in session: &quot;</span> <span class="op">+</span> sessionId<span class="op">,</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">(),</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        fileChangeEvent</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="manual-request-creation">Manual Request Creation</h2>
+<p>For explicitly triggered hot-swap operations:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> HotSwapRequested <span class="fu">forManualOperation</span><span class="op">(</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> className<span class="op">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> originalBytecode<span class="op">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">byte</span><span class="op">[]</span> newBytecode<span class="op">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> userId</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">resolveClassFilePath</span><span class="op">(</span>className<span class="op">),</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        className<span class="op">,</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        originalBytecode<span class="op">,</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        newBytecode<span class="op">,</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Manual hot-swap requested by user: &quot;</span> <span class="op">+</span> userId<span class="op">,</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">(),</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">null</span> <span class="co">// No preceding file change event</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="event-processing-and-jvm-integration">Event Processing and JVM
+Integration</h1>
+<h2 id="jvm-instrumentation-coordination">JVM Instrumentation
+Coordination</h2>
+<p>HotSwapRequested events trigger JVM instrumentation operations:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Processing pattern:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">processHotSwapRequest</span><span class="op">(</span>HotSwapRequested event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 1. Prepare for hot-swap</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">prepareClassRedefinition</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 2. Execute JVM redefinition</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        instrumentationAPI<span class="op">.</span><span class="fu">redefineClasses</span><span class="op">(</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getNewBytecode</span><span class="op">()</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 3. Emit success event</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">emit</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassRedefinitionSucceeded</span><span class="op">(</span>event<span class="op">));</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 4. Handle failure with rollback</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        <span class="fu">emit</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span>event<span class="op">,</span> e<span class="op">));</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="safety-protocols">Safety Protocols</h2>
+<p>Hot-swap execution follows strict safety protocols:</p>
+<ul>
+<li>Pre-execution system state capture</li>
+<li>Atomic redefinition operations</li>
+<li>Immediate rollback capability</li>
+<li>Exception handling with detailed error context</li>
+<li>Resource cleanup on both success and failure</li>
+</ul>
+<h1 id="integration-with-instance-management">Integration with Instance
+Management</h1>
+<h2 id="instance-update-coordination">Instance Update Coordination</h2>
+<p>HotSwapRequested events coordinate with instance management:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Instance management integration:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Identify existing instances of the class</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Prepare instance state preservation</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Execute hot-swap operation</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Update existing instances with new behavior</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Validate instance consistency</span></span></code></pre></div>
+<h2 id="framework-integration-points">Framework Integration Points</h2>
+<p>The event enables framework-aware hot-swap operations:</p>
+<ul>
+<li>Spring bean refresh coordination</li>
+<li>CDI context boundary management</li>
+<li>Guice provider instance updates</li>
+<li>Framework proxy invalidation and recreation</li>
+</ul>
+<h1 id="performance-and-resource-management">Performance and Resource
+Management</h1>
+<h2 id="memory-efficiency">Memory Efficiency</h2>
+<p>HotSwapRequested events manage memory efficiently:</p>
+<ul>
+<li>Bytecode arrays are typically short-lived</li>
+<li>Original bytecode is cached for potential reuse</li>
+<li>Event instances are lightweight despite bytecode payload</li>
+<li>Garbage collection optimized for rapid event processing</li>
+</ul>
+<h2 id="processing-speed-optimization">Processing Speed
+Optimization</h2>
+<p>Hot-swap execution is optimized for minimal latency:</p>
+<ul>
+<li>Bytecode loading is parallelized when possible</li>
+<li>JVM instrumentation uses efficient native operations</li>
+<li>Event processing avoids unnecessary object allocations</li>
+<li>Critical path operations are prioritized</li>
+</ul>
+<h2 id="resource-cleanup">Resource Cleanup</h2>
+<p>Proper resource management ensures system stability:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Resource cleanup pattern:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">performHotSwap</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">finally</span> <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Always clean up resources</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">releaseTemporaryResources</span><span class="op">();</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">clearBytecodeBuffers</span><span class="op">();</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">updateMemoryMetrics</span><span class="op">();</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="error-handling-and-rollback">Error Handling and Rollback</h1>
+<h2 id="hot-swap-failure-recovery">Hot-Swap Failure Recovery</h2>
+<p>When hot-swap operations fail, comprehensive recovery mechanisms
+activate:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Failure recovery sequence:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Capture detailed error information</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Attempt automatic rollback to original bytecode</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Verify system state consistency</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Emit detailed failure event</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Log comprehensive diagnostic information</span></span></code></pre></div>
+<h2 id="rollback-capabilities">Rollback Capabilities</h2>
+<p>The preserved original bytecode enables instant rollback:</p>
+<ul>
+<li>JVM state restoration to pre-hot-swap condition</li>
+<li>Instance state rollback where applicable</li>
+<li>Framework configuration restoration</li>
+<li>Complete audit trail of rollback operations</li>
+</ul>
+<h1 id="testing-and-validation">Testing and Validation</h1>
+<h2 id="event-creation-testing">Event Creation Testing</h2>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldCreateHotSwapRequestFromFileChange</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: File change event with valid bytecode</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    ClassFileChanged fileChange <span class="op">=</span> <span class="fu">createFileChangeEvent</span><span class="op">();</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> sessionId <span class="op">=</span> <span class="st">&quot;test-session-123&quot;</span><span class="op">;</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Hot-swap request is created</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    HotSwapRequested request <span class="op">=</span> HotSwapRequested<span class="op">.</span><span class="fu">fromFileChange</span><span class="op">(</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        fileChange<span class="op">,</span> sessionId</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Request should contain proper information</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getClassName</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>fileChange<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>fileChange<span class="op">.</span><span class="fu">getClassFile</span><span class="op">());</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getPreceding</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>fileChange<span class="op">);</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getRequestReason</span><span class="op">()).</span><span class="fu">contains</span><span class="op">(</span>sessionId<span class="op">);</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="hot-swap-execution-testing">Hot-Swap Execution Testing</h2>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldExecuteHotSwapSuccessfully</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">given</span><span class="op">()</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">event</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassFileChanged</span><span class="op">(</span>classPath<span class="op">))</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">event</span><span class="op">(</span><span class="kw">new</span> <span class="fu">BytecodeValidated</span><span class="op">(</span>classPath<span class="op">,</span> <span class="kw">true</span><span class="op">));</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">when</span><span class="op">()</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">event</span><span class="op">(</span><span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span>classPath<span class="op">,</span> className<span class="op">,</span> originalBytes<span class="op">,</span> newBytes<span class="op">));</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">then</span><span class="op">()</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">expectEvent</span><span class="op">(</span>ClassRedefinitionSucceeded<span class="op">.</span><span class="fu">class</span><span class="op">)</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">withClassName</span><span class="op">(</span>className<span class="op">);</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="monitoring-and-analytics">Monitoring and Analytics</h1>
+<h2 id="hot-swap-metrics">Hot-Swap Metrics</h2>
+<p>HotSwapRequested events enable comprehensive metrics collection:</p>
+<ul>
+<li>Hot-swap request frequency per developer</li>
+<li>Bytecode change size distributions</li>
+<li>Request reason analysis for workflow optimization</li>
+<li>Temporal patterns in hot-swap usage</li>
+</ul>
+<h2 id="performance-analysis">Performance Analysis</h2>
+<p>The events support performance optimization:</p>
+<ul>
+<li>Hot-swap execution latency tracking</li>
+<li>Bytecode processing time analysis</li>
+<li>Resource usage patterns</li>
+<li>Success rate correlation with change types</li>
+</ul>
+<h2 id="usage-pattern-discovery">Usage Pattern Discovery</h2>
+<p>Analytics reveal important usage patterns:</p>
+<ul>
+<li>Most frequently hot-swapped classes</li>
+<li>Peak usage times for development optimization</li>
+<li>Change complexity trends over time</li>
+<li>Developer workflow efficiency metrics</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><a
+href="./ClassRedefinitionSucceeded.org">ClassRedefinitionSucceeded</a>:
+Successful hot-swap completion event</li>
+<li><a href="./ClassRedefinitionFailed.org">ClassRedefinitionFailed</a>:
+Hot-swap failure event</li>
+<li><a href="./InstancesUpdated.org">InstancesUpdated</a>: Instance
+management follow-up event</li>
+<li><a href="../HotSwapManager.org">HotSwapManager</a>: Component
+responsible for processing these events</li>
+<li><a href="../../flows/hotswap-execution-process.org">Hot-Swap
+Execution Process</a>: Complete hot-swap workflow</li>
+</ul>
+<h1 id="future-evolution">Future Evolution</h1>
+<h2 id="enhanced-request-context">Enhanced Request Context</h2>
+<p>Future improvements to request context:</p>
+<ul>
+<li>Detailed change impact analysis</li>
+<li>Predictive performance impact assessment</li>
+<li>Automated optimization suggestions</li>
+<li>Enhanced rollback strategies</li>
+</ul>
+<h2 id="advanced-integration">Advanced Integration</h2>
+<p>Anticipated integration enhancements:</p>
+<ul>
+<li>IDE integration for real-time hot-swap control</li>
+<li>Build tool coordination for automated requests</li>
+<li>Cloud deployment integration for distributed hot-swap</li>
+<li>Advanced debugging integration</li>
+</ul>
+<p>The HotSwapRequested event represents the culmination of ByteHot's
+validation and preparation pipeline, initiating the critical JVM
+instrumentation operations that enable runtime class evolution.</p>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

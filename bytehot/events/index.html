@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>events/index - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="introduction">Introduction</h1>
+<p>This document provides a comprehensive index of all domain events in
+the ByteHot system. Each event represents a significant occurrence
+within the domain that drives ByteHot's event-driven architecture and
+enables complete auditability through EventSourcing.</p>
+<h1 id="event-categories-and-organization">Event Categories and
+Organization</h1>
+<p>ByteHot's domain events are organized into logical categories that
+reflect different aspects of the hot-swap lifecycle and system
+capabilities.</p>
+<h2 id="file-system-monitoring-events">File System Monitoring
+Events</h2>
+<p>These events capture file system changes that trigger hot-swap
+operations:</p>
+<ul>
+<li><a href="./ClassFileChanged.html">ClassFileChanged</a>: Represents
+detection of a modified .class file, serving as the primary trigger for
+hot-swap workflows</li>
+<li><a href="./ClassFileCreated.html">ClassFileCreated</a>: Captures
+creation of new .class files in monitored directories</li>
+<li><a href="./ClassFileDeleted.html">ClassFileDeleted</a>: Records
+removal of .class files from the file system</li>
+<li><a href="./ClassFileProcessed.html">ClassFileProcessed</a>: Indicates
+completion of file processing workflow</li>
+</ul>
+<h2 id="bytecode-analysis-and-validation-events">Bytecode Analysis and
+Validation Events</h2>
+<p>These events represent the analysis and validation of bytecode for
+hot-swap compatibility:</p>
+<ul>
+<li><a href="./ClassMetadataExtracted.html">ClassMetadataExtracted</a>:
+Documents successful extraction and analysis of class metadata</li>
+<li><a href="./BytecodeValidated.html">BytecodeValidated</a>: Represents
+successful bytecode validation for hot-swap compatibility</li>
+<li><a href="./BytecodeRejected.html">BytecodeRejected</a>: Indicates
+bytecode validation failure with detailed reasoning</li>
+</ul>
+<h2 id="hot-swap-operation-events">Hot-Swap Operation Events</h2>
+<p>These events capture the core hot-swap execution process:</p>
+<ul>
+<li><a href="./HotSwapRequested.html">HotSwapRequested</a>: Initiates
+actual JVM class redefinition with complete bytecode context</li>
+<li><a
+href="./ClassRedefinitionSucceeded.html">ClassRedefinitionSucceeded</a>:
+Confirms successful JVM class redefinition</li>
+<li><a href="./ClassRedefinitionFailed.html">ClassRedefinitionFailed</a>:
+Records hot-swap failure with error context and rollback
+information</li>
+</ul>
+<h2 id="instance-management-events">Instance Management Events</h2>
+<p>These events manage existing object instances during hot-swap
+operations:</p>
+<ul>
+<li><a href="./InstancesUpdated.html">InstancesUpdated</a>: Documents
+successful update of existing instances with new class behavior</li>
+<li><a href="./InstanceUpdateRequested.html">InstanceUpdateRequested</a>:
+Initiates instance state preservation and migration</li>
+</ul>
+<h2 id="system-lifecycle-events">System Lifecycle Events</h2>
+<p>These events manage ByteHot's agent lifecycle and capabilities:</p>
+<ul>
+<li><a href="./ByteHotAttachRequested.html">ByteHotAttachRequested</a>:
+Initial agent attachment request to JVM</li>
+<li><a href="./ByteHotAgentAttached.html">ByteHotAgentAttached</a>:
+Successful agent attachment with system capabilities</li>
+<li><a href="./ByteHotNotStarted.html">ByteHotNotStarted</a>: Agent
+initialization failure or unavailability</li>
+<li><a
+href="./HotSwapCapabilityEnabled.html">HotSwapCapabilityEnabled</a>:
+Hot-swap functionality activation</li>
+<li><a href="./WatchPathConfigured.html">WatchPathConfigured</a>: File
+system monitoring configuration establishment</li>
+</ul>
+<h2 id="user-management-events">User Management Events</h2>
+<p>These events handle user identification, authentication, and session
+management:</p>
+<ul>
+<li><a
+href="./UserRegistrationRequested.html">UserRegistrationRequested</a>:
+User identity discovery initiation</li>
+<li><a href="./UserRegistered.html">UserRegistered</a>: Successful user
+identity establishment</li>
+<li><a
+href="./UserAuthenticationRequested.html">UserAuthenticationRequested</a>:
+User authentication process initiation</li>
+<li><a href="./UserAuthenticated.html">UserAuthenticated</a>: Successful
+user authentication completion</li>
+<li><a
+href="./UserSessionStartRequested.html">UserSessionStartRequested</a>:
+Development session initiation request</li>
+<li><a href="./UserSessionStarted.html">UserSessionStarted</a>: Active
+development session establishment</li>
+</ul>
+<h2 id="flow-detection-events">Flow Detection Events</h2>
+<p>These events enable ByteHot's self-documenting capabilities through
+pattern recognition:</p>
+<ul>
+<li><a href="./FlowAnalysisRequested.html">FlowAnalysisRequested</a>:
+Initiation of event pattern analysis for flow discovery</li>
+<li><a href="./FlowDiscovered.html">FlowDiscovered</a>: Successful
+identification of development workflow patterns</li>
+</ul>
+<h2 id="base-event-infrastructure">Base Event Infrastructure</h2>
+<p>These foundational events provide common functionality across the
+event hierarchy:</p>
+<ul>
+<li><a
+href="./AbstractVersionedDomainEvent.html">AbstractVersionedDomainEvent</a>:
+Base class providing EventSourcing capabilities and event metadata</li>
+</ul>
+<h1 id="event-driven-architecture-overview">Event-Driven Architecture
+Overview</h1>
+<h2 id="event-flow-patterns">Event Flow Patterns</h2>
+<p>ByteHot's events follow predictable flow patterns that represent
+complete business processes:</p>
+<h3 id="primary-hot-swap-flow">Primary Hot-Swap Flow</h3>
+<ol>
+<li><code>ClassFileChanged</code> → File system modification
+detected</li>
+<li><code>ClassMetadataExtracted</code> → Bytecode structure
+analyzed</li>
+<li><code>BytecodeValidated</code> → Compatibility confirmed</li>
+<li><code>HotSwapRequested</code> → JVM redefinition initiated</li>
+<li><code>ClassRedefinitionSucceeded</code> → Class successfully
+updated</li>
+<li><code>InstancesUpdated</code> → Existing instances updated</li>
+</ol>
+<h3 id="user-session-flow">User Session Flow</h3>
+<ol>
+<li><code>UserRegistrationRequested</code> → User identity
+discovery</li>
+<li><code>UserRegistered</code> → User identity established</li>
+<li><code>UserAuthenticationRequested</code> → Authentication
+initiated</li>
+<li><code>UserAuthenticated</code> → Authentication completed</li>
+<li><code>UserSessionStartRequested</code> → Session creation
+requested</li>
+<li><code>UserSessionStarted</code> → Active session established</li>
+</ol>
+<h3 id="flow-detection-pattern">Flow Detection Pattern</h3>
+<ol>
+<li><code>FlowAnalysisRequested</code> → Pattern analysis initiated</li>
+<li><code>FlowDiscovered</code> → Workflow pattern identified and
+documented</li>
+</ol>
+<h2 id="event-characteristics">Event Characteristics</h2>
+<p>All ByteHot domain events share common characteristics:</p>
+<ul>
+<li><strong>Immutability</strong>: Events cannot be modified after
+creation</li>
+<li><strong>Causality</strong>: Events maintain relationships to
+preceding events</li>
+<li><strong>Temporality</strong>: Events include precise timestamp
+information</li>
+<li><strong>Versioning</strong>: Events support schema evolution through
+versioning</li>
+<li><strong>User Context</strong>: Events include user identity for
+collaborative scenarios</li>
+<li><strong>Auditability</strong>: Events provide complete audit trails
+for compliance</li>
+</ul>
+<h2 id="eventsourcing-integration">EventSourcing Integration</h2>
+<p>ByteHot's events fully support EventSourcing capabilities:</p>
+<ul>
+<li>Complete system state reconstruction from event streams</li>
+<li>Temporal analysis and time-travel debugging</li>
+<li>Event replay for testing and validation</li>
+<li>Audit trails for enterprise compliance</li>
+<li>Causal analysis for performance optimization</li>
+</ul>
+<h1 id="event-documentation-standards">Event Documentation
+Standards</h1>
+<p>Each event documentation follows consistent standards:</p>
+<h2 id="structure-organization">Structure Organization</h2>
+<ul>
+<li><strong>Overview</strong>: Purpose and significance within the
+domain</li>
+<li><strong>Domain Role</strong>: Position within ByteHot's
+architecture</li>
+<li><strong>Event Structure</strong>: Properties and their meanings</li>
+<li><strong>Event Architecture</strong>: Inheritance and
+relationships</li>
+<li><strong>Processing Patterns</strong>: How the event is consumed and
+processed</li>
+<li><strong>Testing</strong>: Comprehensive test examples and
+patterns</li>
+<li><strong>Performance</strong>: Optimization and scalability
+considerations</li>
+<li><strong>Related Documentation</strong>: Cross-references to related
+components</li>
+</ul>
+<h2 id="literate-programming-approach">Literate Programming
+Approach</h2>
+<p>Event documentation uses literate programming techniques:</p>
+<ul>
+<li>Code examples are directly tangled into source files</li>
+<li>Documentation serves as both explanation and implementation
+guide</li>
+<li>Cross-references maintain consistency across the codebase</li>
+<li>Examples are executable and testable</li>
+</ul>
+<h2 id="living-documentation">Living Documentation</h2>
+<p>Event documentation evolves with the system:</p>
+<ul>
+<li>Documentation is automatically validated against source code</li>
+<li>Examples are tested as part of the build process</li>
+<li>Cross-references are verified for accuracy</li>
+<li>Documentation reflects actual system behavior</li>
+</ul>
+<h1 id="testing-and-event-driven-development">Testing and Event-Driven
+Development</h1>
+<p>ByteHot's event-driven architecture enables revolutionary testing
+approaches:</p>
+<h2 id="event-driven-testing-framework">Event-Driven Testing
+Framework</h2>
+<p>The EventDrivenTestSupport framework allows testing with real domain
+events:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldCompleteHotSwapWorkflow</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">given</span><span class="op">()</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">event</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ClassFileChanged</span><span class="op">(</span>classPath<span class="op">))</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">event</span><span class="op">(</span><span class="kw">new</span> <span class="fu">BytecodeValidated</span><span class="op">(</span>classPath<span class="op">,</span> <span class="kw">true</span><span class="op">));</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">when</span><span class="op">()</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">event</span><span class="op">(</span><span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span>classPath<span class="op">,</span> bytecode<span class="op">));</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">then</span><span class="op">()</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">expectEvent</span><span class="op">(</span>ClassRedefinitionSucceeded<span class="op">.</span><span class="fu">class</span><span class="op">)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">expectEvent</span><span class="op">(</span>InstancesUpdated<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="benefits-of-event-driven-testing">Benefits of Event-Driven
+Testing</h2>
+<ul>
+<li><strong>Realistic Test Scenarios</strong>: Tests use actual domain
+events rather than mocks</li>
+<li><strong>Reliable Test Evolution</strong>: Tests evolve with the
+domain model</li>
+<li><strong>Living Documentation</strong>: Tests serve as executable
+documentation</li>
+<li><strong>Complete Workflow Testing</strong>: Full event chains can be
+tested end-to-end</li>
+</ul>
+<h1 id="performance-and-optimization">Performance and Optimization</h1>
+<h2 id="event-processing-optimization">Event Processing
+Optimization</h2>
+<p>ByteHot's event processing is optimized for performance:</p>
+<ul>
+<li><strong>Minimal Latency</strong>: Events are processed with
+sub-second response times</li>
+<li><strong>Memory Efficiency</strong>: Events use minimal memory
+footprint</li>
+<li><strong>Concurrent Processing</strong>: Multiple events can be
+processed simultaneously</li>
+<li><strong>Resource Management</strong>: Automatic cleanup prevents
+resource leaks</li>
+</ul>
+<h2 id="scalability-considerations">Scalability Considerations</h2>
+<p>The event system scales effectively:</p>
+<ul>
+<li><strong>Batch Processing</strong>: Multiple events can be processed
+together</li>
+<li><strong>Queue Management</strong>: Event queues prevent processing
+bottlenecks</li>
+<li><strong>Load Balancing</strong>: Event processing can be
+distributed</li>
+<li><strong>Graceful Degradation</strong>: System maintains
+functionality under high load</li>
+</ul>
+<h1 id="integration-and-extensibility">Integration and
+Extensibility</h1>
+<h2 id="framework-integration">Framework Integration</h2>
+<p>Events integrate seamlessly with major frameworks:</p>
+<ul>
+<li><strong>Spring Framework</strong>: Event-driven bean lifecycle
+management</li>
+<li><strong>CDI</strong>: Contextual event processing and scoping</li>
+<li><strong>Guice</strong>: Dependency injection coordination</li>
+<li><strong>Testing Frameworks</strong>: JUnit, TestNG, and custom test
+support</li>
+</ul>
+<h2 id="extensibility-points">Extensibility Points</h2>
+<p>The event system provides multiple extensibility points:</p>
+<ul>
+<li><strong>Custom Events</strong>: New domain events can be easily
+added</li>
+<li><strong>Event Processors</strong>: Custom event handling logic can
+be implemented</li>
+<li><strong>Event Filters</strong>: Selective event processing based on
+criteria</li>
+<li><strong>Event Transformers</strong>: Event data can be transformed
+and enriched</li>
+</ul>
+<h1 id="future-evolution">Future Evolution</h1>
+<h2 id="anticipated-enhancements">Anticipated Enhancements</h2>
+<p>Future improvements to the event system:</p>
+<ul>
+<li><strong>Machine Learning Integration</strong>: AI-powered event
+pattern analysis</li>
+<li><strong>Advanced Analytics</strong>: Sophisticated event data
+analysis</li>
+<li><strong>Real-time Processing</strong>: Enhanced real-time event
+processing capabilities</li>
+<li><strong>Cloud Integration</strong>: Distributed event processing
+across cloud environments</li>
+</ul>
+<h2 id="extensibility-roadmap">Extensibility Roadmap</h2>
+<p>Planned extensibility improvements:</p>
+<ul>
+<li><strong>Plugin Architecture</strong>: Hot-pluggable event
+processors</li>
+<li><strong>External Integration</strong>: Integration with external
+event systems</li>
+<li><strong>Custom Event Types</strong>: User-defined event types and
+processing</li>
+<li><strong>Advanced Querying</strong>: Sophisticated event stream
+querying capabilities</li>
+</ul>
+<h1 id="contributing-to-event-documentation">Contributing to Event
+Documentation</h1>
+<p>Guidelines for contributing to event documentation:</p>
+<ul>
+<li>Follow the established documentation structure and standards</li>
+<li>Include comprehensive code examples with proper tangling</li>
+<li>Maintain cross-references and ensure accuracy</li>
+<li>Test all examples as part of the contribution process</li>
+<li>Update related documentation when adding new events</li>
+</ul>
+<p>The ByteHot domain events form the foundation of a sophisticated,
+event-driven architecture that enables safe, reliable, and observable
+hot-swap operations while providing complete auditability and user-aware
+development experiences.</p>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

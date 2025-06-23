@@ -1,0 +1,309 @@
+#+TITLE: RecoveryStrategy - Error Recovery Approaches
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =RecoveryStrategy= enum defines comprehensive recovery approaches for handling different types of errors in ByteHot operations. It provides a systematic framework for automated error recovery, ensuring system resilience and consistency.
+
+** Key Responsibilities
+- Define specific recovery approaches for different error scenarios
+- Support automated recovery strategy selection
+- Provide human-readable descriptions for recovery operations
+- Enable recovery operation classification and analysis
+
+* Enum Definition
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/RecoveryStrategy.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: RecoveryStrategy.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: RecoveryStrategy
+ *
+ * Responsibilities:
+ *   - Define recovery approaches for different error scenarios
+ *   - Support automated recovery strategy selection
+ *   - Provide framework for recovery operation classification
+ *
+ * Collaborators:
+ *   - ErrorHandler: Uses strategies for error recovery planning
+ *   - ErrorRecoveryManager: Executes recovery strategies
+ *   - ErrorResult: Contains selected recovery strategy
+ */
+package org.acmsl.bytehot.domain;
+
+/**
+ * Recovery strategies for different error scenarios in ByteHot operations
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public enum RecoveryStrategy {
+
+    /**
+     * Roll back changes to the previous stable state
+     */
+    ROLLBACK_CHANGES("Rollback changes to previous stable state"),
+
+    /**
+     * Preserve the current state without making changes
+     */
+    PRESERVE_CURRENT_STATE("Preserve current state without changes"),
+
+    /**
+     * Reject the proposed change due to validation errors
+     */
+    REJECT_CHANGE("Reject proposed change due to errors"),
+
+    /**
+     * Retry the failed operation with exponential backoff
+     */
+    RETRY_OPERATION("Retry failed operation with backoff"),
+
+    /**
+     * Initiate emergency shutdown to prevent further damage
+     */
+    EMERGENCY_SHUTDOWN("Initiate emergency shutdown"),
+
+    /**
+     * Activate fallback mode with reduced functionality
+     */
+    FALLBACK_MODE("Activate fallback mode with reduced functionality"),
+
+    /**
+     * Require manual intervention to resolve the issue
+     */
+    MANUAL_INTERVENTION("Require manual intervention"),
+
+    /**
+     * Restart the affected service or component
+     */
+    RESTART_SERVICE("Restart the affected service or component"),
+
+    /**
+     * Apply a hot-fix or patch to resolve the issue
+     */
+    APPLY_HOTFIX("Apply hot-fix or patch"),
+
+    /**
+     * No recovery action is required
+     */
+    NO_ACTION("No recovery action required");
+
+    /**
+     * Human-readable description of the recovery strategy
+     */
+    private final String description;
+
+    /**
+     * Creates a new recovery strategy with description
+     * @param description human-readable description
+     */
+    RecoveryStrategy(final String description) {
+        this.description = description;
+    }
+
+    /**
+     * Gets the human-readable description of this recovery strategy
+     * @return description of the strategy
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Returns whether this recovery strategy requires immediate action
+     * @return true if immediate action is required
+     */
+    public boolean requiresImmediateAction() {
+        return this == EMERGENCY_SHUTDOWN || this == MANUAL_INTERVENTION || this == RESTART_SERVICE;
+    }
+
+    /**
+     * Returns whether this recovery strategy modifies system state
+     * @return true if system state is modified
+     */
+    public boolean modifiesState() {
+        return this == ROLLBACK_CHANGES || this == FALLBACK_MODE || this == EMERGENCY_SHUTDOWN 
+               || this == RESTART_SERVICE || this == APPLY_HOTFIX;
+    }
+
+    /**
+     * Returns whether this recovery strategy is destructive
+     * @return true if strategy may cause data loss or service interruption
+     */
+    public boolean isDestructive() {
+        return this == EMERGENCY_SHUTDOWN || this == RESTART_SERVICE || this == ROLLBACK_CHANGES;
+    }
+
+    /**
+     * Returns whether this recovery strategy is automatic
+     * @return true if strategy can be executed automatically
+     */
+    public boolean isAutomatic() {
+        return this != MANUAL_INTERVENTION;
+    }
+
+    /**
+     * Returns the risk level of this recovery strategy
+     * @return risk level (LOW, MEDIUM, HIGH)
+     */
+    public RiskLevel getRiskLevel() {
+        switch (this) {
+            case NO_ACTION:
+            case PRESERVE_CURRENT_STATE:
+            case REJECT_CHANGE:
+                return RiskLevel.LOW;
+                
+            case RETRY_OPERATION:
+            case FALLBACK_MODE:
+            case APPLY_HOTFIX:
+                return RiskLevel.MEDIUM;
+                
+            case ROLLBACK_CHANGES:
+            case EMERGENCY_SHUTDOWN:
+            case RESTART_SERVICE:
+            case MANUAL_INTERVENTION:
+                return RiskLevel.HIGH;
+                
+            default:
+                return RiskLevel.MEDIUM;
+        }
+    }
+
+    /**
+     * Risk levels for recovery strategies
+     */
+    public enum RiskLevel {
+        LOW("Low risk - minimal impact"),
+        MEDIUM("Medium risk - moderate impact"),
+        HIGH("High risk - significant impact");
+        
+        private final String description;
+        
+        RiskLevel(final String description) {
+            this.description = description;
+        }
+        
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return description;
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Strategy Selection Based on Error Type
+
+#+end_src
+public RecoveryStrategy selectRecoveryStrategy(ErrorType errorType, ErrorSeverity severity) {
+    switch (errorType) {
+        case VALIDATION_ERROR:
+            return RecoveryStrategy.REJECT_CHANGE;
+            
+        case REDEFINITION_FAILURE:
+            return RecoveryStrategy.ROLLBACK_CHANGES;
+            
+        case INSTANCE_UPDATE_ERROR:
+            return RecoveryStrategy.PRESERVE_CURRENT_STATE;
+            
+        case CRITICAL_SYSTEM_ERROR:
+            return RecoveryStrategy.EMERGENCY_SHUTDOWN;
+            
+        case FILE_SYSTEM_ERROR:
+            return severity == ErrorSeverity.CRITICAL ? 
+                   RecoveryStrategy.MANUAL_INTERVENTION : 
+                   RecoveryStrategy.RETRY_OPERATION;
+                   
+        default:
+            return RecoveryStrategy.NO_ACTION;
+    }
+}
+#+end_src
+
+** Risk Assessment and Approval
+
+#+begin_src java
+public boolean canExecuteAutomatically(RecoveryStrategy strategy) {
+    if (!strategy.isAutomatic()) {
+        return false;
+    }
+    
+    // High-risk strategies may require additional approval
+    if (strategy.getRiskLevel() == RecoveryStrategy.RiskLevel.HIGH) {
+        return hasEmergencyAuthorization();
+    }
+    
+    return true;
+}
+#+end_src
+
+** Strategy Execution Planning
+
+#+end_src
+public void planRecoveryExecution(RecoveryStrategy strategy, String className) {
+    if (strategy.requiresImmediateAction()) {
+        scheduleImmediateExecution(strategy, className);
+    } else {
+        scheduleDelayedExecution(strategy, className);
+    }
+    
+    if (strategy.isDestructive()) {
+        createBackupBeforeExecution(className);
+    }
+    
+    if (strategy.modifiesState()) {
+        notifyMonitoringSystems(strategy, className);
+    }
+}
+#+end_src
+
+* Architecture Notes
+
+** Strategy Classification System
+- Hierarchical classification by risk level and impact
+- Clear distinction between automatic and manual strategies
+- Support for destructive operation identification
+- Framework for approval workflows
+
+** Integration with Error Handling
+- Direct mapping from error types to recovery strategies
+- Context-aware strategy selection based on severity
+- Support for strategy fallback mechanisms
+- Integration with monitoring and alerting systems
+
+** Extensibility Design
+- Easy addition of new recovery strategies
+- Flexible risk assessment framework
+- Support for custom strategy selection logic
+- Integration with external approval systems

@@ -1,0 +1,443 @@
+#+TITLE: InstrumentationPort - JVM Instrumentation Interface
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Overview
+
+The ~InstrumentationPort~ interface defines the contract for JVM instrumentation operations within ByteHot's hexagonal architecture. This port abstracts the complex JVM instrumentation API, enabling safe class redefinition while protecting the domain logic from low-level JVM implementation details.
+
+* Hexagonal Architecture Role
+
+** Secondary Port Classification
+InstrumentationPort serves as a secondary port in ByteHot's hexagonal architecture, representing the domain's need to modify running JVM behavior. It defines how the domain layer requests changes to the external JVM environment without being coupled to specific instrumentation implementations.
+
+** Domain-JVM Boundary
+This port manages the critical boundary between domain logic and JVM runtime:
+- Abstracts java.lang.instrument.Instrumentation complexity
+- Hides JVM version-specific instrumentation variations
+- Enables instrumentation strategy evolution without domain changes
+- Isolates domain logic from JVM API evolution and deprecation
+
+** Safety and Reliability Gateway
+The port provides a controlled interface for dangerous operations:
+- Class redefinition validation and safety checks
+- Error handling and recovery for failed instrumentation
+- Resource management for instrumentation operations
+- Rollback capabilities for failed hot-swap attempts
+
+* Interface Definition and Contract
+
+** Core Instrumentation Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationPort.java
+/**
+ * Redefines a class with new bytecode
+ * @param clazz the class to redefine
+ * @param newBytecode the new bytecode for the class
+ * @throws Exception if redefinition fails
+ */
+void redefineClass(Class<?> clazz, byte[] newBytecode) throws Exception;
+#+END_SRC
+
+** Capability Discovery Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationPort.java
+/**
+ * Checks if class redefinition is supported
+ * @return true if redefinition is available
+ */
+boolean isRedefineClassesSupported();
+
+/**
+ * Checks if retransformation is supported
+ * @return true if retransformation is available
+ */
+boolean isRetransformClassesSupported();
+
+/**
+ * Checks if instrumentation is available
+ * @return true if JVM instrumentation is operational
+ */
+boolean isInstrumentationAvailable();
+#+END_SRC
+
+** Runtime Introspection Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/InstrumentationPort.java
+/**
+ * Gets all loaded classes
+ * @return array of all loaded classes
+ */
+Class<?>[] getAllLoadedClasses();
+
+/**
+ * Returns the object size for the given object
+ * @param objectToSize the object to measure
+ * @return size in bytes
+ */
+long getObjectSize(Object objectToSize);
+#+END_SRC
+
+* Class Redefinition Operations
+
+** Redefinition Process Management
+The ~redefineClass~ method orchestrates the critical hot-swap operation:
+#+BEGIN_SRC java
+// Usage pattern:
+try {
+    // 1. Validate bytecode compatibility
+    validateBytecodeCompatibility(clazz, newBytecode);
+    
+    // 2. Create backup for rollback
+    byte[] originalBytecode = getCurrentBytecode(clazz);
+    
+    // 3. Perform redefinition
+    instrumentationPort.redefineClass(clazz, newBytecode);
+    
+    // 4. Verify successful redefinition
+    verifyRedefinitionSuccess(clazz);
+    
+    // 5. Emit success event
+    emit(new ClassRedefinitionSucceeded(clazz.getName()));
+    
+} catch (Exception e) {
+    // 6. Handle failure with rollback if possible
+    handleRedefinitionFailure(clazz, originalBytecode, e);
+}
+#+END_SRC
+
+** Redefinition Safety Protocols
+The implementation ensures safe redefinition through multiple safety layers:
+#+BEGIN_SRC java
+// Safety protocol layers:
+// 1. Pre-redefinition validation
+//    - Bytecode structural compatibility
+//    - JVM limitation compliance
+//    - Method signature preservation
+//    - Field compatibility verification
+//
+// 2. Redefinition execution
+//    - Atomic operation execution
+//    - Immediate failure detection
+//    - Resource state preservation
+//
+// 3. Post-redefinition verification
+//    - Class functionality validation
+//    - Instance state consistency checks
+//    - Framework integration verification
+#+END_SRC
+
+** Redefinition Limitations Management
+The port manages JVM redefinition limitations:
+#+BEGIN_SRC java
+// JVM redefinition limitations:
+// - Method signature changes are not supported
+// - Field addition/removal restrictions apply
+// - Constructor modifications are prohibited
+// - Class hierarchy changes are not allowed
+// - Interface additions/removals are restricted
+#+END_SRC
+
+* Capability Discovery and Validation
+
+** Runtime Capability Assessment
+Capability discovery methods enable dynamic feature availability:
+#+BEGIN_SRC java
+// Capability-based feature enablement:
+if (instrumentationPort.isRedefineClassesSupported()) {
+    // Full hot-swap capabilities available
+    enableAdvancedHotSwap();
+} else if (instrumentationPort.isRetransformClassesSupported()) {
+    // Limited transformation capabilities
+    enableBasicTransformation();
+} else {
+    // Fallback to compilation-time strategies
+    disableRuntimeModification();
+}
+#+END_SRC
+
+** JVM Version Compatibility
+The port abstracts JVM version-specific capabilities:
+#+BEGIN_SRC java
+// JVM version handling:
+// - Java 8+: Basic redefinition support
+// - Java 11+: Enhanced instrumentation features
+// - Java 17+: Improved security and performance
+// - Future versions: Automatic capability detection
+#+END_SRC
+
+** Platform-Specific Adaptations
+Different JVM implementations may have varying capabilities:
+#+BEGIN_SRC java
+// JVM implementation variations:
+// - HotSpot JVM: Full instrumentation support
+// - OpenJ9 JVM: Alternative instrumentation features
+// - GraalVM: Limited instrumentation in native mode
+// - Custom JVMs: Vendor-specific capabilities
+#+END_SRC
+
+* Runtime Introspection Capabilities
+
+** Class Loading Analysis
+The ~getAllLoadedClasses~ method enables comprehensive class analysis:
+#+BEGIN_SRC java
+// Class loading analysis uses:
+Class<?>[] loadedClasses = instrumentationPort.getAllLoadedClasses();
+
+// 1. Hot-swap candidate identification
+List<Class<?>> candidates = Arrays.stream(loadedClasses)
+    .filter(this::isHotSwapCandidate)
+    .collect(toList());
+
+// 2. Instance tracking setup
+for (Class<?> clazz : candidates) {
+    instanceTracker.startTracking(clazz);
+}
+
+// 3. Memory usage analysis
+long totalMemory = Arrays.stream(loadedClasses)
+    .mapToLong(instrumentationPort::getObjectSize)
+    .sum();
+#+END_SRC
+
+** Memory Profiling Integration
+The ~getObjectSize~ method enables memory-aware hot-swap operations:
+#+BEGIN_SRC java
+// Memory-aware processing:
+public boolean shouldProceedWithHotSwap(Object instance) {
+    long instanceSize = instrumentationPort.getObjectSize(instance);
+    
+    if (instanceSize > LARGE_OBJECT_THRESHOLD) {
+        // Use memory-efficient hot-swap strategy
+        return processLargeInstanceHotSwap(instance);
+    } else {
+        // Use standard hot-swap approach
+        return processStandardHotSwap(instance);
+    }
+}
+#+END_SRC
+
+** Performance Monitoring Support
+Runtime introspection enables performance optimization:
+#+BEGIN_SRC java
+// Performance monitoring integration:
+// - Class loading performance tracking
+// - Memory usage optimization
+// - Hot-swap operation timing
+// - Resource utilization analysis
+#+END_SRC
+
+* Error Handling and Recovery
+
+** Instrumentation Failure Management
+The port provides comprehensive error handling:
+#+BEGIN_SRC java
+// Error categories and handling:
+try {
+    instrumentationPort.redefineClass(clazz, newBytecode);
+} catch (UnsupportedOperationException e) {
+    // JVM limitation encountered
+    handleUnsupportedRedefinition(clazz, e);
+} catch (ClassFormatError e) {
+    // Invalid bytecode provided
+    handleInvalidBytecode(clazz, newBytecode, e);
+} catch (VerifyError e) {
+    // Bytecode verification failure
+    handleVerificationFailure(clazz, e);
+} catch (NoClassDefFoundError e) {
+    // Class dependency issue
+    handleDependencyFailure(clazz, e);
+} catch (Exception e) {
+    // General instrumentation failure
+    handleGeneralInstrumentationFailure(clazz, e);
+}
+#+END_SRC
+
+** Rollback and Recovery Strategies
+Failed instrumentation operations trigger recovery mechanisms:
+#+BEGIN_SRC java
+// Recovery strategy implementation:
+public void handleRedefinitionFailure(
+    Class<?> clazz, 
+    byte[] originalBytecode, 
+    Exception failure
+) {
+    try {
+        // 1. Attempt immediate rollback
+        if (originalBytecode != null) {
+            instrumentationPort.redefineClass(clazz, originalBytecode);
+            emit(new ClassRollbackSucceeded(clazz.getName()));
+        }
+    } catch (Exception rollbackFailure) {
+        // 2. Emergency recovery procedures
+        initiateEmergencyRecovery(clazz, failure, rollbackFailure);
+    }
+    
+    // 3. Log detailed failure information
+    logInstrumentationFailure(clazz, failure);
+    
+    // 4. Emit failure event with context
+    emit(new ClassRedefinitionFailed(clazz.getName(), failure));
+}
+#+END_SRC
+
+* Security and Safety Considerations
+
+** Permission Management
+Instrumentation operations require careful permission management:
+#+BEGIN_SRC java
+// Security considerations:
+// - Agent attachment permissions required
+// - Class modification privileges needed
+// - Security manager compatibility
+// - Module system integration (Java 9+)
+#+END_SRC
+
+** Validation and Verification
+The port enforces safety through validation:
+#+BEGIN_SRC java
+// Safety validation layers:
+// 1. Bytecode structural validation
+// 2. JVM compatibility verification
+// 3. Security policy compliance
+// 4. Resource usage limitations
+// 5. Operation logging and auditing
+#+END_SRC
+
+** Audit Trail Generation
+All instrumentation operations generate comprehensive audit trails:
+#+BEGIN_SRC java
+// Audit information captured:
+// - Operation timestamp and duration
+// - User context and session information
+// - Class and bytecode details
+// - Success/failure status and error details
+// - Performance metrics and resource usage
+#+END_SRC
+
+* Testing and Mock Implementation
+
+** Test Support Infrastructure
+The port interface enables comprehensive testing:
+#+BEGIN_SRC java
+// Mock implementation for testing:
+public class MockInstrumentationPort implements InstrumentationPort {
+    private final Map<Class<?>, byte[]> redefinedClasses = new HashMap<>();
+    private boolean instrumentationAvailable = true;
+    private boolean redefineSupported = true;
+    
+    @Override
+    public void redefineClass(Class<?> clazz, byte[] newBytecode) throws Exception {
+        if (!instrumentationAvailable) {
+            throw new IllegalStateException("Instrumentation not available");
+        }
+        
+        // Simulate redefinition
+        redefinedClasses.put(clazz, newBytecode);
+        
+        // Emit test event
+        testEventBus.emit(new ClassRedefinitionSucceeded(clazz.getName()));
+    }
+    
+    // Test-specific methods
+    public void simulateInstrumentationFailure() {
+        this.instrumentationAvailable = false;
+    }
+    
+    public Map<Class<?>, byte[]> getRedefinedClasses() {
+        return new HashMap<>(redefinedClasses);
+    }
+}
+#+END_SRC
+
+** Test Scenario Support
+Mock implementations enable comprehensive test scenarios:
+- Successful redefinition simulation
+- Various failure condition testing
+- Capability limitation simulation
+- Performance characteristics testing
+
+* Performance and Optimization
+
+** Instrumentation Performance
+JVM instrumentation operations are optimized for performance:
+#+BEGIN_SRC java
+// Performance optimization strategies:
+// 1. Bytecode caching to avoid redundant operations
+// 2. Batch redefinition for multiple classes
+// 3. Memory-efficient bytecode handling
+// 4. Parallel processing where safe
+#+END_SRC
+
+** Resource Management
+The port manages instrumentation resources carefully:
+#+BEGIN_SRC java
+// Resource management areas:
+// - Bytecode buffer management
+// - Class metadata caching
+// - Instrumentation thread pooling
+// - Memory usage monitoring
+#+END_SRC
+
+** Scalability Considerations
+The instrumentation system scales effectively:
+- Concurrent redefinition support where safe
+- Resource pooling for instrumentation operations
+- Efficient class lookup and management
+- Memory-aware operation scheduling
+
+* Integration with Domain Events
+
+** Event-Driven Instrumentation
+Instrumentation operations integrate with domain events:
+#+BEGIN_SRC java
+// Event integration pattern:
+public DomainResponseEvent<HotSwapRequested> handleHotSwapRequest(
+    HotSwapRequested event
+) {
+    try {
+        Class<?> clazz = Class.forName(event.getClassName());
+        instrumentationPort.redefineClass(clazz, event.getNewBytecode());
+        
+        return DomainResponseEvent.success(
+            new ClassRedefinitionSucceeded(event.getClassName()),
+            event
+        );
+    } catch (Exception e) {
+        return DomainResponseEvent.failure(
+            new ClassRedefinitionFailed(event.getClassName(), e),
+            event
+        );
+    }
+}
+#+END_SRC
+
+** Event Sourcing Support
+Instrumentation operations generate events for complete auditability:
+- Operation initiation events
+- Progress tracking events
+- Success/failure outcome events
+- Performance metrics events
+
+* Related Documentation
+
+- [[../infrastructure/InstrumentationAdapter.org][InstrumentationAdapter]]: Primary java.lang.instrument implementation
+- [[../events/HotSwapRequested.org][HotSwapRequested]]: Event that triggers instrumentation operations
+- [[../events/ClassRedefinitionSucceeded.org][ClassRedefinitionSucceeded]]: Successful instrumentation outcome
+- [[../events/ClassRedefinitionFailed.org][ClassRedefinitionFailed]]: Failed instrumentation outcome
+- [[../Ports.org][Ports]]: Port resolution and dependency injection
+
+* Future Evolution
+
+** Enhanced Instrumentation Capabilities
+Anticipated improvements to instrumentation:
+- Advanced bytecode transformation capabilities
+- Dynamic class loading and unloading support
+- Enhanced performance monitoring integration
+- Advanced rollback and recovery mechanisms
+
+** JVM Integration Enhancements
+Future instrumentation enhancements:
+- Module system integration improvements
+- Enhanced security framework integration
+- Advanced profiling and monitoring capabilities
+- Next-generation JVM feature support
+
+The InstrumentationPort interface provides ByteHot's critical interface to JVM runtime modification capabilities while maintaining architectural purity and enabling safe, reliable hot-swap operations through comprehensive validation, error handling, and recovery mechanisms.

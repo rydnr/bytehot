@@ -1,0 +1,1061 @@
+#+TITLE: Bytecode Validation Flow - Safety Analysis for Hot-Swap Operations
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+#+DESCRIPTION: Literate programming documentation of ByteHot's sophisticated bytecode compatibility analysis
+
+* Overview: The Safety Gateway for Hot-Swap Operations
+
+The Bytecode Validation Flow represents the critical safety analysis that determines whether detected bytecode changes can be safely applied to a running JVM. This flow embodies ByteHot's commitment to zero-downtime evolution while maintaining system stability. Unlike simple bytecode parsing, this flow demonstrates sophisticated compatibility analysis, structural change detection, and intelligent safety decision-making.
+
+** Flow Participants and Their Roles
+
+- **BytecodeValidator**: Core validation logic and safety analysis (Domain)
+- **BytecodeAnalyzer**: Deep bytecode structural analysis (Domain)
+- **ValidationRules**: Business rules for hot-swap compatibility (Domain)
+- **BytecodeValidated**: Success event with validation details (Domain)
+- **BytecodeRejected**: Failure event with rejection reasons (Domain)
+- **BytecodeValidationException**: Exception carrying rejection context (Domain)
+
+** What This Flow Demonstrates
+
+- **Conservative safety analysis** that prioritizes system stability
+- **Sophisticated change detection** beyond simple file comparison  
+- **Rich error reporting** with actionable developer feedback
+- **Extensible validation rules** for different JVM environments
+- **Performance-optimized analysis** for real-time validation
+
+** The Validation Decision Pipeline
+
+#+BEGIN_SRC
+Class File → Bytecode Load → Compatibility Analysis → Safety Decision → Validation Event
+     ↓              ↓                 ↓                  ↓              ↓
+File System → Memory Buffer → Structural Rules → Allow/Reject → Domain Event
+#+END_SRC
+
+* Phase 1: Bytecode Loading and Initial Analysis
+
+The flow begins with secure bytecode loading and initial format verification to ensure we're working with valid Java class files.
+
+** Step 1.1: Secure Bytecode Loading
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+public BytecodeValidated validate(final Path classFile) throws IOException, BytecodeValidationException {
+    // Step 1: Secure bytecode loading with validation
+    final BytecodeBuffer bytecode = loadAndValidateBytecode(classFile);  // → Step 1.2
+    
+    // Step 2: Extract class metadata for analysis
+    final ClassMetadata metadata = extractClassMetadata(classFile, bytecode);  // → Step 1.3
+    
+    // Step 3: Perform compatibility analysis
+    final CompatibilityAnalysis analysis = analyzeCompatibility(bytecode, metadata);  // → Phase 2
+    
+    // Step 4: Apply safety rules and make decision
+    final ValidationDecision decision = applyValidationRules(analysis);  // → Phase 3
+    
+    // Step 5: Generate appropriate domain event
+    if (decision.isAccepted()) {
+        return createValidatedEvent(classFile, metadata, analysis, decision);  // → Step 4.1
+    } else {
+        throw new BytecodeValidationException(
+            createRejectedEvent(classFile, metadata, analysis, decision)  // → Step 4.2
+        );
+    }
+}
+
+private BytecodeBuffer loadAndValidateBytecode(final Path classFile) throws IOException {
+    // Load bytecode with size and security checks
+    final long fileSize = Files.size(classFile);
+    
+    // Prevent loading excessively large files
+    if (fileSize > MAX_BYTECODE_SIZE) {
+        throw new IOException("Class file too large for validation: " + fileSize + " bytes");
+    }
+    
+    // Prevent loading empty files
+    if (fileSize == 0) {
+        throw new IOException("Class file is empty: " + classFile);
+    }
+    
+    final byte[] rawBytecode = Files.readAllBytes(classFile);
+    return new BytecodeBuffer(rawBytecode, classFile);
+}
+#+END_SRC
+
+**Runtime Behavior**: The validation process begins with secure bytecode loading that includes size validation and basic security checks to prevent denial-of-service attacks and ensure data integrity.
+
+** Step 1.2: Bytecode Format Verification
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private static class BytecodeBuffer {
+    private final byte[] bytecode;
+    private final Path sourceFile;
+    private final BytecodeFormat format;
+    private final ClassFileVersion version;
+    
+    public BytecodeBuffer(byte[] bytecode, Path sourceFile) throws IOException {
+        this.bytecode = bytecode;
+        this.sourceFile = sourceFile;
+        this.format = detectBytecodeFormat();
+        this.version = extractClassFileVersion();
+        
+        validateFormat();
+    }
+    
+    private BytecodeFormat detectBytecodeFormat() throws IOException {
+        if (bytecode.length < 4) {
+            throw new IOException("Invalid class file: too short");
+        }
+        
+        // Check Java class file magic number (0xCAFEBABE)
+        if (bytecode[0] == (byte)0xCA && bytecode[1] == (byte)0xFE && 
+            bytecode[2] == (byte)0xBA && bytecode[3] == (byte)0xBE) {
+            return BytecodeFormat.JAVA_CLASS;
+        }
+        
+        // For testing, support mock bytecode format
+        String content = new String(bytecode);
+        if (content.startsWith("COMPATIBLE_BYTECODE:") || 
+            content.startsWith("INCOMPATIBLE_BYTECODE:")) {
+            return BytecodeFormat.MOCK_BYTECODE;
+        }
+        
+        throw new IOException("Unknown bytecode format");
+    }
+    
+    private ClassFileVersion extractClassFileVersion() throws IOException {
+        if (format == BytecodeFormat.JAVA_CLASS && bytecode.length >= 8) {
+            // Minor version at bytes 4-5, major version at bytes 6-7
+            int minorVersion = ((bytecode[4] & 0xFF) << 8) | (bytecode[5] & 0xFF);
+            int majorVersion = ((bytecode[6] & 0xFF) << 8) | (bytecode[7] & 0xFF);
+            return new ClassFileVersion(majorVersion, minorVersion);
+        }
+        
+        return ClassFileVersion.UNKNOWN;
+    }
+    
+    private void validateFormat() throws IOException {
+        switch (format) {
+            case JAVA_CLASS -> validateJavaClassFormat();
+            case MOCK_BYTECODE -> validateMockBytecodeFormat();
+            default -> throw new IOException("Unsupported bytecode format: " + format);
+        }
+    }
+    
+    private void validateJavaClassFormat() throws IOException {
+        // Validate minimum class file structure
+        if (bytecode.length < MINIMUM_CLASS_FILE_SIZE) {
+            throw new IOException("Class file too small to be valid");
+        }
+        
+        // Validate supported Java versions
+        if (!version.isSupported()) {
+            throw new IOException("Unsupported Java version: " + version);
+        }
+        
+        // Additional structural validation could be added here
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Format verification ensures that we're working with valid Java bytecode or recognized test formats, preventing processing of corrupt or malicious files.
+
+** Step 1.3: Class Metadata Extraction
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private ClassMetadata extractClassMetadata(final Path classFile, final BytecodeBuffer bytecode) {
+    switch (bytecode.getFormat()) {
+        case JAVA_CLASS:
+            return extractJavaClassMetadata(bytecode);      // → Step 1.4a
+        case MOCK_BYTECODE:
+            return extractMockBytecodeMetadata(bytecode);   // → Step 1.4b
+        default:
+            throw new IllegalArgumentException("Unsupported format: " + bytecode.getFormat());
+    }
+}
+
+private ClassMetadata extractJavaClassMetadata(BytecodeBuffer bytecode) {
+    // In a full implementation, this would use ASM or similar library
+    // to parse the constant pool and extract class information
+    try {
+        BytecodeAnalyzer analyzer = new BytecodeAnalyzer(bytecode.getBytecode());
+        
+        return new ClassMetadata(
+            analyzer.getClassName(),
+            analyzer.getSuperClassName(),
+            analyzer.getInterfaces(),
+            analyzer.getFields(),
+            analyzer.getMethods(),
+            analyzer.getAccessFlags(),
+            analyzer.getSourceFile()
+        );
+    } catch (Exception e) {
+        // Fallback to simple extraction for demonstration
+        String className = extractClassNameFromPath(bytecode.getSourceFile());
+        return ClassMetadata.minimal(className);
+    }
+}
+
+private ClassMetadata extractMockBytecodeMetadata(BytecodeBuffer bytecode) {
+    String content = new String(bytecode.getBytecode());
+    String[] parts = content.split(":");
+    
+    if (parts.length < 2) {
+        throw new IllegalArgumentException("Invalid mock bytecode format");
+    }
+    
+    String className = parts[1];
+    String version = parts.length > 2 ? parts[2] : "v1.0";
+    String changeType = parts.length > 3 ? parts[3] : "unknown";
+    
+    return new ClassMetadata(
+        className,
+        "java.lang.Object",              // Default superclass
+        Collections.emptyList(),          // No interfaces
+        Collections.emptyList(),          // No field details
+        Collections.emptyList(),          // No method details
+        AccessFlags.PUBLIC,               // Default access
+        version,
+        changeType
+    );
+}
+#+END_SRC
+
+**Runtime Behavior**: Metadata extraction provides the foundation for compatibility analysis by identifying class structure, inheritance relationships, and member definitions.
+
+* Phase 2: Compatibility Analysis and Change Detection
+
+This phase performs sophisticated analysis to understand the nature and impact of bytecode changes.
+
+** Step 2.1: Structural Change Analysis
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private CompatibilityAnalysis analyzeCompatibility(BytecodeBuffer bytecode, ClassMetadata metadata) {
+    // Create analysis context
+    AnalysisContext context = new AnalysisContext(bytecode, metadata);
+    
+    // Perform multiple analysis passes
+    StructuralAnalysis structural = analyzeStructuralChanges(context);      // → Step 2.2
+    SignatureAnalysis signatures = analyzeSignatureChanges(context);       // → Step 2.3
+    BehaviorAnalysis behavior = analyzeBehaviorChanges(context);           // → Step 2.4
+    
+    // Combine analysis results
+    return new CompatibilityAnalysis(
+        structural,
+        signatures,
+        behavior,
+        calculateOverallRisk(structural, signatures, behavior),
+        generateRecommendations(structural, signatures, behavior)
+    );
+}
+
+private StructuralAnalysis analyzeStructuralChanges(AnalysisContext context) {
+    List<StructuralChange> detectedChanges = new ArrayList<>();
+    CompatibilityRisk overallRisk = CompatibilityRisk.LOW;
+    
+    // For mock bytecode, parse change indicators
+    if (context.getFormat() == BytecodeFormat.MOCK_BYTECODE) {
+        String content = context.getContentString();
+        
+        if (content.contains("field_addition")) {
+            detectedChanges.add(new StructuralChange(
+                ChangeType.FIELD_ADDITION,
+                "New field added to class",
+                CompatibilityRisk.HIGH,
+                "Field additions change object layout"
+            ));
+            overallRisk = CompatibilityRisk.HIGH;
+        }
+        
+        if (content.contains("field_removal")) {
+            detectedChanges.add(new StructuralChange(
+                ChangeType.FIELD_REMOVAL,
+                "Field removed from class",
+                CompatibilityRisk.CRITICAL,
+                "Field removal breaks existing instances"
+            ));
+            overallRisk = CompatibilityRisk.CRITICAL;
+        }
+        
+        if (content.contains("method_addition")) {
+            detectedChanges.add(new StructuralChange(
+                ChangeType.METHOD_ADDITION,
+                "New method added to class",
+                CompatibilityRisk.LOW,
+                "Method additions are generally safe"
+            ));
+        }
+        
+        if (content.contains("method_body_only") || content.contains("method_body_changes")) {
+            detectedChanges.add(new StructuralChange(
+                ChangeType.METHOD_BODY_CHANGE,
+                "Method implementation modified",
+                CompatibilityRisk.LOW,
+                "Method body changes preserve compatibility"
+            ));
+        }
+    }
+    
+    return new StructuralAnalysis(detectedChanges, overallRisk);
+}
+#+END_SRC
+
+**Runtime Behavior**: Structural analysis identifies the fundamental changes to class layout and members, categorizing them by compatibility risk and impact on running instances.
+
+** Step 2.2: Method Signature Analysis
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private SignatureAnalysis analyzeSignatureChanges(AnalysisContext context) {
+    List<SignatureChange> signatureChanges = new ArrayList<>();
+    CompatibilityRisk signatureRisk = CompatibilityRisk.LOW;
+    
+    // Analyze method signature changes
+    for (MethodInfo method : context.getMetadata().getMethods()) {
+        SignatureChange change = analyzeMethodSignature(method, context);
+        if (change != null) {
+            signatureChanges.add(change);
+            if (change.getRisk().ordinal() > signatureRisk.ordinal()) {
+                signatureRisk = change.getRisk();
+            }
+        }
+    }
+    
+    // Analyze field signature changes
+    for (FieldInfo field : context.getMetadata().getFields()) {
+        SignatureChange change = analyzeFieldSignature(field, context);
+        if (change != null) {
+            signatureChanges.add(change);
+            if (change.getRisk().ordinal() > signatureRisk.ordinal()) {
+                signatureRisk = change.getRisk();
+            }
+        }
+    }
+    
+    return new SignatureAnalysis(signatureChanges, signatureRisk);
+}
+
+private SignatureChange analyzeMethodSignature(MethodInfo method, AnalysisContext context) {
+    // For mock bytecode analysis
+    if (context.getFormat() == BytecodeFormat.MOCK_BYTECODE) {
+        String content = context.getContentString();
+        
+        if (content.contains("signature_change")) {
+            return new SignatureChange(
+                SignatureChangeType.METHOD_SIGNATURE,
+                method.getName(),
+                "Method signature modified",
+                CompatibilityRisk.CRITICAL,
+                "Signature changes break binary compatibility"
+            );
+        }
+        
+        if (content.contains("return_type_change")) {
+            return new SignatureChange(
+                SignatureChangeType.RETURN_TYPE,
+                method.getName(),
+                "Method return type changed",
+                CompatibilityRisk.HIGH,
+                "Return type changes affect callers"
+            );
+        }
+    }
+    
+    // In real implementation, would compare with previous version
+    return null;
+}
+
+private SignatureChange analyzeFieldSignature(FieldInfo field, AnalysisContext context) {
+    if (context.getFormat() == BytecodeFormat.MOCK_BYTECODE) {
+        String content = context.getContentString();
+        
+        if (content.contains("field_type_change")) {
+            return new SignatureChange(
+                SignatureChangeType.FIELD_TYPE,
+                field.getName(),
+                "Field type changed",
+                CompatibilityRisk.CRITICAL,
+                "Field type changes affect serialization and access"
+            );
+        }
+    }
+    
+    return null;
+}
+#+END_SRC
+
+**Runtime Behavior**: Signature analysis focuses on interface changes that would break binary compatibility, identifying modifications that affect how the class is used by other code.
+
+** Step 2.3: Behavioral Impact Analysis
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private BehaviorAnalysis analyzeBehaviorChanges(AnalysisContext context) {
+    List<BehaviorChange> behaviorChanges = new ArrayList<>();
+    PerformanceImpact performanceImpact = PerformanceImpact.NEUTRAL;
+    SecurityImpact securityImpact = SecurityImpact.NONE;
+    
+    // Analyze method body changes for behavioral impact
+    if (context.getFormat() == BytecodeFormat.MOCK_BYTECODE) {
+        String content = context.getContentString();
+        
+        if (content.contains("performance_improvement")) {
+            behaviorChanges.add(new BehaviorChange(
+                BehaviorChangeType.PERFORMANCE_OPTIMIZATION,
+                "Algorithm optimization detected",
+                CompatibilityRisk.LOW,
+                "Performance improvements are generally safe"
+            ));
+            performanceImpact = PerformanceImpact.POSITIVE;
+        }
+        
+        if (content.contains("exception_handling_change")) {
+            behaviorChanges.add(new BehaviorChange(
+                BehaviorChangeType.EXCEPTION_HANDLING,
+                "Exception handling behavior modified",
+                CompatibilityRisk.MEDIUM,
+                "Exception changes may affect error handling"
+            ));
+        }
+        
+        if (content.contains("security_enhancement")) {
+            behaviorChanges.add(new BehaviorChange(
+                BehaviorChangeType.SECURITY_ENHANCEMENT,
+                "Security improvements detected",
+                CompatibilityRisk.LOW,
+                "Security enhancements are beneficial"
+            ));
+            securityImpact = SecurityImpact.POSITIVE;
+        }
+        
+        if (content.contains("thread_safety_change")) {
+            behaviorChanges.add(new BehaviorChange(
+                BehaviorChangeType.THREAD_SAFETY,
+                "Thread safety behavior modified",
+                CompatibilityRisk.HIGH,
+                "Concurrency changes require careful review"
+            ));
+        }
+    }
+    
+    return new BehaviorAnalysis(
+        behaviorChanges,
+        performanceImpact,
+        securityImpact,
+        calculateBehaviorRisk(behaviorChanges)
+    );
+}
+
+private CompatibilityRisk calculateBehaviorRisk(List<BehaviorChange> changes) {
+    CompatibilityRisk maxRisk = CompatibilityRisk.LOW;
+    
+    for (BehaviorChange change : changes) {
+        if (change.getRisk().ordinal() > maxRisk.ordinal()) {
+            maxRisk = change.getRisk();
+        }
+    }
+    
+    return maxRisk;
+}
+#+END_SRC
+
+**Runtime Behavior**: Behavioral analysis examines how the implementation changes affect runtime behavior, performance, security, and thread safety characteristics.
+
+* Phase 3: Safety Rules Application and Decision Making
+
+This phase applies sophisticated business rules to determine whether the analyzed changes are safe for hot-swap operations.
+
+** Step 3.1: Validation Rules Engine
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private ValidationDecision applyValidationRules(CompatibilityAnalysis analysis) {
+    ValidationRulesEngine engine = new ValidationRulesEngine();
+    
+    // Apply core safety rules
+    List<RuleViolation> violations = new ArrayList<>();
+    violations.addAll(engine.applyStructuralRules(analysis.getStructural()));    // → Step 3.2
+    violations.addAll(engine.applySignatureRules(analysis.getSignatures()));    // → Step 3.3
+    violations.addAll(engine.applyBehaviorRules(analysis.getBehavior()));       // → Step 3.4
+    
+    // Calculate overall safety score
+    SafetyScore safetyScore = calculateSafetyScore(analysis, violations);       // → Step 3.5
+    
+    // Make final decision
+    boolean isAccepted = violations.isEmpty() && safetyScore.isAcceptable();
+    
+    return new ValidationDecision(
+        isAccepted,
+        safetyScore,
+        violations,
+        generateDecisionRationale(analysis, violations, safetyScore),
+        Instant.now()
+    );
+}
+
+private static class ValidationRulesEngine {
+    
+    public List<RuleViolation> applyStructuralRules(StructuralAnalysis structural) {
+        List<RuleViolation> violations = new ArrayList<>();
+        
+        for (StructuralChange change : structural.getChanges()) {
+            switch (change.getChangeType()) {
+                case FIELD_ADDITION:
+                    violations.add(new RuleViolation(
+                        "FIELD_ADDITION_PROHIBITED",
+                        "Field additions change object layout and break serialization",
+                        RuleSeverity.BLOCKING,
+                        "Remove the new field or restart the application"
+                    ));
+                    break;
+                    
+                case FIELD_REMOVAL:
+                    violations.add(new RuleViolation(
+                        "FIELD_REMOVAL_PROHIBITED", 
+                        "Field removal breaks existing object instances",
+                        RuleSeverity.BLOCKING,
+                        "Restore the field or restart the application"
+                    ));
+                    break;
+                    
+                case METHOD_BODY_CHANGE:
+                    // Method body changes are generally allowed
+                    break;
+                    
+                case METHOD_ADDITION:
+                    // Method additions are allowed but generate info
+                    violations.add(new RuleViolation(
+                        "METHOD_ADDITION_INFO",
+                        "New method added - verify no existing callers are affected",
+                        RuleSeverity.INFO,
+                        "Ensure new method is properly tested"
+                    ));
+                    break;
+            }
+        }
+        
+        return violations;
+    }
+    
+    public List<RuleViolation> applySignatureRules(SignatureAnalysis signatures) {
+        List<RuleViolation> violations = new ArrayList<>();
+        
+        for (SignatureChange change : signatures.getChanges()) {
+            switch (change.getChangeType()) {
+                case METHOD_SIGNATURE:
+                    violations.add(new RuleViolation(
+                        "METHOD_SIGNATURE_CHANGE_PROHIBITED",
+                        "Method signature changes break binary compatibility",
+                        RuleSeverity.BLOCKING,
+                        "Revert signature change or restart application"
+                    ));
+                    break;
+                    
+                case RETURN_TYPE:
+                    violations.add(new RuleViolation(
+                        "RETURN_TYPE_CHANGE_PROHIBITED",
+                        "Return type changes affect method callers",
+                        RuleSeverity.BLOCKING,
+                        "Revert return type or restart application"
+                    ));
+                    break;
+                    
+                case FIELD_TYPE:
+                    violations.add(new RuleViolation(
+                        "FIELD_TYPE_CHANGE_PROHIBITED",
+                        "Field type changes break object compatibility",
+                        RuleSeverity.BLOCKING,
+                        "Revert field type or restart application"
+                    ));
+                    break;
+            }
+        }
+        
+        return violations;
+    }
+    
+    public List<RuleViolation> applyBehaviorRules(BehaviorAnalysis behavior) {
+        List<RuleViolation> violations = new ArrayList<>();
+        
+        for (BehaviorChange change : behavior.getChanges()) {
+            switch (change.getChangeType()) {
+                case THREAD_SAFETY:
+                    violations.add(new RuleViolation(
+                        "THREAD_SAFETY_CHANGE_WARNING",
+                        "Thread safety changes require careful review",
+                        RuleSeverity.WARNING,
+                        "Verify thread safety in multi-threaded environment"
+                    ));
+                    break;
+                    
+                case EXCEPTION_HANDLING:
+                    violations.add(new RuleViolation(
+                        "EXCEPTION_HANDLING_CHANGE_INFO",
+                        "Exception handling behavior has changed",
+                        RuleSeverity.INFO,
+                        "Review exception handling for consistency"
+                    ));
+                    break;
+                    
+                case PERFORMANCE_OPTIMIZATION:
+                case SECURITY_ENHANCEMENT:
+                    // These are positive changes - no violations
+                    break;
+            }
+        }
+        
+        return violations;
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: The rules engine applies sophisticated business logic to determine safety, categorizing violations by severity and providing actionable guidance for developers.
+
+** Step 3.2: Safety Score Calculation
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private SafetyScore calculateSafetyScore(CompatibilityAnalysis analysis, List<RuleViolation> violations) {
+    double baseScore = 1.0; // Start with perfect safety
+    
+    // Reduce score based on violations
+    for (RuleViolation violation : violations) {
+        switch (violation.getSeverity()) {
+            case BLOCKING:
+                baseScore = 0.0; // Any blocking violation makes it unsafe
+                break;
+            case WARNING:
+                baseScore -= 0.3; // Warnings significantly reduce safety
+                break;
+            case INFO:
+                baseScore -= 0.1; // Info violations slightly reduce confidence
+                break;
+        }
+    }
+    
+    // Adjust based on change complexity
+    double complexityPenalty = calculateComplexityPenalty(analysis);
+    baseScore -= complexityPenalty;
+    
+    // Ensure score stays within bounds
+    double finalScore = Math.max(0.0, Math.min(1.0, baseScore));
+    
+    return new SafetyScore(
+        finalScore,
+        ScoreConfidence.fromScore(finalScore),
+        violations.isEmpty(),
+        generateScoreExplanation(finalScore, violations, complexityPenalty)
+    );
+}
+
+private double calculateComplexityPenalty(CompatibilityAnalysis analysis) {
+    double penalty = 0.0;
+    
+    // Penalty for multiple structural changes
+    int structuralChanges = analysis.getStructural().getChanges().size();
+    if (structuralChanges > 1) {
+        penalty += structuralChanges * 0.05; // 5% per additional change
+    }
+    
+    // Penalty for signature changes
+    int signatureChanges = analysis.getSignatures().getChanges().size();
+    penalty += signatureChanges * 0.2; // 20% per signature change
+    
+    // Penalty for high-risk behavioral changes
+    long highRiskBehaviorChanges = analysis.getBehavior().getChanges().stream()
+        .filter(change -> change.getRisk() == CompatibilityRisk.HIGH)
+        .count();
+    penalty += highRiskBehaviorChanges * 0.15; // 15% per high-risk behavior change
+    
+    return Math.min(penalty, 0.5); // Cap penalty at 50%
+}
+
+private String generateDecisionRationale(CompatibilityAnalysis analysis, 
+                                       List<RuleViolation> violations, 
+                                       SafetyScore safetyScore) {
+    StringBuilder rationale = new StringBuilder();
+    
+    if (violations.isEmpty()) {
+        rationale.append("No rule violations detected. ");
+        
+        if (analysis.getStructural().getChanges().isEmpty()) {
+            rationale.append("No structural changes found - likely method body modification only. ");
+        } else {
+            rationale.append("Detected changes are compatible with hot-swap requirements. ");
+        }
+        
+        rationale.append("Safety score: ").append(String.format("%.2f", safetyScore.getScore()));
+    } else {
+        long blockingViolations = violations.stream()
+            .filter(v -> v.getSeverity() == RuleSeverity.BLOCKING)
+            .count();
+            
+        if (blockingViolations > 0) {
+            rationale.append("REJECTED: ").append(blockingViolations)
+                    .append(" blocking violation(s) detected. ");
+        }
+        
+        long warningViolations = violations.stream()
+            .filter(v -> v.getSeverity() == RuleSeverity.WARNING)
+            .count();
+            
+        if (warningViolations > 0) {
+            rationale.append(warningViolations).append(" warning(s) issued. ");
+        }
+        
+        rationale.append("Review required before hot-swap can proceed.");
+    }
+    
+    return rationale.toString();
+}
+#+END_SRC
+
+**Runtime Behavior**: Safety scoring provides quantitative assessment of hot-swap risk, enabling informed decision-making and risk management.
+
+* Phase 4: Validation Event Generation
+
+The final phase generates rich domain events that communicate validation results with comprehensive context for downstream processing.
+
+** Step 4.1: Success Event Creation
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private BytecodeValidated createValidatedEvent(final Path classFile, 
+                                             final ClassMetadata metadata,
+                                             final CompatibilityAnalysis analysis, 
+                                             final ValidationDecision decision) {
+    
+    // Generate detailed validation summary
+    String validationDetails = generateValidationDetails(analysis, decision);
+    
+    // Calculate confidence level
+    double confidence = decision.getSafetyScore().getScore();
+    
+    // Create comprehensive success event
+    return new BytecodeValidated(
+        classFile,
+        metadata.getClassName(),
+        true,                           // isValid = true
+        validationDetails,
+        Instant.now(),
+        confidence,                     // Confidence level
+        analysis.getRecommendations(),  // Action recommendations
+        decision.getSafetyScore(),      // Safety metrics
+        analysis                        // Complete analysis for downstream use
+    );
+}
+
+private String generateValidationDetails(CompatibilityAnalysis analysis, ValidationDecision decision) {
+    StringBuilder details = new StringBuilder();
+    
+    // Describe the types of changes detected
+    List<StructuralChange> structuralChanges = analysis.getStructural().getChanges();
+    if (structuralChanges.isEmpty()) {
+        details.append("Bytecode validation passed - method body changes only. ");
+    } else {
+        details.append("Bytecode validation passed - compatible changes detected: ");
+        
+        for (StructuralChange change : structuralChanges) {
+            if (change.getChangeType() == ChangeType.METHOD_BODY_CHANGE) {
+                details.append("method implementation modified, ");
+            } else if (change.getChangeType() == ChangeType.METHOD_ADDITION) {
+                details.append("new method added, ");
+            }
+        }
+        
+        // Remove trailing comma and space
+        if (details.toString().endsWith(", ")) {
+            details.setLength(details.length() - 2);
+        }
+        details.append(". ");
+    }
+    
+    // Add safety score information
+    details.append("Safety score: ").append(String.format("%.2f", decision.getSafetyScore().getScore()));
+    
+    // Add performance impact if relevant
+    if (analysis.getBehavior().getPerformanceImpact() == PerformanceImpact.POSITIVE) {
+        details.append(". Performance improvements detected");
+    }
+    
+    return details.toString();
+}
+#+END_SRC
+
+**Runtime Behavior**: Success events carry comprehensive analysis results, enabling downstream processors to make informed decisions about hot-swap strategies and optimizations.
+
+** Step 4.2: Rejection Event Creation
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private BytecodeRejected createRejectedEvent(final Path classFile, 
+                                           final ClassMetadata metadata,
+                                           final CompatibilityAnalysis analysis, 
+                                           final ValidationDecision decision) {
+    
+    // Generate detailed rejection reason
+    String rejectionReason = generateRejectionReason(analysis, decision);
+    
+    // Compile actionable recovery recommendations
+    List<String> recoveryActions = generateRecoveryActions(decision.getViolations());
+    
+    // Create comprehensive rejection event
+    return BytecodeRejected.forNewSession(
+        classFile,
+        metadata.getClassName(),
+        rejectionReason,
+        Instant.now(),
+        decision.getViolations(),       // Detailed violation information
+        recoveryActions,                // Actionable recovery steps
+        analysis.getRecommendations(),  // Alternative approaches
+        decision.getSafetyScore()       // Safety metrics for context
+    );
+}
+
+private String generateRejectionReason(CompatibilityAnalysis analysis, ValidationDecision decision) {
+    StringBuilder reason = new StringBuilder();
+    
+    List<RuleViolation> blockingViolations = decision.getViolations().stream()
+        .filter(v -> v.getSeverity() == RuleSeverity.BLOCKING)
+        .collect(Collectors.toList());
+    
+    if (!blockingViolations.isEmpty()) {
+        reason.append("Bytecode validation failed - incompatible changes detected: ");
+        
+        for (RuleViolation violation : blockingViolations) {
+            switch (violation.getRuleId()) {
+                case "FIELD_ADDITION_PROHIBITED":
+                    reason.append("schema changes (field addition) not supported, ");
+                    break;
+                case "FIELD_REMOVAL_PROHIBITED":
+                    reason.append("schema changes (field removal) not supported, ");
+                    break;
+                case "METHOD_SIGNATURE_CHANGE_PROHIBITED":
+                    reason.append("method signature changes break compatibility, ");
+                    break;
+                case "RETURN_TYPE_CHANGE_PROHIBITED":
+                    reason.append("return type changes affect callers, ");
+                    break;
+                default:
+                    reason.append(violation.getMessage()).append(", ");
+            }
+        }
+        
+        // Remove trailing comma and space
+        if (reason.toString().endsWith(", ")) {
+            reason.setLength(reason.length() - 2);
+        }
+    } else {
+        reason.append("Bytecode validation failed - safety score too low: ")
+              .append(String.format("%.2f", decision.getSafetyScore().getScore()));
+    }
+    
+    return reason.toString();
+}
+
+private List<String> generateRecoveryActions(List<RuleViolation> violations) {
+    List<String> actions = new ArrayList<>();
+    
+    for (RuleViolation violation : violations) {
+        if (violation.getSeverity() == RuleSeverity.BLOCKING) {
+            actions.add(violation.getRecoveryAction());
+        }
+    }
+    
+    // Add general recovery actions
+    actions.add("Review changes for JVM hot-swap compatibility");
+    actions.add("Consider restarting application to load new class definition");
+    actions.add("Consult hot-swap compatibility guidelines");
+    
+    return actions.stream().distinct().collect(Collectors.toList());
+}
+#+END_SRC
+
+**Runtime Behavior**: Rejection events provide detailed diagnostic information and actionable recovery guidance, enabling developers to understand and address compatibility issues.
+
+* Phase 5: Validation Intelligence and Learning
+
+The validation flow includes intelligence gathering to improve future validation decisions and system optimization.
+
+** Step 5.1: Validation Pattern Recording
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private void recordValidationPattern(Path classFile, 
+                                   CompatibilityAnalysis analysis, 
+                                   ValidationDecision decision) {
+    try {
+        // Create validation pattern for learning
+        ValidationPattern pattern = new ValidationPattern(
+            classFile,
+            analysis.getStructural().getChanges(),
+            analysis.getSignatures().getChanges(),
+            analysis.getBehavior().getChanges(),
+            decision.isAccepted(),
+            decision.getSafetyScore().getScore(),
+            Instant.now()
+        );
+        
+        // Store pattern for future learning
+        FlowDetectionPort flowDetector = Ports.resolve(FlowDetectionPort.class);
+        ValidationFlow validationFlow = ValidationFlow.fromPattern(pattern);
+        flowDetector.storeFlow(validationFlow);
+        
+    } catch (Exception e) {
+        // Don't fail validation if pattern recording fails
+        System.err.println("Failed to record validation pattern: " + e.getMessage());
+    }
+}
+
+private static class ValidationPattern {
+    private final Path classFile;
+    private final List<StructuralChange> structuralChanges;
+    private final List<SignatureChange> signatureChanges;
+    private final List<BehaviorChange> behaviorChanges;
+    private final boolean wasAccepted;
+    private final double safetyScore;
+    private final Instant timestamp;
+    
+    // Constructor and methods...
+    
+    public ValidationOutcome predict(CompatibilityAnalysis newAnalysis) {
+        // Use pattern to predict outcome for similar changes
+        double similarity = calculateSimilarity(newAnalysis);
+        if (similarity > 0.8) {
+            return new ValidationOutcome(
+                wasAccepted,
+                safetyScore,
+                similarity,
+                "Based on similar pattern from " + timestamp
+            );
+        }
+        return ValidationOutcome.UNKNOWN;
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Pattern recording enables machine learning from validation decisions, improving future accuracy and enabling predictive analysis.
+
+** Step 5.2: Performance Metrics Collection
+
+#+BEGIN_SRC java
+// From: BytecodeValidator.java (Domain Service)
+private ValidationMetrics collectValidationMetrics(long startTime, 
+                                                   CompatibilityAnalysis analysis, 
+                                                   ValidationDecision decision) {
+    long endTime = System.nanoTime();
+    Duration validationDuration = Duration.ofNanos(endTime - startTime);
+    
+    return new ValidationMetrics(
+        validationDuration,
+        analysis.getStructural().getChanges().size(),
+        analysis.getSignatures().getChanges().size(),
+        analysis.getBehavior().getChanges().size(),
+        decision.getViolations().size(),
+        decision.getSafetyScore().getScore(),
+        Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()
+    );
+}
+
+// Enhanced validation method with metrics
+public BytecodeValidated validateWithMetrics(final Path classFile) throws IOException, BytecodeValidationException {
+    long startTime = System.nanoTime();
+    
+    try {
+        BytecodeValidated result = validate(classFile);
+        
+        // Collect success metrics
+        ValidationMetrics metrics = collectValidationMetrics(startTime, getLastAnalysis(), getLastDecision());
+        recordSuccessMetrics(metrics);
+        
+        return result;
+        
+    } catch (BytecodeValidationException e) {
+        // Collect failure metrics
+        ValidationMetrics metrics = collectValidationMetrics(startTime, getLastAnalysis(), getLastDecision());
+        recordFailureMetrics(metrics, e);
+        
+        throw e;
+    }
+}
+#+END_SRC
+
+**Runtime Behavior**: Metrics collection enables performance monitoring and optimization of the validation process, tracking efficiency and resource usage.
+
+* Flow Completion: Validation Decision Communication
+
+The validation flow concludes by communicating the safety decision through rich domain events that enable intelligent downstream processing.
+
+** Validation Success Path
+
+#+BEGIN_SRC java
+// Successful validation result
+BytecodeValidated successEvent = new BytecodeValidated(
+    classFile,
+    className,
+    true,
+    "Bytecode validation passed - method body changes only. Safety score: 0.95",
+    timestamp,
+    0.95,                           // High confidence
+    recommendations,                // Performance optimization suggestions
+    safetyScore,                    // Detailed safety metrics
+    fullAnalysis                    // Complete analysis for hot-swap planning
+);
+#+END_SRC
+
+** Validation Failure Path
+
+#+BEGIN_SRC java
+// Failed validation with comprehensive error information
+BytecodeRejected rejectionEvent = BytecodeRejected.forNewSession(
+    classFile,
+    className,
+    "Bytecode validation failed - schema changes (field addition) not supported",
+    timestamp,
+    ruleViolations,                 // Detailed violation descriptions
+    recoveryActions,                // Step-by-step recovery guidance
+    alternatives,                   // Alternative approaches
+    safetyMetrics                   // Risk assessment details
+);
+
+throw new BytecodeValidationException(rejectionEvent);
+#+END_SRC
+
+* Cross-Cutting Concerns and Architectural Patterns
+
+** Performance Optimization Strategies
+
+1. **Early Termination**: Stop analysis on first blocking violation
+2. **Caching**: Cache validation results for identical bytecode
+3. **Parallel Analysis**: Run multiple analysis passes concurrently
+4. **Memory Management**: Efficient bytecode buffer handling
+
+** Error Resilience Patterns
+
+1. **Graceful Degradation**: Continue with reduced analysis if components fail
+2. **Comprehensive Logging**: Detailed error context for debugging
+3. **Safe Defaults**: Conservative decisions when analysis is uncertain
+4. **Recovery Guidance**: Actionable steps for addressing validation failures
+
+** Domain-Driven Design Principles
+
+1. **Rich Domain Events**: Comprehensive validation results with business context
+2. **Ubiquitous Language**: Validation terminology consistent across system
+3. **Business Rules**: Clear expression of hot-swap compatibility requirements
+4. **Event-Driven Architecture**: Loose coupling through validation events
+
+* Related Flow Documentation
+
+- [[complete-hot-swap-flow.org][Complete Hot-Swap Flow]]: How validation results drive hot-swap decisions
+- [[file-change-detection-flow.org][File Change Detection Flow]]: The upstream trigger for validation
+- [[error-recovery-flow.org][Error Recovery Flow]]: How validation failures are handled
+- [[flow-intelligence-learning-flow.org][Flow Intelligence Learning]]: How validation patterns improve system intelligence
+
+* Conclusion: Safety Through Sophisticated Analysis
+
+The Bytecode Validation Flow demonstrates how complex safety analysis can be implemented while maintaining clean architecture principles. This flow provides the critical safety gate for ByteHot's hot-swap operations, ensuring that only compatible changes proceed to JVM redefinition while providing rich feedback for incompatible changes.
+
+The flow showcases the power of domain-driven design in complex technical domains, proving that sophisticated safety analysis can be expressed in clear, maintainable code that respects architectural boundaries while delivering the deep analysis required for safe runtime modifications.

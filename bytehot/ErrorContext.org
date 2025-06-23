@@ -1,0 +1,582 @@
+#+TITLE: ErrorContext - Comprehensive Error Environment Capture and Diagnostic Intelligence Foundation
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~ErrorContext~ class serves as ByteHot's comprehensive error environment capture and diagnostic intelligence foundation, providing sophisticated environmental context preservation, system state capture, and debugging intelligence for precise error reproduction and analysis. This critical domain class encapsulates complete system context including thread state, memory information, user context, and runtime environment at the moment of error occurrence. As the diagnostic foundation for ByteHot's error analysis and debugging capabilities, it enables comprehensive error investigation while maintaining complete environmental context and supporting advanced debugging workflows, error reproduction, and system optimization throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Environmental Context Capture and Preservation Hub
+ErrorContext serves as the comprehensive environmental context capture hub:
+- Provides sophisticated environmental context capture including system state, memory, and runtime information
+- Enables comprehensive system state preservation for precise error reproduction and debugging
+- Supports advanced forensic analysis through complete environmental context and diagnostic information
+- Acts as the authoritative foundation for error environment preservation and diagnostic intelligence
+
+** Diagnostic Intelligence and Debugging Foundation
+The class serves as the diagnostic intelligence and debugging foundation:
+- Enables systematic debugging assistance through comprehensive environmental context and system information
+- Provides advanced diagnostic capabilities through memory analysis, thread state, and system context
+- Supports intelligent error analysis and pattern recognition through environmental correlation
+- Provides foundation for automated debugging assistance and system optimization strategies
+
+** Error Reproduction and Testing Support Foundation
+The implementation provides error reproduction and testing support:
+- Enables precise error reproduction through complete environmental context preservation and restoration
+- Supports sophisticated testing scenarios through environmental context simulation and replication
+- Provides foundation for automated test generation based on error context and system state
+- Enables comprehensive quality assurance through environmental context validation and verification
+
+* Error Context Structure and Environmental Information
+
+** Core Temporal and User Context Information
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * When this error context was captured for temporal analysis and correlation
+ */
+@NonNull
+private final Instant capturedAt;
+
+/**
+ * User associated with the error for user context and correlation analysis
+ */
+@Nullable
+private final UserId userId;
+#+END_SRC
+
+** Thread and Execution Context Information
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Thread where the error occurred for execution context analysis
+ */
+@NonNull
+private final String threadName;
+
+/**
+ * Thread ID for precise identification and correlation analysis
+ */
+private final long threadId;
+
+/**
+ * Thread state when error occurred for execution state analysis
+ */
+private final Thread.@NonNull State threadState;
+
+/**
+ * Stack trace where error was captured for execution flow analysis
+ */
+@NonNull
+private final StackTraceElement[] stackTrace;
+
+/**
+ * Class loading context for classloader and module analysis
+ */
+@NonNull
+private final String classLoaderInfo;
+#+END_SRC
+
+** System Environment and Runtime Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * JVM system properties at error time for system configuration analysis
+ */
+@NonNull
+private final Map<String, String> systemProperties;
+
+/**
+ * Environment variables relevant to the error for environmental analysis
+ */
+@NonNull
+private final Map<String, String> environmentVariables;
+
+/**
+ * Memory information at error time for resource analysis and correlation
+ */
+@NonNull
+private final MemoryInfo memoryInfo;
+#+END_SRC
+
+** Application and Custom Context Information
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * ByteHot-specific context information for application-specific analysis
+ */
+@NonNull
+private final Map<String, Object> byteHotContext;
+
+/**
+ * Additional custom context data for extensible diagnostic information
+ */
+@NonNull
+private final Map<String, Object> customContext;
+#+END_SRC
+
+** Memory Information Comprehensive Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Memory information snapshot for comprehensive memory analysis and correlation
+ */
+@RequiredArgsConstructor
+@Builder
+@EqualsAndHashCode
+@ToString
+@Getter
+public static class MemoryInfo {
+    /**
+     * Total heap memory in bytes for memory capacity analysis
+     */
+    private final long totalHeapMemory;
+
+    /**
+     * Used heap memory in bytes for memory utilization analysis
+     */
+    private final long usedHeapMemory;
+
+    /**
+     * Maximum heap memory in bytes for memory configuration analysis
+     */
+    private final long maxHeapMemory;
+
+    /**
+     * Free heap memory in bytes for available memory analysis
+     */
+    private final long freeHeapMemory;
+
+    /**
+     * Number of garbage collection cycles for GC performance analysis
+     */
+    private final long gcCount;
+
+    /**
+     * Time spent in garbage collection for GC impact analysis
+     */
+    private final long gcTime;
+}
+#+END_SRC
+
+* Context Capture and Analysis Intelligence
+
+** Automatic Context Capture Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Captures current error context automatically with comprehensive environmental information
+ * @return complete error context for the current state with full diagnostic information
+ */
+@NonNull
+public static ErrorContext capture() {
+    Thread currentThread = Thread.currentThread();
+    Runtime runtime = Runtime.getRuntime();
+    
+    // Capture comprehensive memory information
+    MemoryInfo memoryInfo = MemoryInfo.builder()
+        .totalHeapMemory(runtime.totalMemory())
+        .usedHeapMemory(runtime.totalMemory() - runtime.freeMemory())
+        .maxHeapMemory(runtime.maxMemory())
+        .freeHeapMemory(runtime.freeMemory())
+        .gcCount(getGarbageCollectionCount())
+        .gcTime(getGarbageCollectionTime())
+        .build();
+
+    // Get current user context for user correlation
+    UserId currentUser = UserContextResolver.getCurrentUserOrNull();
+
+    // Capture system properties filtered for relevance and security
+    Map<String, String> relevantSystemProps = filterRelevantSystemProperties();
+    
+    // Capture environment variables filtered for security and relevance
+    Map<String, String> relevantEnvVars = filterRelevantEnvironmentVariables();
+
+    return ErrorContext.builder()
+        .capturedAt(Instant.now())
+        .userId(currentUser)
+        .threadName(currentThread.getName())
+        .threadId(currentThread.getId())
+        .threadState(currentThread.getState())
+        .systemProperties(relevantSystemProps)
+        .environmentVariables(relevantEnvVars)
+        .memoryInfo(memoryInfo)
+        .classLoaderInfo(currentThread.getContextClassLoader().toString())
+        .stackTrace(currentThread.getStackTrace())
+        .byteHotContext(captureByteHotContext())
+        .customContext(Map.of())
+        .build();
+}
+#+END_SRC
+
+** Memory Analysis and Resource Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Gets the memory usage percentage for resource analysis and correlation
+ * @return used memory as percentage of total ranging from 0.0 to 1.0
+ */
+public double getMemoryUsagePercentage() {
+    if (memoryInfo.getTotalHeapMemory() == 0) {
+        return 0.0;
+    }
+    return (double) memoryInfo.getUsedHeapMemory() / memoryInfo.getTotalHeapMemory();
+}
+
+/**
+ * Checks if memory usage is high indicating potential resource issues
+ * @return true if memory usage is concerning (above 80% threshold)
+ */
+public boolean isHighMemoryUsage() {
+    return getMemoryUsagePercentage() > 0.8;
+}
+#+END_SRC
+
+** Context Analysis and Diagnostic Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Gets a formatted description of the error context for human understanding
+ * @return human-readable context summary with key diagnostic information
+ */
+@NonNull
+public String getContextSummary() {
+    StringBuilder summary = new StringBuilder();
+    summary.append("ErrorContext[")
+        .append("thread=").append(threadName)
+        .append(", user=").append(userId != null ? userId.getDisplayName() : "anonymous")
+        .append(", memory=").append(String.format("%.1f%%", getMemoryUsagePercentage() * 100))
+        .append(", time=").append(capturedAt)
+        .append("]");
+    return summary.toString();
+}
+
+/**
+ * Gets the stack trace depth where error was captured for execution analysis
+ * @return number of stack frames indicating call depth and complexity
+ */
+public int getStackDepth() {
+    return stackTrace.length;
+}
+
+/**
+ * Gets the method where error context was captured for precise location analysis
+ * @return method name and class with source location for debugging assistance
+ */
+@NonNull
+public String getCaptureLocation() {
+    if (stackTrace.length > 0) {
+        StackTraceElement element = stackTrace[0];
+        return element.getClassName() + "." + element.getMethodName() + 
+               "(" + element.getFileName() + ":" + element.getLineNumber() + ")";
+    }
+    return "unknown";
+}
+#+END_SRC
+
+** Context Enhancement and Customization Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Adds custom context information for enhanced diagnostic capabilities
+ * @param key context key for custom diagnostic information
+ * @param value context value for additional analysis context
+ * @return updated error context with enhanced diagnostic information
+ */
+@NonNull
+public ErrorContext withCustomContext(@NonNull final String key, @NonNull final Object value) {
+    Map<String, Object> updatedContext = new java.util.HashMap<>(customContext);
+    updatedContext.put(key, value);
+    return this.toBuilder()
+        .customContext(updatedContext)
+        .build();
+}
+#+END_SRC
+
+* Environmental Filtering and Security Intelligence
+
+** System Property Filtering and Security
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Helper method to filter system properties for relevance and security
+ * @return filtered system properties relevant for error analysis
+ */
+@NonNull
+private static Map<String, String> filterRelevantSystemProperties() {
+    Properties props = System.getProperties();
+    return props.stringPropertyNames().stream()
+        .filter(key -> isRelevantSystemProperty(key))
+        .collect(java.util.stream.Collectors.toMap(
+            key -> key,
+            props::getProperty
+        ));
+}
+
+/**
+ * Checks if a system property is relevant for error context analysis
+ * @param key system property key for relevance assessment
+ * @return true if property is relevant for diagnostic analysis
+ */
+private static boolean isRelevantSystemProperty(@NonNull final String key) {
+    return key.startsWith("java.") || 
+           key.startsWith("os.") || 
+           key.startsWith("user.") ||
+           key.contains("bytehot") ||
+           key.contains("memory") ||
+           key.contains("gc");
+}
+#+END_SRC
+
+** Environment Variable Filtering and Security
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Helper method to filter environment variables for relevance and security
+ * @return filtered environment variables safe and relevant for error analysis
+ */
+@NonNull
+private static Map<String, String> filterRelevantEnvironmentVariables() {
+    return System.getenv().entrySet().stream()
+        .filter(entry -> isRelevantEnvironmentVariable(entry.getKey()))
+        .collect(java.util.stream.Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue
+        ));
+}
+
+/**
+ * Checks if an environment variable is relevant and safe to capture
+ * @param key environment variable key for safety and relevance assessment
+ * @return true if variable is safe and relevant for diagnostic analysis
+ */
+private static boolean isRelevantEnvironmentVariable(@NonNull final String key) {
+    String lowerKey = key.toLowerCase();
+    return (lowerKey.contains("java") || 
+            lowerKey.contains("path") || 
+            lowerKey.contains("bytehot")) &&
+           !lowerKey.contains("password") &&
+           !lowerKey.contains("secret") &&
+           !lowerKey.contains("key");
+}
+#+END_SRC
+
+** ByteHot Context Capture and Application Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Captures ByteHot-specific context information for application-level analysis
+ * @return ByteHot-specific context for enhanced application diagnostic capabilities
+ */
+@NonNull
+private static Map<String, Object> captureByteHotContext() {
+    Map<String, Object> context = new java.util.HashMap<>();
+    context.put("userContext", UserContextResolver.hasUserContext());
+    context.put("contextDescription", UserContextResolver.getContextDescription());
+    // Add more ByteHot-specific context as needed
+    return context;
+}
+#+END_SRC
+
+** Garbage Collection Analysis and Performance Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/ErrorContext.java
+/**
+ * Gets garbage collection count for GC performance analysis
+ * @return total garbage collection cycles for performance correlation
+ */
+private static long getGarbageCollectionCount() {
+    try {
+        return java.lang.management.ManagementFactory.getGarbageCollectorMXBeans().stream()
+            .mapToLong(java.lang.management.GarbageCollectorMXBean::getCollectionCount)
+            .sum();
+    } catch (Exception e) {
+        return -1;
+    }
+}
+
+/**
+ * Gets garbage collection time for GC impact analysis
+ * @return total time spent in garbage collection for performance assessment
+ */
+private static long getGarbageCollectionTime() {
+    try {
+        return java.lang.management.ManagementFactory.getGarbageCollectorMXBeans().stream()
+            .mapToLong(java.lang.management.GarbageCollectorMXBean::getCollectionTime)
+            .sum();
+    } catch (Exception e) {
+        return -1;
+    }
+}
+#+END_SRC
+
+* Diagnostic Intelligence and Analysis Capabilities
+
+** Memory Correlation and Resource Analysis
+The memory information enables sophisticated resource analysis:
+- **Memory Pressure Correlation**: Correlation between memory pressure and error occurrence patterns
+- **Resource Exhaustion Detection**: Detection of resource exhaustion scenarios contributing to errors
+- **GC Impact Analysis**: Analysis of garbage collection impact on system performance and error patterns
+- **Memory Leak Detection**: Support for memory leak detection through memory usage pattern analysis
+
+** Thread State Analysis and Concurrency Intelligence
+The thread context provides concurrency analysis capabilities:
+- **Thread State Correlation**: Correlation between thread states and error occurrence patterns
+- **Concurrency Issue Detection**: Detection of concurrency-related issues and race conditions
+- **Deadlock Analysis**: Support for deadlock analysis through thread state and stack trace correlation
+- **Performance Bottleneck Identification**: Identification of performance bottlenecks through thread analysis
+
+** Environmental Correlation and System Analysis
+The environmental context enables system-level analysis:
+- **Configuration Correlation**: Correlation between system configuration and error patterns
+- **Environment Impact Analysis**: Analysis of environmental factors contributing to error occurrence
+- **Deployment Context Analysis**: Analysis of deployment context and its impact on system behavior
+- **System State Reconstruction**: Reconstruction of system state for precise error reproduction
+
+* Integration with ByteHot Error Management Infrastructure
+
+** Error Analysis Integration
+ErrorContext integrates with ByteHot's error analysis systems:
+- Provide comprehensive environmental context for systematic error analysis and investigation
+- Support sophisticated debugging workflows through complete environmental context preservation
+- Enable forensic analysis capabilities for complex error scenarios and system behavior understanding
+- Provide foundation for automated error classification and pattern recognition
+
+** Bug Report Generation Integration
+The class coordinates with bug report generation systems:
+- **Automated Bug Reports**: Automated bug report generation with complete environmental context
+- **Reproduction Instructions**: Generation of reproduction instructions based on environmental context
+- **Test Case Generation**: Automated test case generation for error reproduction and validation
+- **Context Serialization**: Serialization of error context for bug tracking and analysis systems
+
+** Testing and Quality Assurance Integration
+The implementation supports testing integration:
+- **Error Reproduction Testing**: Support for error reproduction testing with environmental context simulation
+- **Environmental Testing**: Environmental testing scenarios based on captured error contexts
+- **Quality Assurance**: Quality assurance through environmental context validation and consistency checking
+- **Regression Testing**: Regression testing with historical error context for system stability verification
+
+* Advanced Diagnostic and Analysis Features
+
+** Pattern Recognition and Classification
+The context enables pattern recognition capabilities:
+- **Error Pattern Classification**: Classification of errors based on environmental patterns and characteristics
+- **Correlation Analysis**: Correlation analysis between environmental factors and error occurrence
+- **Predictive Analysis**: Predictive analysis of error likelihood based on environmental conditions
+- **Anomaly Detection**: Detection of environmental anomalies contributing to error conditions
+
+** Root Cause Analysis and Intelligence
+The implementation supports root cause analysis:
+- **Environmental Root Cause**: Identification of environmental root causes through context analysis
+- **Resource Root Cause**: Identification of resource-related root causes through memory and performance analysis
+- **Configuration Root Cause**: Identification of configuration-related root causes through system property analysis
+- **Temporal Root Cause**: Identification of temporal root causes through timing and sequence analysis
+
+** Performance Impact and Optimization
+The class provides performance impact analysis:
+- **Performance Correlation**: Correlation between environmental factors and performance degradation
+- **Resource Optimization**: Resource optimization recommendations based on environmental analysis
+- **System Tuning**: System tuning recommendations based on error context and performance correlation
+- **Capacity Planning**: Capacity planning based on resource utilization patterns and error correlation
+
+* Testing and Validation Strategies
+
+** Context Capture Testing
+#+begin_src java
+@Test
+void shouldCaptureComprehensiveErrorContext() {
+    // When: Capturing error context
+    ErrorContext context = ErrorContext.capture();
+    
+    // Then: Should contain comprehensive environmental information
+    assertThat(context.getCapturedAt()).isNotNull();
+    assertThat(context.getThreadName()).isNotEmpty();
+    assertThat(context.getThreadId()).isPositive();
+    assertThat(context.getThreadState()).isNotNull();
+    assertThat(context.getSystemProperties()).isNotEmpty();
+    assertThat(context.getMemoryInfo()).isNotNull();
+    assertThat(context.getStackTrace()).isNotEmpty();
+    assertThat(context.getByteHotContext()).isNotNull();
+}
+#+end_src
+
+** Memory Analysis Testing
+#+begin_src java
+@Test
+void shouldAnalyzeMemoryUsage() {
+    // Given: Error context with memory information
+    ErrorContext context = createContextWithMemoryInfo();
+    
+    // When: Analyzing memory usage
+    double memoryPercentage = context.getMemoryUsagePercentage();
+    boolean highUsage = context.isHighMemoryUsage();
+    
+    // Then: Should provide accurate memory analysis
+    assertThat(memoryPercentage).isBetween(0.0, 1.0);
+    assertThat(context.getMemoryInfo().getTotalHeapMemory()).isPositive();
+    assertThat(context.getMemoryInfo().getUsedHeapMemory()).isNotNegative();
+}
+#+end_src
+
+** Context Enhancement Testing
+#+begin_src java
+@Test
+void shouldEnhanceContextWithCustomInformation() {
+    // Given: Base error context
+    ErrorContext baseContext = ErrorContext.capture();
+    
+    // When: Adding custom context
+    ErrorContext enhanced = baseContext
+        .withCustomContext("operationId", "hot-swap-123")
+        .withCustomContext("userAction", "file-modification");
+    
+    // Then: Should contain enhanced context
+    assertThat(enhanced.getCustomContext()).containsKeys("operationId", "userAction");
+    assertThat(enhanced.getCustomContext().get("operationId")).isEqualTo("hot-swap-123");
+}
+#+end_src
+
+* Integration with Debugging and Analysis Tools
+
+** IDE Integration and Development Support
+The class integrates with development environments:
+- **Debugging Integration**: Integration with IDE debugging tools for enhanced error analysis
+- **Stack Trace Navigation**: Enhanced stack trace navigation with environmental context
+- **Breakpoint Intelligence**: Intelligent breakpoint suggestions based on error context analysis
+- **Code Analysis**: Code analysis enhancement through environmental context correlation
+
+** Logging and Monitoring Integration
+The implementation supports logging and monitoring:
+- **Structured Logging**: Structured logging integration with environmental context enrichment
+- **Monitoring Correlation**: Monitoring system correlation with error context for comprehensive analysis
+- **Alerting Enhancement**: Enhanced alerting with environmental context for better incident response
+- **Performance Monitoring**: Performance monitoring enhancement through environmental correlation
+
+** External Analysis Tool Integration
+The class coordinates with external analysis tools:
+- **APM Integration**: Application Performance Monitoring integration with error context correlation
+- **Analytics Platforms**: Analytics platform integration for comprehensive error pattern analysis
+- **Machine Learning**: Machine learning platform integration for predictive error analysis
+- **Forensic Tools**: Forensic analysis tool integration for comprehensive error investigation
+
+* Related Documentation
+
+- [[ErrorRecoveryManager.org][ErrorRecoveryManager]]: Error recovery using environmental context intelligence
+- [[CausalChain.org][CausalChain]]: Causal analysis enhanced with environmental context
+- [[BugReportGenerator.org][BugReportGenerator]]: Bug reporting with comprehensive error context
+- [[UserContextResolver.org][UserContextResolver]]: User context resolution for error correlation
+- [[../flows/error-analysis-flow.org][Error Analysis Flow]]: Complete error analysis workflow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Builder Pattern**: Flexible construction of complex error contexts with comprehensive information
+- **Value Object Pattern**: Immutable error context with comprehensive data encapsulation
+- **Factory Method Pattern**: Static factory methods for automated context capture and construction
+- **Composite Pattern**: Hierarchical composition of environmental information into comprehensive context
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Domain Objects**: Comprehensive behavior and intelligence beyond simple data containers
+- **Domain Intelligence**: Built-in domain intelligence for environmental analysis and diagnostic capabilities
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Machine Learning Context**: AI-driven context analysis and predictive error intelligence
+- **Real-Time Context**: Real-time context streaming for live error analysis and monitoring
+- **Distributed Context**: Distributed error context across multiple systems and environments
+- **Advanced Correlation**: Advanced correlation analysis with machine learning and pattern recognition
+
+The ErrorContext class provides ByteHot's essential error environment capture and diagnostic intelligence foundation while maintaining comprehensive environmental context, intelligent analysis capabilities, and extensibility for advanced error analysis scenarios throughout the entire intelligent hot-swap system lifecycle.

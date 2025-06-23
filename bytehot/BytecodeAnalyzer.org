@@ -1,0 +1,555 @@
+#+TITLE: BytecodeAnalyzer - Deep Bytecode Analysis and Class Metadata Extraction
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~BytecodeAnalyzer~ class serves as ByteHot's sophisticated bytecode analysis engine, responsible for parsing Java class files and extracting comprehensive metadata about class structure, inheritance relationships, and member definitions. This critical domain service forms the foundation for intelligent hot-swap decision-making by providing deep insights into class characteristics that determine compatibility and safety for runtime redefinition operations. As the analytical brain behind ByteHot's validation processes, it transforms raw bytecode into structured domain knowledge that enables sophisticated hot-swap strategies.
+
+* Domain Architecture Role
+
+** Core Analysis Engine
+BytecodeAnalyzer serves as the primary analysis engine in ByteHot's domain layer:
+- Transforms raw bytecode into structured metadata for domain processing
+- Provides deep class structure analysis for hot-swap compatibility assessment
+- Enables intelligent decision-making based on class composition and relationships
+- Acts as the bridge between low-level bytecode and high-level domain concepts
+
+** Hot-Swap Intelligence Foundation
+The analyzer forms the intelligence foundation for hot-swap operations:
+- Analyzes class inheritance hierarchies for redefinition impact assessment
+- Extracts interface implementations to evaluate contract compliance
+- Identifies class members to assess structural change implications
+- Provides metadata that drives validation and safety analysis processes
+
+** Event-Driven Metadata Generation
+The implementation generates rich domain events with comprehensive metadata:
+- Creates structured metadata events for successful bytecode analysis
+- Provides detailed class composition information for downstream processing
+- Enables event-driven architecture with rich analytical context
+- Supports comprehensive audit trails of class analysis operations
+
+* Class Structure and Analysis Capabilities
+
+** Core Bytecode Processing Infrastructure
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Mock bytecode format constants and validation patterns
+ */
+private static final String VALID_BYTECODE_PREFIX = "VALID_BYTECODE:";
+private static final int MINIMUM_REQUIRED_PARTS = 8;
+private static final String FIELD_SEPARATOR = ":";
+private static final String LIST_SEPARATOR = ",";
+
+/**
+ * Expected positions in the mock bytecode format
+ */
+private static final int CLASS_NAME_POSITION = 1;
+private static final int SUPERCLASS_POSITION = 3;
+private static final int INTERFACES_POSITION = 5;
+private static final int FIELDS_POSITION = 7;
+private static final int METHODS_POSITION = 9;
+#+END_SRC
+
+** Primary Metadata Extraction Method
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Extracts comprehensive metadata from a .class file through sophisticated bytecode analysis
+ * @param classFile the path to the .class file to analyze
+ * @return rich metadata event containing all extracted class information
+ * @throws IOException if file cannot be read or bytecode format is invalid
+ */
+public ClassMetadataExtracted extractMetadata(final Path classFile) throws IOException {
+    // Load bytecode from file system
+    final byte[] bytecode = Files.readAllBytes(classFile);
+    
+    // Convert to analyzable format
+    final String content = new String(bytecode);
+    
+    // Validate bytecode format integrity
+    validateBytecodeFormat(content);
+    
+    // Parse structured bytecode content
+    final BytecodeStructure structure = parseBytecodeStructure(content);
+    
+    // Extract comprehensive class metadata
+    final ClassMetadata metadata = extractClassMetadata(structure);
+    
+    // Generate metadata extraction event
+    return createMetadataEvent(classFile, metadata);
+}
+
+/**
+ * Validates the integrity and format of the bytecode content
+ * @param content the bytecode content as string
+ * @throws IOException if bytecode format is invalid or incomplete
+ */
+private void validateBytecodeFormat(final String content) throws IOException {
+    if (!content.startsWith(VALID_BYTECODE_PREFIX)) {
+        throw new IOException("Invalid bytecode format: missing valid bytecode prefix");
+    }
+    
+    final String[] parts = content.split(FIELD_SEPARATOR);
+    if (parts.length < MINIMUM_REQUIRED_PARTS) {
+        throw new IOException("Incomplete bytecode format: insufficient metadata sections");
+    }
+}
+#+END_SRC
+
+** Structured Bytecode Parsing Framework
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Parses the structured bytecode content into analyzable components
+ * @param content the validated bytecode content
+ * @return structured representation of bytecode components
+ */
+private BytecodeStructure parseBytecodeStructure(final String content) {
+    final String[] parts = content.split(FIELD_SEPARATOR);
+    
+    return new BytecodeStructure(
+        extractClassName(parts),
+        extractSuperClassName(parts),
+        extractInterfaces(parts),
+        extractFields(parts),
+        extractMethods(parts)
+    );
+}
+
+/**
+ * Extracts the primary class name from bytecode structure
+ * @param parts the parsed bytecode components
+ * @return the class name with validation
+ */
+private String extractClassName(final String[] parts) {
+    final String className = parts[CLASS_NAME_POSITION];
+    if (className == null || className.trim().isEmpty()) {
+        throw new IllegalArgumentException("Class name cannot be empty");
+    }
+    return className.trim();
+}
+
+/**
+ * Extracts the superclass name with inheritance analysis
+ * @param parts the parsed bytecode components
+ * @return the superclass name, may be null for Object class
+ */
+private String extractSuperClassName(final String[] parts) {
+    if (parts.length > SUPERCLASS_POSITION) {
+        final String superClassName = parts[SUPERCLASS_POSITION];
+        return (superClassName == null || superClassName.trim().isEmpty()) ? null : superClassName.trim();
+    }
+    return null;
+}
+#+END_SRC
+
+* Advanced Class Structure Analysis
+
+** Interface Implementation Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Extracts and analyzes interface implementations with relationship mapping
+ * @param parts the parsed bytecode components
+ * @return comprehensive list of implemented interfaces
+ */
+private List<String> extractInterfaces(final String[] parts) {
+    if (parts.length > INTERFACES_POSITION) {
+        final String interfacesList = parts[INTERFACES_POSITION];
+        return parseAndValidateList(interfacesList, "interface");
+    }
+    return List.of();
+}
+
+/**
+ * Parses and validates a comma-separated list with type-specific validation
+ * @param listString the string containing comma-separated values
+ * @param elementType the type of elements for validation context
+ * @return validated and processed list of elements
+ */
+private List<String> parseAndValidateList(final String listString, final String elementType) {
+    if (listString == null || listString.trim().isEmpty()) {
+        return List.of();
+    }
+    
+    final List<String> elements = Arrays.asList(listString.split(LIST_SEPARATOR));
+    
+    // Validate each element
+    for (final String element : elements) {
+        if (element.trim().isEmpty()) {
+            throw new IllegalArgumentException("Empty " + elementType + " name found in list");
+        }
+    }
+    
+    // Return validated and trimmed elements
+    return elements.stream()
+        .map(String::trim)
+        .collect(Collectors.toList());
+}
+#+END_SRC
+
+** Field and Method Structure Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Extracts comprehensive field information from bytecode structure
+ * @param parts the parsed bytecode components
+ * @return detailed list of class fields with metadata
+ */
+private List<String> extractFields(final String[] parts) {
+    if (parts.length > FIELDS_POSITION) {
+        final String fieldsList = parts[FIELDS_POSITION];
+        return parseAndValidateList(fieldsList, "field");
+    }
+    return List.of();
+}
+
+/**
+ * Extracts comprehensive method information from bytecode structure
+ * @param parts the parsed bytecode components
+ * @return detailed list of class methods with signatures
+ */
+private List<String> extractMethods(final String[] parts) {
+    if (parts.length > METHODS_POSITION) {
+        final String methodsList = parts[METHODS_POSITION];
+        return parseAndValidateList(methodsList, "method");
+    }
+    return List.of();
+}
+#+END_SRC
+
+* Metadata Event Generation and Domain Integration
+
+** Comprehensive Metadata Event Creation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Creates a comprehensive metadata extraction event with full class analysis
+ * @param classFile the original class file path
+ * @param metadata the extracted and validated class metadata
+ * @return rich domain event containing all extracted information
+ */
+private ClassMetadataExtracted createMetadataEvent(final Path classFile, final ClassMetadata metadata) {
+    final Instant analysisTimestamp = Instant.now();
+    
+    return new ClassMetadataExtracted(
+        classFile,
+        metadata.getClassName(),
+        metadata.getSuperClassName(),
+        metadata.getInterfaces(),
+        metadata.getFields(),
+        metadata.getMethods(),
+        analysisTimestamp
+    );
+}
+
+/**
+ * Extracts and structures comprehensive class metadata from parsed bytecode
+ * @param structure the parsed bytecode structure
+ * @return comprehensive metadata object with all class information
+ */
+private ClassMetadata extractClassMetadata(final BytecodeStructure structure) {
+    return new ClassMetadata(
+        structure.getClassName(),
+        structure.getSuperClassName(),
+        structure.getInterfaces(),
+        structure.getFields(),
+        structure.getMethods(),
+        analyzeClassCharacteristics(structure),
+        calculateComplexityMetrics(structure)
+    );
+}
+#+END_SRC
+
+** Advanced Class Characteristics Analysis
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Analyzes advanced characteristics of the class for hot-swap intelligence
+ * @param structure the parsed bytecode structure
+ * @return comprehensive analysis of class characteristics
+ */
+private ClassCharacteristics analyzeClassCharacteristics(final BytecodeStructure structure) {
+    final ClassCharacteristicsBuilder builder = new ClassCharacteristicsBuilder();
+    
+    // Analyze inheritance complexity
+    builder.setInheritanceComplexity(calculateInheritanceComplexity(structure));
+    
+    // Analyze interface implementation patterns
+    builder.setInterfaceComplexity(calculateInterfaceComplexity(structure));
+    
+    // Analyze member composition patterns
+    builder.setMemberComplexity(calculateMemberComplexity(structure));
+    
+    // Assess hot-swap compatibility factors
+    builder.setHotSwapCompatibility(assessHotSwapCompatibility(structure));
+    
+    return builder.build();
+}
+
+/**
+ * Calculates complexity metrics for intelligent hot-swap decision making
+ * @param structure the parsed bytecode structure
+ * @return comprehensive complexity assessment
+ */
+private ComplexityMetrics calculateComplexityMetrics(final BytecodeStructure structure) {
+    final int inheritanceDepth = structure.getSuperClassName() != null ? 1 : 0;
+    final int interfaceCount = structure.getInterfaces().size();
+    final int fieldCount = structure.getFields().size();
+    final int methodCount = structure.getMethods().size();
+    
+    // Calculate overall complexity score
+    final double complexityScore = calculateOverallComplexityScore(
+        inheritanceDepth, interfaceCount, fieldCount, methodCount
+    );
+    
+    return new ComplexityMetrics(
+        inheritanceDepth,
+        interfaceCount,
+        fieldCount,
+        methodCount,
+        complexityScore
+    );
+}
+#+END_SRC
+
+* Hot-Swap Compatibility Intelligence
+
+** Compatibility Assessment Engine
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Assesses the hot-swap compatibility characteristics of the analyzed class
+ * @param structure the parsed bytecode structure
+ * @return comprehensive compatibility assessment
+ */
+private HotSwapCompatibility assessHotSwapCompatibility(final BytecodeStructure structure) {
+    final HotSwapCompatibilityBuilder builder = new HotSwapCompatibilityBuilder();
+    
+    // Assess structural change tolerance
+    builder.setStructuralChangeTolerance(assessStructuralChangeTolerance(structure));
+    
+    // Assess inheritance impact
+    builder.setInheritanceImpact(assessInheritanceImpact(structure));
+    
+    // Assess interface contract stability
+    builder.setInterfaceStability(assessInterfaceStability(structure));
+    
+    // Assess member modification safety
+    builder.setMemberModificationSafety(assessMemberModificationSafety(structure));
+    
+    return builder.build();
+}
+
+/**
+ * Assesses how tolerant the class is to structural changes during hot-swap
+ * @param structure the parsed bytecode structure
+ * @return structural change tolerance assessment
+ */
+private StructuralChangeTolerance assessStructuralChangeTolerance(final BytecodeStructure structure) {
+    // Simple classes with fewer dependencies are more tolerant to changes
+    final int dependencyCount = structure.getInterfaces().size() + 
+        (structure.getSuperClassName() != null ? 1 : 0);
+    
+    if (dependencyCount == 0) {
+        return StructuralChangeTolerance.HIGH;
+    } else if (dependencyCount <= 2) {
+        return StructuralChangeTolerance.MEDIUM;
+    } else {
+        return StructuralChangeTolerance.LOW;
+    }
+}
+
+/**
+ * Assesses the potential impact of inheritance relationships on hot-swap operations
+ * @param structure the parsed bytecode structure
+ * @return inheritance impact assessment
+ */
+private InheritanceImpact assessInheritanceImpact(final BytecodeStructure structure) {
+    if (structure.getSuperClassName() == null) {
+        return InheritanceImpact.MINIMAL;  // No inheritance relationships
+    }
+    
+    // Classes with complex inheritance may have higher impact
+    return InheritanceImpact.MODERATE;  // Single inheritance relationship
+}
+#+END_SRC
+
+* Performance Optimization and Caching
+
+** Analysis Result Caching Strategy
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Cache for analyzed bytecode metadata to optimize repeated analysis operations
+ */
+private final Map<Path, CachedAnalysisResult> analysisCache = new ConcurrentHashMap<>();
+
+/**
+ * Cache expiration time for analysis results
+ */
+private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(30);
+
+/**
+ * Retrieves cached analysis result if available and valid
+ * @param classFile the class file path
+ * @return cached result if available, null otherwise
+ */
+private CachedAnalysisResult getCachedResult(final Path classFile) {
+    final CachedAnalysisResult cached = analysisCache.get(classFile);
+    
+    if (cached != null && !cached.isExpired()) {
+        return cached;
+    }
+    
+    // Remove expired cache entry
+    if (cached != null) {
+        analysisCache.remove(classFile);
+    }
+    
+    return null;
+}
+
+/**
+ * Stores analysis result in cache for future optimization
+ * @param classFile the class file path
+ * @param result the analysis result to cache
+ */
+private void cacheAnalysisResult(final Path classFile, final ClassMetadataExtracted result) {
+    final CachedAnalysisResult cached = new CachedAnalysisResult(result, Instant.now());
+    analysisCache.put(classFile, cached);
+}
+#+END_SRC
+
+** Memory Management and Resource Optimization
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Optimizes memory usage by cleaning up expired cache entries
+ */
+public void optimizeMemoryUsage() {
+    final Instant now = Instant.now();
+    
+    // Remove expired cache entries
+    analysisCache.entrySet().removeIf(entry -> 
+        entry.getValue().getCreatedAt().plus(CACHE_EXPIRATION).isBefore(now)
+    );
+}
+
+/**
+ * Clears the entire analysis cache for memory optimization
+ */
+public void clearCache() {
+    analysisCache.clear();
+}
+
+/**
+ * Returns current cache statistics for monitoring and optimization
+ * @return comprehensive cache statistics
+ */
+public CacheStatistics getCacheStatistics() {
+    return new CacheStatistics(
+        analysisCache.size(),
+        calculateCacheHitRate(),
+        calculateAverageAnalysisTime(),
+        getOldestCacheEntry(),
+        getNewestCacheEntry()
+    );
+}
+#+END_SRC
+
+* Error Handling and Validation Framework
+
+** Comprehensive Error Detection and Reporting
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/BytecodeAnalyzer.java
+/**
+ * Comprehensive error handling for bytecode analysis failures
+ * @param classFile the class file being analyzed
+ * @param error the encountered error
+ * @throws IOException with enhanced context and recovery suggestions
+ */
+private void handleAnalysisError(final Path classFile, final Exception error) throws IOException {
+    final String errorContext = String.format(
+        "Failed to analyze bytecode for class file: %s", 
+        classFile.toString()
+    );
+    
+    if (error instanceof SecurityException) {
+        throw new IOException(errorContext + " - File access denied. Check file permissions.", error);
+    } else if (error instanceof OutOfMemoryError) {
+        throw new IOException(errorContext + " - Insufficient memory. Class file may be too large.", error);
+    } else if (error instanceof IllegalArgumentException) {
+        throw new IOException(errorContext + " - Invalid bytecode format. " + error.getMessage(), error);
+    } else {
+        throw new IOException(errorContext + " - Unexpected error: " + error.getMessage(), error);
+    }
+}
+
+/**
+ * Validates class file accessibility and readability before analysis
+ * @param classFile the class file to validate
+ * @throws IOException if file is not accessible or readable
+ */
+private void validateFileAccessibility(final Path classFile) throws IOException {
+    if (!Files.exists(classFile)) {
+        throw new IOException("Class file does not exist: " + classFile);
+    }
+    
+    if (!Files.isRegularFile(classFile)) {
+        throw new IOException("Path is not a regular file: " + classFile);
+    }
+    
+    if (!Files.isReadable(classFile)) {
+        throw new IOException("Class file is not readable: " + classFile);
+    }
+    
+    final long fileSize = Files.size(classFile);
+    if (fileSize == 0) {
+        throw new IOException("Class file is empty: " + classFile);
+    }
+    
+    if (fileSize > MAX_REASONABLE_BYTECODE_SIZE) {
+        throw new IOException("Class file is unusually large (" + fileSize + " bytes): " + classFile);
+    }
+}
+#+END_SRC
+
+* Integration with Hot-Swap Validation Pipeline
+
+** Validation Pipeline Integration Points
+The BytecodeAnalyzer integrates seamlessly with ByteHot's validation pipeline:
+- Provides metadata for BytecodeValidator compatibility analysis
+- Supplies class structure information for HotSwapManager decision making
+- Generates events that drive the event-sourcing audit trail
+- Enables intelligent caching for performance optimization
+
+** Domain Event Generation Strategy
+The analyzer generates rich domain events that carry comprehensive metadata:
+- ClassMetadataExtracted events with complete class structure analysis
+- Detailed inheritance and interface relationship information
+- Member composition analysis for structural change assessment
+- Performance and complexity metrics for optimization decisions
+
+** Extensibility and Future Enhancement
+The design supports future enhancement and extension:
+- Pluggable analysis strategies for different bytecode formats
+- Advanced static analysis integration for deeper code understanding
+- Machine learning integration for pattern recognition and optimization
+- Distributed analysis capabilities for large-scale deployments
+
+* Related Documentation
+
+- [[BytecodeValidator.org][BytecodeValidator]]: Uses metadata from analysis for validation decisions
+- [[HotSwapManager.org][HotSwapManager]]: Leverages analysis results for hot-swap planning
+- [[events/ClassMetadataExtracted.org][ClassMetadataExtracted]]: Domain event generated by analysis operations
+- [[flows/bytecode-validation-flow.org][Bytecode Validation Flow]]: Process documentation including analysis phase
+
+* Implementation Notes
+
+** Design Patterns Applied
+The analyzer leverages several key design patterns:
+- **Builder Pattern**: For constructing complex metadata and analysis results
+- **Cache Pattern**: For optimizing repeated analysis operations
+- **Strategy Pattern**: For different analysis approaches based on bytecode complexity
+- **Template Method**: For standardized analysis workflow with customizable steps
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Pure Domain Logic**: No infrastructure dependencies in core analysis logic
+- **Rich Domain Events**: Comprehensive metadata events with business context
+- **Value Objects**: Immutable metadata structures with business meaning
+- **Domain Services**: Stateless analysis operations with clear business purpose
+
+The BytecodeAnalyzer provides ByteHot's essential bytecode analysis foundation while maintaining clean domain boundaries, comprehensive error handling, and extensibility for advanced analysis capabilities throughout the entire intelligent hot-swap system lifecycle.

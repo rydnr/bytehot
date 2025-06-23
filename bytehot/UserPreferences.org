@@ -1,0 +1,602 @@
+#+TITLE: UserPreferences - User Configuration and Personalization Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~UserPreferences~ class serves as ByteHot's sophisticated user configuration and personalization value object, providing comprehensive preference management, type-safe configuration access, and advanced personalization capabilities for user experience optimization and system customization. This critical domain value object encapsulates user configuration logic, preference validation mechanisms, and sophisticated customization intelligence that enable precise user experience personalization and system adaptation. As the personalization foundation for ByteHot's user management system, it enables comprehensive user customization while maintaining clean domain boundaries and supporting advanced preference analytics, configuration intelligence, and operational personalization throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** User Configuration and Personalization Management Foundation
+UserPreferences serves as the comprehensive user configuration and personalization management foundation:
+- Provides sophisticated preference management for user experience customization and system personalization
+- Enables comprehensive configuration validation and consistency through type-safe preference access and management
+- Supports advanced personalization intelligence and user experience optimization through domain-driven configuration
+- Acts as the authoritative foundation for user personalization operations and configuration coordination
+
+** Value Object Design and Immutable Configuration Context
+The class serves as the value object design and immutable configuration context:
+- Implements sophisticated value object patterns with immutable preference encapsulation and update operations
+- Provides comprehensive preference validation and consistency through domain-driven design principles
+- Enables preference composition and correlation capabilities for complex personalization scenarios
+- Supports configuration optimization and performance enhancement through efficient value object design
+
+** User Experience and System Customization Hub
+The implementation provides user experience and system customization capabilities:
+- Enables sophisticated user experience customization through comprehensive preference management and intelligence
+- Supports advanced system adaptation and operational customization through configuration-driven behavior
+- Provides foundation for personalization analytics and user experience optimization through preference intelligence
+- Enables intelligent configuration monitoring and optimization through preference-driven correlation and assessment
+
+* User Preferences Structure and Configuration Context
+
+** Core Preference Storage and Management Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * The preferences map for comprehensive user configuration storage and management
+ */
+@Getter
+private final Map<String, Object> preferences;
+#+END_SRC
+
+** Default Configuration and System Initialization
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Creates default user preferences with comprehensive system configuration
+ * @return default preferences with optimal system settings and user experience defaults
+ */
+public static UserPreferences defaults() {
+    final Map<String, Object> defaultPrefs = new HashMap<>();
+    defaultPrefs.put("notification.enabled", true);
+    defaultPrefs.put("analytics.enabled", true);
+    defaultPrefs.put("hotswap.autoRetry", true);
+    defaultPrefs.put("logging.level", "INFO");
+    
+    return UserPreferences.builder()
+        .preferences(defaultPrefs)
+        .build();
+}
+#+END_SRC
+
+** Enhanced Default Configuration and Advanced Settings
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Creates comprehensive default user preferences with advanced system configuration
+ * @return enhanced default preferences with comprehensive feature settings
+ */
+public static UserPreferences enhancedDefaults() {
+    final Map<String, Object> defaultPrefs = new HashMap<>();
+    
+    // Core system preferences
+    defaultPrefs.put("notification.enabled", true);
+    defaultPrefs.put("analytics.enabled", true);
+    defaultPrefs.put("hotswap.autoRetry", true);
+    defaultPrefs.put("logging.level", "INFO");
+    
+    // Advanced hot-swap preferences
+    defaultPrefs.put("hotswap.retryAttempts", 3);
+    defaultPrefs.put("hotswap.timeout", 30000L); // 30 seconds
+    defaultPrefs.put("hotswap.verboseLogging", false);
+    defaultPrefs.put("hotswap.backupEnabled", true);
+    
+    // User experience preferences
+    defaultPrefs.put("ui.theme", "system");
+    defaultPrefs.put("ui.animations", true);
+    defaultPrefs.put("ui.compactMode", false);
+    defaultPrefs.put("ui.language", "en");
+    
+    // Performance preferences
+    defaultPrefs.put("performance.cacheEnabled", true);
+    defaultPrefs.put("performance.parallelProcessing", true);
+    defaultPrefs.put("performance.memoryOptimization", false);
+    
+    // Development preferences
+    defaultPrefs.put("development.autoReload", true);
+    defaultPrefs.put("development.showDebugInfo", false);
+    defaultPrefs.put("development.enableExperimentalFeatures", false);
+    
+    return UserPreferences.builder()
+        .preferences(defaultPrefs)
+        .build();
+}
+
+/**
+ * Creates developer-optimized preferences for development environments
+ * @return developer preferences with development-focused configuration
+ */
+public static UserPreferences developerDefaults() {
+    UserPreferences base = enhancedDefaults();
+    return base.update("logging.level", "DEBUG")
+              .update("hotswap.verboseLogging", true)
+              .update("development.showDebugInfo", true)
+              .update("development.enableExperimentalFeatures", true)
+              .update("analytics.enabled", false); // Privacy-focused for development
+}
+
+/**
+ * Creates production-optimized preferences for production environments
+ * @return production preferences with performance and reliability focus
+ */
+public static UserPreferences productionDefaults() {
+    UserPreferences base = enhancedDefaults();
+    return base.update("logging.level", "WARN")
+              .update("hotswap.verboseLogging", false)
+              .update("development.showDebugInfo", false)
+              .update("development.enableExperimentalFeatures", false)
+              .update("performance.memoryOptimization", true)
+              .update("analytics.enabled", true);
+}
+#+END_SRC
+
+* Preference Management and Update Operations
+
+** Immutable Preference Update and Configuration Management
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Updates a preference value, returning a new immutable instance
+ * @param key the preference key for configuration identification and management
+ * @param value the preference value for configuration setting and customization
+ * @return new preferences with updated value for immutable configuration management
+ */
+public UserPreferences update(final String key, final Object value) {
+    final Map<String, Object> newPreferences = new HashMap<>(this.preferences);
+    newPreferences.put(key, value);
+    return UserPreferences.builder()
+        .preferences(newPreferences)
+        .build();
+}
+
+/**
+ * Updates multiple preferences at once for batch configuration management
+ * @param updates map of preference updates for batch configuration operations
+ * @return new preferences with all updates applied for efficient batch processing
+ */
+public UserPreferences updateMultiple(final Map<String, Object> updates) {
+    final Map<String, Object> newPreferences = new HashMap<>(this.preferences);
+    newPreferences.putAll(updates);
+    return UserPreferences.builder()
+        .preferences(newPreferences)
+        .build();
+}
+
+/**
+ * Removes a preference key for configuration cleanup and management
+ * @param key the preference key to remove for configuration management
+ * @return new preferences without the specified key for configuration cleanup
+ */
+public UserPreferences remove(final String key) {
+    final Map<String, Object> newPreferences = new HashMap<>(this.preferences);
+    newPreferences.remove(key);
+    return UserPreferences.builder()
+        .preferences(newPreferences)
+        .build();
+}
+
+/**
+ * Merges with another preferences object for configuration composition
+ * @param other other preferences to merge for configuration combination
+ * @return new preferences with merged configuration for composition management
+ */
+public UserPreferences merge(final UserPreferences other) {
+    final Map<String, Object> newPreferences = new HashMap<>(this.preferences);
+    newPreferences.putAll(other.preferences);
+    return UserPreferences.builder()
+        .preferences(newPreferences)
+        .build();
+}
+#+END_SRC
+
+* Type-Safe Preference Access and Intelligence Operations
+
+** Generic Type-Safe Access and Validation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Gets a preference value with type casting and validation
+ * @param key the preference key for configuration retrieval
+ * @param type the expected type for type safety and validation
+ * @param <T> the type parameter for type-safe configuration access
+ * @return the typed preference value for type-safe configuration management
+ */
+@SuppressWarnings("unchecked")
+public <T> T get(final String key, final Class<T> type) {
+    final Object value = preferences.get(key);
+    if (value == null) {
+        return null;
+    }
+    return type.cast(value);
+}
+
+/**
+ * Gets a preference value with default fallback for robust configuration access
+ * @param key the preference key for configuration retrieval
+ * @param type the expected type for type safety and validation
+ * @param defaultValue the default value for fallback configuration
+ * @param <T> the type parameter for type-safe configuration access
+ * @return the typed preference value or default for robust configuration management
+ */
+public <T> T getOrDefault(final String key, final Class<T> type, final T defaultValue) {
+    T value = get(key, type);
+    return value != null ? value : defaultValue;
+}
+#+END_SRC
+
+** Specialized Type-Safe Accessors and Configuration Intelligence
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Gets a boolean preference value with default fallback
+ * @param key the preference key for boolean configuration retrieval
+ * @return the boolean value for boolean configuration management
+ */
+public boolean getBoolean(final String key) {
+    final Boolean value = get(key, Boolean.class);
+    return value != null ? value : false;
+}
+
+/**
+ * Gets a boolean preference value with custom default
+ * @param key the preference key for boolean configuration retrieval
+ * @param defaultValue the default boolean value for fallback configuration
+ * @return the boolean value or default for robust boolean configuration
+ */
+public boolean getBoolean(final String key, final boolean defaultValue) {
+    final Boolean value = get(key, Boolean.class);
+    return value != null ? value : defaultValue;
+}
+
+/**
+ * Gets a string preference value for string configuration management
+ * @param key the preference key for string configuration retrieval
+ * @return the string value for string configuration management
+ */
+public String getString(final String key) {
+    return get(key, String.class);
+}
+
+/**
+ * Gets a string preference value with default fallback
+ * @param key the preference key for string configuration retrieval
+ * @param defaultValue the default string value for fallback configuration
+ * @return the string value or default for robust string configuration
+ */
+public String getString(final String key, final String defaultValue) {
+    String value = get(key, String.class);
+    return value != null ? value : defaultValue;
+}
+
+/**
+ * Gets an integer preference value for numeric configuration management
+ * @param key the preference key for integer configuration retrieval
+ * @return the integer value for integer configuration management
+ */
+public Integer getInteger(final String key) {
+    return get(key, Integer.class);
+}
+
+/**
+ * Gets an integer preference value with default fallback
+ * @param key the preference key for integer configuration retrieval
+ * @param defaultValue the default integer value for fallback configuration
+ * @return the integer value or default for robust integer configuration
+ */
+public int getInteger(final String key, final int defaultValue) {
+    Integer value = get(key, Integer.class);
+    return value != null ? value : defaultValue;
+}
+
+/**
+ * Gets a long preference value for long numeric configuration management
+ * @param key the preference key for long configuration retrieval
+ * @return the long value for long configuration management
+ */
+public Long getLong(final String key) {
+    return get(key, Long.class);
+}
+
+/**
+ * Gets a long preference value with default fallback
+ * @param key the preference key for long configuration retrieval
+ * @param defaultValue the default long value for fallback configuration
+ * @return the long value or default for robust long configuration
+ */
+public long getLong(final String key, final long defaultValue) {
+    Long value = get(key, Long.class);
+    return value != null ? value : defaultValue;
+}
+
+/**
+ * Gets a double preference value for floating-point configuration management
+ * @param key the preference key for double configuration retrieval
+ * @param defaultValue the default double value for fallback configuration
+ * @return the double value or default for robust double configuration
+ */
+public double getDouble(final String key, final double defaultValue) {
+    Double value = get(key, Double.class);
+    return value != null ? value : defaultValue;
+}
+#+END_SRC
+
+* Advanced Preference Intelligence and Configuration Analysis
+
+** Preference Validation and Configuration Health Assessment
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Checks if a preference key exists for configuration validation
+ * @param key the preference key for existence validation
+ * @return true if the preference exists for configuration validation
+ */
+public boolean hasPreference(final String key) {
+    return preferences.containsKey(key);
+}
+
+/**
+ * Gets all preference keys for configuration analysis and management
+ * @return set of all preference keys for configuration intelligence
+ */
+public java.util.Set<String> getPreferenceKeys() {
+    return new java.util.HashSet<>(preferences.keySet());
+}
+
+/**
+ * Gets preferences by category prefix for organized configuration access
+ * @param categoryPrefix the category prefix for filtered configuration retrieval
+ * @return map of preferences matching the category for organized access
+ */
+public Map<String, Object> getPreferencesByCategory(final String categoryPrefix) {
+    return preferences.entrySet().stream()
+        .filter(entry -> entry.getKey().startsWith(categoryPrefix))
+        .collect(java.util.stream.Collectors.toMap(
+            Map.Entry::getKey,
+            Map.Entry::getValue
+        ));
+}
+
+/**
+ * Validates preference values against expected types for configuration health
+ * @return validation result with any type mismatches for configuration assessment
+ */
+public PreferenceValidationResult validatePreferences() {
+    java.util.List<String> issues = new java.util.ArrayList<>();
+    java.util.List<String> warnings = new java.util.ArrayList<>();
+    
+    // Validate known boolean preferences
+    java.util.List<String> booleanKeys = java.util.List.of(
+        "notification.enabled", "analytics.enabled", "hotswap.autoRetry",
+        "hotswap.verboseLogging", "hotswap.backupEnabled", "ui.animations",
+        "ui.compactMode", "performance.cacheEnabled", "performance.parallelProcessing",
+        "performance.memoryOptimization", "development.autoReload",
+        "development.showDebugInfo", "development.enableExperimentalFeatures"
+    );
+    
+    for (String key : booleanKeys) {
+        if (hasPreference(key)) {
+            Object value = preferences.get(key);
+            if (!(value instanceof Boolean)) {
+                issues.add("Preference '" + key + "' should be boolean but is " + value.getClass().getSimpleName());
+            }
+        }
+    }
+    
+    // Validate known string preferences
+    java.util.List<String> stringKeys = java.util.List.of(
+        "logging.level", "ui.theme", "ui.language"
+    );
+    
+    for (String key : stringKeys) {
+        if (hasPreference(key)) {
+            Object value = preferences.get(key);
+            if (!(value instanceof String)) {
+                issues.add("Preference '" + key + "' should be string but is " + value.getClass().getSimpleName());
+            }
+        }
+    }
+    
+    return PreferenceValidationResult.builder()
+        .isValid(issues.isEmpty())
+        .issues(issues)
+        .warnings(warnings)
+        .totalPreferences(preferences.size())
+        .build();
+}
+
+/**
+ * Gets preference usage statistics for analytics and optimization
+ * @return statistics about preference usage and configuration patterns
+ */
+public PreferenceStatistics getStatistics() {
+    Map<String, Integer> categoryCounts = new java.util.HashMap<>();
+    int booleanCount = 0;
+    int stringCount = 0;
+    int numericCount = 0;
+    
+    for (Map.Entry<String, Object> entry : preferences.entrySet()) {
+        String key = entry.getKey();
+        Object value = entry.getValue();
+        
+        // Count by category
+        String category = key.contains(".") ? key.substring(0, key.indexOf(".")) : "general";
+        categoryCounts.merge(category, 1, Integer::sum);
+        
+        // Count by type
+        if (value instanceof Boolean) {
+            booleanCount++;
+        } else if (value instanceof String) {
+            stringCount++;
+        } else if (value instanceof Number) {
+            numericCount++;
+        }
+    }
+    
+    return PreferenceStatistics.builder()
+        .totalPreferences(preferences.size())
+        .categoryCounts(categoryCounts)
+        .booleanCount(booleanCount)
+        .stringCount(stringCount)
+        .numericCount(numericCount)
+        .build();
+}
+#+END_SRC
+
+** Preference Analytics Value Objects
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserPreferences.java
+/**
+ * Preference validation result for configuration health assessment
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class PreferenceValidationResult {
+    /**
+     * Whether all preferences are valid
+     */
+    private final boolean isValid;
+    
+    /**
+     * List of validation issues
+     */
+    private final java.util.List<String> issues;
+    
+    /**
+     * List of validation warnings
+     */
+    private final java.util.List<String> warnings;
+    
+    /**
+     * Total number of preferences validated
+     */
+    private final int totalPreferences;
+}
+
+/**
+ * Preference statistics for analytics and optimization
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class PreferenceStatistics {
+    /**
+     * Total number of preferences
+     */
+    private final int totalPreferences;
+    
+    /**
+     * Count of preferences by category
+     */
+    private final Map<String, Integer> categoryCounts;
+    
+    /**
+     * Number of boolean preferences
+     */
+    private final int booleanCount;
+    
+    /**
+     * Number of string preferences
+     */
+    private final int stringCount;
+    
+    /**
+     * Number of numeric preferences
+     */
+    private final int numericCount;
+}
+#+END_SRC
+
+* Testing and Validation Strategies
+
+** Preference Management Testing
+#+begin_src java
+@Test
+void shouldManagePreferences() {
+    // Given: Default preferences
+    UserPreferences prefs = UserPreferences.defaults();
+    
+    // When: Updating preferences
+    UserPreferences updated = prefs
+        .update("hotswap.timeout", 60000L)
+        .update("ui.theme", "dark")
+        .update("notification.enabled", false);
+    
+    // Then: Should maintain immutability and update correctly
+    assertThat(prefs.getBoolean("notification.enabled")).isTrue();
+    assertThat(updated.getBoolean("notification.enabled")).isFalse();
+    assertThat(updated.getLong("hotswap.timeout", 30000L)).isEqualTo(60000L);
+    assertThat(updated.getString("ui.theme")).isEqualTo("dark");
+}
+#+end_src
+
+** Type-Safe Access Testing
+#+begin_src java
+@Test
+void shouldProvideTypeSafeAccess() {
+    // Given: Preferences with various types
+    UserPreferences prefs = UserPreferences.enhancedDefaults();
+    
+    // When: Accessing with type safety
+    boolean notifications = prefs.getBoolean("notification.enabled");
+    String logLevel = prefs.getString("logging.level", "INFO");
+    int retryAttempts = prefs.getInteger("hotswap.retryAttempts", 3);
+    long timeout = prefs.getLong("hotswap.timeout", 30000L);
+    
+    // Then: Should provide correct typed values
+    assertThat(notifications).isTrue();
+    assertThat(logLevel).isEqualTo("INFO");
+    assertThat(retryAttempts).isEqualTo(3);
+    assertThat(timeout).isEqualTo(30000L);
+}
+#+end_src
+
+** Preference Validation Testing
+#+begin_src java
+@Test
+void shouldValidatePreferences() {
+    // Given: Preferences with some invalid types
+    UserPreferences prefs = UserPreferences.defaults()
+        .update("notification.enabled", "invalid") // Should be boolean
+        .update("logging.level", 123); // Should be string
+    
+    // When: Validating preferences
+    PreferenceValidationResult validation = prefs.validatePreferences();
+    PreferenceStatistics stats = prefs.getStatistics();
+    
+    // Then: Should detect validation issues
+    assertThat(validation.isValid()).isFalse();
+    assertThat(validation.getIssues()).hasSize(2);
+    assertThat(stats.getTotalPreferences()).isPositive();
+    assertThat(stats.getCategoryCounts()).containsKeys("notification", "logging");
+}
+#+end_src
+
+* Related Documentation
+
+- [[User.org][User]]: User aggregate using this preferences value object
+- [[UserSession.org][UserSession]]: User session related to preference application
+- [[UserStatistics.org][UserStatistics]]: User statistics influenced by preferences
+- [[UserId.org][UserId]]: User identifier for preference correlation
+- [[../flows/user-management-flow.org][User Management Flow]]: User management workflow using preferences
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable preferences with comprehensive management and intelligence methods
+- **Builder Pattern**: Flexible construction of complex preference configurations
+- **Strategy Pattern**: Support for different preference validation and access strategies
+- **Factory Method Pattern**: Static factory methods for different preference configurations
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive preference behavior and intelligence beyond simple data containers
+- **Domain Intelligence**: Built-in domain intelligence for preference validation and configuration management
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Schema Validation**: Schema-based preference validation with comprehensive constraint checking
+- **Dynamic Preferences**: Dynamic preference loading and hot-reloading capabilities
+- **Preference Profiles**: User preference profiles for different contexts and environments
+- **AI-Driven Optimization**: AI-driven preference optimization and personalized recommendation engine
+
+The UserPreferences class provides ByteHot's essential user configuration and personalization foundation while maintaining comprehensive preference management capabilities, sophisticated validation intelligence, and extensibility for advanced personalization scenarios throughout the entire intelligent hot-swap system lifecycle.

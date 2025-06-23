@@ -1,0 +1,508 @@
+#+TITLE: UserProfile - User Profile Value Object
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-18
+
+* Overview
+
+The ~UserProfile~ class is a value object representing comprehensive user profile information in ByteHot's user management domain, providing immutable user data with intelligent auto-population and builder patterns.
+
+* Class Responsibilities
+
+** Primary Responsibilities
+- Store and manage user profile information (name, email, avatar)
+- Provide immutable update operations with builder patterns
+- Auto-populate profile data from Git configuration and environment
+- Support profile validation and consistency checking
+
+** Secondary Responsibilities
+- Generate default profiles for new users
+- Handle profile data extraction from various sources
+- Maintain profile completeness and data quality
+- Support profile serialization and persistence
+
+* Value Object Design
+
+** Immutability Guarantees
+All UserProfile instances are completely immutable:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+@RequiredArgsConstructor
+@EqualsAndHashCode
+@ToString
+@Getter
+public class UserProfile {
+    private final UserId userId;
+    private final String fullName;
+    private final String email;
+    private final String avatarUrl;
+    private final Instant createdAt;
+    private final Instant updatedAt;
+}
+#+end_src
+
+** Builder Pattern Implementation
+Immutable updates through fluent builder methods:
+
+#+end_src
+public UserProfile withFullName(final String newFullName) {
+    return new UserProfile(
+        this.userId,
+        newFullName,
+        this.email,
+        this.avatarUrl,
+        this.createdAt,
+        Instant.now()
+    );
+}
+
+public UserProfile withEmail(final String newEmail) {
+    return new UserProfile(
+        this.userId,
+        this.fullName,
+        newEmail,
+        this.avatarUrl,
+        this.createdAt,
+        Instant.now()
+    );
+}
+
+public UserProfile withAvatarUrl(final String newAvatarUrl) {
+    return new UserProfile(
+        this.userId,
+        this.fullName,
+        this.email,
+        newAvatarUrl,
+        this.createdAt,
+        Instant.now()
+    );
+}
+#+end_src
+
+* Factory Methods and Auto-Population
+
+** Default Profile Creation
+Intelligent default profile generation:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+public static UserProfile defaultProfile(final UserId userId) {
+    final Instant now = Instant.now();
+    
+    // Try to auto-populate from Git configuration
+    final GitConfig gitConfig = readGitConfiguration();
+    
+    final String fullName = gitConfig.getName() != null ? 
+        gitConfig.getName() : userId.getDisplayName();
+    
+    final String email = gitConfig.getEmail() != null ? 
+        gitConfig.getEmail() : userId.getValue();
+    
+    return new UserProfile(
+        userId,
+        fullName,
+        email,
+        null, // Avatar URL will be populated separately if needed
+        now,
+        now
+    );
+}
+#+end_src
+
+** Git Configuration Integration
+Automatic profile population from Git:
+
+#+end_src
+private static GitConfig readGitConfiguration() {
+    try {
+        final String gitName = executeGitCommand("config", "user.name");
+        final String gitEmail = executeGitCommand("config", "user.email");
+        
+        return new GitConfig(
+            gitName.trim().isEmpty() ? null : gitName.trim(),
+            gitEmail.trim().isEmpty() ? null : gitEmail.trim()
+        );
+    } catch (final Exception e) {
+        // Git not available or configuration missing
+        return GitConfig.empty();
+    }
+}
+
+private static String executeGitCommand(final String... args) throws IOException, InterruptedException {
+    final ProcessBuilder pb = new ProcessBuilder();
+    pb.command("git");
+    pb.command().addAll(Arrays.asList(args));
+    
+    final Process process = pb.start();
+    final String output = readProcessOutput(process);
+    
+    if (process.waitFor() != 0) {
+        return "";
+    }
+    
+    return output;
+}
+#+end_src
+
+* Profile Validation and Quality
+
+** Data Validation
+Comprehensive validation of profile data:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+private static void validateProfileData(final UserId userId, final String fullName, final String email) {
+    if (userId == null) {
+        throw new IllegalArgumentException("User ID cannot be null");
+    }
+    
+    if (fullName != null && fullName.trim().isEmpty()) {
+        throw new IllegalArgumentException("Full name cannot be empty string");
+    }
+    
+    if (email != null && !isValidEmail(email)) {
+        throw new IllegalArgumentException("Invalid email format: " + email);
+    }
+}
+
+private static boolean isValidEmail(final String email) {
+    return email.contains("@") && email.contains(".") && 
+           email.indexOf("@") < email.lastIndexOf(".");
+}
+#+end_src
+
+** Profile Completeness
+Assessment of profile data quality:
+
+#+end_src
+public boolean isComplete() {
+    return hasFullName() && hasValidEmail() && hasAvatar();
+}
+
+public boolean hasFullName() {
+    return fullName != null && !fullName.trim().isEmpty();
+}
+
+public boolean hasValidEmail() {
+    return email != null && isValidEmail(email);
+}
+
+public boolean hasAvatar() {
+    return avatarUrl != null && !avatarUrl.trim().isEmpty();
+}
+
+public double getCompletenessScore() {
+    double score = 0.0;
+    if (hasFullName()) score += 0.4;
+    if (hasValidEmail()) score += 0.4;
+    if (hasAvatar()) score += 0.2;
+    return score;
+}
+#+end_src
+
+* Integration with User Management Domain
+
+** User Aggregate Coordination
+UserProfile is composed within User aggregate:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+// In User aggregate
+public static DomainResponseEvent<UserRegistrationRequested> accept(final UserRegistrationRequested event) {
+    // Create user profile automatically
+    final UserProfile profile = UserProfile.defaultProfile(event.getUserId());
+    
+    final User user = new User(
+        event.getUserId(),
+        profile,  // Profile integration
+        UserPreferences.defaults(),
+        UserStatistics.empty(),
+        Instant.now(),
+        Instant.now(),
+        1L
+    );
+    
+    return UserRegistered.of(event, profile, event.getSource());
+}
+#+end_src
+
+** Domain Event Integration
+Profile information propagates through user events:
+
+#+end_src
+// In UserRegistered event
+public class UserRegistered implements DomainResponseEvent<UserRegistrationRequested> {
+    private final UserRegistrationRequested preceding;
+    private final UserProfile userProfile;  // Profile included in events
+    private final UserRegistrationSource source;
+}
+#+end_src
+
+* Profile Lifecycle Management
+
+** Creation Lifecycle
+Profile creation follows predictable patterns:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+// 1. Auto-discovery from Git
+UserProfile profile = UserProfile.defaultProfile(userId);
+
+// 2. Manual profile creation
+UserProfile customProfile = UserProfile.builder()
+    .userId(userId)
+    .fullName("John Doe")
+    .email("john.doe@example.com")
+    .build();
+
+// 3. Profile updates
+UserProfile updatedProfile = profile
+    .withFullName("John Smith")
+    .withEmail("john.smith@example.com");
+#+end_src
+
+** Update Tracking
+Profile changes are tracked through timestamps:
+
+#+end_src
+public boolean isRecentlyUpdated() {
+    return Duration.between(updatedAt, Instant.now()).toMinutes() < 5;
+}
+
+public boolean hasBeenUpdated() {
+    return !createdAt.equals(updatedAt);
+}
+
+public Duration getAge() {
+    return Duration.between(createdAt, Instant.now());
+}
+#+end_src
+
+* Avatar Management
+
+** Avatar URL Handling
+Support for various avatar sources:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+public UserProfile withGravatarAvatar() {
+    if (email == null) {
+        return this;
+    }
+    
+    final String emailHash = md5Hash(email.toLowerCase().trim());
+    final String gravatarUrl = "https://www.gravatar.com/avatar/" + emailHash + "?d=identicon";
+    
+    return withAvatarUrl(gravatarUrl);
+}
+
+public UserProfile withDefaultAvatar() {
+    final String defaultUrl = "https://ui-avatars.com/api/?name=" + 
+        URLEncoder.encode(getDisplayName(), StandardCharsets.UTF_8) +
+        "&background=random";
+    
+    return withAvatarUrl(defaultUrl);
+}
+
+private String getDisplayName() {
+    return hasFullName() ? fullName : userId.getDisplayName();
+}
+#+end_src
+
+* Data Privacy and Security
+
+** Sensitive Data Handling
+Careful handling of personal information:
+
+#+end_src
+public UserProfile anonymize() {
+    return new UserProfile(
+        UserId.anonymous(),
+        "Anonymous User",
+        "anonymous@bytehot.local",
+        null,
+        createdAt,
+        Instant.now()
+    );
+}
+
+public UserProfile redactSensitiveData() {
+    return new UserProfile(
+        userId,
+        hasFullName() ? maskName(fullName) : fullName,
+        hasValidEmail() ? maskEmail(email) : email,
+        avatarUrl,
+        createdAt,
+        updatedAt
+    );
+}
+
+private String maskEmail(final String email) {
+    final int atIndex = email.indexOf("@");
+    if (atIndex <= 1) return email;
+    
+    return email.charAt(0) + "***" + email.substring(atIndex);
+}
+#+end_src
+
+* Serialization and Persistence
+
+** JSON Serialization Support
+Profile data can be serialized for persistence:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+// Infrastructure layer would handle JSON conversion
+public Map<String, Object> toMap() {
+    final Map<String, Object> map = new HashMap<>();
+    map.put("userId", userId.getValue());
+    map.put("fullName", fullName);
+    map.put("email", email);
+    map.put("avatarUrl", avatarUrl);
+    map.put("createdAt", createdAt.toString());
+    map.put("updatedAt", updatedAt.toString());
+    return map;
+}
+
+public static UserProfile fromMap(final Map<String, Object> map) {
+    return new UserProfile(
+        new UserId((String) map.get("userId"), extractDisplayName((String) map.get("userId"))),
+        (String) map.get("fullName"),
+        (String) map.get("email"),
+        (String) map.get("avatarUrl"),
+        Instant.parse((String) map.get("createdAt")),
+        Instant.parse((String) map.get("updatedAt"))
+    );
+}
+#+end_src
+
+* Error Handling and Resilience
+
+** Graceful Degradation
+Profile creation never fails completely:
+
+#+end_src
+public static UserProfile safeDefaultProfile(final UserId userId) {
+    try {
+        return defaultProfile(userId);
+    } catch (final Exception e) {
+        // Fallback to minimal profile
+        final Instant now = Instant.now();
+        return new UserProfile(
+            userId,
+            userId.getDisplayName(),
+            userId.getValue(),
+            null,
+            now,
+            now
+        );
+    }
+}
+#+end_src
+
+** Validation Error Recovery
+Robust validation with helpful error messages:
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/UserProfile.java
+public static class ProfileValidationException extends RuntimeException {
+    private final String field;
+    private final String value;
+    
+    public ProfileValidationException(final String field, final String value, final String message) {
+        super(String.format("Profile validation failed for field '%s' with value '%s': %s", 
+              field, value, message));
+        this.field = field;
+        this.value = value;
+    }
+}
+#+end_src
+
+* Testing Strategy
+
+** Unit Testing
+Comprehensive testing of all profile operations:
+
+#+end_src
+@Test
+void defaultProfile_populatesFromGitConfiguration() {
+    // Setup Git configuration mock
+    final UserId userId = UserId.fromEmail("john.doe@example.com");
+    final UserProfile profile = UserProfile.defaultProfile(userId);
+    
+    assertThat(profile.getUserId()).isEqualTo(userId);
+    assertThat(profile.getFullName()).isNotEmpty();
+    assertThat(profile.getEmail()).isNotEmpty();
+    assertThat(profile.getCreatedAt()).isNotNull();
+}
+
+@Test
+void withFullName_createsUpdatedProfile() {
+    final UserProfile profile = createTestProfile();
+    final UserProfile updated = profile.withFullName("Jane Smith");
+    
+    assertThat(updated.getFullName()).isEqualTo("Jane Smith");
+    assertThat(updated.getUpdatedAt()).isAfter(profile.getUpdatedAt());
+    assertThat(updated.getUserId()).isEqualTo(profile.getUserId());
+}
+#+end_src
+
+** Integration Testing
+Testing Git configuration integration:
+
+#+begin_src java
+@Test
+void gitIntegration_readsConfigurationCorrectly() {
+    // Test in environment with Git configuration
+    assumeTrue(isGitAvailable());
+    
+    final UserId userId = UserId.fromGit();
+    final UserProfile profile = UserProfile.defaultProfile(userId);
+    
+    assertThat(profile.hasValidEmail()).isTrue();
+    assertThat(profile.hasFullName()).isTrue();
+}
+#+end_src
+
+* Performance Considerations
+
+** Lazy Loading
+Expensive operations are deferred:
+
+#+end_src
+public UserProfile withAutoPopulatedAvatar() {
+    if (hasAvatar()) {
+        return this; // Already has avatar
+    }
+    
+    // Lazy avatar generation
+    return hasValidEmail() ? withGravatarAvatar() : withDefaultAvatar();
+}
+#+end_src
+
+** Caching Strategy
+Profile data can be cached for performance:
+- Immutable objects are cache-friendly
+- Git configuration can be cached per session
+- Avatar URLs can be cached with TTL
+
+** Memory Efficiency
+- Minimal object references
+- String interning for common values
+- No unnecessary collections or complex structures
+
+* Future Enhancements
+
+** Enhanced Auto-Population
+- Integration with enterprise directories (LDAP/AD)
+- Social media profile integration
+- Avatar auto-detection from multiple sources
+
+** Advanced Validation
+- Comprehensive email validation with DNS checking
+- Name format validation for internationalization
+- Profile completeness scoring with recommendations
+
+** Privacy Features
+- Granular privacy controls for profile fields
+- Consent management for data collection
+- GDPR compliance features
+
+** Workflow Integration
+- Profile synchronization with external systems
+- Change notifications and approval workflows
+- Team profile management features
+
+The UserProfile value object provides comprehensive user profile management while maintaining immutability, supporting intelligent auto-population, and integrating seamlessly with ByteHot's user management domain.

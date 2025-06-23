@@ -1,0 +1,418 @@
+#+TITLE: RollbackResult - Outcome of Rollback Operations
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =RollbackResult= class encapsulates the outcome and details of rollback operations in ByteHot. It provides comprehensive information about the success or failure of rollback attempts, including metrics, affected instances, and any issues encountered during the process.
+
+** Key Responsibilities
+- Report the success or failure of rollback operations
+- Provide detailed metrics about the rollback process
+- Track affected instances and their restoration status
+- Include error information for failed rollback attempts
+- Support rollback operation analysis and monitoring
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/RollbackResult.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: RollbackResult.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: RollbackResult
+ *
+ * Responsibilities:
+ *   - Report rollback operation outcomes and details
+ *   - Provide metrics and status information for rollback operations
+ *   - Track affected instances and restoration status
+ *
+ * Collaborators:
+ *   - RollbackManager: Creates RollbackResult instances
+ *   - RollbackSnapshot: Source snapshot for rollback operation
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * Represents the outcome of a rollback operation
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class RollbackResult {
+
+    /**
+     * Whether the rollback operation was successful
+     */
+    private final boolean success;
+
+    /**
+     * Class name that was rolled back
+     */
+    private final String className;
+
+    /**
+     * Snapshot ID that was used for rollback
+     */
+    private final String snapshotId;
+
+    /**
+     * Number of instances that were successfully restored
+     */
+    private final int instancesRestored;
+
+    /**
+     * Number of instances that failed to restore
+     */
+    private final int instancesFailed;
+
+    /**
+     * Duration of the rollback operation
+     */
+    private final Duration operationDuration;
+
+    /**
+     * Timestamp when rollback operation started
+     */
+    private final Instant startTime;
+
+    /**
+     * Timestamp when rollback operation completed
+     */
+    private final Instant endTime;
+
+    /**
+     * Error that caused rollback failure, if any
+     */
+    private final Throwable error;
+
+    /**
+     * List of warnings encountered during rollback
+     */
+    private final List<String> warnings;
+
+    /**
+     * Additional details about the rollback operation
+     */
+    private final String details;
+
+    /**
+     * Whether this was a cascading rollback operation
+     */
+    private final boolean cascading;
+
+    /**
+     * Creates a new rollback result
+     */
+    private RollbackResult(final boolean success, final String className, final String snapshotId,
+                          final int instancesRestored, final int instancesFailed,
+                          final Duration operationDuration, final Instant startTime, final Instant endTime,
+                          final Throwable error, final List<String> warnings, final String details,
+                          final boolean cascading) {
+        this.success = success;
+        this.className = className;
+        this.snapshotId = snapshotId;
+        this.instancesRestored = instancesRestored;
+        this.instancesFailed = instancesFailed;
+        this.operationDuration = operationDuration;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.error = error;
+        this.warnings = new CopyOnWriteArrayList<>(warnings);
+        this.details = details;
+        this.cascading = cascading;
+    }
+
+    /**
+     * Creates a successful rollback result
+     */
+    public static RollbackResult success(final String className, final String snapshotId,
+                                       final int instancesRestored, final Duration operationDuration,
+                                       final Instant startTime, final Instant endTime,
+                                       final List<String> warnings, final String details,
+                                       final boolean cascading) {
+        return new RollbackResult(true, className, snapshotId, instancesRestored, 0,
+                                operationDuration, startTime, endTime, null, warnings, details, cascading);
+    }
+
+    /**
+     * Creates a failed rollback result
+     */
+    public static RollbackResult failure(final String className, final String snapshotId,
+                                       final int instancesRestored, final int instancesFailed,
+                                       final Duration operationDuration, final Instant startTime, final Instant endTime,
+                                       final Throwable error, final List<String> warnings, final String details,
+                                       final boolean cascading) {
+        return new RollbackResult(false, className, snapshotId, instancesRestored, instancesFailed,
+                                operationDuration, startTime, endTime, error, warnings, details, cascading);
+    }
+
+    /**
+     * Returns the total number of instances processed
+     */
+    public int getTotalInstancesProcessed() {
+        return instancesRestored + instancesFailed;
+    }
+
+    /**
+     * Returns the success rate as a percentage
+     */
+    public double getSuccessRate() {
+        final int total = getTotalInstancesProcessed();
+        if (total == 0) {
+            return 100.0;
+        }
+        return (double) instancesRestored / total * 100.0;
+    }
+
+    /**
+     * Returns whether the rollback had partial success
+     */
+    public boolean hasPartialSuccess() {
+        return instancesRestored > 0 && instancesFailed > 0;
+    }
+
+    /**
+     * Returns whether the rollback operation had warnings
+     */
+    public boolean hasWarnings() {
+        return !warnings.isEmpty();
+    }
+
+    /**
+     * Returns the number of warnings
+     */
+    public int getWarningCount() {
+        return warnings.size();
+    }
+
+    /**
+     * Returns whether this rollback was faster than the given threshold
+     */
+    public boolean isFasterThan(final Duration threshold) {
+        return operationDuration.compareTo(threshold) < 0;
+    }
+
+    /**
+     * Returns whether this rollback was slower than the given threshold
+     */
+    public boolean isSlowerThan(final Duration threshold) {
+        return operationDuration.compareTo(threshold) > 0;
+    }
+
+    /**
+     * Returns a summary description of the rollback result
+     */
+    public String getSummary() {
+        if (success) {
+            if (cascading) {
+                return String.format("Cascading rollback successful: %d instances restored in %dms",
+                                   instancesRestored, operationDuration.toMillis());
+            } else {
+                return String.format("Rollback successful: %d instances restored in %dms",
+                                   instancesRestored, operationDuration.toMillis());
+            }
+        } else {
+            return String.format("Rollback failed: %d/%d instances restored, error: %s",
+                               instancesRestored, getTotalInstancesProcessed(),
+                               error != null ? error.getMessage() : "Unknown error");
+        }
+    }
+
+    /**
+     * Returns the primary error message if rollback failed
+     */
+    public String getErrorMessage() {
+        return error != null ? error.getMessage() : null;
+    }
+
+    /**
+     * Returns whether this result indicates a critical failure
+     */
+    public boolean isCriticalFailure() {
+        return !success && instancesRestored == 0 && instancesFailed > 0;
+    }
+
+    @Override
+    public String toString() {
+        return "RollbackResult{" +
+               "success=" + success +
+               ", className='" + className + '\'' +
+               ", snapshotId='" + snapshotId + '\'' +
+               ", instancesRestored=" + instancesRestored +
+               ", instancesFailed=" + instancesFailed +
+               ", duration=" + operationDuration.toMillis() + "ms" +
+               ", cascading=" + cascading +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Analyzing Rollback Success
+
+#+end_src
+// Process rollback result
+RollbackResult result = rollbackManager.rollbackToSnapshot(snapshotId);
+
+if (result.isSuccess()) {
+    logger.info("Rollback completed successfully: " + result.getSummary());
+    
+    if (result.hasWarnings()) {
+        logger.warn("Rollback had {} warnings:", result.getWarningCount());
+        result.getWarnings().forEach(warning -> logger.warn("  - " + warning));
+    }
+    
+    // Check performance
+    if (result.isSlowerThan(Duration.ofSeconds(5))) {
+        logger.warn("Rollback took longer than expected: {}ms", 
+                   result.getOperationDuration().toMillis());
+    }
+} else {
+    logger.error("Rollback failed: " + result.getSummary());
+    
+    if (result.hasPartialSuccess()) {
+        logger.info("Partial rollback: {:.1f}% success rate", result.getSuccessRate());
+        scheduleCleanupForFailedInstances(result);
+    }
+    
+    if (result.isCriticalFailure()) {
+        triggerEmergencyProcedures(result);
+    }
+}
+#+end_src
+
+** Performance Monitoring
+
+#+begin_src java
+public void monitorRollbackPerformance(RollbackResult result) {
+    // Record metrics
+    performanceMetrics.recordRollbackDuration(result.getOperationDuration());
+    performanceMetrics.recordInstanceCount(result.getTotalInstancesProcessed());
+    performanceMetrics.recordSuccessRate(result.getSuccessRate());
+    
+    // Check against thresholds
+    Duration maxAllowedDuration = Duration.ofSeconds(10);
+    if (result.isSlowerThan(maxAllowedDuration)) {
+        alertManager.sendPerformanceAlert(
+            "Rollback operation exceeded time threshold",
+            result.getClassName(),
+            result.getOperationDuration()
+        );
+    }
+    
+    // Track cascading rollback performance
+    if (result.isCascading()) {
+        cascadingRollbackMetrics.recordOperation(result);
+    }
+}
+#+end_src
+
+** Error Analysis and Recovery Planning
+
+#+end_src
+public void analyzeRollbackFailure(RollbackResult result) {
+    if (!result.isSuccess()) {
+        ErrorAnalysis analysis = new ErrorAnalysis();
+        analysis.setClassName(result.getClassName());
+        analysis.setSnapshotId(result.getSnapshotId());
+        analysis.setErrorMessage(result.getErrorMessage());
+        analysis.setPartialSuccess(result.hasPartialSuccess());
+        analysis.setInstancesAffected(result.getTotalInstancesProcessed());
+        
+        // Determine recovery strategy
+        if (result.isCriticalFailure()) {
+            // Complete failure - may need manual intervention
+            recovery.planManualRecovery(analysis);
+        } else if (result.hasPartialSuccess()) {
+            // Partial failure - retry failed instances
+            recovery.planPartialRetry(result.getInstancesFailed(), analysis);
+        }
+        
+        // Store for pattern analysis
+        errorRepository.saveRollbackFailure(analysis);
+    }
+}
+#+end_src
+
+** Cascading Rollback Tracking
+
+#+begin_src java
+public void handleCascadingRollback(List<RollbackResult> cascadeResults) {
+    int totalInstances = 0;
+    int successfulInstances = 0;
+    Duration totalDuration = Duration.ZERO;
+    List<String> allWarnings = new ArrayList<>();
+    
+    for (RollbackResult result : cascadeResults) {
+        totalInstances += result.getTotalInstancesProcessed();
+        successfulInstances += result.getInstancesRestored();
+        totalDuration = totalDuration.plus(result.getOperationDuration());
+        allWarnings.addAll(result.getWarnings());
+    }
+    
+    double overallSuccessRate = (double) successfulInstances / totalInstances * 100.0;
+    
+    logger.info("Cascading rollback completed:");
+    logger.info("  Classes affected: {}", cascadeResults.size());
+    logger.info("  Total instances: {}", totalInstances);
+    logger.info("  Success rate: {:.1f}%", overallSuccessRate);
+    logger.info("  Total duration: {}ms", totalDuration.toMillis());
+    
+    if (!allWarnings.isEmpty()) {
+        logger.warn("  Total warnings: {}", allWarnings.size());
+    }
+}
+#+end_src
+
+* Architecture Notes
+
+** Result Aggregation Pattern
+- Comprehensive result reporting with success/failure details
+- Performance metrics for monitoring and optimization
+- Warning collection for operational insights
+- Support for both simple and cascading rollback scenarios
+
+** Error Handling Integration
+- Clear distinction between complete and partial failures
+- Error message propagation for debugging and analysis
+- Integration with monitoring and alerting systems
+- Support for automated recovery planning based on failure types
+
+** Performance Analysis
+- Duration tracking for performance optimization
+- Instance count metrics for capacity planning
+- Success rate calculation for reliability monitoring
+- Threshold-based alerting for operational awareness

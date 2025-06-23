@@ -1,0 +1,330 @@
+#+TITLE: FileWatcherPort - File System Monitoring Interface
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Overview
+
+The ~FileWatcherPort~ interface defines the contract for file system monitoring within ByteHot's hexagonal architecture. This port abstracts file system watching operations from the domain logic, enabling different implementation strategies while maintaining domain purity.
+
+* Hexagonal Architecture Role
+
+** Primary Port Classification
+FileWatcherPort serves as a primary port in ByteHot's hexagonal architecture, representing the domain's need to be notified about external file system changes. It defines how the domain layer interacts with file system monitoring without being coupled to specific implementation technologies.
+
+** Domain Boundary Protection
+This port protects the domain from infrastructure concerns:
+- Abstracts NIO WatchService implementation details
+- Hides operating system-specific file monitoring mechanisms
+- Enables platform-independent file watching strategies
+- Isolates domain logic from file system API evolution
+
+** Adapter Integration Point
+The port provides the integration point for infrastructure adapters:
+- ~FileWatcherAdapter~: NIO-based implementation for standard file systems
+- ~DockerFileWatcherAdapter~: Specialized monitoring for containerized environments
+- ~NetworkFileWatcherAdapter~: Monitoring for network-mounted file systems
+- ~IDEFileWatcherAdapter~: Integration with IDE change notifications
+
+* Interface Definition and Contract
+
+** Core Watching Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/FileWatcherPort.java
+/**
+ * Starts watching a directory for file changes
+ * @param path the directory path to watch
+ * @param patterns file patterns to include
+ * @param recursive whether to watch subdirectories
+ * @return watch identifier for later management
+ * @throws Exception if watching cannot be started
+ */
+String startWatching(Path path, List<String> patterns, boolean recursive) throws Exception;
+
+/**
+ * Stops watching a previously registered directory
+ * @param watchId the watch identifier returned by startWatching
+ * @throws Exception if stopping fails
+ */
+void stopWatching(String watchId) throws Exception;
+#+END_SRC
+
+** State Inquiry Operations
+#+BEGIN_SRC java :tangle ../../bytehot/src/main/java/org/acmsl/bytehot/domain/FileWatcherPort.java
+/**
+ * Checks if a directory is currently being watched
+ * @param path the directory path to check
+ * @return true if path is being watched
+ */
+boolean isWatching(Path path);
+
+/**
+ * Returns all currently watched paths
+ * @return list of paths being watched
+ */
+List<Path> getWatchedPaths();
+
+/**
+ * Checks if the file watcher is operational
+ * @return true if file watching is available
+ */
+boolean isWatcherAvailable();
+#+END_SRC
+
+* File Watching Lifecycle Management
+
+** Watch Session Initiation
+The ~startWatching~ method establishes file monitoring with comprehensive configuration:
+#+BEGIN_SRC java
+// Example usage:
+String watchId = fileWatcherPort.startWatching(
+    Paths.get("target/classes"),           // Base directory
+    List.of("**/*.class", "**/*.jar"),     // File patterns
+    true                                   // Recursive monitoring
+);
+#+END_SRC
+
+** Pattern Matching Strategies
+File patterns support sophisticated matching:
+- *Glob Patterns*: Standard shell-style wildcards (~*.class~, ~**/*.java~)
+- *Regular Expressions*: Advanced pattern matching for complex scenarios
+- *Directory Exclusions*: Exclude specific directories (~!**/test/**~)
+- *Extension Filtering*: Specific file type monitoring (~*.{class,jar}~)
+
+** Recursive Monitoring Control
+The recursive parameter enables flexible monitoring strategies:
+- ~true~: Monitor all subdirectories and their contents
+- ~false~: Monitor only the specified directory level
+- Enables performance optimization for large directory trees
+- Allows targeted monitoring for specific development workflows
+
+* Watch Identifier Management
+
+** Unique Watch Identification
+Each watch session receives a unique identifier:
+#+BEGIN_SRC java
+// Watch ID characteristics:
+// - Unique across all active watches
+// - Stable for the duration of the watch session
+// - Used for all subsequent operations on the watch
+// - Enable multiple watches on the same directory with different patterns
+#+END_SRC
+
+** Watch Lifecycle Tracking
+Watch identifiers enable comprehensive lifecycle management:
+- Session correlation for debugging and analytics
+- Resource cleanup for stopped watches
+- Performance monitoring per watch session
+- Error handling and recovery for failed watches
+
+* State Monitoring and Introspection
+
+** Path Monitoring Status
+The ~isWatching~ method provides precise monitoring status:
+#+BEGIN_SRC java
+// Usage patterns:
+if (fileWatcherPort.isWatching(targetPath)) {
+    // Path is actively monitored
+    logger.info("Path {} is under active monitoring", targetPath);
+} else {
+    // Start monitoring if needed
+    String watchId = fileWatcherPort.startWatching(targetPath, patterns, true);
+}
+#+END_SRC
+
+** Active Watch Enumeration
+The ~getWatchedPaths~ method enables system introspection:
+#+BEGIN_SRC java
+// System status reporting:
+List<Path> activePaths = fileWatcherPort.getWatchedPaths();
+logger.info("Currently monitoring {} directories", activePaths.size());
+for (Path path : activePaths) {
+    logger.debug("Active watch: {}", path);
+}
+#+END_SRC
+
+** Operational Status Verification
+The ~isWatcherAvailable~ method provides system health checking:
+#+BEGIN_SRC java
+// Health check integration:
+if (!fileWatcherPort.isWatcherAvailable()) {
+    logger.warn("File watcher is not operational");
+    // Fall back to alternative monitoring strategy
+    // Or notify user of reduced functionality
+}
+#+END_SRC
+
+* Implementation Strategy Abstraction
+
+** Technology Independence
+The port abstracts various file watching technologies:
+- *Java NIO WatchService*: Standard JVM file monitoring
+- *Operating System Events*: Native OS file system notifications
+- *Polling Strategies*: Timer-based file modification checking
+- *Hybrid Approaches*: Combination of event-driven and polling methods
+
+** Platform Adaptation
+Different platforms may require different implementations:
+#+BEGIN_SRC java
+// Platform-specific implementations:
+// - LinuxFileWatcherAdapter: inotify-based monitoring
+// - WindowsFileWatcherAdapter: ReadDirectoryChangesW integration
+// - macOSFileWatcherAdapter: FSEvents framework utilization
+// - DockerFileWatcherAdapter: Container-aware monitoring
+#+END_SRC
+
+** Performance Optimization Strategies
+Implementations can optimize for different scenarios:
+- *High-frequency Changes*: Debouncing and batching strategies
+- *Large Directory Trees*: Selective monitoring and filtering
+- *Network File Systems*: Specialized monitoring for remote files
+- *Resource Constraints*: Memory and CPU optimized monitoring
+
+* Error Handling and Resilience
+
+** Exception Management
+The port defines clear exception handling contracts:
+#+BEGIN_SRC java
+// Exception scenarios:
+// - SecurityException: Insufficient permissions for directory access
+// - IOException: File system access failures
+// - UnsupportedOperationException: Platform limitations
+// - IllegalArgumentException: Invalid path or pattern parameters
+#+END_SRC
+
+** Resilience Patterns
+Implementations should provide resilience features:
+- Automatic recovery from temporary file system issues
+- Graceful degradation when monitoring becomes unavailable
+- Resource cleanup for failed watch operations
+- Detailed error reporting for debugging
+
+** Monitoring Health Management
+The port enables monitoring health management:
+#+BEGIN_SRC java
+// Health management patterns:
+// 1. Regular availability checks through isWatcherAvailable()
+// 2. Automatic restart of failed watch sessions
+// 3. Fallback to alternative monitoring strategies
+// 4. Detailed logging for operational troubleshooting
+#+END_SRC
+
+* Integration with Domain Events
+
+** Event Generation Coordination
+FileWatcherPort implementations coordinate with domain event generation:
+#+BEGIN_SRC java
+// Event flow integration:
+// 1. File system change detected by implementation
+// 2. Change validated against patterns and filters
+// 3. ClassFileChanged event generated and emitted
+// 4. Domain processing begins with event consumption
+#+END_SRC
+
+** Change Detection Optimization
+The port enables sophisticated change detection:
+- Duplicate change filtering to prevent redundant processing
+- Temporal batching for rapid sequential changes
+- Content-based change detection beyond modification timestamps
+- Integration with build tool change notifications
+
+* Testing and Mock Implementation
+
+** Test Harness Support
+The port interface enables comprehensive testing:
+#+BEGIN_SRC java
+// Mock implementation for testing:
+public class MockFileWatcherPort implements FileWatcherPort {
+    private final Map<String, WatchConfiguration> activeWatches = new HashMap<>();
+    private final List<Path> watchedPaths = new ArrayList<>();
+    
+    @Override
+    public String startWatching(Path path, List<String> patterns, boolean recursive) {
+        String watchId = UUID.randomUUID().toString();
+        activeWatches.put(watchId, new WatchConfiguration(path, patterns, recursive));
+        watchedPaths.add(path);
+        return watchId;
+    }
+    
+    // Additional mock methods for test scenarios
+    public void simulateFileChange(Path filePath) {
+        // Trigger domain event for testing
+    }
+}
+#+END_SRC
+
+** Test Scenario Support
+Mock implementations enable comprehensive test scenarios:
+- Simulated file changes for workflow testing
+- Error condition simulation for resilience testing
+- Performance testing with controlled change patterns
+- Integration testing with various file patterns
+
+* Performance Considerations
+
+** Resource Management
+File watching operations require careful resource management:
+- Watch session resource cleanup on stop operations
+- Memory management for large directory monitoring
+- Thread management for concurrent file change processing
+- File handle management to prevent resource leaks
+
+** Optimization Strategies
+Implementations should optimize for performance:
+#+BEGIN_SRC java
+// Performance optimization areas:
+// - Pattern matching efficiency for large file sets
+// - Event debouncing to prevent processing storms
+// - Selective monitoring based on file types and patterns
+// - Cache optimization for repeated path operations
+#+END_SRC
+
+** Scalability Design
+The port supports scalable file monitoring:
+- Multiple concurrent watch sessions
+- Efficient handling of large directory trees
+- Batch processing for multiple simultaneous changes
+- Resource pooling for watch management threads
+
+* Configuration Integration
+
+** Configuration Source Abstraction
+The port works with ~ConfigurationPort~ to retrieve watching parameters:
+#+BEGIN_SRC java
+// Configuration integration:
+ConfigurationPort config = Ports.resolve(ConfigurationPort.class);
+List<String> watchPaths = config.getWatchPaths();
+List<String> filePatterns = config.getFilePatterns();
+boolean recursiveWatch = config.isRecursiveWatchingEnabled();
+#+END_SRC
+
+** Dynamic Configuration Updates
+The port supports dynamic configuration changes:
+- Hot-reload of watch paths and patterns
+- Runtime adjustment of monitoring parameters
+- User preference integration for personalized monitoring
+- Team configuration sharing for collaborative development
+
+* Related Documentation
+
+- [[../infrastructure/FileWatcherAdapter.org][FileWatcherAdapter]]: Primary NIO-based implementation
+- [[./ConfigurationPort.org][ConfigurationPort]]: Configuration source for watch parameters
+- [[../events/ClassFileChanged.org][ClassFileChanged]]: Primary event generated from file changes
+- [[../Ports.org][Ports]]: Port resolution and dependency injection
+- [[../../flows/file-monitoring-setup.org][File Monitoring Setup]]: Complete file watching workflow
+
+* Future Evolution
+
+** Enhanced Monitoring Capabilities
+Anticipated improvements to file monitoring:
+- Real-time content analysis beyond timestamp changes
+- Integration with version control systems for change tracking
+- Predictive file monitoring based on development patterns
+- Advanced filtering based on file content and metadata
+
+** Technology Integration
+Future file watching enhancements:
+- IDE integration for enhanced change detection
+- Build tool coordination for optimized monitoring
+- Cloud storage integration for remote file monitoring
+- Container-aware monitoring for modern development environments
+
+The FileWatcherPort interface provides the foundation for ByteHot's file system integration while maintaining the architectural purity that enables flexible, testable, and maintainable file monitoring solutions.

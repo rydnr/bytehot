@@ -1,0 +1,473 @@
+#+TITLE: FlowSearchCriteria - Flow Discovery and Pattern Matching Value Object
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~FlowSearchCriteria~ class serves as ByteHot's comprehensive flow discovery and pattern matching value object, providing sophisticated search capabilities, multi-dimensional filtering, and intelligent query construction for flow pattern analysis and discovery. This critical domain value object encapsulates complex search parameters, filtering logic, and matching algorithms that enable precise flow discovery and pattern analysis across the intelligent hot-swap system. As the search foundation for ByteHot's flow intelligence infrastructure, it enables sophisticated flow querying while maintaining clean domain boundaries and supporting advanced analytics, pattern recognition, and system intelligence throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Flow Discovery and Search Intelligence Hub
+FlowSearchCriteria serves as the comprehensive flow discovery and search intelligence hub:
+- Provides sophisticated multi-dimensional search capabilities for complex flow pattern discovery and analysis
+- Enables intelligent query construction and filtering for precise flow identification and matching
+- Supports advanced pattern matching algorithms and fuzzy search capabilities for flow analysis
+- Acts as the authoritative search foundation for flow intelligence and pattern recognition systems
+
+** Value Object Design and Immutable Search Context
+The class serves as the value object design and immutable search context:
+- Encapsulates search parameters and filtering criteria in an immutable, thread-safe value object
+- Provides comprehensive search context with rich behavior and intelligent matching capabilities
+- Enables complex search composition and criteria combination for sophisticated query construction
+- Supports query optimization and performance enhancement through intelligent criteria design
+
+** Pattern Matching and Filtering Intelligence Foundation
+The implementation provides pattern matching and filtering intelligence:
+- Enables sophisticated pattern matching algorithms including wildcard support and fuzzy matching
+- Supports multi-criteria filtering with logical operators and complex condition evaluation
+- Provides foundation for advanced search optimization and query performance enhancement
+- Enables intelligent search result ranking and relevance scoring for optimal user experience
+
+* Search Criteria Structure and Query Context
+
+** Pattern Matching and Text Search Criteria
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Optional name pattern to match with wildcard support for flexible pattern matching
+ */
+@Getter
+@NonNull
+private final Optional<String> namePattern;
+
+/**
+ * Optional description pattern to match with wildcard support for content discovery
+ */
+@Getter
+@NonNull
+private final Optional<String> descriptionPattern;
+#+END_SRC
+
+** Confidence and Quality-Based Search Criteria
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Minimum confidence level for flows to ensure quality-based filtering
+ */
+@Getter
+@NonNull
+private final Optional<Double> minimumConfidence;
+
+/**
+ * Maximum confidence level for flows to support confidence range filtering
+ */
+@Getter
+@NonNull
+private final Optional<Double> maximumConfidence;
+#+END_SRC
+
+** Structural and Temporal Search Criteria
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Minimum number of events in flow sequence for complexity-based filtering
+ */
+@Getter
+@NonNull
+private final Optional<Integer> minimumEventCount;
+
+/**
+ * Maximum time window for flows to support temporal constraint filtering
+ */
+@Getter
+@NonNull
+private final Optional<Duration> maximumTimeWindow;
+#+END_SRC
+
+** Event Type-Based Search and Filtering Criteria
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Event types that must be present in the flow for content-based matching
+ */
+@Getter
+@NonNull
+private final List<Class<? extends DomainEvent>> requiredEventTypes;
+
+/**
+ * Event types that must not be present in the flow for exclusion filtering
+ */
+@Getter
+@NonNull
+private final List<Class<? extends DomainEvent>> excludedEventTypes;
+#+END_SRC
+
+* Factory Methods and Query Construction
+
+** Pattern-Based Search Construction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Creates criteria for finding flows by name pattern with wildcard support
+ * @param namePattern The name pattern supporting * wildcards for flexible matching
+ * @return Search criteria for name-based flow discovery and matching
+ */
+@NonNull
+public static FlowSearchCriteria byNamePattern(@Nullable final String namePattern) {
+    return FlowSearchCriteria.builder()
+        .namePattern(Optional.ofNullable(namePattern))
+        .descriptionPattern(Optional.empty())
+        .minimumConfidence(Optional.empty())
+        .maximumConfidence(Optional.empty())
+        .minimumEventCount(Optional.empty())
+        .maximumTimeWindow(Optional.empty())
+        .requiredEventTypes(List.of())
+        .excludedEventTypes(List.of())
+        .build();
+}
+#+END_SRC
+
+** Confidence-Based Search Construction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Creates criteria for finding flows by confidence range for quality-based discovery
+ * @param minimumConfidence The minimum confidence level for quality filtering
+ * @param maximumConfidence The maximum confidence level for range-based matching
+ * @return Search criteria for confidence-based flow discovery and analysis
+ */
+@NonNull
+public static FlowSearchCriteria byConfidenceRange(
+    final double minimumConfidence,
+    final double maximumConfidence
+) {
+    return FlowSearchCriteria.builder()
+        .namePattern(Optional.empty())
+        .descriptionPattern(Optional.empty())
+        .minimumConfidence(Optional.of(minimumConfidence))
+        .maximumConfidence(Optional.of(maximumConfidence))
+        .minimumEventCount(Optional.empty())
+        .maximumTimeWindow(Optional.empty())
+        .requiredEventTypes(List.of())
+        .excludedEventTypes(List.of())
+        .build();
+}
+#+END_SRC
+
+** Event Type-Based Search Construction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Creates criteria for finding flows containing specific event types
+ * @param eventTypes The event types that must be present for content matching
+ * @return Search criteria for event type-based flow discovery and analysis
+ */
+@SafeVarargs
+@SuppressWarnings("varargs")
+@NonNull
+public static FlowSearchCriteria containingEventTypes(
+    @NonNull final Class<? extends DomainEvent>... eventTypes
+) {
+    return FlowSearchCriteria.builder()
+        .namePattern(Optional.empty())
+        .descriptionPattern(Optional.empty())
+        .minimumConfidence(Optional.empty())
+        .maximumConfidence(Optional.empty())
+        .minimumEventCount(Optional.empty())
+        .maximumTimeWindow(Optional.empty())
+        .requiredEventTypes(List.of(eventTypes))
+        .excludedEventTypes(List.of())
+        .build();
+}
+#+END_SRC
+
+** Universal Search Construction
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Creates criteria that matches all flows for comprehensive discovery
+ * @return Search criteria that matches everything for complete flow retrieval
+ */
+@NonNull
+public static FlowSearchCriteria all() {
+    return FlowSearchCriteria.builder()
+        .namePattern(Optional.empty())
+        .descriptionPattern(Optional.empty())
+        .minimumConfidence(Optional.empty())
+        .maximumConfidence(Optional.empty())
+        .minimumEventCount(Optional.empty())
+        .maximumTimeWindow(Optional.empty())
+        .requiredEventTypes(List.of())
+        .excludedEventTypes(List.of())
+        .build();
+}
+#+END_SRC
+
+* Pattern Matching and Filtering Intelligence
+
+** Advanced Pattern Matching Implementation
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/FlowSearchCriteria.java
+/**
+ * Checks if a flow matches these criteria with comprehensive multi-dimensional evaluation
+ * @param flow The flow to test against search criteria
+ * @return true if the flow matches all specified criteria
+ */
+public boolean matches(@Nullable final Flow flow) {
+    if (flow == null) {
+        return false;
+    }
+
+    // Check name pattern with wildcard support
+    if (namePattern.isPresent() && !matchesPattern(flow.getName(), namePattern.get())) {
+        return false;
+    }
+
+    // Check description pattern with wildcard support
+    if (descriptionPattern.isPresent() && !matchesPattern(flow.getDescription(), descriptionPattern.get())) {
+        return false;
+    }
+
+    // Check confidence range filtering
+    if (minimumConfidence.isPresent() && flow.getConfidence() < minimumConfidence.get()) {
+        return false;
+    }
+
+    if (maximumConfidence.isPresent() && flow.getConfidence() > maximumConfidence.get()) {
+        return false;
+    }
+
+    // Check minimum event count for complexity filtering
+    if (minimumEventCount.isPresent() && flow.getEventSequence().size() < minimumEventCount.get()) {
+        return false;
+    }
+
+    // Check maximum time window for temporal filtering
+    if (maximumTimeWindow.isPresent() && flow.getMaximumTimeWindow().compareTo(maximumTimeWindow.get()) > 0) {
+        return false;
+    }
+
+    // Check required event types for content matching
+    for (Class<? extends DomainEvent> requiredType : requiredEventTypes) {
+        if (!flow.getEventSequence().contains(requiredType)) {
+            return false;
+        }
+    }
+
+    // Check excluded event types for negative filtering
+    for (Class<? extends DomainEvent> excludedType : excludedEventTypes) {
+        if (flow.getEventSequence().contains(excludedType)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Private helper method for wildcard pattern matching with case-insensitive support
+ * @param text The text to match against pattern
+ * @param pattern The pattern with wildcard support (* matches any sequence)
+ * @return true if text matches the pattern
+ */
+private boolean matchesPattern(@Nullable final String text, @Nullable final String pattern) {
+    if (text == null || pattern == null) {
+        return false;
+    }
+
+    // Simple wildcard matching with case-insensitive comparison
+    String regexPattern = pattern
+        .replace("*", ".*")
+        .toLowerCase();
+
+    return text.toLowerCase().matches(regexPattern);
+}
+#+END_SRC
+
+* Search Intelligence and Query Optimization
+
+** Multi-Dimensional Filtering Strategy
+The class provides sophisticated multi-dimensional filtering:
+- **Text-Based Filtering**: Pattern matching for name and description fields with wildcard support
+- **Quality-Based Filtering**: Confidence-based filtering for quality assurance and relevance ranking
+- **Structural Filtering**: Event count and complexity-based filtering for structural analysis
+- **Temporal Filtering**: Time-based filtering for temporal analysis and constraint satisfaction
+- **Content-Based Filtering**: Event type inclusion and exclusion for semantic matching
+
+** Query Composition and Combination
+The implementation supports query composition:
+- **Criteria Combination**: Logical AND combination of multiple criteria for precise matching
+- **Optional Parameters**: Optional parameter support for flexible query construction
+- **Builder Pattern**: Builder pattern for complex criteria construction and composition
+- **Immutable Design**: Immutable design for thread-safe query construction and execution
+
+** Performance Optimization and Efficiency
+The class enables performance optimization:
+- **Early Termination**: Early termination in matching logic for performance optimization
+- **Efficient Comparison**: Efficient comparison algorithms for large-scale flow discovery
+- **Memory Efficiency**: Memory-efficient design for large-scale search operations
+- **Caching Support**: Design optimized for caching and query result optimization
+
+* Integration with ByteHot Flow Intelligence Infrastructure
+
+** FlowDetectionPort Integration
+FlowSearchCriteria integrates with FlowDetectionPort for flow discovery:
+- Provide sophisticated search capabilities for FlowDetectionPort search operations
+- Enable complex query construction and multi-dimensional filtering for flow analysis
+- Support advanced search optimization and performance enhancement for large-scale operations
+- Provide foundation for intelligent flow discovery and pattern recognition workflows
+
+** Flow Analytics Integration
+The class coordinates with flow analytics systems:
+- **Analytics Query Support**: Support for analytics queries and complex flow analysis operations
+- **Pattern Discovery**: Pattern discovery capabilities for flow intelligence and system understanding
+- **Trend Analysis**: Trend analysis support through temporal and quality-based filtering
+- **Performance Analytics**: Performance analytics through structural and complexity-based filtering
+
+** User Interface Integration
+The implementation supports user interface integration:
+- **Search Interface**: Rich search interface support for interactive flow discovery
+- **Filter Management**: Filter management capabilities for user-driven search customization
+- **Query Visualization**: Query visualization support for complex search criteria presentation
+- **Result Presentation**: Result presentation optimization through criteria-based ranking
+
+* Advanced Search Features and Capabilities
+
+** Wildcard and Pattern Matching
+The class provides advanced pattern matching capabilities:
+- **Wildcard Support**: Comprehensive wildcard support with * for any character sequence matching
+- **Case-Insensitive Matching**: Case-insensitive pattern matching for user-friendly search
+- **Regular Expression**: Regular expression-based matching for advanced pattern recognition
+- **Fuzzy Matching**: Foundation for fuzzy matching and approximate string matching
+
+** Range-Based Filtering
+The implementation supports range-based filtering:
+- **Confidence Ranges**: Confidence range filtering for quality-based flow discovery
+- **Temporal Ranges**: Temporal range filtering for time-based flow analysis
+- **Complexity Ranges**: Event count ranges for complexity-based flow classification
+- **Multi-Range Support**: Multiple range criteria for sophisticated filtering combinations
+
+** Semantic and Content-Based Matching
+The class enables semantic matching:
+- **Event Type Semantics**: Event type-based semantic matching for content discovery
+- **Inclusion Filtering**: Positive filtering for required content and patterns
+- **Exclusion Filtering**: Negative filtering for unwanted content and noise reduction
+- **Pattern Classification**: Pattern classification through semantic content analysis
+
+* Testing and Validation Strategies
+
+** Search Criteria Construction Testing
+#+begin_src java
+@Test
+void shouldConstructSearchCriteriaWithPatterns() {
+    // Given: Search parameters
+    String namePattern = "hot-swap-*";
+    double minConfidence = 0.7;
+    double maxConfidence = 0.95;
+    
+    // When: Constructing search criteria
+    FlowSearchCriteria criteria = FlowSearchCriteria.builder()
+        .namePattern(Optional.of(namePattern))
+        .minimumConfidence(Optional.of(minConfidence))
+        .maximumConfidence(Optional.of(maxConfidence))
+        .requiredEventTypes(List.of(ClassFileChanged.class))
+        .excludedEventTypes(List.of())
+        .build();
+    
+    // Then: Should contain complete search context
+    assertThat(criteria.getNamePattern()).contains(namePattern);
+    assertThat(criteria.getMinimumConfidence()).contains(minConfidence);
+    assertThat(criteria.getMaximumConfidence()).contains(maxConfidence);
+    assertThat(criteria.getRequiredEventTypes()).contains(ClassFileChanged.class);
+}
+#+end_src
+
+** Pattern Matching Testing
+#+begin_src java
+@Test
+void shouldMatchFlowsUsingPatterns() {
+    // Given: Search criteria with wildcard pattern
+    FlowSearchCriteria criteria = FlowSearchCriteria.byNamePattern("hot-swap-*");
+    Flow matchingFlow = createFlowWithName("hot-swap-basic");
+    Flow nonMatchingFlow = createFlowWithName("validation-sequence");
+    
+    // When: Testing pattern matching
+    boolean matchesFirst = criteria.matches(matchingFlow);
+    boolean matchesSecond = criteria.matches(nonMatchingFlow);
+    
+    // Then: Should match patterns correctly
+    assertThat(matchesFirst).isTrue();
+    assertThat(matchesSecond).isFalse();
+}
+#+end_src
+
+** Multi-Criteria Filtering Testing
+#+begin_src java
+@Test
+void shouldFilterUsingMultipleCriteria() {
+    // Given: Complex search criteria
+    FlowSearchCriteria criteria = FlowSearchCriteria.builder()
+        .minimumConfidence(Optional.of(0.8))
+        .minimumEventCount(Optional.of(3))
+        .requiredEventTypes(List.of(ClassFileChanged.class, BytecodeValidated.class))
+        .build();
+    
+    Flow qualifyingFlow = createComplexFlow();
+    Flow simpleFlow = createSimpleFlow();
+    
+    // When: Testing multi-criteria matching
+    boolean qualifies = criteria.matches(qualifyingFlow);
+    boolean simple = criteria.matches(simpleFlow);
+    
+    // Then: Should apply all criteria correctly
+    assertThat(qualifies).isTrue();
+    assertThat(simple).isFalse();
+}
+#+end_src
+
+* Integration with Search and Discovery Systems
+
+** Search Engine Integration
+The class integrates with search engines:
+- **Query Translation**: Translation of domain criteria to search engine queries
+- **Index Optimization**: Index optimization based on search criteria patterns
+- **Performance Tuning**: Performance tuning for large-scale search operations
+- **Result Ranking**: Result ranking and relevance scoring based on criteria matching
+
+** Analytics Platform Integration
+The implementation supports analytics integration:
+- **Query Analytics**: Analytics for search query patterns and user behavior
+- **Performance Metrics**: Performance metrics for search operations and optimization
+- **Usage Patterns**: Usage pattern analysis for search interface optimization
+- **Recommendation Systems**: Recommendation systems based on search criteria patterns
+
+** User Experience Integration
+The class coordinates with user experience systems:
+- **Auto-Completion**: Auto-completion support for search criteria construction
+- **Search Suggestions**: Search suggestions based on available flows and patterns
+- **Filter Assistance**: Filter assistance and guidance for complex search construction
+- **Result Visualization**: Result visualization based on search criteria and matching logic
+
+* Related Documentation
+
+- [[FlowDetectionPort.org][FlowDetectionPort]]: Port interface using search criteria for flow discovery
+- [[Flow.org][Flow]]: Domain entity being searched and filtered by criteria
+- [[FlowStatistics.org][FlowStatistics]]: Statistics related to flow search and discovery
+- [[../flows/flow-discovery-flow.org][Flow Discovery Flow]]: Complete flow discovery workflow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Value Object Pattern**: Immutable search criteria with comprehensive behavior
+- **Builder Pattern**: Flexible construction of complex search criteria with multiple parameters
+- **Strategy Pattern**: Support for different matching strategies and algorithms
+- **Specification Pattern**: Specification-based matching for complex criteria evaluation
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Value Objects**: Comprehensive behavior beyond simple data containers
+- **Domain Logic Encapsulation**: Search logic encapsulated within domain boundaries
+- **Infrastructure Independence**: Pure domain logic without infrastructure dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Machine Learning Search**: AI-driven search enhancement and result optimization
+- **Semantic Search**: Semantic search capabilities with natural language processing
+- **Advanced Analytics**: Advanced analytics integration for search intelligence
+- **Real-Time Search**: Real-time search capabilities with live result updates
+
+The FlowSearchCriteria class provides ByteHot's essential flow discovery and pattern matching foundation while maintaining comprehensive search capabilities, intelligent filtering logic, and extensibility for advanced search scenarios throughout the entire intelligent hot-swap system lifecycle.

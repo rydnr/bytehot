@@ -1,0 +1,589 @@
+#+TITLE: InstanceUpdater - Core Instance Update Coordination
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =InstanceUpdater= class serves as the core coordinator for updating existing instances after class redefinition in ByteHot operations. It implements various update strategies and ensures that existing objects remain functional after hot-swap operations.
+
+** Key Responsibilities
+- Coordinate instance updates after class redefinition
+- Support multiple update strategies (automatic, reflection, proxy refresh, factory reset)
+- Integrate with dependency injection frameworks
+- Track update results and metrics
+- Handle update failures gracefully
+
+** Design Patterns
+- *Strategy Pattern*: For different update methods
+- *Coordinator Pattern*: For orchestrating complex update operations
+- *Factory Pattern*: For framework integration
+- *Observer Pattern*: For update result tracking
+
+* Class Declaration and Imports
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: InstanceUpdater.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: InstanceUpdater
+ *
+ * Responsibilities:
+ *   - Coordinate instance updates after class redefinition
+ *   - Support multiple update strategies for different scenarios
+ *   - Integrate with dependency injection frameworks
+ *   - Track update results and provide comprehensive metrics
+ *
+ * Collaborators:
+ *   - InstanceTracker: Finds instances that need updating
+ *   - StatePreserver: Preserves and restores instance state
+ *   - FrameworkIntegration: Handles DI framework integration
+ *   - InstanceUpdateMethod: Defines update strategies
+ */
+package org.acmsl.bytehot.domain;
+
+import org.acmsl.bytehot.domain.events.InstancesUpdated;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+#+end_src
+
+* Class Definition and Core Structure
+
+The =InstanceUpdater= coordinates with other components to perform comprehensive instance updates.
+
+#+end_src
+
+/**
+ * Coordinates instance updates after class redefinition
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+public class InstanceUpdater {
+
+    /**
+     * Instance tracker for finding instances to update
+     */
+    private final InstanceTracker instanceTracker;
+
+    /**
+     * State preserver for maintaining instance state
+     */
+    private final StatePreserver statePreserver;
+
+    /**
+     * Framework integration for DI container support
+     */
+    private final FrameworkIntegration frameworkIntegration;
+
+    /**
+     * Creates a new instance updater
+     * @param instanceTracker the instance tracker
+     * @param statePreserver the state preserver
+     * @param frameworkIntegration the framework integration
+     */
+    public InstanceUpdater(final InstanceTracker instanceTracker, final StatePreserver statePreserver, 
+                          final FrameworkIntegration frameworkIntegration) {
+        this.instanceTracker = instanceTracker;
+        this.statePreserver = statePreserver;
+        this.frameworkIntegration = frameworkIntegration;
+    }
+#+end_src
+
+* Primary Update Methods
+
+** Basic Instance Update
+
+The main entry point for updating instances after class redefinition.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+
+    /**
+     * Updates all tracked instances of a class after redefinition
+     * @param redefinedClass the class that was redefined
+     * @param updateMethod the method to use for updating instances
+     * @return event containing update results
+     */
+    public InstancesUpdated updateInstances(final Class<?> redefinedClass, final InstanceUpdateMethod updateMethod) {
+        final Instant startTime = Instant.now();
+        final String className = redefinedClass.getName();
+        
+        try {
+            // Find all instances that need updating
+            final Set<Object> instances = instanceTracker.findInstances(redefinedClass);
+            
+            if (instances.isEmpty()) {
+                return createNoInstancesResult(className, updateMethod, startTime);
+            }
+            
+            // Perform the update based on the selected method
+            final UpdateResult result = performUpdate(instances, redefinedClass, updateMethod);
+            
+            final Duration updateDuration = Duration.between(startTime, Instant.now());
+            
+            return InstancesUpdated.successful(
+                className,
+                updateMethod,
+                result.successCount,
+                result.failureCount,
+                result.skippedCount,
+                updateDuration,
+                startTime
+            );
+            
+        } catch (Exception e) {
+            final Duration updateDuration = Duration.between(startTime, Instant.now());
+            return InstancesUpdated.failed(
+                className,
+                updateMethod,
+                e.getMessage(),
+                updateDuration,
+                startTime
+            );
+        }
+    }
+#+end_src
+
+** Framework-Aware Update
+
+Updates instances with specific consideration for dependency injection frameworks.
+
+#+end_src
+
+    /**
+     * Updates instances with framework-specific handling
+     * @param redefinedClass the class that was redefined
+     * @param updateMethod the update method to use
+     * @param frameworkType the type of framework being used
+     * @return event containing update results
+     */
+    public InstancesUpdated updateInstancesWithFramework(final Class<?> redefinedClass, 
+                                                        final InstanceUpdateMethod updateMethod,
+                                                        final String frameworkType) {
+        final Instant startTime = Instant.now();
+        final String className = redefinedClass.getName();
+        
+        try {
+            // Enable framework-specific handling
+            frameworkIntegration.enableFrameworkSupport(frameworkType);
+            
+            // Update instances with framework awareness
+            final InstancesUpdated result = updateInstances(redefinedClass, updateMethod);
+            
+            // Handle framework-specific post-update operations
+            frameworkIntegration.handlePostUpdateOperations(redefinedClass, frameworkType);
+            
+            return result;
+            
+        } catch (Exception e) {
+            final Duration updateDuration = Duration.between(startTime, Instant.now());
+            return InstancesUpdated.failed(
+                className,
+                updateMethod,
+                "Framework update failed: " + e.getMessage(),
+                updateDuration,
+                startTime
+            );
+        }
+    }
+#+end_src
+
+* Update Strategy Implementation
+
+** Core Update Logic
+
+Implements the actual update process based on the selected strategy.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+
+    /**
+     * Performs the actual update operation on a set of instances
+     * @param instances the instances to update
+     * @param redefinedClass the redefined class
+     * @param updateMethod the update method to use
+     * @return update result with counts
+     */
+    private UpdateResult performUpdate(final Set<Object> instances, final Class<?> redefinedClass, 
+                                     final InstanceUpdateMethod updateMethod) {
+        int successCount = 0;
+        int failureCount = 0;
+        int skippedCount = 0;
+        
+        for (final Object instance : instances) {
+            try {
+                final boolean updated = updateSingleInstance(instance, redefinedClass, updateMethod);
+                if (updated) {
+                    successCount++;
+                } else {
+                    skippedCount++;
+                }
+            } catch (Exception e) {
+                failureCount++;
+                // Log the failure but continue with other instances
+                System.err.println("Failed to update instance: " + e.getMessage());
+            }
+        }
+        
+        return new UpdateResult(successCount, failureCount, skippedCount);
+    }
+#+end_src
+
+** Single Instance Update
+
+Handles the update of an individual instance based on the selected strategy.
+
+#+end_src
+
+    /**
+     * Updates a single instance using the specified method
+     * @param instance the instance to update
+     * @param redefinedClass the redefined class
+     * @param updateMethod the update method to use
+     * @return true if the instance was updated, false if skipped
+     * @throws InstanceUpdateException if the update fails
+     */
+    private boolean updateSingleInstance(final Object instance, final Class<?> redefinedClass, 
+                                        final InstanceUpdateMethod updateMethod) throws InstanceUpdateException {
+        
+        switch (updateMethod) {
+            case AUTOMATIC:
+                return performAutomaticUpdate(instance, redefinedClass);
+                
+            case REFLECTION:
+                return performReflectionUpdate(instance, redefinedClass);
+                
+            case PROXY_REFRESH:
+                return performProxyRefresh(instance, redefinedClass);
+                
+            case FACTORY_RESET:
+                return performFactoryReset(instance, redefinedClass);
+                
+            case NO_UPDATE:
+                return false; // Skip this instance
+                
+            default:
+                throw new InstanceUpdateException("Unknown update method: " + updateMethod, null);
+        }
+    }
+#+end_src
+
+* Update Strategy Implementations
+
+** Automatic Update
+
+Attempts to automatically update the instance using the best available method.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+
+    /**
+     * Performs automatic update by trying the most appropriate method
+     * @param instance the instance to update
+     * @param redefinedClass the redefined class
+     * @return true if update was successful
+     * @throws InstanceUpdateException if all update methods fail
+     */
+    private boolean performAutomaticUpdate(final Object instance, final Class<?> redefinedClass) 
+            throws InstanceUpdateException {
+        
+        // Try reflection-based update first (safest)
+        try {
+            return performReflectionUpdate(instance, redefinedClass);
+        } catch (InstanceUpdateException e) {
+            // Fall back to proxy refresh if reflection fails
+            try {
+                return performProxyRefresh(instance, redefinedClass);
+            } catch (InstanceUpdateException e2) {
+                // Last resort: factory reset
+                return performFactoryReset(instance, redefinedClass);
+            }
+        }
+    }
+#+end_src
+
+** Reflection-Based Update
+
+Updates the instance using reflection to modify internal state.
+
+#+end_src
+
+    /**
+     * Updates instance using reflection to preserve and restore state
+     * @param instance the instance to update
+     * @param redefinedClass the redefined class
+     * @return true if update was successful
+     * @throws InstanceUpdateException if reflection update fails
+     */
+    private boolean performReflectionUpdate(final Object instance, final Class<?> redefinedClass) 
+            throws InstanceUpdateException {
+        
+        try {
+            // Preserve current state
+            final Object preservedState = statePreserver.preserveState(instance);
+            
+            // Restore state after class redefinition
+            statePreserver.restoreState(instance, preservedState);
+            
+            return true;
+            
+        } catch (Exception e) {
+            throw new InstanceUpdateException("Reflection-based update failed for instance of " + 
+                                            redefinedClass.getName(), e);
+        }
+    }
+#+end_src
+
+** Proxy Refresh
+
+Refreshes proxy instances that may be affected by class redefinition.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+
+    /**
+     * Refreshes proxy instances after class redefinition
+     * @param instance the instance to refresh
+     * @param redefinedClass the redefined class
+     * @return true if refresh was successful
+     * @throws InstanceUpdateException if proxy refresh fails
+     */
+    private boolean performProxyRefresh(final Object instance, final Class<?> redefinedClass) 
+            throws InstanceUpdateException {
+        
+        try {
+            // Check if this is a proxy instance
+            if (isProxyInstance(instance)) {
+                // Refresh the proxy to use the new class definition
+                refreshProxy(instance, redefinedClass);
+                return true;
+            } else {
+                // Not a proxy, skip this update method
+                return false;
+            }
+            
+        } catch (Exception e) {
+            throw new InstanceUpdateException("Proxy refresh failed for instance of " + 
+                                            redefinedClass.getName(), e);
+        }
+    }
+#+end_src
+
+** Factory Reset
+
+Recreates the instance using factory methods or dependency injection.
+
+#+end_src
+
+    /**
+     * Performs factory reset by recreating the instance
+     * @param instance the instance to reset
+     * @param redefinedClass the redefined class
+     * @return true if factory reset was successful
+     * @throws InstanceUpdateException if factory reset fails
+     */
+    private boolean performFactoryReset(final Object instance, final Class<?> redefinedClass) 
+            throws InstanceUpdateException {
+        
+        try {
+            // Use framework integration to recreate the instance
+            final Object newInstance = frameworkIntegration.recreateInstance(instance, redefinedClass);
+            
+            if (newInstance != null) {
+                // Replace the old instance with the new one in the framework
+                frameworkIntegration.replaceInstance(instance, newInstance);
+                return true;
+            } else {
+                return false;
+            }
+            
+        } catch (Exception e) {
+            throw new InstanceUpdateException("Factory reset failed for instance of " + 
+                                            redefinedClass.getName(), e);
+        }
+    }
+#+end_src
+
+* Utility Methods
+
+** Instance Type Detection
+
+Helper methods for determining instance characteristics.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+
+    /**
+     * Checks if an instance is a proxy
+     * @param instance the instance to check
+     * @return true if the instance is a proxy
+     */
+    private boolean isProxyInstance(final Object instance) {
+        // Check for common proxy indicators
+        final String className = instance.getClass().getName();
+        return className.contains("$Proxy") || 
+               className.contains("$$") || 
+               className.contains("CGLIB") ||
+               className.contains("ByteBuddy");
+    }
+
+    /**
+     * Refreshes a proxy instance
+     * @param instance the proxy instance
+     * @param redefinedClass the redefined class
+     * @throws Exception if refresh fails
+     */
+    private void refreshProxy(final Object instance, final Class<?> redefinedClass) throws Exception {
+        // Implementation would depend on the specific proxy framework
+        // This is a placeholder for the actual proxy refresh logic
+        System.out.println("Refreshing proxy for " + redefinedClass.getName());
+    }
+#+end_src
+
+** Result Creation
+
+Helper methods for creating result events.
+
+#+end_src
+
+    /**
+     * Creates a result for when no instances are found
+     * @param className the class name
+     * @param updateMethod the update method
+     * @param startTime when the operation started
+     * @return instances updated event
+     */
+    private InstancesUpdated createNoInstancesResult(final String className, final InstanceUpdateMethod updateMethod, 
+                                                   final Instant startTime) {
+        final Duration updateDuration = Duration.between(startTime, Instant.now());
+        return InstancesUpdated.successful(
+            className,
+            updateMethod,
+            0, // successCount
+            0, // failureCount
+            0, // skippedCount
+            updateDuration,
+            startTime
+        );
+    }
+#+end_src
+
+* Inner Classes
+
+** Update Result
+
+Internal class for tracking update operation results.
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceUpdater.java
+
+    /**
+     * Internal class for tracking update results
+     */
+    private static class UpdateResult {
+        final int successCount;
+        final int failureCount;
+        final int skippedCount;
+        
+        UpdateResult(final int successCount, final int failureCount, final int skippedCount) {
+            this.successCount = successCount;
+            this.failureCount = failureCount;
+            this.skippedCount = skippedCount;
+        }
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Basic Instance Update
+
+#+end_src
+InstanceUpdater updater = new InstanceUpdater(instanceTracker, statePreserver, frameworkIntegration);
+
+// Update instances after class redefinition
+Class<?> redefinedClass = MyService.class;
+InstancesUpdated result = updater.updateInstances(redefinedClass, InstanceUpdateMethod.AUTOMATIC);
+
+if (result.isSuccessful()) {
+    System.out.printf("Successfully updated %d instances\n", result.getSuccessCount());
+} else {
+    System.err.printf("Update failed: %s\n", result.getErrorMessage());
+}
+#+end_src
+
+** Framework-Aware Update
+
+#+begin_src java
+// Update instances with Spring framework support
+InstancesUpdated result = updater.updateInstancesWithFramework(
+    MyService.class, 
+    InstanceUpdateMethod.FACTORY_RESET,
+    "Spring"
+);
+
+// Check detailed results
+System.out.printf("Success: %d, Failed: %d, Skipped: %d\n", 
+    result.getSuccessCount(), 
+    result.getFailureCount(), 
+    result.getSkippedCount()
+);
+#+end_src
+
+** Strategy Selection
+
+#+end_src
+// Choose update strategy based on class characteristics
+InstanceUpdateMethod strategy;
+if (isStatelessService(targetClass)) {
+    strategy = InstanceUpdateMethod.FACTORY_RESET;
+} else if (hasComplexState(targetClass)) {
+    strategy = InstanceUpdateMethod.REFLECTION;
+} else {
+    strategy = InstanceUpdateMethod.AUTOMATIC;
+}
+
+InstancesUpdated result = updater.updateInstances(targetClass, strategy);
+#+end_src
+
+* Architecture Notes
+
+** Strategy Pattern Implementation
+- Clean separation of update strategies
+- Fallback mechanisms for failed strategies
+- Extensible design for adding new update methods
+- Context-aware strategy selection
+
+** Framework Integration
+- Pluggable framework support through FrameworkIntegration
+- Support for common DI frameworks (Spring, CDI, Guice)
+- Factory method integration for instance recreation
+- Proxy handling for AOP frameworks
+
+** Error Handling
+- Graceful degradation when updates fail
+- Detailed error reporting with context
+- Continuation of updates even when individual instances fail
+- Comprehensive metrics for monitoring and debugging

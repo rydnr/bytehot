@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flows/rollback-coordination-flow - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview">Overview</h1>
+<p>This flow documents the sophisticated rollback coordination process
+in ByteHot, showing how the system creates snapshots, manages cascading
+rollbacks, and coordinates recovery across multiple classes and
+framework integrations. This flow ensures system consistency when
+hot-swap operations must be undone.</p>
+<h2 id="flow-trigger">Flow Trigger</h2>
+<ul>
+<li><strong><strong>Starting Event</strong></strong>: Rollback request
+(manual or automatic due to failure)</li>
+<li><strong><strong>Ending Event</strong></strong>: <code
+class="verbatim">RollbackResult</code> with complete system
+restoration</li>
+<li><strong><strong>Duration</strong></strong>: 200ms - 10s depending on
+rollback scope and complexity</li>
+<li><strong><strong>Criticality</strong></strong>: High - Essential for
+system reliability and consistency</li>
+</ul>
+<h1 id="flow-participants">Flow Participants</h1>
+<h2 id="primary-actors">Primary Actors</h2>
+<ul>
+<li><code class="verbatim">RollbackManager</code> (Domain): Orchestrates
+all rollback operations</li>
+<li><code class="verbatim">RollbackSnapshot</code> (Domain): Contains
+captured system state</li>
+<li><code class="verbatim">StatePreserver</code> (Domain): Handles
+instance state restoration</li>
+<li><code class="verbatim">ConflictResolutionStrategy</code> (Domain):
+Resolves rollback conflicts</li>
+</ul>
+<h2 id="secondary-actors">Secondary Actors</h2>
+<ul>
+<li><code class="verbatim">InstanceTracker</code> (Domain): Tracks
+instances affected by rollback</li>
+<li><code class="verbatim">FrameworkIntegration</code> (Domain):
+Framework-aware rollback operations</li>
+<li><code class="verbatim">RollbackAuditTrail</code> (Domain): Tracks
+rollback operation history</li>
+<li><code class="verbatim">ErrorRecoveryManager</code> (Domain):
+Coordinates with error recovery</li>
+</ul>
+<h1 id="snapshot-creation-and-management">Snapshot Creation and
+Management</h1>
+<h2 id="phase-1-snapshot-creation">Phase 1: Snapshot Creation</h2>
+<pre><code>[ Pre-Operation State ] --&gt; [ Snapshot Creation ] --&gt; [ State Capture ] --&gt; [ Snapshot Validation ]
+                                    |                      |                     |
+                                    v                      v                     v
+                            [ Metadata Collection ] --&gt; [ Serialization ] --&gt; [ Storage ]
+</code></pre>
+<p>Before any risky operation, system state is captured:</p>
+<ol>
+<li><strong><strong>Snapshot Initialization</strong></strong>: Create
+new <code class="verbatim">RollbackSnapshot</code> with:
+<ul>
+<li>Unique snapshot ID</li>
+<li>Timestamp of creation</li>
+<li>Target class name</li>
+<li>Operation context metadata</li>
+</ul></li>
+<li><strong><strong>State Capture</strong></strong>: Comprehensive state
+preservation:
+<ul>
+<li><strong><strong>Bytecode Capture</strong></strong>: Store current
+class bytecode</li>
+<li><strong><strong>Instance State Capture</strong></strong>: Use <code
+class="verbatim">StatePreserver</code> to capture all instance
+states</li>
+<li><strong><strong>Framework State</strong></strong>: Capture
+framework-specific configurations</li>
+<li><strong><strong>Dependency Graph</strong></strong>: Map inter-object
+relationships</li>
+</ul></li>
+<li><strong><strong>Metadata Collection</strong></strong>: Gather
+operation context:
+<ul>
+<li>Operation type (hot-swap, configuration change)</li>
+<li>User/trigger information</li>
+<li>System performance metrics at snapshot time</li>
+<li>Framework integration status</li>
+</ul></li>
+<li><strong><strong>Snapshot Validation</strong></strong>: Ensure
+snapshot integrity:
+<ul>
+<li>Verify all required state is captured</li>
+<li>Check serialization completeness</li>
+<li>Validate state consistency</li>
+<li>Confirm rollback feasibility</li>
+</ul></li>
+</ol>
+<h2 id="phase-2-snapshot-chain-management">Phase 2: Snapshot Chain
+Management</h2>
+<pre><code>[ Current Snapshot ] --&gt; [ Previous Snapshot Link ] --&gt; [ Chain Validation ] --&gt; [ Cleanup Policy ]
+</code></pre>
+<p>Snapshots are organized into chains for complex rollback
+scenarios:</p>
+<ol>
+<li><strong><strong>Chain Linking</strong></strong>: Connect snapshots
+in temporal order:
+<ul>
+<li>Link to previous snapshot for same class</li>
+<li>Maintain chronological order</li>
+<li>Support branching for concurrent operations</li>
+</ul></li>
+<li><strong><strong>Chain Validation</strong></strong>: Ensure chain
+integrity:
+<ul>
+<li>Verify link consistency</li>
+<li>Check for broken chains</li>
+<li>Validate rollback paths</li>
+</ul></li>
+<li><strong><strong>Cleanup Policy</strong></strong>: Manage snapshot
+lifecycle:
+<ul>
+<li>Automatic cleanup of old snapshots</li>
+<li>Retention policies for critical operations</li>
+<li>Memory management for large snapshots</li>
+</ul></li>
+</ol>
+<h1 id="rollback-execution-flow">Rollback Execution Flow</h1>
+<h2 id="phase-3-rollback-initiation">Phase 3: Rollback Initiation</h2>
+<pre><code>[ Rollback Request ] --&gt; [ Snapshot Selection ] --&gt; [ Rollback Planning ] --&gt; [ Conflict Analysis ]
+                               |                         |                       |
+                               v                         v                       v
+                      [ Chain Analysis ] --&gt; [ Resource Allocation ] --&gt; [ Strategy Selection ]
+</code></pre>
+<p>When rollback is requested, comprehensive planning occurs:</p>
+<ol>
+<li><strong><strong>Snapshot Selection</strong></strong>: Choose
+appropriate rollback target:
+<ul>
+<li>Specific snapshot ID (manual selection)</li>
+<li>Latest stable snapshot (automatic)</li>
+<li>Chain-based rollback (multiple snapshots)</li>
+</ul></li>
+<li><strong><strong>Rollback Planning</strong></strong>: Create detailed
+rollback execution plan:
+<ul>
+<li>Affected classes and instances</li>
+<li>Rollback order (dependencies first)</li>
+<li>Resource requirements</li>
+<li>Expected duration estimates</li>
+</ul></li>
+<li><strong><strong>Conflict Analysis</strong></strong>: Identify
+potential conflicts:
+<ul>
+<li>Concurrent operations on same classes</li>
+<li>Framework-managed instance conflicts</li>
+<li>Resource lock conflicts</li>
+<li>Cross-class dependency conflicts</li>
+</ul></li>
+<li><strong><strong>Strategy Selection</strong></strong>: Choose
+rollback approach:
+<ul>
+<li><strong><strong>Simple Rollback</strong></strong>: Single class, no
+dependencies</li>
+<li><strong><strong>Cascading Rollback</strong></strong>: Multiple
+related classes</li>
+<li><strong><strong>Partial Rollback</strong></strong>: Selective
+instance rollback</li>
+<li><strong><strong>Framework-Coordinated</strong></strong>:
+Framework-aware rollback</li>
+</ul></li>
+</ol>
+<h2 id="phase-4-coordinated-rollback-execution">Phase 4: Coordinated
+Rollback Execution</h2>
+<pre><code>[ Rollback Plan ] --&gt; [ Class Redefinition ] --&gt; [ Instance Restoration ] --&gt; [ Framework Update ]
+                            |                        |                         |
+                            v                        v                         v
+                   [ Bytecode Rollback ] --&gt; [ State Restoration ] --&gt; [ Validation ]
+</code></pre>
+<p>Execute rollback with careful coordination:</p>
+<ol>
+<li><strong><strong>Class Redefinition Rollback</strong></strong>:
+Restore previous class definitions:
+<ul>
+<li>Load bytecode from snapshot</li>
+<li>Use JVM instrumentation to redefine classes</li>
+<li>Verify successful redefinition</li>
+<li>Handle JVM rejection gracefully</li>
+</ul></li>
+<li><strong><strong>Instance State Restoration</strong></strong>:
+Restore captured instance states:
+<ul>
+<li><strong><strong>State Extraction</strong></strong>: Extract
+preserved states from snapshot</li>
+<li><strong><strong>Instance Identification</strong></strong>: Map
+states to current instances</li>
+<li><strong><strong>State Application</strong></strong>: Apply preserved
+state to instances</li>
+<li><strong><strong>Consistency Verification</strong></strong>: Ensure
+state consistency</li>
+</ul></li>
+<li><strong><strong>Framework Integration Updates</strong></strong>:
+Coordinate with frameworks:
+<ul>
+<li>Update framework-managed instances</li>
+<li>Refresh dependency injection graphs</li>
+<li>Update proxy configurations</li>
+<li>Synchronize framework metadata</li>
+</ul></li>
+<li><strong><strong>Validation and Verification</strong></strong>:
+Ensure rollback success:
+<ul>
+<li>Verify class definitions match snapshot</li>
+<li>Check instance state consistency</li>
+<li>Validate framework integration</li>
+<li>Confirm system stability</li>
+</ul></li>
+</ol>
+<h1 id="cascading-rollback-management">Cascading Rollback
+Management</h1>
+<h2 id="multi-class-rollback-coordination">Multi-Class Rollback
+Coordination</h2>
+<pre><code>[ Primary Class Rollback ] --&gt; [ Dependency Analysis ] --&gt; [ Cascading Rollback ] --&gt; [ Coordination ]
+                                      |                         |                       |
+                                      v                         v                       v
+                              [ Dependent Classes ] --&gt; [ Rollback Order ] --&gt; [ Batch Execution ]
+</code></pre>
+<p>When rollback affects multiple classes:</p>
+<ol>
+<li><strong><strong>Dependency Analysis</strong></strong>: Map class
+dependencies:
+<ul>
+<li>Direct dependencies (inheritance, composition)</li>
+<li>Framework dependencies (injection relationships)</li>
+<li>Runtime dependencies (method calls, field access)</li>
+</ul></li>
+<li><strong><strong>Rollback Order Determination</strong></strong>:
+Calculate optimal rollback sequence:
+<ul>
+<li>Dependencies rolled back before dependents</li>
+<li>Framework constraints considered</li>
+<li>Performance optimization</li>
+<li>Error minimization</li>
+</ul></li>
+<li><strong><strong>Batch Coordination</strong></strong>: Execute
+coordinated rollback:
+<ul>
+<li><strong><strong>Preparation Phase</strong></strong>: Prepare all
+classes for rollback</li>
+<li><strong><strong>Execution Phase</strong></strong>: Execute rollbacks
+in determined order</li>
+<li><strong><strong>Validation Phase</strong></strong>: Verify each
+rollback before proceeding</li>
+<li><strong><strong>Completion Phase</strong></strong>: Finalize all
+rollback operations</li>
+</ul></li>
+</ol>
+<h2 id="conflict-resolution-during-cascading-rollback">Conflict
+Resolution During Cascading Rollback</h2>
+<pre><code>[ Rollback Conflict ] --&gt; [ Conflict Analysis ] --&gt; [ Resolution Strategy ] --&gt; [ Coordinated Resolution ]
+</code></pre>
+<p>Handle conflicts that arise during complex rollbacks:</p>
+<ol>
+<li><strong><strong>Conflict Detection</strong></strong>: Identify
+rollback conflicts:
+<ul>
+<li>Timing conflicts (concurrent operations)</li>
+<li>Dependency conflicts (circular dependencies)</li>
+<li>Framework conflicts (container management issues)</li>
+<li>Resource conflicts (memory, file locks)</li>
+</ul></li>
+<li><strong><strong>Resolution Strategy Selection</strong></strong>:
+Choose conflict resolution approach:
+<ul>
+<li><strong><strong>Wait Strategy</strong></strong>: Wait for
+conflicting operations to complete</li>
+<li><strong><strong>Abort Strategy</strong></strong>: Abort conflicting
+operations</li>
+<li><strong><strong>Merge Strategy</strong></strong>: Merge compatible
+changes</li>
+<li><strong><strong>Manual Strategy</strong></strong>: Require manual
+intervention</li>
+</ul></li>
+<li><strong><strong>Coordinated Resolution</strong></strong>: Execute
+resolution strategy:
+<ul>
+<li>Coordinate with other ByteHot operations</li>
+<li>Communicate with framework containers</li>
+<li>Manage resource allocation</li>
+<li>Ensure atomicity of resolution</li>
+</ul></li>
+</ol>
+<h1 id="advanced-rollback-scenarios">Advanced Rollback Scenarios</h1>
+<h2 id="partial-rollback-flow">Partial Rollback Flow</h2>
+<pre><code>[ Selective Rollback Request ] --&gt; [ Instance Selection ] --&gt; [ Targeted Rollback ] --&gt; [ State Synchronization ]
+</code></pre>
+<p>When only specific instances need rollback:</p>
+<ol>
+<li><strong><strong>Instance Selection</strong></strong>: Identify
+specific instances for rollback:
+<ul>
+<li>Instance ID-based selection</li>
+<li>Criteria-based selection (state, type, framework)</li>
+<li>Manual instance selection</li>
+</ul></li>
+<li><strong><strong>Targeted Rollback</strong></strong>: Rollback only
+selected instances:
+<ul>
+<li>Preserve non-selected instances</li>
+<li>Maintain overall system consistency</li>
+<li>Handle inter-instance dependencies</li>
+</ul></li>
+<li><strong><strong>State Synchronization</strong></strong>: Ensure
+consistent system state:
+<ul>
+<li>Synchronize dependencies between rolled-back and non-rolled-back
+instances</li>
+<li>Update framework registrations</li>
+<li>Validate system consistency</li>
+</ul></li>
+</ol>
+<h2 id="cross-framework-rollback">Cross-Framework Rollback</h2>
+<pre><code>[ Multi-Framework Environment ] --&gt; [ Framework Coordination ] --&gt; [ Unified Rollback ] --&gt; [ Integration Validation ]
+</code></pre>
+<p>When multiple frameworks are involved:</p>
+<ol>
+<li><strong><strong>Framework Coordination</strong></strong>: Coordinate
+rollback across frameworks:
+<ul>
+<li>Spring + CDI environments</li>
+<li>Nested container scenarios</li>
+<li>Framework interdependencies</li>
+</ul></li>
+<li><strong><strong>Unified Rollback Strategy</strong></strong>: Execute
+framework-aware rollback:
+<ul>
+<li>Framework-specific rollback procedures</li>
+<li>Cross-framework dependency handling</li>
+<li>Unified transaction semantics</li>
+</ul></li>
+<li><strong><strong>Integration Validation</strong></strong>: Ensure
+cross-framework consistency:
+<ul>
+<li>Verify framework integration points</li>
+<li>Check cross-framework dependencies</li>
+<li>Validate unified system state</li>
+</ul></li>
+</ol>
+<h1 id="rollback-performance-and-monitoring">Rollback Performance and
+Monitoring</h1>
+<h2 id="performance-optimization">Performance Optimization</h2>
+<pre><code>[ Rollback Performance ] --&gt; [ Parallel Execution ] --&gt; [ Resource Management ] --&gt; [ Optimization Strategies ]
+</code></pre>
+<p>Optimize rollback performance:</p>
+<ol>
+<li><strong><strong>Parallel Execution</strong></strong>: Execute
+independent rollbacks concurrently:
+<ul>
+<li>Identify parallelizable operations</li>
+<li>Manage resource contention</li>
+<li>Coordinate completion timing</li>
+</ul></li>
+<li><strong><strong>Resource Management</strong></strong>: Optimize
+resource usage:
+<ul>
+<li>Memory allocation for snapshot data</li>
+<li>Thread pool management</li>
+<li>Framework resource coordination</li>
+</ul></li>
+<li><strong><strong>Optimization Strategies</strong></strong>: Apply
+performance optimizations:
+<ul>
+<li>Lazy loading of snapshot data</li>
+<li>Incremental state restoration</li>
+<li>Framework-specific optimizations</li>
+</ul></li>
+</ol>
+<h2 id="monitoring-and-auditing">Monitoring and Auditing</h2>
+<pre><code>[ Rollback Execution ] --&gt; [ Audit Trail ] --&gt; [ Performance Metrics ] --&gt; [ Success Analysis ]
+</code></pre>
+<p>Comprehensive monitoring of rollback operations:</p>
+<ol>
+<li><strong><strong>Audit Trail Creation</strong></strong>: Track all
+rollback activities:
+<ul>
+<li><code class="verbatim">RollbackAuditTrail</code> with complete
+operation history</li>
+<li>Individual <code class="verbatim">RollbackAuditEntry</code> for each
+step</li>
+<li>Timing and performance data</li>
+<li>Error and warning information</li>
+</ul></li>
+<li><strong><strong>Performance Metrics</strong></strong>: Collect
+rollback performance data:
+<ul>
+<li>Rollback duration by complexity</li>
+<li>Resource usage patterns</li>
+<li>Framework integration overhead</li>
+<li>Success/failure rates</li>
+</ul></li>
+<li><strong><strong>Success Analysis</strong></strong>: Analyze rollback
+effectiveness:
+<ul>
+<li>Complete vs. partial rollback success</li>
+<li>Framework integration effectiveness</li>
+<li>Conflict resolution success rates</li>
+<li>Long-term system stability</li>
+</ul></li>
+</ol>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="rollback-failure-management">Rollback Failure Management</h2>
+<pre><code>[ Rollback Failure ] --&gt; [ Failure Analysis ] --&gt; [ Recovery Strategy ] --&gt; [ Emergency Procedures ]
+</code></pre>
+<p>Handle cases where rollback itself fails:</p>
+<ol>
+<li><strong><strong>Failure Analysis</strong></strong>: Categorize
+rollback failures:
+<ul>
+<li>Snapshot corruption</li>
+<li>JVM redefinition rejection</li>
+<li>Framework integration failures</li>
+<li>Resource exhaustion</li>
+</ul></li>
+<li><strong><strong>Recovery Strategy</strong></strong>: Attempt
+rollback recovery:
+<ul>
+<li>Alternative snapshot selection</li>
+<li>Partial rollback completion</li>
+<li>Framework-specific recovery</li>
+<li>Manual intervention procedures</li>
+</ul></li>
+<li><strong><strong>Emergency Procedures</strong></strong>: Last-resort
+recovery actions:
+<ul>
+<li>System restart procedures</li>
+<li>Emergency state preservation</li>
+<li>Manual system restoration</li>
+<li>Data consistency verification</li>
+</ul></li>
+</ol>
+<h1 id="rollback-flow-invariants">Rollback Flow Invariants</h1>
+<h2 id="pre-conditions">Pre-conditions</h2>
+<ul>
+<li>Valid rollback snapshot exists and is accessible</li>
+<li>Target system state is consistent and stable</li>
+<li>Required permissions and resources are available</li>
+<li>No conflicting operations are in progress</li>
+</ul>
+<h2 id="post-conditions">Post-conditions</h2>
+<ul>
+<li>System state matches the targeted snapshot</li>
+<li>All affected instances reflect the rolled-back state</li>
+<li>Framework integrations are consistent with rollback</li>
+<li>System is stable and ready for normal operations</li>
+</ul>
+<h2 id="consistency-guarantees">Consistency Guarantees</h2>
+<ul>
+<li>Atomic rollback operations (all or nothing)</li>
+<li>Temporal consistency (no partial time-state mixing)</li>
+<li>Dependency consistency (dependent objects remain consistent)</li>
+<li>Framework consistency (framework state matches rolled-back
+application state)</li>
+</ul>
+<h1 id="architecture-integration">Architecture Integration</h1>
+<h2 id="event-driven-rollback">Event-Driven Rollback</h2>
+<ul>
+<li>All rollback operations emit appropriate events</li>
+<li>Monitoring systems track rollback progress</li>
+<li>Audit trails provide complete operation history</li>
+<li>Integration with error recovery systems</li>
+</ul>
+<h2 id="domain-driven-design">Domain-Driven Design</h2>
+<ul>
+<li>Rollback logic encapsulated in domain layer</li>
+<li>Clear separation of rollback concerns</li>
+<li>Framework integration abstracted through ports</li>
+<li>Business rules for rollback embedded in domain objects</li>
+</ul>
+<h2 id="hexagonal-architecture-benefits">Hexagonal Architecture
+Benefits</h2>
+<ul>
+<li>Rollback system isolated from infrastructure details</li>
+<li>Multiple rollback adapters for different scenarios</li>
+<li>Testable rollback logic independent of external systems</li>
+<li>Pluggable conflict resolution strategies</li>
+</ul>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

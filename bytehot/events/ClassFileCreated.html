@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>events/ClassFileCreated - ByteHot Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #00ff00;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        .nav-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(15, 15, 35, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            z-index: 1000;
+            border-bottom: 2px solid #00ff00;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: #00ff00;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            background: #00ff00;
+            color: #0f0f23;
+            box-shadow: 0 0 15px #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .content {
+            margin-top: 100px;
+            padding: 2rem;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .doc-container {
+            background: rgba(26, 26, 58, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            padding: 3rem;
+            margin: 2rem 0;
+        }
+
+        .doc-container h1 {
+            color: #00cccc;
+            font-size: 2.5rem;
+            margin: 0 0 2rem 0;
+            text-shadow: 0 0 15px #00cccc;
+            text-align: center;
+        }
+
+        .doc-container h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 2rem 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .doc-container h3 {
+            color: #00cccc;
+            font-size: 1.4rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .doc-container h4, .doc-container h5, .doc-container h6 {
+            color: #ffffff;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        .doc-container p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .doc-container ul, .doc-container ol {
+            color: #ffffff;
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .doc-container li {
+            margin: 0.5rem 0;
+            line-height: 1.6;
+        }
+
+        .doc-container code {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff00;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+
+        .doc-container pre {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+        }
+
+        .doc-container pre code {
+            background: none;
+            padding: 0;
+            border: none;
+        }
+
+        .doc-container a {
+            color: #00cccc;
+            text-decoration: none;
+            border-bottom: 1px dotted #00cccc;
+            transition: all 0.3s ease;
+        }
+
+        .doc-container a:hover {
+            color: #ffffff;
+            border-bottom-color: #ffffff;
+            text-shadow: 0 0 5px #00cccc;
+        }
+
+        .doc-container table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .doc-container th, .doc-container td {
+            border: 1px solid #00ff00;
+            padding: 0.8rem;
+            text-align: left;
+        }
+
+        .doc-container th {
+            background: rgba(0, 255, 0, 0.1);
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .doc-container td {
+            color: #ffffff;
+        }
+
+        .doc-container blockquote {
+            border-left: 4px solid #00cccc;
+            padding-left: 1.5rem;
+            margin: 1.5rem 0;
+            color: #00cccc;
+            font-style: italic;
+            background: rgba(0, 204, 204, 0.05);
+            padding: 1rem 1rem 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .footer {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2rem;
+            text-align: center;
+            border-top: 2px solid #00ff00;
+            margin-top: 4rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                gap: 0.8rem;
+            }
+            
+            .nav-link {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .doc-container {
+                padding: 2rem;
+            }
+            
+            .doc-container h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-bg"></div>
+    
+    <nav class="nav-header">
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">Home</a>
+            <a href="../story.html" class="nav-link">📖 Story</a>
+            <a href="../GETTING_STARTED.html" class="nav-link">🚀 Getting Started</a>
+            <a href="../implementation.html" class="nav-link">⚙️ Implementation</a>
+            <a href="../journal.html" class="nav-link">📔 Journal</a>
+            <a href="../javadocs/" class="nav-link">JavaDocs</a>
+            <a href="https://github.com/rydnr/bytehot" class="nav-link">GitHub</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="doc-container">
+    <div class="content">
+        <div class="doc-container">
+<h1 id="overview">Overview</h1>
+<p>The <code>ClassFileCreated</code> event serves as ByteHot's
+comprehensive detection and analysis initiation signal for newly created
+.class files, representing the discovery of new bytecode artifacts that
+require hot-swap processing and integration. This essential domain event
+provides complete file context including creation details, file
+metadata, and initial classification information that enables
+intelligent processing strategies. As the entry point for new class
+detection in ByteHot's monitoring infrastructure, it triggers
+comprehensive analysis workflows while maintaining complete audit trails
+and supporting sophisticated filtering, prioritization, and processing
+optimization throughout the entire intelligent hot-swap system
+lifecycle.</p>
+<h1 id="domain-architecture-role">Domain Architecture Role</h1>
+<h2 id="new-class-detection-and-discovery-hub">New Class Detection and
+Discovery Hub</h2>
+<p>ClassFileCreated serves as the comprehensive detection and discovery
+hub:</p>
+<ul>
+<li>Detects and reports the creation of new .class files in monitored
+directories</li>
+<li>Provides complete file context and metadata for intelligent
+processing strategies</li>
+<li>Enables sophisticated filtering and prioritization based on file
+characteristics and patterns</li>
+<li>Acts as the authoritative entry point for new class integration into
+the hot-swap ecosystem</li>
+</ul>
+<h2 id="analysis-workflow-initiation-gateway">Analysis Workflow
+Initiation Gateway</h2>
+<p>The event serves as the initiation gateway for analysis
+workflows:</p>
+<ul>
+<li>Triggers comprehensive bytecode analysis and metadata extraction
+workflows</li>
+<li>Enables intelligent workflow selection based on file characteristics
+and system context</li>
+<li>Provides foundation for analysis prioritization and resource
+allocation strategies</li>
+<li>Supports sophisticated processing optimization based on file
+patterns and classification</li>
+</ul>
+<h2 id="integration-intelligence-and-processing-foundation">Integration
+Intelligence and Processing Foundation</h2>
+<p>The implementation provides integration intelligence
+capabilities:</p>
+<ul>
+<li>Enables intelligent new class integration strategies based on file
+characteristics</li>
+<li>Supports sophisticated processing workflows for different types of
+class creations</li>
+<li>Provides foundation for performance optimization and resource
+management</li>
+<li>Enables comprehensive monitoring and analytics for new class
+detection patterns</li>
+</ul>
+<h1 id="event-structure-and-creation-context">Event Structure and
+Creation Context</h1>
+<h2 id="core-file-identification-and-system-context">Core File
+Identification and System Context</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileCreated.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The path to the newly created <span class="co">.</span>class file for complete file system context and processing</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> Path classFile<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The fully qualified name of the created class derived from file analysis</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> className<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The timestamp when the creation was detected for temporal analysis and sequencing</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> Instant timestamp<span class="op">;</span></span></code></pre></div>
+<h2 id="file-metadata-and-characteristics">File Metadata and
+Characteristics</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileCreated.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The size of the created class file in bytes for processing optimization</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="dt">long</span> fileSize<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The creation source indicating how the file was created <span class="co">(</span>compilation<span class="co">,</span> deployment<span class="co">,</span> etc<span class="co">.)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> creationSource<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Additional metadata about the created file for enhanced processing context</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> fileMetadata<span class="op">;</span></span></code></pre></div>
+<h2 id="processing-context-and-classification">Processing Context and
+Classification</h2>
+<div class="sourceCode" id="cb3"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileCreated.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The priority level for processing this creation event</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> ProcessingPriority priority<span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Whether this creation should trigger immediate hot<span class="co">-</span>swap processing</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="dt">boolean</span> requiresImmedateProcessing<span class="op">;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The processing strategy recommended for this creation event</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> processingStrategy<span class="op">;</span></span></code></pre></div>
+<h2 id="comprehensive-creation-event-constructor">Comprehensive Creation
+Event Constructor</h2>
+<div class="sourceCode" id="cb4"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileCreated.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a new ClassFileCreated event with complete creation context and metadata</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This constructor provides comprehensive information about new class file detection</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">classFile</span><span class="co"> </span>the path to the newly created <span class="co">.</span>class file for processing</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">className</span><span class="co"> </span>the fully qualified name of the created class</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">fileSize</span><span class="co"> </span>the size of the created class file in bytes</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">creationSource</span><span class="co"> </span>the source indicating how the file was created</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">fileMetadata</span><span class="co"> </span>additional metadata about the created file</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">priority</span><span class="co"> </span>the priority level for processing this creation event</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">requiresImmedateProcessing</span><span class="co"> </span>whether this creation needs immediate processing</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">processingStrategy</span><span class="co"> </span>the recommended processing strategy for this creation</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">timestamp</span><span class="co"> </span>the timestamp when the creation was detected</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="at">@RequiredArgsConstructor</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">ClassFileCreated</span><span class="op">(</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Path classFile<span class="op">,</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className<span class="op">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> fileSize<span class="op">,</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> creationSource<span class="op">,</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> fileMetadata<span class="op">,</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ProcessingPriority priority<span class="op">,</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">boolean</span> requiresImmedateProcessing<span class="op">,</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> processingStrategy<span class="op">,</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">classFile</span> <span class="op">=</span> classFile<span class="op">;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">className</span> <span class="op">=</span> className<span class="op">;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">fileSize</span> <span class="op">=</span> fileSize<span class="op">;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">creationSource</span> <span class="op">=</span> creationSource<span class="op">;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">fileMetadata</span> <span class="op">=</span> fileMetadata<span class="op">;</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">priority</span> <span class="op">=</span> priority<span class="op">;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">requiresImmedateProcessing</span> <span class="op">=</span> requiresImmedateProcessing<span class="op">;</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">processingStrategy</span> <span class="op">=</span> processingStrategy<span class="op">;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">timestamp</span> <span class="op">=</span> timestamp<span class="op">;</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="creation-detection-and-analysis-intelligence">Creation Detection
+and Analysis Intelligence</h1>
+<h2 id="file-creation-source-analysis">File Creation Source
+Analysis</h2>
+<p>The creationSource field enables sophisticated source analysis:</p>
+<ul>
+<li><strong><strong>Compilation Detection</strong></strong>:
+Identification of files created through compilation processes</li>
+<li><strong><strong>Deployment Analysis</strong></strong>: Detection of
+files created through deployment and packaging</li>
+<li><strong><strong>Runtime Generation</strong></strong>: Identification
+of dynamically generated classes and proxy creation</li>
+<li><strong><strong>Development Workflow</strong></strong>: Analysis of
+creation patterns in development workflows</li>
+</ul>
+<h2 id="processing-priority-and-resource-management">Processing Priority
+and Resource Management</h2>
+<p>The priority field enables intelligent resource management:</p>
+<ul>
+<li><strong><strong>High Priority Processing</strong></strong>:
+Immediate processing for critical class creations</li>
+<li><strong><strong>Background Processing</strong></strong>: Deferred
+processing for non-critical class additions</li>
+<li><strong><strong>Resource Allocation</strong></strong>: Intelligent
+resource allocation based on priority levels</li>
+<li><strong><strong>Queue Management</strong></strong>: Sophisticated
+queue management and processing optimization</li>
+</ul>
+<h2 id="metadata-driven-processing-intelligence">Metadata-Driven
+Processing Intelligence</h2>
+<p>The fileMetadata enables enhanced processing capabilities:</p>
+<ul>
+<li><strong><strong>Contextual Information</strong></strong>: Rich
+contextual information for intelligent processing strategies</li>
+<li><strong><strong>Processing Hints</strong></strong>: Metadata-driven
+hints for optimal processing approaches</li>
+<li><strong><strong>Integration Context</strong></strong>: Context for
+integration with development tools and workflows</li>
+<li><strong><strong>Analytics Foundation</strong></strong>: Foundation
+for comprehensive analytics and pattern recognition</li>
+</ul>
+<h1 id="integration-with-bytehot-monitoring-infrastructure">Integration
+with ByteHot Monitoring Infrastructure</h1>
+<h2 id="filemonitoringsession-integration">FileMonitoringSession
+Integration</h2>
+<p>ClassFileCreated events are generated by FileMonitoringSession
+operations:</p>
+<ul>
+<li>Detect new class file creation through sophisticated file system
+monitoring</li>
+<li>Provide comprehensive file context and metadata for processing
+workflows</li>
+<li>Enable FileMonitoringSession to track creation patterns and system
+activity</li>
+<li>Support comprehensive monitoring workflow coordination and
+optimization</li>
+</ul>
+<h2 id="analysis-pipeline-integration">Analysis Pipeline
+Integration</h2>
+<p>The events trigger comprehensive analysis pipeline operations:</p>
+<ul>
+<li><strong><strong>Bytecode Analysis</strong></strong>: Initiation of
+bytecode analysis and metadata extraction workflows</li>
+<li><strong><strong>Compatibility Assessment</strong></strong>:
+Triggering of compatibility assessment and validation processes</li>
+<li><strong><strong>Hot-Swap Preparation</strong></strong>: Preparation
+of hot-swap workflows for new class integration</li>
+<li><strong><strong>Quality Analysis</strong></strong>: Initiation of
+quality analysis and validation processes</li>
+</ul>
+<h2 id="development-tool-integration">Development Tool Integration</h2>
+<p>The event coordinates with development tool ecosystems:</p>
+<ul>
+<li><strong><strong>IDE Integration</strong></strong>: Integration with
+IDE compilation and development workflows</li>
+<li><strong><strong>Build Tool Coordination</strong></strong>:
+Coordination with Maven, Gradle, and other build tools</li>
+<li><strong><strong>Deployment Pipeline</strong></strong>: Integration
+with deployment pipelines and automation systems</li>
+<li><strong><strong>Version Control</strong></strong>: Coordination with
+version control systems and change tracking</li>
+</ul>
+<h1 id="processing-strategies-and-workflow-management">Processing
+Strategies and Workflow Management</h1>
+<h2 id="immediate-processing-workflows">Immediate Processing
+Workflows</h2>
+<p>The requiresImmedateProcessing flag enables immediate processing:</p>
+<ul>
+<li><strong><strong>Real-Time Integration</strong></strong>: Real-time
+integration of critical new classes into the runtime</li>
+<li><strong><strong>Development Workflow Support</strong></strong>:
+Support for interactive development and rapid iteration</li>
+<li><strong><strong>Critical Class Handling</strong></strong>: Special
+handling for critical classes requiring immediate attention</li>
+<li><strong><strong>Performance Optimization</strong></strong>:
+Optimization for low-latency processing scenarios</li>
+</ul>
+<h2 id="background-processing-and-optimization">Background Processing
+and Optimization</h2>
+<p>The implementation supports background processing:</p>
+<ul>
+<li><strong><strong>Batch Processing</strong></strong>: Efficient batch
+processing of multiple new class creations</li>
+<li><strong><strong>Resource Optimization</strong></strong>:
+Optimization of resource utilization for background processing</li>
+<li><strong><strong>Queue Management</strong></strong>: Sophisticated
+queue management for processing efficiency</li>
+<li><strong><strong>Load Balancing</strong></strong>: Load balancing
+across processing resources and capabilities</li>
+</ul>
+<h2 id="strategy-selection-and-adaptation">Strategy Selection and
+Adaptation</h2>
+<p>The processingStrategy enables intelligent strategy selection:</p>
+<ul>
+<li><strong><strong>Adaptive Processing</strong></strong>: Adaptive
+processing strategies based on file characteristics</li>
+<li><strong><strong>Context-Aware Selection</strong></strong>:
+Context-aware selection of optimal processing approaches</li>
+<li><strong><strong>Performance Optimization</strong></strong>: Strategy
+selection for optimal performance characteristics</li>
+<li><strong><strong>Resource Efficiency</strong></strong>: Strategy
+selection for efficient resource utilization</li>
+</ul>
+<h1 id="performance-analytics-and-optimization">Performance Analytics
+and Optimization</h1>
+<h2 id="creation-pattern-analysis">Creation Pattern Analysis</h2>
+<p>The event enables creation pattern analysis:</p>
+<ul>
+<li><strong><strong>Temporal Patterns</strong></strong>: Analysis of
+temporal patterns in class creation activities</li>
+<li><strong><strong>Source Correlation</strong></strong>: Correlation of
+creation sources with development activities</li>
+<li><strong><strong>Size Distribution</strong></strong>: Analysis of
+class file size distribution and characteristics</li>
+<li><strong><strong>Processing Performance</strong></strong>: Analysis
+of processing performance across different creation patterns</li>
+</ul>
+<h2 id="resource-utilization-optimization">Resource Utilization
+Optimization</h2>
+<p>The implementation supports resource optimization:</p>
+<ul>
+<li><strong><strong>Processing Efficiency</strong></strong>:
+Optimization of processing efficiency based on creation
+characteristics</li>
+<li><strong><strong>Memory Management</strong></strong>: Intelligent
+memory management for creation event processing</li>
+<li><strong><strong>Threading Optimization</strong></strong>:
+Optimization of threading strategies for creation processing</li>
+<li><strong><strong>Cache Management</strong></strong>: Intelligent
+cache management for creation metadata and processing results</li>
+</ul>
+<h2 id="quality-metrics-and-analytics">Quality Metrics and
+Analytics</h2>
+<p>The event provides quality metrics:</p>
+<ul>
+<li><strong><strong>Creation Quality</strong></strong>: Assessment of
+creation quality and characteristics</li>
+<li><strong><strong>Processing Success</strong></strong>: Measurement of
+processing success rates for new creations</li>
+<li><strong><strong>Performance Benchmarks</strong></strong>:
+Benchmarking of creation processing performance</li>
+<li><strong><strong>Continuous Improvement</strong></strong>: Input for
+continuous improvement of creation processing workflows</li>
+</ul>
+<h1 id="testing-and-validation-strategies">Testing and Validation
+Strategies</h1>
+<h2 id="creation-detection-testing">Creation Detection Testing</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldDetectNewClassFileCreation</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: New class file creation parameters</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    Path classFile <span class="op">=</span> Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span><span class="st">&quot;/project/classes/NewService.class&quot;</span><span class="op">);</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> className <span class="op">=</span> <span class="st">&quot;com.example.NewService&quot;</span><span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> fileSize <span class="op">=</span> <span class="dv">2048L</span><span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> source <span class="op">=</span> <span class="st">&quot;compilation&quot;</span><span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> metadata <span class="op">=</span> <span class="bu">Map</span><span class="op">.</span><span class="fu">of</span><span class="op">(</span><span class="st">&quot;compiler&quot;</span><span class="op">,</span> <span class="st">&quot;javac&quot;</span><span class="op">,</span> <span class="st">&quot;version&quot;</span><span class="op">,</span> <span class="st">&quot;11&quot;</span><span class="op">);</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    ProcessingPriority priority <span class="op">=</span> ProcessingPriority<span class="op">.</span><span class="fu">HIGH</span><span class="op">;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> immediate <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> strategy <span class="op">=</span> <span class="st">&quot;immediate-analysis&quot;</span><span class="op">;</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Creating class file created event</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    ClassFileCreated created <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassFileCreated</span><span class="op">(</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span> className<span class="op">,</span> fileSize<span class="op">,</span> source<span class="op">,</span> metadata<span class="op">,</span> </span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        priority<span class="op">,</span> immediate<span class="op">,</span> strategy<span class="op">,</span> timestamp<span class="op">);</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should contain complete creation information</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">getClassName</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>className<span class="op">);</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">getFileSize</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>fileSize<span class="op">);</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">getCreationSource</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>source<span class="op">);</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">isRequiresImmedateProcessing</span><span class="op">()).</span><span class="fu">isTrue</span><span class="op">();</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">getPriority</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>priority<span class="op">);</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>timestamp<span class="op">);</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="processing-strategy-testing">Processing Strategy Testing</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldSelectAppropriateProcessingStrategy</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Different types of class creations</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    ClassFileCreated criticalClass <span class="op">=</span> <span class="fu">createCriticalClassCreation</span><span class="op">();</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    ClassFileCreated backgroundClass <span class="op">=</span> <span class="fu">createBackgroundClassCreation</span><span class="op">();</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Analyzing processing strategies</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> criticalStrategy <span class="op">=</span> criticalClass<span class="op">.</span><span class="fu">getProcessingStrategy</span><span class="op">();</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> backgroundStrategy <span class="op">=</span> backgroundClass<span class="op">.</span><span class="fu">getProcessingStrategy</span><span class="op">();</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should have appropriate strategies</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>criticalStrategy<span class="op">).</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;immediate&quot;</span><span class="op">);</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>backgroundStrategy<span class="op">).</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;background&quot;</span><span class="op">);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>criticalClass<span class="op">.</span><span class="fu">isRequiresImmedateProcessing</span><span class="op">()).</span><span class="fu">isTrue</span><span class="op">();</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>backgroundClass<span class="op">.</span><span class="fu">isRequiresImmedateProcessing</span><span class="op">()).</span><span class="fu">isFalse</span><span class="op">();</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="metadata-analysis-testing">Metadata Analysis Testing</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldProvideComprehensiveMetadata</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Class creation with rich metadata</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    ClassFileCreated created <span class="op">=</span> <span class="fu">createClassWithMetadata</span><span class="op">();</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Analyzing metadata</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> metadata <span class="op">=</span> created<span class="op">.</span><span class="fu">getFileMetadata</span><span class="op">();</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> source <span class="op">=</span> created<span class="op">.</span><span class="fu">getCreationSource</span><span class="op">();</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should provide comprehensive context</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>metadata<span class="op">).</span><span class="fu">isNotEmpty</span><span class="op">();</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>metadata<span class="op">).</span><span class="fu">containsKeys</span><span class="op">(</span><span class="st">&quot;compiler&quot;</span><span class="op">,</span> <span class="st">&quot;version&quot;</span><span class="op">);</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>source<span class="op">).</span><span class="fu">isNotEmpty</span><span class="op">();</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>created<span class="op">.</span><span class="fu">getFileSize</span><span class="op">()).</span><span class="fu">isPositive</span><span class="op">();</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="integration-with-development-workflows">Integration with
+Development Workflows</h1>
+<h2 id="ide-and-development-tool-integration">IDE and Development Tool
+Integration</h2>
+<p>The event integrates with development environments:</p>
+<ul>
+<li><strong><strong>Real-Time Feedback</strong></strong>: Real-time
+feedback to IDEs about new class detection and processing</li>
+<li><strong><strong>Development Workflow</strong></strong>: Integration
+with development workflows and compilation processes</li>
+<li><strong><strong>Interactive Development</strong></strong>: Support
+for interactive development and rapid iteration cycles</li>
+<li><strong><strong>Tool Coordination</strong></strong>: Coordination
+with development tools and automation systems</li>
+</ul>
+<h2 id="build-system-integration">Build System Integration</h2>
+<p>The implementation supports build system integration:</p>
+<ul>
+<li><strong><strong>Build Coordination</strong></strong>: Coordination
+with build systems for compilation and packaging</li>
+<li><strong><strong>Artifact Management</strong></strong>: Integration
+with artifact management and dependency systems</li>
+<li><strong><strong>Pipeline Integration</strong></strong>: Integration
+with CI/CD pipelines and deployment automation</li>
+<li><strong><strong>Quality Gates</strong></strong>: Integration with
+quality gates and validation systems</li>
+</ul>
+<h2 id="deployment-and-runtime-integration">Deployment and Runtime
+Integration</h2>
+<p>The event coordinates with deployment and runtime systems:</p>
+<ul>
+<li><strong><strong>Deployment Detection</strong></strong>: Detection of
+new classes through deployment and packaging activities</li>
+<li><strong><strong>Runtime Integration</strong></strong>: Integration
+with runtime systems for dynamic class loading</li>
+<li><strong><strong>Container Support</strong></strong>: Support for
+containerized deployments and orchestration systems</li>
+<li><strong><strong>Cloud Integration</strong></strong>: Integration
+with cloud platforms and deployment strategies</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="ClassFileChanged.org"><em>ClassFileChanged</em></span>: Related
+event for existing class file modifications</li>
+<li><span class="spurious-link"
+target="ClassFileDeleted.org"><em>ClassFileDeleted</em></span>: Related
+event for class file removal operations</li>
+<li><span class="spurious-link"
+target="ClassMetadataExtracted.org"><em>ClassMetadataExtracted</em></span>:
+Subsequent event following creation analysis</li>
+<li><a href="../FileMonitoringSession.org">FileMonitoringSession</a>:
+Primary generator of ClassFileCreated events</li>
+<li><a href="../../flows/class-creation-analysis-flow.org">Class
+Creation Analysis Flow</a>: Complete creation processing workflow</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The event leverages several sophisticated design patterns:</p>
+<ul>
+<li><strong><strong>Domain Event Pattern</strong></strong>: Pure domain
+event with comprehensive creation context</li>
+<li><strong><strong>Value Object Pattern</strong></strong>: Immutable
+event with comprehensive data encapsulation</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Support for
+different processing strategies based on creation characteristics</li>
+<li><strong><strong>Observer Pattern</strong></strong>: Event
+notification for creation detection and processing workflows</li>
+</ul>
+<h2 id="domain-driven-design-principles">Domain-Driven Design
+Principles</h2>
+<p>The implementation follows strict DDD principles:</p>
+<ul>
+<li><strong><strong>Rich Domain Events</strong></strong>: Comprehensive
+business context with detailed creation information</li>
+<li><strong><strong>Event-Driven Architecture</strong></strong>: Enables
+reactive processing and sophisticated creation workflows</li>
+<li><strong><strong>Metadata Integration</strong></strong>: Rich
+metadata integration for intelligent processing and optimization</li>
+<li><strong><strong>Ubiquitous Language</strong></strong>: Clear,
+business-focused naming and comprehensive documentation</li>
+</ul>
+<h2 id="future-enhancement-opportunities">Future Enhancement
+Opportunities</h2>
+<p>The design supports future enhancements:</p>
+<ul>
+<li><strong><strong>Machine Learning Detection</strong></strong>:
+AI-driven creation pattern recognition and processing optimization</li>
+<li><strong><strong>Intelligent Classification</strong></strong>:
+Machine learning-based classification of creation types and
+characteristics</li>
+<li><strong><strong>Predictive Processing</strong></strong>: Predictive
+processing based on creation patterns and historical data</li>
+<li><strong><strong>Advanced Integration</strong></strong>: Enhanced
+integration with development tools and cloud platforms</li>
+</ul>
+<p>The ClassFileCreated event provides ByteHot's essential new class
+detection foundation while maintaining comprehensive creation context,
+intelligent processing capabilities, and extensibility for advanced
+creation analysis scenarios throughout the entire intelligent hot-swap
+system lifecycle.</p>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 ByteHot Project. Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPLv3</a></p>
+        <p>
+            <a href="https://github.com/rydnr/bytehot">GitHub</a> • 
+            <a href="https://github.com/rydnr/bytehot/issues">Issues</a> • 
+            <a href="https://github.com/rydnr/bytehot/discussions">Discussions</a>
+        </p>
+    </footer>
+
+    <script>
+        // Matrix rain effect (lighter for documentation pages)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        document.querySelector('.matrix-bg').appendChild(canvas);
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const matrix = "BYTEHOT0123456789";
+        const drops = [];
+
+        for(let x = 0; x < canvas.width / 15; x++) {
+            drops[x] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(15, 15, 35, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ff00';
+            ctx.font = '12px Courier New';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrix[Math.floor(Math.random() * matrix.length)];
+                ctx.fillText(text, i * 15, drops[i] * 15);
+
+                if(drops[i] * 15 > canvas.height && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 50);
+
+        // Resize canvas on window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

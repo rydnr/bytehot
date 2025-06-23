@@ -1,0 +1,485 @@
+#+TITLE: ByteHotCLI - Command-Line Interface Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~ByteHotCLI~ class serves as the primary infrastructure adapter for command-line interface interactions within ByteHot's hexagonal architecture. This class acts as the primary adapter that transforms command-line arguments and system properties into domain events, bridging the gap between external command-line invocation and ByteHot's event-driven domain logic. As a critical entry point for JVM agent operations, it ensures proper parameter extraction, validation, and event generation.
+
+* Hexagonal Architecture Role
+
+** Primary Adapter Implementation
+ByteHotCLI serves as a primary adapter in ByteHot's hexagonal architecture:
+- Transforms external command-line inputs into domain events
+- Acts as the primary port for JVM agent command-line interactions
+- Isolates domain logic from command-line parsing implementation details
+- Provides the bridge between JVM agent mechanism and event-driven architecture
+
+** Command-Line Abstraction Boundary
+The adapter manages the boundary between command-line technology and domain concepts:
+- Translates system properties and agent arguments into domain events
+- Handles command-line specific validation and error reporting
+- Manages configuration loading and parameter processing
+- Provides standardized event generation from diverse input sources
+
+** Infrastructure Integration Gateway
+The adapter serves as the integration gateway for infrastructure concerns:
+- Coordinates JVM agent initialization with application layer
+- Manages configuration loading and validation processes
+- Handles error propagation and recovery for command-line failures
+- Ensures proper dependency injection and adapter registration
+
+* Class Structure and Responsibilities
+
+** Core CLI Architecture
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/cli/ByteHotCLI.java
+/**
+ * Protected constructor to prevent instantiation.
+ */
+protected ByteHotCLI() {}
+#+END_SRC
+
+** Agent Entry Point Methods
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/cli/ByteHotCLI.java
+/**
+ * Called when we are attached at JVM startup.
+ * @param agentArgs Arguments passed to the agent.
+ * @param inst Instrumentation instance for the JVM.
+ */
+public static void premain(final String agentArgs, final Instrumentation inst) {
+    String configPath = System.getProperty("bhconfig");
+    if (configPath == null || configPath.isBlank()) {
+        throw new IllegalStateException("Missing required system property bhconfig");
+    }
+
+    // Initialize the application with instrumentation (this will inject all adapters)
+    ByteHotApplication.initialize(inst);
+
+    WatchConfiguration config;
+    try {
+        config = WatchConfiguration.load();
+    } catch (final Exception exception) {
+        throw new IllegalStateException("Failed to load configuration", exception);
+    }
+    
+    // Process the attach request
+    ByteHotApplication.getInstance().accept(new ByteHotAttachRequested(config, inst));
+}
+
+/**
+ * Called when we are attached to a running JVM.
+ * @param agentArgs Arguments passed to the agent.
+ * @param inst Instrumentation instance for the JVM.
+ */
+public static void agentmain(final String agentArgs, final Instrumentation inst) {
+    premain(agentArgs, inst);
+}
+#+END_SRC
+
+** Static Utility Design Pattern
+The class follows a static utility design pattern:
+#+BEGIN_SRC java
+// Static utility characteristics:
+// - No instance state or mutable fields
+// - Prevented instantiation through protected constructor
+// - Static methods for JVM agent entry points
+// - Stateless parameter processing
+// - Pure function approach to event generation
+#+END_SRC
+
+* Command-Line Parameter Processing
+
+** System Property Integration
+The CLI integrates with JVM system properties for configuration:
+#+BEGIN_SRC java
+// System property processing:
+// - "bhconfig": Required configuration file path
+// - Validation of required properties
+// - Error handling for missing configuration
+// - Support for additional properties as needed
+#+END_SRC
+
+** Configuration Path Validation
+Comprehensive validation of configuration parameters:
+- Required property existence verification
+- Path accessibility and readability validation
+- Configuration format and content verification
+- Security constraint enforcement
+
+** Agent Argument Processing
+Processing of JVM agent arguments:
+#+BEGIN_SRC java
+// Agent argument capabilities:
+// - Command-line argument parsing and validation
+// - Override configuration with command-line parameters
+// - Debug and diagnostic flag processing
+// - Performance tuning parameter extraction
+#+END_SRC
+
+* Configuration Loading and Management
+
+** WatchConfiguration Integration
+Integration with ByteHot's configuration system:
+#+BEGIN_SRC java
+// Configuration loading sequence:
+// 1. System property validation and extraction
+// 2. WatchConfiguration.load() for file-based config
+// 3. Configuration parameter validation
+// 4. Error handling for configuration failures
+// 5. Configuration object creation and validation
+#+END_SRC
+
+** Configuration Error Handling
+Robust error handling for configuration issues:
+- Missing configuration file detection
+- Invalid configuration format handling
+- Inaccessible file path error reporting
+- Graceful degradation for partial configuration
+
+** Configuration Validation Pipeline
+Multi-stage configuration validation:
+#+BEGIN_SRC java
+// Validation pipeline stages:
+// - File existence and accessibility verification
+// - Configuration syntax and format validation
+// - Parameter range and constraint checking
+// - Cross-parameter consistency validation
+// - Security policy compliance verification
+#+END_SRC
+
+* Domain Event Generation
+
+** ByteHotAttachRequested Event Creation
+The CLI generates the primary domain event for agent attachment:
+#+BEGIN_SRC java
+// Event generation process:
+// 1. Configuration loading and validation
+// 2. Instrumentation instance verification
+// 3. ByteHotAttachRequested event creation
+// 4. Event parameter population and validation
+// 5. Event dispatch to application layer
+#+END_SRC
+
+** Event Parameter Composition
+Sophisticated event parameter composition:
+- Configuration object encapsulation
+- Instrumentation instance integration
+- Metadata addition for traceability
+- Context information preservation
+
+** Event Validation and Safety
+Comprehensive event validation before dispatch:
+#+BEGIN_SRC java
+// Event validation requirements:
+// - Non-null configuration object verification
+// - Valid instrumentation instance checking
+// - Required parameter completeness validation
+// - Event consistency and integrity verification
+#+END_SRC
+
+* Application Layer Integration
+
+** ByteHotApplication Initialization
+Coordination with application layer initialization:
+#+BEGIN_SRC java
+// Application initialization sequence:
+// 1. ByteHotApplication.initialize(inst) call
+// 2. Dependency injection and adapter registration
+// 3. Port resolution and interface satisfaction
+// 4. System readiness verification
+// 5. Event processing capability confirmation
+#+END_SRC
+
+** Event Dispatch and Processing
+Event dispatch to the application layer:
+- Application instance retrieval and verification
+- Event acceptance through application layer interface
+- Response event handling and processing
+- Error propagation and recovery coordination
+
+** Application Layer Abstraction
+Clean abstraction of application layer complexity:
+#+BEGIN_SRC java
+// Abstraction characteristics:
+// - No direct domain layer interaction
+// - Clean application layer interface usage
+// - Event-driven communication pattern
+// - Minimal infrastructure coupling
+#+END_SRC
+
+* JVM Agent Integration Patterns
+
+** Startup-Time Agent Loading
+Support for startup-time agent loading through premain:
+#+BEGIN_SRC java
+// Startup-time characteristics:
+// - Full JVM instrumentation capabilities
+// - Complete class redefinition support
+// - Optimal performance for hot-swap operations
+// - Comprehensive configuration loading time
+#+END_SRC
+
+** Runtime Agent Attachment
+Support for runtime agent attachment through agentmain:
+#+BEGIN_SRC java
+// Runtime attachment characteristics:
+// - Dynamic attachment to running JVM
+// - Potential instrumentation limitations
+// - Time-sensitive initialization requirements
+// - Shared implementation with startup loading
+#+END_SRC
+
+** Unified Processing Strategy
+Both entry points use identical processing logic:
+- Ensures consistent behavior across attachment methods
+- Simplifies testing and validation procedures
+- Provides uniform error handling and recovery
+- Enables seamless transition between attachment strategies
+
+* Error Handling and Recovery
+
+** Configuration Error Management
+Comprehensive configuration error management:
+#+BEGIN_SRC java
+// Configuration error categories:
+// - IllegalStateException for missing required properties
+// - Configuration loading failures and format errors
+// - File system access and permission issues
+// - Validation constraint violations
+#+END_SRC
+
+** Exception Propagation Strategy
+Sophisticated exception propagation and handling:
+- Early validation with fail-fast behavior
+- Detailed error messages for troubleshooting
+- Exception chaining for root cause analysis
+- Graceful error reporting to calling environment
+
+** Recovery and Fallback Mechanisms
+Recovery mechanisms for various failure scenarios:
+#+BEGIN_SRC java
+// Recovery strategies:
+// - Default configuration fallback for missing files
+// - Alternative configuration source attempts
+// - Graceful degradation for partial failures
+// - User guidance for configuration resolution
+#+END_SRC
+
+* Security Considerations
+
+** Input Validation and Sanitization
+Comprehensive input validation and sanitization:
+#+BEGIN_SRC java
+// Security validation measures:
+// - System property input validation
+// - Configuration path sanitization
+// - Agent argument safety checking
+// - Resource access permission verification
+#+END_SRC
+
+** Configuration Security
+Security considerations for configuration handling:
+- Configuration file access permission validation
+- Sensitive parameter protection and encryption
+- Path traversal attack prevention
+- Configuration integrity verification
+
+** Agent Security Compliance
+JVM agent security compliance:
+#+BEGIN_SRC java
+// Agent security requirements:
+// - Agent jar signing for production deployment
+// - Trusted source verification
+// - Security manager compatibility
+// - Module system integration (Java 9+)
+#+END_SRC
+
+* Performance Optimization
+
+** Startup Performance
+Optimized startup performance for rapid agent loading:
+#+BEGIN_SRC java
+// Startup optimization strategies:
+// - Minimal object allocation during initialization
+// - Efficient configuration loading algorithms
+// - Lazy loading of non-critical components
+// - Optimized error checking and validation
+#+END_SRC
+
+** Configuration Loading Performance
+Efficient configuration loading and processing:
+- Optimized file I/O operations
+- Minimal memory allocation for configuration objects
+- Efficient parameter validation algorithms
+- Cached configuration parsing where appropriate
+
+** Memory Usage Optimization
+Careful memory usage optimization:
+- Minimal memory footprint for CLI processing
+- Efficient data structure selection
+- Early garbage collection of temporary objects
+- Memory-conscious event object creation
+
+* Testing and Validation
+
+** CLI Testing Strategy
+Comprehensive CLI testing strategy:
+#+BEGIN_SRC java
+// Testing approach:
+// - Unit testing with mock dependencies
+// - Integration testing with real agent loading
+// - Configuration validation testing
+// - Error condition simulation and recovery testing
+#+END_SRC
+
+** Mock Implementation Support
+Testing uses mock implementations:
+- Simulated JVM agent loading for controlled testing
+- Mock configuration loading for various scenarios
+- Error condition simulation and validation
+- Performance characteristic testing
+
+** Integration Testing
+Comprehensive integration testing:
+- Real JVM agent loading with test configurations
+- End-to-end event generation and processing
+- Cross-platform compatibility validation
+- Performance impact measurement
+
+* Configuration Integration Patterns
+
+** Configuration Source Hierarchy
+Integration with multiple configuration sources:
+#+BEGIN_SRC java
+// Configuration source priority:
+// 1. System properties (highest priority)
+// 2. Agent arguments override
+// 3. Configuration file parameters
+// 4. Default configuration values (lowest priority)
+#+END_SRC
+
+** Dynamic Configuration Support
+Support for dynamic configuration updates:
+- Runtime configuration modification capabilities
+- Configuration reload without agent restart
+- User preference integration
+- Environment-specific configuration adaptation
+
+** Environment-Specific Configuration
+Environment-specific configuration management:
+#+BEGIN_SRC java
+// Environment adaptation:
+// - Development vs production configuration
+// - Container environment configuration
+// - Cloud platform specific settings
+// - Testing environment isolation
+#+END_SRC
+
+* Monitoring and Observability
+
+** CLI Operation Monitoring
+Monitoring of CLI operations and performance:
+#+BEGIN_SRC java
+// Monitoring metrics:
+// - Agent initialization success/failure rates
+// - Configuration loading performance
+// - Event generation and dispatch timing
+// - Error rate tracking and analysis
+#+END_SRC
+
+** Diagnostic Integration
+Integration with diagnostic and monitoring systems:
+- Detailed initialization logging
+- Configuration validation reporting
+- Performance metrics collection
+- Error tracking and analysis
+
+** Troubleshooting Support
+Enhanced troubleshooting support:
+- Comprehensive error messages with context
+- Configuration debugging capabilities
+- Runtime state inspection
+- Diagnostic information collection
+
+* Platform and Environment Support
+
+** Cross-Platform Compatibility
+Support for diverse platforms and environments:
+#+BEGIN_SRC java
+// Platform compatibility:
+// - Windows, Linux, macOS support
+// - Different JVM implementations (HotSpot, OpenJ9, GraalVM)
+// - Container environment compatibility
+// - Cloud platform integration
+#+END_SRC
+
+** Container Environment Support
+Specialized support for container environments:
+- Docker container agent loading
+- Kubernetes pod lifecycle integration
+- Container-specific configuration handling
+- Resource constraint awareness
+
+** Cloud Platform Integration
+Cloud platform specific integrations:
+#+BEGIN_SRC java
+// Cloud integration features:
+// - Cloud provider specific configuration
+// - Serverless function compatibility
+// - Auto-scaling environment support
+// - Cloud storage configuration integration
+#+END_SRC
+
+* Future Evolution and Extensibility
+
+** CLI Enhancement Roadmap
+Planned enhancements to CLI capabilities:
+#+BEGIN_SRC java
+// Future enhancement areas:
+// - Enhanced command-line argument parsing
+// - Interactive configuration setup
+// - Advanced validation and error recovery
+// - Integration with external configuration systems
+#+END_SRC
+
+** Configuration System Evolution
+Evolution of configuration system integration:
+- Support for additional configuration formats
+- External configuration service integration
+- Real-time configuration updates
+- Configuration validation service integration
+
+** Technology Integration
+Integration with emerging technologies:
+#+BEGIN_SRC java
+// Technology integration targets:
+// - Cloud-native configuration management
+// - Advanced monitoring and observability
+// - Container orchestration integration
+// - Service mesh configuration integration
+#+END_SRC
+
+* Related Documentation
+
+- [[ByteHotApplication.org][ByteHotApplication]]: Application layer receiving CLI-generated events
+- [[events/ByteHotAttachRequested.org][ByteHotAttachRequested]]: Primary event generated by CLI
+- [[WatchConfiguration.org][WatchConfiguration]]: Configuration object loaded by CLI
+- [[flows/agent-startup-flow.org][Agent Startup Flow]]: Complete CLI-initiated process flow
+
+* Implementation Notes
+
+** Design Patterns Applied
+The CLI leverages several key design patterns:
+- **Adapter Pattern**: Between command-line interface and domain events
+- **Factory Pattern**: Event creation and configuration object generation
+- **Template Method**: Consistent processing across entry points
+- **Strategy Pattern**: Different processing strategies based on attachment method
+
+** Hexagonal Architecture Compliance
+The implementation maintains strict hexagonal architecture compliance:
+- Clean separation between infrastructure and application concerns
+- Event-driven communication with application layer
+- No direct domain layer interaction
+- Technology-agnostic event generation
+
+The ByteHotCLI provides ByteHot's critical command-line interface integration while maintaining architectural purity and enabling seamless translation between command-line invocation and ByteHot's revolutionary event-driven hot-swapping architecture.

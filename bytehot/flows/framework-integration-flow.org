@@ -1,0 +1,372 @@
+#+TITLE: Framework Integration Flow - ByteHot Integration with DI Frameworks
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+This flow documents how ByteHot integrates with dependency injection frameworks (Spring, CDI, Guice) to provide enhanced instance management during hot-swap operations. Framework integration enables more sophisticated instance update strategies beyond basic reflection.
+
+** Flow Trigger
+- **Starting Event**: Framework-managed class redefinition or =FrameworkIntegration= detection
+- **Ending Event**: Framework-specific =InstancesUpdated= with enhanced capabilities
+- **Duration**: 50-300ms depending on framework complexity
+- **Criticality**: Medium - Enhances hot-swap capabilities but not required
+
+* Flow Participants
+
+** Primary Actors
+- =FrameworkIntegration= (Domain): Framework detection and adaptation
+- =InstanceUpdater= (Domain): Coordinates framework-aware updates
+- =InstanceTracker= (Domain): Tracks framework-managed instances
+- Framework-specific adapters (Infrastructure): Spring, CDI, Guice adapters
+
+** Secondary Actors
+- =StatePreserver= (Domain): Enhanced state management for framework objects
+- Application contexts and containers from respective frameworks
+- Proxy management systems
+
+* Framework Detection and Setup Flow
+
+** Phase 1: Framework Discovery
+#+begin_src
+[ Agent Startup ] --> [ Classpath Analysis ] --> [ Framework Detection ] --> [ Capability Assessment ]
+                             |                          |                         |
+                             v                          v                         v
+                    [ Annotation Scanning ]    [ Version Detection ]     [ Feature Availability ]
+#+end_src
+
+During agent startup, ByteHot detects available frameworks:
+
+1. **Classpath Analysis**: Scan classpath for framework indicators:
+   - Spring: =org.springframework.context.ApplicationContext=
+   - CDI: =javax.enterprise.context.ApplicationScoped=
+   - Guice: =com.google.inject.Injector=
+
+2. **Version Detection**: Determine framework versions:
+   - Extract version information from framework classes
+   - Validate compatibility with ByteHot requirements
+   - Log detected frameworks and versions
+
+3. **Capability Assessment**: Evaluate framework-specific capabilities:
+   - Proxy support (Spring AOP, CDI proxies)
+   - Factory reset capabilities (dependency recreation)
+   - Event system integration
+   - Custom annotation support
+
+** Phase 2: Framework Adapter Creation
+#+begin_src
+[ Framework Detection ] --> [ Adapter Selection ] --> [ Adapter Configuration ] --> [ Integration Testing ]
+#+end_src
+
+For each detected framework, create appropriate adapters:
+
+1. **Adapter Selection**: Choose framework-specific adapter implementation
+2. **Adapter Configuration**: Configure adapter with framework details:
+   - Framework version compatibility
+   - Available features and limitations
+   - Performance optimization settings
+3. **Integration Testing**: Validate adapter functionality:
+   - Test basic framework interaction
+   - Verify proxy handling capabilities
+   - Validate dependency injection compatibility
+
+* Framework-Aware Instance Updates
+
+** Spring Framework Integration Flow
+#+begin_src
+[ ClassRedefinitionSucceeded ] --> [ Spring Detection ] --> [ ApplicationContext Access ]
+                                         |                         |
+                                         v                         v
+                               [ Bean Definition Analysis ] --> [ Bean Recreation ]
+                                         |                         |
+                                         v                         v
+                               [ Proxy Refresh ] --> [ Dependency Re-injection ]
+#+end_src
+
+When updating Spring-managed instances:
+
+1. **ApplicationContext Access**: Obtain reference to Spring ApplicationContext
+2. **Bean Definition Analysis**: Analyze affected beans:
+   - Identify bean scope (singleton, prototype, request, session)
+   - Determine dependency graph
+   - Assess proxy configuration (JDK dynamic proxies, CGLIB)
+3. **Update Strategy Selection**: Choose appropriate Spring-specific strategy:
+   - **Factory Reset**: Recreate beans using bean factory
+   - **Proxy Refresh**: Update proxy targets with new class definition
+   - **Configuration Refresh**: Reload bean configurations if needed
+4. **Bean Recreation**: For factory reset strategy:
+   - Destroy existing bean instances
+   - Clear bean factory caches
+   - Recreate beans with new class definition
+   - Re-inject dependencies
+5. **Proxy Refresh**: For proxy refresh strategy:
+   - Update proxy target classes
+   - Refresh proxy method interceptors
+   - Maintain existing proxy references
+
+** CDI Framework Integration Flow
+#+begin_src
+[ ClassRedefinitionSucceeded ] --> [ CDI Detection ] --> [ BeanManager Access ]
+                                        |                      |
+                                        v                      v
+                              [ Bean Archive Analysis ] --> [ Contextual Instance Management ]
+                                        |                      |
+                                        v                      v
+                              [ Proxy Update ] --> [ Event Notification ]
+#+end_src
+
+When updating CDI-managed instances:
+
+1. **BeanManager Access**: Obtain CDI BeanManager instance
+2. **Bean Archive Analysis**: Analyze CDI beans:
+   - Identify bean scopes (@ApplicationScoped, @RequestScoped, etc.)
+   - Determine qualifier annotations
+   - Assess interceptor and decorator configurations
+3. **Contextual Instance Management**: Manage CDI contextual instances:
+   - Update bean metadata in BeanManager
+   - Refresh contextual instances in active contexts
+   - Handle producer method and field updates
+4. **Proxy Update**: Update CDI proxies:
+   - Refresh proxy implementations
+   - Update interceptor chains
+   - Maintain proxy identity consistency
+5. **Event Notification**: Fire CDI events for instance updates:
+   - Custom ByteHot CDI events
+   - Framework lifecycle events
+
+** Guice Framework Integration Flow
+#+begin_src
+[ ClassRedefinitionSucceeded ] --> [ Guice Detection ] --> [ Injector Access ]
+                                         |                      |
+                                         v                      v
+                               [ Module Analysis ] --> [ Binding Recreation ]
+                                         |                      |
+                                         v                      v
+                               [ Instance Recreation ] --> [ Dependency Graph Update ]
+#+end_src
+
+When updating Guice-managed instances:
+
+1. **Injector Access**: Obtain Guice Injector instance
+2. **Module Analysis**: Analyze Guice modules and bindings:
+   - Identify binding configurations for updated classes
+   - Determine singleton vs. non-singleton bindings
+   - Assess provider and factory configurations
+3. **Binding Recreation**: Update Guice bindings:
+   - Create new bindings with updated class definitions
+   - Preserve binding annotations and qualifiers
+   - Update provider implementations if needed
+4. **Instance Recreation**: Recreate instances through Guice:
+   - Clear singleton instance caches
+   - Use Injector to create new instances
+   - Ensure proper dependency injection
+5. **Dependency Graph Update**: Update dependent instances:
+   - Identify objects that depend on updated instances
+   - Recursively update dependency chain
+   - Maintain object identity where possible
+
+* Enhanced Instance Management
+
+** Framework-Aware State Preservation
+#+begin_src
+[ State Preservation ] --> [ Framework Context ] --> [ Enhanced Preservation ]
+                                  |                        |
+                                  v                        v
+                         [ Proxy State Handling ] --> [ Framework Metadata ]
+#+end_src
+
+Framework integration enhances state preservation:
+
+1. **Framework Context Awareness**: Understand framework-specific state:
+   - Spring: Bean scope and lifecycle state
+   - CDI: Contextual instance state and qualifiers
+   - Guice: Injection metadata and provider state
+
+2. **Proxy State Handling**: Special handling for framework proxies:
+   - Preserve proxy configuration
+   - Maintain proxy identity
+   - Update proxy targets without changing proxy references
+
+3. **Enhanced Metadata Preservation**: Preserve framework-specific metadata:
+   - Annotation-driven configuration
+   - Dependency injection metadata
+   - Lifecycle callback information
+
+** Dependency Chain Management
+#+begin_src
+[ Instance Update ] --> [ Dependency Analysis ] --> [ Chain Update ] --> [ Validation ]
+#+end_src
+
+Framework integration enables sophisticated dependency management:
+
+1. **Dependency Analysis**: Map complete dependency graphs:
+   - Direct dependencies (constructor, field, method injection)
+   - Indirect dependencies through providers and factories
+   - Circular dependency detection and handling
+
+2. **Chain Update Strategy**: Coordinate updates across dependency chains:
+   - Update order determination (dependencies first)
+   - Batch updates for performance
+   - Rollback coordination for failures
+
+3. **Validation**: Ensure dependency chain consistency:
+   - Verify all dependencies are satisfied
+   - Check for injection point compatibility
+   - Validate framework constraints
+
+* Framework-Specific Optimizations
+
+** Spring-Specific Optimizations
+#+begin_src
+[ Spring Integration ] --> [ AOP Optimization ] --> [ Event Integration ] --> [ Boot Compatibility ]
+#+end_src
+
+Optimizations specific to Spring Framework:
+
+1. **AOP Integration**: Enhanced handling of Spring AOP:
+   - Preserve aspect configurations
+   - Update advice implementations
+   - Maintain pointcut definitions
+
+2. **Event Integration**: Integrate with Spring's event system:
+   - Fire Spring application events for hot-swap operations
+   - Handle event listener updates
+   - Coordinate with Spring Boot actuator
+
+3. **Boot Compatibility**: Special handling for Spring Boot:
+   - Auto-configuration refresh
+   - Conditional bean updates
+   - DevTools integration
+
+** CDI-Specific Optimizations
+#+begin_src
+[ CDI Integration ] --> [ Context Management ] --> [ Extension Integration ] --> [ Observer Methods ]
+#+end_src
+
+Optimizations specific to CDI:
+
+1. **Context Management**: Advanced CDI context handling:
+   - Context lifecycle coordination
+   - Scope-aware instance updates
+   - Custom context support
+
+2. **Extension Integration**: Work with CDI extensions:
+   - Extension-created beans
+   - Portable extension coordination
+   - Build-time vs. runtime bean discovery
+
+3. **Observer Method Handling**: Handle CDI observer methods:
+   - Update observer method implementations
+   - Maintain event subscription consistency
+   - Async observer coordination
+
+** Guice-Specific Optimizations
+#+begin_src
+[ Guice Integration ] --> [ Module Reloading ] --> [ Provider Updates ] --> [ Scope Management ]
+#+end_src
+
+Optimizations specific to Guice:
+
+1. **Module Reloading**: Dynamic module updates:
+   - Module reconfiguration
+   - Binding override handling
+   - Multi-binder coordination
+
+2. **Provider Updates**: Enhanced provider support:
+   - Provider implementation updates
+   - Factory method updates
+   - Lazy loading coordination
+
+3. **Scope Management**: Advanced scope handling:
+   - Custom scope implementations
+   - Scope instance lifecycle
+   - Thread-local scope coordination
+
+* Performance Considerations
+
+** Framework Detection Optimization
+#+begin_src
+[ Startup ] --> [ Cached Detection ] --> [ Lazy Loading ] --> [ Performance Monitoring ]
+#+end_src
+
+Optimize framework detection and integration:
+
+1. **Cached Detection**: Cache framework detection results
+2. **Lazy Loading**: Load framework adapters only when needed
+3. **Performance Monitoring**: Track framework integration performance
+
+** Update Strategy Selection
+#+begin_src
+[ Class Analysis ] --> [ Framework Capability ] --> [ Strategy Selection ] --> [ Performance Prediction ]
+#+end_src
+
+Choose optimal update strategies based on framework capabilities:
+
+1. **Class Analysis**: Analyze class characteristics for framework compatibility
+2. **Framework Capability Mapping**: Map class features to framework capabilities
+3. **Strategy Selection**: Choose most efficient update strategy
+4. **Performance Prediction**: Estimate update performance before execution
+
+* Error Handling and Fallback
+
+** Framework Integration Failures
+#+begin_src
+[ Framework Error ] --> [ Error Classification ] --> [ Fallback Strategy ] --> [ Graceful Degradation ]
+#+end_src
+
+Handle framework integration failures gracefully:
+
+1. **Error Classification**: Categorize framework-related errors:
+   - Framework unavailability
+   - Version incompatibility
+   - Permission restrictions
+   - Configuration errors
+
+2. **Fallback Strategy**: Fall back to basic reflection-based updates:
+   - Disable framework-specific features
+   - Use standard instance update mechanisms
+   - Maintain basic hot-swap functionality
+
+3. **Graceful Degradation**: Provide reduced functionality:
+   - Log framework integration issues
+   - Continue with limited capabilities
+   - Offer manual configuration options
+
+* Framework Integration Invariants
+
+** Pre-conditions
+- Framework is detected and compatible with ByteHot
+- Framework adapter is properly initialized
+- Framework-managed instances are properly tracked
+
+** Post-conditions
+- Framework-managed instances reflect new class definitions
+- Framework metadata and configurations are preserved
+- Dependency injection continues to work correctly
+- Framework-specific features remain functional
+
+** Consistency Guarantees
+- Framework proxy relationships are maintained
+- Dependency injection graphs remain consistent
+- Framework lifecycle methods are properly invoked
+- Framework-specific annotations and configurations are preserved
+
+* Architecture Benefits
+
+** Enhanced Capabilities
+- More sophisticated instance update strategies
+- Better preservation of framework-specific state
+- Improved compatibility with framework features
+- Enhanced performance through framework-native operations
+
+** Maintainability
+- Clear separation between framework-specific and generic logic
+- Pluggable adapter architecture for different frameworks
+- Testable framework integration components
+- Extensible design for future framework support
+
+** User Experience
+- Transparent integration with existing framework usage
+- No changes required to existing application code
+- Better error messages for framework-specific issues
+- Enhanced monitoring and debugging capabilities

@@ -1,0 +1,610 @@
+#+TITLE: CascadingRollbackResult - Multi-Class Rollback Operation Outcome
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =CascadingRollbackResult= class represents the outcome of rollback operations that affect multiple classes and their dependencies. It provides comprehensive information about complex rollback scenarios where changes to one class require rolling back dependent classes to maintain system consistency.
+
+** Key Responsibilities
+- Report outcomes of multi-class rollback operations
+- Track rollback success/failure across class dependency chains
+- Provide detailed metrics for cascading rollback performance
+- Support rollback coordination and conflict resolution analysis
+- Enable monitoring and optimization of complex rollback scenarios
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/CascadingRollbackResult.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: CascadingRollbackResult.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: CascadingRollbackResult
+ *
+ * Responsibilities:
+ *   - Report outcomes of multi-class rollback operations
+ *   - Track rollback coordination across dependency chains
+ *   - Support complex rollback scenario analysis and optimization
+ *
+ * Collaborators:
+ *   - RollbackManager: Creates cascading rollback results
+ *   - RollbackResult: Individual class rollback outcomes
+ *   - ConflictResolutionResult: Conflict resolution outcomes
+ */
+package org.acmsl.bytehot.domain;
+
+import lombok.Getter;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * Represents the outcome of a cascading rollback operation across multiple classes
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class CascadingRollbackResult {
+
+    /**
+     * Whether the overall cascading rollback was successful
+     */
+    private final boolean overallSuccess;
+
+    /**
+     * Primary class that initiated the cascading rollback
+     */
+    private final String primaryClassName;
+
+    /**
+     * Individual rollback results for each affected class
+     */
+    private final List<RollbackResult> individualResults;
+
+    /**
+     * Rollback execution order (classes in dependency order)
+     */
+    private final List<String> rollbackExecutionOrder;
+
+    /**
+     * Total duration of the cascading rollback operation
+     */
+    private final Duration totalDuration;
+
+    /**
+     * Timestamp when cascading rollback started
+     */
+    private final Instant startTime;
+
+    /**
+     * Timestamp when cascading rollback completed
+     */
+    private final Instant endTime;
+
+    /**
+     * Number of classes successfully rolled back
+     */
+    private final int classesSuccessfullyRolledBack;
+
+    /**
+     * Number of classes that failed to roll back
+     */
+    private final int classesThatFailedRollback;
+
+    /**
+     * Conflicts encountered and their resolutions
+     */
+    private final List<ConflictResolutionResult> conflictResolutions;
+
+    /**
+     * Dependencies that were automatically discovered during rollback
+     */
+    private final Map<String, List<String>> discoveredDependencies;
+
+    /**
+     * Warnings encountered during the cascading rollback
+     */
+    private final List<String> warnings;
+
+    /**
+     * Additional details about the cascading operation
+     */
+    private final String operationDetails;
+
+    /**
+     * Creates a new cascading rollback result
+     */
+    private CascadingRollbackResult(final boolean overallSuccess, final String primaryClassName,
+                                   final List<RollbackResult> individualResults,
+                                   final List<String> rollbackExecutionOrder, final Duration totalDuration,
+                                   final Instant startTime, final Instant endTime,
+                                   final int classesSuccessfullyRolledBack, final int classesThatFailedRollback,
+                                   final List<ConflictResolutionResult> conflictResolutions,
+                                   final Map<String, List<String>> discoveredDependencies,
+                                   final List<String> warnings, final String operationDetails) {
+        this.overallSuccess = overallSuccess;
+        this.primaryClassName = primaryClassName;
+        this.individualResults = new CopyOnWriteArrayList<>(individualResults);
+        this.rollbackExecutionOrder = new CopyOnWriteArrayList<>(rollbackExecutionOrder);
+        this.totalDuration = totalDuration;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.classesSuccessfullyRolledBack = classesSuccessfullyRolledBack;
+        this.classesThatFailedRollback = classesThatFailedRollback;
+        this.conflictResolutions = new CopyOnWriteArrayList<>(conflictResolutions);
+        this.discoveredDependencies = new ConcurrentHashMap<>(discoveredDependencies);
+        this.warnings = new CopyOnWriteArrayList<>(warnings);
+        this.operationDetails = operationDetails;
+    }
+
+    /**
+     * Creates a successful cascading rollback result
+     */
+    public static CascadingRollbackResult success(final String primaryClassName,
+                                                final List<RollbackResult> individualResults,
+                                                final List<String> executionOrder,
+                                                final Duration totalDuration,
+                                                final Instant startTime, final Instant endTime,
+                                                final List<ConflictResolutionResult> conflictResolutions,
+                                                final Map<String, List<String>> discoveredDependencies,
+                                                final List<String> warnings, final String operationDetails) {
+        return new CascadingRollbackResult(true, primaryClassName, individualResults, executionOrder,
+                                         totalDuration, startTime, endTime, individualResults.size(), 0,
+                                         conflictResolutions, discoveredDependencies, warnings, operationDetails);
+    }
+
+    /**
+     * Creates a failed cascading rollback result
+     */
+    public static CascadingRollbackResult failure(final String primaryClassName,
+                                                final List<RollbackResult> individualResults,
+                                                final List<String> executionOrder,
+                                                final Duration totalDuration,
+                                                final Instant startTime, final Instant endTime,
+                                                final int successfulCount, final int failedCount,
+                                                final List<ConflictResolutionResult> conflictResolutions,
+                                                final Map<String, List<String>> discoveredDependencies,
+                                                final List<String> warnings, final String operationDetails) {
+        return new CascadingRollbackResult(false, primaryClassName, individualResults, executionOrder,
+                                         totalDuration, startTime, endTime, successfulCount, failedCount,
+                                         conflictResolutions, discoveredDependencies, warnings, operationDetails);
+    }
+
+    /**
+     * Returns the total number of classes involved in the rollback
+     */
+    public int getTotalClassesInvolved() {
+        return classesSuccessfullyRolledBack + classesThatFailedRollback;
+    }
+
+    /**
+     * Returns the success rate of the cascading rollback as a percentage
+     */
+    public double getSuccessRate() {
+        final int total = getTotalClassesInvolved();
+        if (total == 0) {
+            return 100.0;
+        }
+        return (double) classesSuccessfullyRolledBack / total * 100.0;
+    }
+
+    /**
+     * Returns whether the rollback had partial success
+     */
+    public boolean hasPartialSuccess() {
+        return classesSuccessfullyRolledBack > 0 && classesThatFailedRollback > 0;
+    }
+
+    /**
+     * Returns whether conflicts were encountered during rollback
+     */
+    public boolean hadConflicts() {
+        return !conflictResolutions.isEmpty();
+    }
+
+    /**
+     * Returns the number of conflicts that were resolved
+     */
+    public int getResolvedConflictCount() {
+        return (int) conflictResolutions.stream()
+                                      .filter(ConflictResolutionResult::isResolved)
+                                      .count();
+    }
+
+    /**
+     * Returns the number of unresolved conflicts
+     */
+    public int getUnresolvedConflictCount() {
+        return conflictResolutions.size() - getResolvedConflictCount();
+    }
+
+    /**
+     * Returns whether the operation had warnings
+     */
+    public boolean hasWarnings() {
+        return !warnings.isEmpty();
+    }
+
+    /**
+     * Returns the number of warnings
+     */
+    public int getWarningCount() {
+        return warnings.size();
+    }
+
+    /**
+     * Returns whether new dependencies were discovered during rollback
+     */
+    public boolean discoveredNewDependencies() {
+        return !discoveredDependencies.isEmpty();
+    }
+
+    /**
+     * Returns the total number of discovered dependencies
+     */
+    public int getDiscoveredDependencyCount() {
+        return discoveredDependencies.values().stream()
+                                   .mapToInt(List::size)
+                                   .sum();
+    }
+
+    /**
+     * Returns the depth of the dependency chain
+     */
+    public int getDependencyChainDepth() {
+        return rollbackExecutionOrder.size();
+    }
+
+    /**
+     * Returns the average time per class rollback
+     */
+    public Duration getAverageTimePerClass() {
+        final int total = getTotalClassesInvolved();
+        if (total == 0) {
+            return Duration.ZERO;
+        }
+        return totalDuration.dividedBy(total);
+    }
+
+    /**
+     * Returns rollback results for failed classes only
+     */
+    public List<RollbackResult> getFailedRollbacks() {
+        return individualResults.stream()
+                               .filter(result -> !result.isSuccess())
+                               .toList();
+    }
+
+    /**
+     * Returns rollback results for successful classes only
+     */
+    public List<RollbackResult> getSuccessfulRollbacks() {
+        return individualResults.stream()
+                               .filter(RollbackResult::isSuccess)
+                               .toList();
+    }
+
+    /**
+     * Returns whether the rollback was complex (multiple classes with dependencies)
+     */
+    public boolean isComplexRollback() {
+        return getTotalClassesInvolved() > 1 && (hadConflicts() || discoveredNewDependencies());
+    }
+
+    /**
+     * Returns whether the rollback operation was fast
+     */
+    public boolean isFastRollback() {
+        return totalDuration.toSeconds() < 5; // Less than 5 seconds
+    }
+
+    /**
+     * Returns whether the rollback operation was slow
+     */
+    public boolean isSlowRollback() {
+        return totalDuration.toSeconds() > 30; // More than 30 seconds
+    }
+
+    /**
+     * Returns a summary description of the cascading rollback
+     */
+    public String getSummary() {
+        if (overallSuccess) {
+            return String.format("Cascading rollback successful: %d classes rolled back in %dms",
+                               classesSuccessfullyRolledBack, totalDuration.toMillis());
+        } else if (hasPartialSuccess()) {
+            return String.format("Partial cascading rollback: %d/%d classes rolled back in %dms",
+                               classesSuccessfullyRolledBack, getTotalClassesInvolved(), totalDuration.toMillis());
+        } else {
+            return String.format("Cascading rollback failed: %d classes failed to roll back",
+                               classesThatFailedRollback);
+        }
+    }
+
+    /**
+     * Returns detailed performance metrics
+     */
+    public String getPerformanceMetrics() {
+        return String.format(
+            "Performance: %d classes, %.1f%% success, %dms total (%.1fms/class), %d conflicts, %d warnings",
+            getTotalClassesInvolved(),
+            getSuccessRate(),
+            totalDuration.toMillis(),
+            getAverageTimePerClass().toMillis(),
+            conflictResolutions.size(),
+            warnings.size()
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "CascadingRollbackResult{" +
+               "success=" + overallSuccess +
+               ", primaryClass='" + primaryClassName + '\'' +
+               ", totalClasses=" + getTotalClassesInvolved() +
+               ", successfulClasses=" + classesSuccessfullyRolledBack +
+               ", failedClasses=" + classesThatFailedRollback +
+               ", conflicts=" + conflictResolutions.size() +
+               ", duration=" + totalDuration.toMillis() + "ms" +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Analyzing Cascading Rollback Results
+
+#+end_src
+// Process cascading rollback outcome
+CascadingRollbackResult result = rollbackManager.performCascadingRollback(primaryClass, dependentClasses);
+
+logger.info("Cascading rollback completed: {}", result.getSummary());
+logger.info("Performance metrics: {}", result.getPerformanceMetrics());
+
+// Analyze success characteristics
+if (result.isOverallSuccess()) {
+    logger.info("All {} classes successfully rolled back", result.getTotalClassesInvolved());
+    
+    if (result.isComplexRollback()) {
+        logger.info("Complex rollback succeeded with {} dependency levels", 
+                   result.getDependencyChainDepth());
+    }
+    
+    if (result.hadConflicts()) {
+        logger.info("Resolved {} conflicts during rollback", result.getResolvedConflictCount());
+    }
+    
+} else if (result.hasPartialSuccess()) {
+    logger.warn("Partial rollback success: {:.1f}% success rate", result.getSuccessRate());
+    
+    // Analyze failed rollbacks
+    List<RollbackResult> failed = result.getFailedRollbacks();
+    failed.forEach(failedResult -> 
+        logger.error("Failed to rollback class: {} - {}", 
+                    failedResult.getClassName(), failedResult.getErrorMessage()));
+    
+} else {
+    logger.error("Cascading rollback completely failed");
+    
+    if (result.getUnresolvedConflictCount() > 0) {
+        logger.error("Unresolved conflicts: {}", result.getUnresolvedConflictCount());
+    }
+}
+
+// Performance analysis
+if (result.isSlowRollback()) {
+    logger.warn("Slow cascading rollback detected: {}ms for {} classes", 
+               result.getTotalDuration().toMillis(), result.getTotalClassesInvolved());
+}
+#+end_src
+
+** Conflict Resolution Analysis
+
+#+begin_src java
+public void analyzeConflictResolution(CascadingRollbackResult result) {
+    if (result.hadConflicts()) {
+        logger.info("Conflict Resolution Analysis:");
+        logger.info("  Total conflicts: {}", result.getConflictResolutions().size());
+        logger.info("  Resolved: {}", result.getResolvedConflictCount());
+        logger.info("  Unresolved: {}", result.getUnresolvedConflictCount());
+        
+        // Analyze individual conflict resolutions
+        for (ConflictResolutionResult conflictResolution : result.getConflictResolutions()) {
+            if (conflictResolution.isResolved()) {
+                logger.info("  ✓ Resolved: {} using strategy {}", 
+                           conflictResolution.getConflictDescription(),
+                           conflictResolution.getResolutionStrategy());
+            } else {
+                logger.warn("  ✗ Unresolved: {} - {}", 
+                           conflictResolution.getConflictDescription(),
+                           conflictResolution.getFailureReason());
+            }
+        }
+        
+        // Report conflict resolution effectiveness
+        double resolutionRate = (double) result.getResolvedConflictCount() / 
+                               result.getConflictResolutions().size() * 100.0;
+        logger.info("  Conflict resolution rate: {:.1f}%", resolutionRate);
+    }
+}
+#+end_src
+
+** Dependency Discovery Analysis
+
+#+end_src
+public void analyzeDependencyDiscovery(CascadingRollbackResult result) {
+    if (result.discoveredNewDependencies()) {
+        logger.info("Dependency Discovery Analysis:");
+        logger.info("  Classes with discovered dependencies: {}", 
+                   result.getDiscoveredDependencies().size());
+        logger.info("  Total discovered dependencies: {}", 
+                   result.getDiscoveredDependencyCount());
+        
+        // Log discovered dependencies
+        result.getDiscoveredDependencies().forEach((className, dependencies) -> {
+            logger.info("  {} depends on: {}", className, dependencies);
+        });
+        
+        // Check if discovery affected rollback complexity
+        if (result.isComplexRollback()) {
+            logger.info("  Dependency discovery increased rollback complexity");
+            logger.info("  Final dependency chain depth: {}", result.getDependencyChainDepth());
+        }
+        
+        // Update dependency tracking for future operations
+        dependencyTracker.updateDiscoveredDependencies(result.getDiscoveredDependencies());
+    }
+}
+#+end_src
+
+** Performance Monitoring and Optimization
+
+#+begin_src java
+public void monitorCascadingRollbackPerformance(CascadingRollbackResult result) {
+    // Record metrics
+    cascadingRollbackMetrics.recordOperation(result);
+    
+    // Performance alerting
+    if (result.isSlowRollback()) {
+        alertManager.sendPerformanceAlert(
+            "Slow cascading rollback detected",
+            result.getPrimaryClassName(),
+            result.getTotalDuration()
+        );
+    }
+    
+    // Success rate monitoring
+    if (result.getSuccessRate() < 95.0) {
+        alertManager.sendReliabilityAlert(
+            "Low cascading rollback success rate",
+            result.getPrimaryClassName(),
+            result.getSuccessRate()
+        );
+    }
+    
+    // Conflict monitoring
+    if (result.getUnresolvedConflictCount() > 0) {
+        alertManager.sendAlert(
+            "Unresolved rollback conflicts",
+            String.format("Primary class: %s, Unresolved: %d", 
+                         result.getPrimaryClassName(), result.getUnresolvedConflictCount())
+        );
+    }
+    
+    // Complexity monitoring
+    if (result.isComplexRollback() && result.getDependencyChainDepth() > 5) {
+        alertManager.sendAlert(
+            "High rollback complexity",
+            String.format("Dependency chain depth: %d for class: %s", 
+                         result.getDependencyChainDepth(), result.getPrimaryClassName())
+        );
+    }
+}
+#+end_src
+
+** Historical Analysis and Trend Detection
+
+#+end_src
+public CascadingRollbackTrendReport analyzeTrends(List<CascadingRollbackResult> historicalResults) {
+    CascadingRollbackTrendReport report = new CascadingRollbackTrendReport();
+    
+    // Calculate trend metrics
+    double avgSuccessRate = historicalResults.stream()
+        .mapToDouble(CascadingRollbackResult::getSuccessRate)
+        .average()
+        .orElse(0.0);
+    
+    Duration avgDuration = Duration.ofMillis(
+        (long) historicalResults.stream()
+            .mapToLong(result -> result.getTotalDuration().toMillis())
+            .average()
+            .orElse(0.0)
+    );
+    
+    double avgComplexity = historicalResults.stream()
+        .mapToDouble(CascadingRollbackResult::getDependencyChainDepth)
+        .average()
+        .orElse(0.0);
+    
+    // Identify patterns
+    long complexRollbacks = historicalResults.stream()
+        .filter(CascadingRollbackResult::isComplexRollback)
+        .count();
+    
+    long conflictedRollbacks = historicalResults.stream()
+        .filter(CascadingRollbackResult::hadConflicts)
+        .count();
+    
+    // Generate insights
+    report.setAverageSuccessRate(avgSuccessRate);
+    report.setAverageDuration(avgDuration);
+    report.setAverageComplexity(avgComplexity);
+    report.setComplexRollbackRate((double) complexRollbacks / historicalResults.size() * 100.0);
+    report.setConflictRate((double) conflictedRollbacks / historicalResults.size() * 100.0);
+    
+    // Generate recommendations
+    if (avgSuccessRate < 95.0) {
+        report.addRecommendation("Consider improving rollback reliability - success rate below 95%");
+    }
+    
+    if (avgComplexity > 3.0) {
+        report.addRecommendation("High average dependency complexity - consider dependency optimization");
+    }
+    
+    if (report.getConflictRate() > 20.0) {
+        report.addRecommendation("High conflict rate - improve conflict prevention strategies");
+    }
+    
+    return report;
+}
+#+end_src
+
+* Architecture Notes
+
+** Multi-Class Coordination
+- Comprehensive tracking of rollback operations across class hierarchies
+- Dependency chain analysis and execution order optimization
+- Conflict detection and resolution coordination
+- Performance metrics for complex rollback scenarios
+
+** Operational Intelligence
+- Rich metadata about rollback execution and outcomes
+- Dependency discovery and tracking for future optimization
+- Conflict resolution analysis for strategy improvement
+- Performance monitoring and trend analysis capabilities
+
+** System Reliability
+- Clear success/failure reporting with detailed context
+- Partial success handling for robust error recovery
+- Warning and conflict tracking for operational awareness
+- Integration with monitoring and alerting systems for proactive management

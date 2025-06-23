@@ -1,0 +1,718 @@
+#+TITLE: EventStoreException - Event Store Operation Error Management and Recovery Exception
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-20]
+
+* Overview
+
+The ~EventStoreException~ class serves as ByteHot's sophisticated event store operation error management and recovery exception, providing comprehensive error classification, advanced failure analysis, and intelligent error coordination for precise event store error handling and automated recovery intelligence. This critical domain exception encapsulates event store operation failures, error context management, and sophisticated error classification mechanisms that enable precise error handling and automated recovery coordination. As the error foundation for ByteHot's event store management system, it enables comprehensive error handling while maintaining clean domain boundaries and supporting advanced error analytics, recovery intelligence, and operational coordination throughout the entire intelligent hot-swap system lifecycle.
+
+* Domain Architecture Role
+
+** Event Store Error Management and Recovery Foundation
+EventStoreException serves as the comprehensive event store error management and recovery foundation:
+- Provides sophisticated event store error classification for operation failure management and recovery coordination
+- Enables comprehensive error context management and failure analysis through advanced error tracking and intelligence
+- Supports intelligent error coordination and recovery automation through domain-driven exception patterns
+- Acts as the authoritative foundation for event store error operations and recovery-driven coordination
+
+** Exception Design and Error Intelligence Hub
+The class serves as the exception design and error intelligence hub:
+- Implements sophisticated exception patterns with error encapsulation and contextual intelligence methods
+- Provides comprehensive error validation and consistency through domain-driven design principles
+- Enables error composition and correlation capabilities for complex event store error scenarios
+- Supports error optimization and performance enhancement through efficient exception design patterns
+
+** Operation Failure Intelligence and Automated Recovery Hub
+The implementation provides operation failure intelligence and automated recovery capabilities:
+- Enables sophisticated operation failure intelligence through comprehensive error analysis and recovery coordination
+- Supports advanced automated recovery and error resolution through exception-driven coordination
+- Provides foundation for error analytics and operational intelligence through exception-driven correlation
+- Enables intelligent error monitoring and optimization through exception-driven recovery and assessment
+
+* Event Store Exception Structure and Error Context
+
+** Core Exception Identity and Operation Context
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+/**
+ * The type of event store operation that failed for operation classification
+ */
+private final OperationType operationType;
+
+/**
+ * The aggregate type involved (if applicable) for aggregate-specific error context
+ */
+private final String aggregateType;
+
+/**
+ * The aggregate ID involved (if applicable) for specific aggregate error tracking
+ */
+private final String aggregateId;
+#+END_SRC
+
+** Operation Type Classification and Error Categorization
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+/**
+ * The type of event store operation that failed for error classification
+ */
+public enum OperationType {
+    SAVE("Event save operation failure"),
+    RETRIEVE("Event retrieval operation failure"),
+    COUNT("Event count operation failure"),
+    HEALTH_CHECK("Health check operation failure"),
+    INITIALIZATION("Event store initialization failure");
+    
+    private final String description;
+    
+    OperationType(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+#+END_SRC
+
+** Core Construction and Error Context Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+/**
+ * Constructor for general event store exceptions with operation context
+ * @param message the error message for exception documentation
+ * @param operationType the type of operation that failed for error classification
+ */
+public EventStoreException(String message, OperationType operationType) {
+    super(message);
+    this.operationType = operationType;
+    this.aggregateType = null;
+    this.aggregateId = null;
+}
+
+/**
+ * Constructor for event store exceptions with cause and comprehensive error context
+ * @param message the error message for exception documentation
+ * @param cause the underlying cause for error chaining and analysis
+ * @param operationType the type of operation that failed for error classification
+ */
+public EventStoreException(String message, Throwable cause, OperationType operationType) {
+    super(message, cause);
+    this.operationType = operationType;
+    this.aggregateType = null;
+    this.aggregateId = null;
+}
+
+/**
+ * Constructor for aggregate-specific exceptions with detailed context
+ * @param message the error message for exception documentation
+ * @param operationType the type of operation that failed for error classification
+ * @param aggregateType the aggregate type involved for context tracking
+ * @param aggregateId the aggregate ID involved for specific error correlation
+ */
+public EventStoreException(
+    String message,
+    OperationType operationType,
+    String aggregateType,
+    String aggregateId
+) {
+    super(message);
+    this.operationType = operationType;
+    this.aggregateType = aggregateType;
+    this.aggregateId = aggregateId;
+}
+
+/**
+ * Constructor for aggregate-specific exceptions with cause and comprehensive context
+ * @param message the error message for exception documentation
+ * @param cause the underlying cause for error chaining and analysis
+ * @param operationType the type of operation that failed for error classification
+ * @param aggregateType the aggregate type involved for context tracking
+ * @param aggregateId the aggregate ID involved for specific error correlation
+ */
+public EventStoreException(
+    String message,
+    Throwable cause,
+    OperationType operationType,
+    String aggregateType,
+    String aggregateId
+) {
+    super(message, cause);
+    this.operationType = operationType;
+    this.aggregateType = aggregateType;
+    this.aggregateId = aggregateId;
+}
+#+END_SRC
+
+* Error Intelligence and Context Analysis Operations
+
+** Operation Context and Error Classification Access
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+/**
+ * Gets the operation type that failed for error analysis and classification
+ * @return the operation type with error context information
+ */
+public OperationType getOperationType() {
+    return operationType;
+}
+
+/**
+ * Gets the aggregate type involved for aggregate-specific error handling
+ * @return the aggregate type, or null if not applicable
+ */
+public String getAggregateType() {
+    return aggregateType;
+}
+
+/**
+ * Gets the aggregate ID involved for specific error correlation and tracking
+ * @return the aggregate ID, or null if not applicable
+ */
+public String getAggregateId() {
+    return aggregateId;
+}
+
+/**
+ * Checks if this exception is related to a specific aggregate for context validation
+ * @return true if aggregate type and ID are specified for aggregate-specific handling
+ */
+public boolean isAggregateSpecific() {
+    return aggregateType != null && aggregateId != null;
+}
+#+END_SRC
+
+** Enhanced Error Intelligence and Advanced Analysis Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+/**
+ * Gets the severity level of this event store exception for error prioritization
+ * @return severity level based on operation type and context
+ */
+@NonNull
+public ErrorSeverity getSeverityLevel() {
+    switch (operationType) {
+        case INITIALIZATION:
+            return ErrorSeverity.CRITICAL; // System cannot function
+        case SAVE:
+            return isAggregateSpecific() ? ErrorSeverity.HIGH : ErrorSeverity.MEDIUM;
+        case RETRIEVE:
+            return isAggregateSpecific() ? ErrorSeverity.MEDIUM : ErrorSeverity.LOW;
+        case COUNT:
+        case HEALTH_CHECK:
+            return ErrorSeverity.LOW;
+        default:
+            return ErrorSeverity.MEDIUM;
+    }
+}
+
+/**
+ * Gets the error category for this exception for error management classification
+ * @return error category based on operation type and failure characteristics
+ */
+@NonNull
+public EventStoreErrorCategory getErrorCategory() {
+    if (getCause() instanceof java.io.IOException) {
+        return EventStoreErrorCategory.IO_ERROR;
+    }
+    
+    if (getCause() instanceof SecurityException) {
+        return EventStoreErrorCategory.SECURITY_ERROR;
+    }
+    
+    if (operationType == OperationType.INITIALIZATION) {
+        return EventStoreErrorCategory.CONFIGURATION_ERROR;
+    }
+    
+    if (getMessage() != null && getMessage().toLowerCase().contains("timeout")) {
+        return EventStoreErrorCategory.TIMEOUT_ERROR;
+    }
+    
+    return EventStoreErrorCategory.OPERATIONAL_ERROR;
+}
+
+/**
+ * Determines if this error is recoverable through retry or alternative strategies
+ * @return true if error may be recoverable through retry mechanisms
+ */
+public boolean isRecoverable() {
+    EventStoreErrorCategory category = getErrorCategory();
+    
+    switch (category) {
+        case TIMEOUT_ERROR:
+        case IO_ERROR:
+            return true; // Often transient
+        case SECURITY_ERROR:
+        case CONFIGURATION_ERROR:
+            return false; // Require manual intervention
+        case OPERATIONAL_ERROR:
+        default:
+            return operationType != OperationType.INITIALIZATION; // Init errors usually aren't recoverable
+    }
+}
+
+/**
+ * Gets recommended recovery actions for this error type
+ * @return list of recommended recovery actions for error resolution
+ */
+@NonNull
+public java.util.List<String> getRecoveryRecommendations() {
+    java.util.List<String> recommendations = new java.util.ArrayList<>();
+    
+    EventStoreErrorCategory category = getErrorCategory();
+    
+    switch (category) {
+        case TIMEOUT_ERROR:
+            recommendations.add("Retry operation with exponential backoff");
+            recommendations.add("Check network connectivity and event store availability");
+            recommendations.add("Consider increasing timeout configuration");
+            break;
+        case IO_ERROR:
+            recommendations.add("Verify file system permissions and disk space");
+            recommendations.add("Check event store directory accessibility");
+            recommendations.add("Retry operation after brief delay");
+            break;
+        case SECURITY_ERROR:
+            recommendations.add("Verify authentication credentials");
+            recommendations.add("Check access permissions for event store operations");
+            recommendations.add("Review security configuration");
+            break;
+        case CONFIGURATION_ERROR:
+            recommendations.add("Verify event store configuration parameters");
+            recommendations.add("Check event store initialization settings");
+            recommendations.add("Review connection configuration");
+            break;
+        case OPERATIONAL_ERROR:
+        default:
+            if (isRecoverable()) {
+                recommendations.add("Retry operation with appropriate backoff strategy");
+            }
+            recommendations.add("Check event store health and connectivity");
+            recommendations.add("Review operation parameters and context");
+            break;
+    }
+    
+    return recommendations;
+}
+
+/**
+ * Gets estimated recovery time for this error type
+ * @return estimated time to recover from this error
+ */
+@NonNull
+public java.time.Duration getEstimatedRecoveryTime() {
+    EventStoreErrorCategory category = getErrorCategory();
+    
+    switch (category) {
+        case TIMEOUT_ERROR:
+            return java.time.Duration.ofSeconds(30); // Quick retry
+        case IO_ERROR:
+            return java.time.Duration.ofMinutes(1); // File system issues
+        case SECURITY_ERROR:
+            return java.time.Duration.ofMinutes(30); // Manual intervention needed
+        case CONFIGURATION_ERROR:
+            return java.time.Duration.ofMinutes(15); // Configuration fixes
+        case OPERATIONAL_ERROR:
+        default:
+            return isRecoverable() ? java.time.Duration.ofMinutes(5) : java.time.Duration.ofHours(1);
+    }
+}
+
+/**
+ * Creates error context for detailed error analysis and reporting
+ * @return comprehensive error context with analysis and recommendations
+ */
+@NonNull
+public EventStoreErrorContext createErrorContext() {
+    return EventStoreErrorContext.builder()
+        .operationType(operationType)
+        .aggregateType(aggregateType)
+        .aggregateId(aggregateId)
+        .errorMessage(getMessage())
+        .underlyingCause(getCause())
+        .severityLevel(getSeverityLevel())
+        .errorCategory(getErrorCategory())
+        .isRecoverable(isRecoverable())
+        .recoveryRecommendations(getRecoveryRecommendations())
+        .estimatedRecoveryTime(getEstimatedRecoveryTime())
+        .timestamp(java.time.Instant.now())
+        .build();
+}
+
+/**
+ * Creates a retry strategy recommendation based on this error
+ * @return retry strategy with parameters and conditions
+ */
+@NonNull
+public RetryStrategy createRetryStrategy() {
+    if (!isRecoverable()) {
+        return RetryStrategy.noRetry("Error is not recoverable");
+    }
+    
+    EventStoreErrorCategory category = getErrorCategory();
+    
+    switch (category) {
+        case TIMEOUT_ERROR:
+            return RetryStrategy.exponentialBackoff()
+                .maxAttempts(5)
+                .initialDelay(java.time.Duration.ofSeconds(1))
+                .maxDelay(java.time.Duration.ofSeconds(30))
+                .build();
+        case IO_ERROR:
+            return RetryStrategy.fixedDelay()
+                .maxAttempts(3)
+                .delay(java.time.Duration.ofSeconds(5))
+                .build();
+        case OPERATIONAL_ERROR:
+        default:
+            return RetryStrategy.exponentialBackoff()
+                .maxAttempts(3)
+                .initialDelay(java.time.Duration.ofSeconds(2))
+                .maxDelay(java.time.Duration.ofMinutes(1))
+                .build();
+    }
+}
+#+END_SRC
+
+** Enhanced String Representation and Debugging Operations
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+@Override
+public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("EventStoreException{");
+    sb.append("operationType=").append(operationType);
+    
+    if (aggregateType != null) {
+        sb.append(", aggregateType='").append(aggregateType).append("'");
+    }
+    
+    if (aggregateId != null) {
+        sb.append(", aggregateId='").append(aggregateId).append("'");
+    }
+    
+    sb.append(", severity=").append(getSeverityLevel());
+    sb.append(", category=").append(getErrorCategory());
+    sb.append(", recoverable=").append(isRecoverable());
+    sb.append(", message='").append(getMessage()).append("'");
+    sb.append("}");
+    
+    return sb.toString();
+}
+
+/**
+ * Gets detailed description for logging and debugging purposes
+ * @return comprehensive error description with context and recommendations
+ */
+@NonNull
+public String getDetailedDescription() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Event Store Operation Failed: ").append(operationType.getDescription());
+    
+    if (isAggregateSpecific()) {
+        sb.append(" for aggregate ").append(aggregateType).append("[").append(aggregateId).append("]");
+    }
+    
+    sb.append("\nSeverity: ").append(getSeverityLevel());
+    sb.append("\nCategory: ").append(getErrorCategory());
+    sb.append("\nRecoverable: ").append(isRecoverable());
+    sb.append("\nError Message: ").append(getMessage());
+    
+    if (getCause() != null) {
+        sb.append("\nUnderlying Cause: ").append(getCause().getClass().getSimpleName()).append(": ").append(getCause().getMessage());
+    }
+    
+    java.util.List<String> recommendations = getRecoveryRecommendations();
+    if (!recommendations.isEmpty()) {
+        sb.append("\nRecovery Recommendations:");
+        for (String recommendation : recommendations) {
+            sb.append("\n  - ").append(recommendation);
+        }
+    }
+    
+    return sb.toString();
+}
+#+END_SRC
+
+** Error Analytics Value Objects and Supporting Types
+#+BEGIN_SRC java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/EventStoreException.java
+/**
+ * Error severity levels for event store exceptions
+ */
+public enum ErrorSeverity {
+    LOW("Low severity - minimal impact"),
+    MEDIUM("Medium severity - moderate impact"),
+    HIGH("High severity - significant impact"),
+    CRITICAL("Critical severity - system impact");
+    
+    private final String description;
+    
+    ErrorSeverity(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Event store error categories for classification
+ */
+public enum EventStoreErrorCategory {
+    IO_ERROR("Input/output operation failure"),
+    TIMEOUT_ERROR("Operation timeout failure"),
+    SECURITY_ERROR("Security or permission failure"),
+    CONFIGURATION_ERROR("Configuration or setup failure"),
+    OPERATIONAL_ERROR("General operational failure");
+    
+    private final String description;
+    
+    EventStoreErrorCategory(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+
+/**
+ * Comprehensive error context for analysis and reporting
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class EventStoreErrorContext {
+    /**
+     * Type of operation that failed
+     */
+    private final OperationType operationType;
+    
+    /**
+     * Aggregate type involved (if applicable)
+     */
+    private final String aggregateType;
+    
+    /**
+     * Aggregate ID involved (if applicable)
+     */
+    private final String aggregateId;
+    
+    /**
+     * Error message
+     */
+    private final String errorMessage;
+    
+    /**
+     * Underlying cause
+     */
+    private final Throwable underlyingCause;
+    
+    /**
+     * Error severity level
+     */
+    private final ErrorSeverity severityLevel;
+    
+    /**
+     * Error category
+     */
+    private final EventStoreErrorCategory errorCategory;
+    
+    /**
+     * Whether error is recoverable
+     */
+    private final boolean isRecoverable;
+    
+    /**
+     * Recovery recommendations
+     */
+    private final java.util.List<String> recoveryRecommendations;
+    
+    /**
+     * Estimated recovery time
+     */
+    private final java.time.Duration estimatedRecoveryTime;
+    
+    /**
+     * Error timestamp
+     */
+    private final java.time.Instant timestamp;
+}
+
+/**
+ * Retry strategy for error recovery
+ */
+@lombok.Builder
+@lombok.EqualsAndHashCode
+@lombok.ToString
+@lombok.Getter
+public static class RetryStrategy {
+    /**
+     * Maximum number of retry attempts
+     */
+    private final int maxAttempts;
+    
+    /**
+     * Initial delay between retries
+     */
+    private final java.time.Duration initialDelay;
+    
+    /**
+     * Maximum delay between retries
+     */
+    private final java.time.Duration maxDelay;
+    
+    /**
+     * Whether to use exponential backoff
+     */
+    private final boolean exponentialBackoff;
+    
+    /**
+     * Reason for no retry (if applicable)
+     */
+    private final String noRetryReason;
+    
+    /**
+     * Creates a no-retry strategy
+     * @param reason reason for not retrying
+     * @return no-retry strategy
+     */
+    public static RetryStrategy noRetry(String reason) {
+        return RetryStrategy.builder()
+            .maxAttempts(0)
+            .noRetryReason(reason)
+            .build();
+    }
+    
+    /**
+     * Creates an exponential backoff strategy builder
+     * @return strategy builder for exponential backoff
+     */
+    public static RetryStrategyBuilder exponentialBackoff() {
+        return RetryStrategy.builder().exponentialBackoff(true);
+    }
+    
+    /**
+     * Creates a fixed delay strategy builder
+     * @return strategy builder for fixed delay
+     */
+    public static RetryStrategyBuilder fixedDelay() {
+        return RetryStrategy.builder().exponentialBackoff(false);
+    }
+}
+#+END_SRC
+
+* Testing and Validation Strategies
+
+** Exception Creation and Context Testing
+#+begin_src java
+@Test
+void shouldCreateExceptionsWithProperContext() {
+    // Given: Different exception scenarios
+    EventStoreException generalError = new EventStoreException(
+        "Save operation failed", 
+        EventStoreException.OperationType.SAVE
+    );
+    
+    EventStoreException aggregateError = new EventStoreException(
+        "Failed to retrieve User aggregate",
+        EventStoreException.OperationType.RETRIEVE,
+        "User",
+        "user-123"
+    );
+    
+    // When: Analyzing exception context
+    assertThat(generalError.getOperationType()).isEqualTo(EventStoreException.OperationType.SAVE);
+    assertThat(generalError.isAggregateSpecific()).isFalse();
+    
+    assertThat(aggregateError.isAggregateSpecific()).isTrue();
+    assertThat(aggregateError.getAggregateType()).isEqualTo("User");
+    assertThat(aggregateError.getAggregateId()).isEqualTo("user-123");
+}
+#+end_src
+
+** Error Intelligence and Recovery Testing
+#+begin_src java
+@Test
+void shouldProvideIntelligentErrorAnalysis() {
+    // Given: Different error types
+    EventStoreException initError = new EventStoreException(
+        "Failed to initialize event store",
+        EventStoreException.OperationType.INITIALIZATION
+    );
+    
+    EventStoreException ioError = new EventStoreException(
+        "File access denied",
+        new java.io.IOException("Permission denied"),
+        EventStoreException.OperationType.SAVE
+    );
+    
+    // When: Analyzing error characteristics
+    assertThat(initError.getSeverityLevel()).isEqualTo(EventStoreException.ErrorSeverity.CRITICAL);
+    assertThat(initError.isRecoverable()).isFalse();
+    
+    assertThat(ioError.getErrorCategory()).isEqualTo(EventStoreException.EventStoreErrorCategory.IO_ERROR);
+    assertThat(ioError.isRecoverable()).isTrue();
+    
+    // Then: Should provide appropriate recommendations
+    List<String> recommendations = ioError.getRecoveryRecommendations();
+    assertThat(recommendations).contains("Verify file system permissions and disk space");
+}
+#+end_src
+
+** Retry Strategy Testing
+#+begin_src java
+@Test
+void shouldCreateAppropriateRetryStrategies() {
+    // Given: Different error scenarios
+    EventStoreException timeoutError = new EventStoreException(
+        "Operation timeout",
+        EventStoreException.OperationType.SAVE
+    );
+    
+    EventStoreException configError = new EventStoreException(
+        "Invalid configuration",
+        EventStoreException.OperationType.INITIALIZATION
+    );
+    
+    // When: Creating retry strategies
+    RetryStrategy timeoutStrategy = timeoutError.createRetryStrategy();
+    RetryStrategy configStrategy = configError.createRetryStrategy();
+    
+    // Then: Should provide appropriate strategies
+    assertThat(timeoutStrategy.getMaxAttempts()).isGreaterThan(0);
+    assertThat(timeoutStrategy.isExponentialBackoff()).isTrue();
+    
+    assertThat(configStrategy.getMaxAttempts()).isEqualTo(0);
+    assertThat(configStrategy.getNoRetryReason()).isNotNull();
+}
+#+end_src
+
+* Related Documentation
+
+- [[EventStorePort.org][EventStorePort]]: Port throwing event store exceptions
+- [[FilesystemEventStoreAdapter.org][FilesystemEventStoreAdapter]]: Adapter implementing event store operations
+- [[ErrorHandler.org][ErrorHandler]]: Handler processing event store exceptions
+- [[RecoveryManager.org][RecoveryManager]]: Manager using exception recovery strategies
+- [[../flows/error-recovery-flow.org][Error Recovery Flow]]: Flow handling event store errors
+
+* Implementation Notes
+
+** Design Patterns Applied
+The class leverages several sophisticated design patterns:
+- **Exception Design Pattern**: Comprehensive exception with context and intelligence
+- **Strategy Pattern**: Different recovery strategies based on error characteristics
+- **Builder Pattern**: Complex error context and retry strategy construction
+- **Factory Method Pattern**: Static factory methods for different exception scenarios
+
+** Domain-Driven Design Principles
+The implementation follows strict DDD principles:
+- **Rich Exceptions**: Comprehensive exception behavior beyond simple error reporting
+- **Domain Intelligence**: Built-in intelligence for error analysis and recovery recommendations
+- **Infrastructure Independence**: Pure domain logic without infrastructure technology dependencies
+- **Ubiquitous Language**: Clear, business-focused naming and comprehensive documentation
+
+** Future Enhancement Opportunities
+The design supports future enhancements:
+- **Machine Learning Recovery**: AI-driven error recovery strategy optimization
+- **Predictive Error Analysis**: Predictive analysis for proactive error prevention
+- **Advanced Recovery Coordination**: Sophisticated recovery workflow coordination
+- **Enterprise Error Policies**: Enterprise-grade error handling policies and compliance
+
+The EventStoreException class provides ByteHot's essential event store error management foundation while maintaining comprehensive error intelligence capabilities, sophisticated recovery mechanisms, and extensibility for advanced error handling scenarios throughout the entire intelligent hot-swap system lifecycle.

@@ -1,0 +1,252 @@
+#+TITLE: Hot-Swap Complete Flow - From File Change to Instance Update
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+This flow documents the complete end-to-end process from detecting a class file change to successfully updating existing instances. This is the primary flow in ByteHot that demonstrates how the system achieves its core mission of runtime bytecode hot-swapping.
+
+** Flow Trigger
+- **Starting Event**: =ClassFileChanged=
+- **Ending Event**: =InstancesUpdated=
+- **Duration**: Typically 50-500ms depending on class complexity and instance count
+- **Criticality**: High - Core ByteHot functionality
+
+* Flow Participants
+
+** Primary Actors
+- =ClassFileWatcher= (Infrastructure): Detects file system changes
+- =BytecodeValidator= (Domain): Validates bytecode compatibility
+- =HotSwapManager= (Domain): Orchestrates class redefinition
+- =InstanceUpdater= (Domain): Updates existing instances
+- =ErrorHandler= (Domain): Handles any errors during the process
+
+** Secondary Actors
+- =InstanceTracker= (Domain): Tracks existing instances
+- =StatePreserver= (Domain): Preserves instance state during updates
+- =FrameworkIntegration= (Domain): Handles framework-specific updates
+
+* Flow Sequence
+
+** Phase 1: File System Detection
+#+begin_src
+[ File System ] --file-change--> [ ClassFileWatcher ] --ClassFileChanged--> [ ByteHotApplication ]
+#+end_src
+
+The flow begins when the underlying file system notifies ByteHot of a class file modification:
+
+1. **File System Event**: Operating system detects =.class= file modification
+2. **Watcher Notification**: =ClassFileWatcher= receives file system notification
+3. **Event Creation**: =ClassFileChanged= event is created with file path and timestamp
+4. **Event Routing**: Event is sent to =ByteHotApplication.accept()=
+
+** Phase 2: Bytecode Validation
+#+begin_src
+[ ByteHotApplication ] --ClassFileChanged--> [ ByteHot.accept() ] --validation--> [ BytecodeValidator ]
+                                                    |
+                                                    v
+                                            [ BytecodeValidated | BytecodeRejected ]
+#+end_src
+
+The domain aggregate processes the file change and validates the new bytecode:
+
+1. **Aggregate Processing**: =ByteHot.accept(ClassFileChanged)= receives the event
+2. **Bytecode Loading**: New bytecode is loaded from the modified file
+3. **Validation Process**: =BytecodeValidator= performs compatibility checks
+4. **Validation Outcome**: 
+   - **Success Path**: =BytecodeValidated= event emitted
+   - **Failure Path**: =BytecodeRejected= event emitted (flow terminates)
+
+** Phase 3: Hot-Swap Execution
+#+begin_src
+[ BytecodeValidated ] --hot-swap--> [ HotSwapManager ] --JVM-redefine--> [ JVM Instrumentation ]
+                                           |
+                                           v
+                                   [ ClassRedefinitionSucceeded | ClassRedefinitionFailed ]
+#+end_src
+
+If validation succeeds, the hot-swap operation is executed:
+
+1. **Hot-Swap Initiation**: =HotSwapManager= receives =BytecodeValidated= event
+2. **JVM Interaction**: =InstrumentationProvider= calls JVM's class redefinition API
+3. **JVM Processing**: JVM attempts to redefine the class with new bytecode
+4. **Redefinition Outcome**:
+   - **Success Path**: =ClassRedefinitionSucceeded= event emitted
+   - **Failure Path**: =ClassRedefinitionFailed= event emitted (triggers error recovery)
+
+** Phase 4: Instance Management
+#+begin_src
+[ ClassRedefinitionSucceeded ] --update-instances--> [ InstanceUpdater ] --track--> [ InstanceTracker ]
+                                        |                                               |
+                                        v                                               v
+                                [ StatePreserver ]                              [ Framework Integration ]
+                                        |                                               |
+                                        v                                               v
+                                [ InstancesUpdated ]  <------------------------------- /
+#+end_src
+
+After successful class redefinition, existing instances must be updated:
+
+1. **Instance Discovery**: =InstanceTracker= identifies all existing instances of the redefined class
+2. **Update Strategy Selection**: =InstanceUpdater= selects appropriate update method based on:
+   - Instance characteristics
+   - Framework integration availability
+   - Performance requirements
+3. **State Preservation**: =StatePreserver= captures current instance state
+4. **Instance Updates**: Instances are updated using selected strategy:
+   - **Reflection-based**: Direct field updates using reflection
+   - **Framework-based**: Framework-specific update mechanisms
+   - **Proxy refresh**: Proxy instance refresh for framework-managed objects
+5. **State Restoration**: Previously preserved state is restored to updated instances
+6. **Completion**: =InstancesUpdated= event emitted with update metrics
+
+* Error Handling Flows
+
+** Validation Failure Flow
+#+begin_src
+[ ClassFileChanged ] --> [ BytecodeValidator ] --> [ BytecodeRejected ] --> [ ErrorHandler ]
+                                                            |
+                                                            v
+                                                    [ RecoveryStrategy.REJECT_CHANGE ]
+#+end_src
+
+When bytecode validation fails:
+1. =BytecodeRejected= event contains validation error details
+2. =ErrorHandler= classifies error as =VALIDATION_ERROR=
+3. Recovery strategy =REJECT_CHANGE= is selected
+4. No further processing occurs for this file change
+
+** Redefinition Failure Flow
+#+begin_src
+[ BytecodeValidated ] --> [ HotSwapManager ] --> [ ClassRedefinitionFailed ] --> [ ErrorHandler ]
+                                                            |
+                                                            v
+                                                    [ ErrorRecoveryManager ]
+                                                            |
+                                                            v
+                                                    [ RollbackManager ]
+#+end_src
+
+When JVM rejects class redefinition:
+1. =ClassRedefinitionFailed= event contains JVM error details
+2. =ErrorHandler= classifies error as =REDEFINITION_FAILURE=
+3. =ErrorRecoveryManager= initiates recovery process
+4. =RollbackManager= may restore previous state if available
+5. System returns to stable state
+
+** Instance Update Failure Flow
+#+begin_src
+[ ClassRedefinitionSucceeded ] --> [ InstanceUpdater ] --> [ InstanceUpdateException ] --> [ ErrorHandler ]
+                                                                        |
+                                                                        v
+                                                                [ PartialRecovery ]
+#+end_src
+
+When instance updates fail:
+1. =InstanceUpdateException= contains details of failed updates
+2. =ErrorHandler= evaluates partial success vs. complete failure
+3. Partial recovery may preserve successful updates
+4. Failed instances may be marked for manual intervention
+
+* Performance Characteristics
+
+** Typical Timings
+- **File Detection**: 1-10ms (OS-dependent)
+- **Bytecode Validation**: 5-50ms (complexity-dependent)
+- **JVM Redefinition**: 10-100ms (class size dependent)
+- **Instance Updates**: 20-200ms (instance count dependent)
+- **Total Flow**: 50-500ms (typical)
+
+** Scalability Factors
+- **Class Size**: Larger classes take longer to validate and redefine
+- **Instance Count**: More instances require longer update time
+- **Framework Complexity**: Framework integration adds overhead
+- **State Complexity**: Complex object graphs slow state preservation
+
+* Flow Variations
+
+** Framework-Integrated Flow
+When framework integration is available:
+#+begin_src
+[ InstanceUpdater ] --> [ FrameworkIntegration ] --> [ Framework-Specific Update ]
+                                |
+                                v
+                        [ Enhanced Instance Management ]
+#+end_src
+
+** Concurrent Update Flow
+When multiple classes change simultaneously:
+#+begin_src
+[ Multiple ClassFileChanged ] --> [ Coordinated Validation ] --> [ Batch Hot-Swap ]
+                                            |
+                                            v
+                                    [ Coordinated Instance Updates ]
+#+end_src
+
+** Rollback-Required Flow
+When updates must be rolled back:
+#+begin_src
+[ Update Failure ] --> [ RollbackManager ] --> [ Snapshot Restoration ] --> [ System Recovery ]
+#+end_src
+
+* Monitoring and Observability
+
+** Key Metrics Tracked
+- Flow completion rate (success/failure ratio)
+- Phase-by-phase timing breakdown
+- Instance update success rates
+- Error frequency by error type
+
+** Performance Monitoring Points
+1. **File Detection Latency**: Time from file change to event emission
+2. **Validation Duration**: Time spent in bytecode validation
+3. **Hot-Swap Duration**: Time for JVM class redefinition
+4. **Instance Update Duration**: Time to update all instances
+5. **End-to-End Latency**: Total flow completion time
+
+** Error Tracking
+- Validation failure patterns
+- JVM redefinition rejection reasons
+- Instance update failure modes
+- Recovery operation effectiveness
+
+* Flow Invariants
+
+** Pre-conditions
+- ByteHot agent is attached and running
+- Target class is registered for hot-swap monitoring
+- File system watcher is active for the target directory
+
+** Post-conditions
+- **Success**: All instances reflect new class definition
+- **Failure**: System remains in consistent state with original or rolled-back definitions
+- **Partial**: Some instances updated, others marked for manual intervention
+
+** System Consistency
+- No instances exist in an inconsistent state between old and new class definitions
+- All state preservation and restoration operations are atomic
+- Error conditions leave the system in a recoverable state
+
+* Architecture Notes
+
+This flow demonstrates the core principles of ByteHot's architecture:
+
+** Event-Driven Architecture
+- Each phase communicates through domain events
+- Loose coupling between components
+- Easy to add monitoring and logging at event boundaries
+
+** Error Resilience
+- Multiple fallback strategies for different failure modes
+- State preservation and rollback capabilities
+- Graceful degradation when components fail
+
+** Performance Optimization
+- Framework-specific optimizations when available
+- Batch processing for multiple concurrent changes
+- Configurable update strategies based on requirements
+
+** Domain-Driven Design
+- Clear separation between domain logic and infrastructure concerns
+- Business rules embedded in domain aggregates
+- Infrastructure adapters handle technical details

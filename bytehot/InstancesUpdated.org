@@ -1,0 +1,506 @@
+#+TITLE: InstancesUpdated - Domain Event for Instance Update Operations
+#+AUTHOR: Claude Code
+#+DATE: 2025-06-17
+
+* Overview
+
+The =InstancesUpdated= domain event represents the successful completion of instance update operations in ByteHot. This event is fired when existing instances have been updated to reflect changes from class redefinition, providing comprehensive information about the update process and its outcomes.
+
+** Key Responsibilities
+- Signal completion of instance update operations
+- Provide detailed metrics about the update process
+- Include information about update methods and strategies used
+- Support monitoring and analysis of instance management operations
+- Enable downstream processing and audit trail creation
+
+* Class Declaration and Core Structure
+
+#+begin_src java :tangle ../bytehot/src/main/java/org/acmsl/bytehot/domain/events/InstancesUpdated.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: InstancesUpdated.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: InstancesUpdated
+ *
+ * Responsibilities:
+ *   - Signal successful completion of instance update operations
+ *   - Provide comprehensive update metrics and details
+ *   - Support monitoring and audit trail creation
+ *
+ * Collaborators:
+ *   - InstanceUpdater: Fires this event after successful updates
+ *   - InstanceUpdateMethod: Indicates method used for updates
+ */
+package org.acmsl.bytehot.domain.events;
+
+import org.acmsl.bytehot.domain.InstanceUpdateMethod;
+import org.acmsl.commons.patterns.DomainResponseEvent;
+
+import lombok.Getter;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * Domain event fired when instances have been successfully updated
+ * @author Claude Code
+ * @since 2025-06-17
+ */
+@Getter
+public class InstancesUpdated extends DomainResponseEvent<ClassRedefinitionSucceeded> {
+
+    /**
+     * Class name for which instances were updated
+     */
+    private final String className;
+
+    /**
+     * Number of instances that were successfully updated
+     */
+    private final int instancesUpdated;
+
+    /**
+     * Number of instances that failed to update
+     */
+    private final int instancesFailed;
+
+    /**
+     * Update method that was used
+     */
+    private final InstanceUpdateMethod updateMethod;
+
+    /**
+     * Duration of the update operation
+     */
+    private final Duration updateDuration;
+
+    /**
+     * Timestamp when update operation started
+     */
+    private final Instant startTime;
+
+    /**
+     * Timestamp when update operation completed
+     */
+    private final Instant endTime;
+
+    /**
+     * List of warnings encountered during update
+     */
+    private final List<String> warnings;
+
+    /**
+     * Additional details about the update operation
+     */
+    private final String details;
+
+    /**
+     * Whether framework integration was used
+     */
+    private final boolean frameworkIntegrationUsed;
+
+    /**
+     * Creates a new instances updated event
+     */
+    private InstancesUpdated(final ClassRedefinitionSucceeded previousEvent, final String className,
+                            final int instancesUpdated, final int instancesFailed,
+                            final InstanceUpdateMethod updateMethod, final Duration updateDuration,
+                            final Instant startTime, final Instant endTime, final List<String> warnings,
+                            final String details, final boolean frameworkIntegrationUsed) {
+        super(previousEvent);
+        this.className = className;
+        this.instancesUpdated = instancesUpdated;
+        this.instancesFailed = instancesFailed;
+        this.updateMethod = updateMethod;
+        this.updateDuration = updateDuration;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.warnings = new CopyOnWriteArrayList<>(warnings);
+        this.details = details;
+        this.frameworkIntegrationUsed = frameworkIntegrationUsed;
+    }
+
+    /**
+     * Creates a new instances updated event
+     */
+    public static InstancesUpdated create(final ClassRedefinitionSucceeded previousEvent, final String className,
+                                        final int instancesUpdated, final int instancesFailed,
+                                        final InstanceUpdateMethod updateMethod, final Duration updateDuration,
+                                        final Instant startTime, final Instant endTime, final List<String> warnings,
+                                        final String details, final boolean frameworkIntegrationUsed) {
+        return new InstancesUpdated(previousEvent, className, instancesUpdated, instancesFailed,
+                                  updateMethod, updateDuration, startTime, endTime, warnings,
+                                  details, frameworkIntegrationUsed);
+    }
+
+    /**
+     * Returns the total number of instances processed
+     */
+    public int getTotalInstancesProcessed() {
+        return instancesUpdated + instancesFailed;
+    }
+
+    /**
+     * Returns the success rate as a percentage
+     */
+    public double getSuccessRate() {
+        final int total = getTotalInstancesProcessed();
+        if (total == 0) {
+            return 100.0;
+        }
+        return (double) instancesUpdated / total * 100.0;
+    }
+
+    /**
+     * Returns whether the update operation was completely successful
+     */
+    public boolean isCompletelySuccessful() {
+        return instancesFailed == 0 && instancesUpdated > 0;
+    }
+
+    /**
+     * Returns whether the update operation had partial success
+     */
+    public boolean hasPartialSuccess() {
+        return instancesUpdated > 0 && instancesFailed > 0;
+    }
+
+    /**
+     * Returns whether the update operation had warnings
+     */
+    public boolean hasWarnings() {
+        return !warnings.isEmpty();
+    }
+
+    /**
+     * Returns the number of warnings
+     */
+    public int getWarningCount() {
+        return warnings.size();
+    }
+
+    /**
+     * Returns whether the update operation was fast
+     */
+    public boolean isFastUpdate() {
+        return updateDuration.toMillis() < 1000; // Less than 1 second
+    }
+
+    /**
+     * Returns whether the update operation was slow
+     */
+    public boolean isSlowUpdate() {
+        return updateDuration.toMillis() > 10000; // More than 10 seconds
+    }
+
+    /**
+     * Returns whether state was preserved during update
+     */
+    public boolean wasStatePreserved() {
+        return updateMethod.preservesState();
+    }
+
+    /**
+     * Returns whether new instances were created during update
+     */
+    public boolean wereNewInstancesCreated() {
+        return updateMethod.createsNewInstances();
+    }
+
+    /**
+     * Returns the average time per instance updated
+     */
+    public Duration getAverageTimePerInstance() {
+        if (instancesUpdated == 0) {
+            return Duration.ZERO;
+        }
+        return updateDuration.dividedBy(instancesUpdated);
+    }
+
+    /**
+     * Returns a summary description of the update operation
+     */
+    public String getSummary() {
+        if (isCompletelySuccessful()) {
+            return String.format("Successfully updated %d instances of %s using %s in %dms",
+                               instancesUpdated, className, updateMethod.getDescription(), updateDuration.toMillis());
+        } else if (hasPartialSuccess()) {
+            return String.format("Partially updated %d/%d instances of %s using %s in %dms",
+                               instancesUpdated, getTotalInstancesProcessed(), className,
+                               updateMethod.getDescription(), updateDuration.toMillis());
+        } else {
+            return String.format("Failed to update %d instances of %s using %s",
+                               instancesFailed, className, updateMethod.getDescription());
+        }
+    }
+
+    /**
+     * Returns performance classification of the update operation
+     */
+    public UpdatePerformance getPerformanceClassification() {
+        if (isFastUpdate()) {
+            return UpdatePerformance.FAST;
+        } else if (isSlowUpdate()) {
+            return UpdatePerformance.SLOW;
+        } else {
+            return UpdatePerformance.NORMAL;
+        }
+    }
+
+    /**
+     * Performance classification for update operations
+     */
+    public enum UpdatePerformance {
+        FAST("Fast update - completed in under 1 second"),
+        NORMAL("Normal update - completed in reasonable time"),
+        SLOW("Slow update - took more than 10 seconds");
+
+        private final String description;
+
+        UpdatePerformance(final String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "InstancesUpdated{" +
+               "className='" + className + '\'' +
+               ", instancesUpdated=" + instancesUpdated +
+               ", instancesFailed=" + instancesFailed +
+               ", updateMethod=" + updateMethod +
+               ", duration=" + updateDuration.toMillis() + "ms" +
+               ", successRate=" + String.format("%.1f", getSuccessRate()) + "%" +
+               '}';
+    }
+}
+#+end_src
+
+* Usage Examples
+
+** Handling Instance Update Events
+
+#+end_src
+public void handleInstancesUpdated(InstancesUpdated event) {
+    logger.info("Instance update completed: " + event.getSummary());
+    
+    // Record metrics
+    updateMetrics.recordUpdate(
+        event.getClassName(),
+        event.getInstancesUpdated(),
+        event.getUpdateDuration(),
+        event.getUpdateMethod()
+    );
+    
+    // Check for performance issues
+    if (event.isSlowUpdate()) {
+        logger.warn("Slow instance update detected for {}: {}ms", 
+                   event.getClassName(), event.getUpdateDuration().toMillis());
+        performanceAnalyzer.analyzeSlowUpdate(event);
+    }
+    
+    // Handle partial failures
+    if (event.hasPartialSuccess()) {
+        logger.warn("Partial instance update failure: {}/{} instances updated", 
+                   event.getInstancesUpdated(), event.getTotalInstancesProcessed());
+        partialFailureHandler.handlePartialFailure(event);
+    }
+    
+    // Log warnings
+    if (event.hasWarnings()) {
+        logger.warn("Instance update completed with {} warnings:", event.getWarningCount());
+        event.getWarnings().forEach(warning -> logger.warn("  - " + warning));
+    }
+    
+    // Update monitoring dashboards
+    monitoringService.updateInstanceUpdateMetrics(event);
+}
+#+end_src
+
+** Performance Analysis and Optimization
+
+#+begin_src java
+public void analyzeUpdatePerformance(List<InstancesUpdated> events) {
+    Map<InstanceUpdateMethod, PerformanceStats> methodStats = new EnumMap<>(InstanceUpdateMethod.class);
+    
+    for (InstancesUpdated event : events) {
+        InstanceUpdateMethod method = event.getUpdateMethod();
+        PerformanceStats stats = methodStats.computeIfAbsent(method, k -> new PerformanceStats());
+        
+        stats.addUpdate(event);
+        
+        // Analyze effectiveness
+        if (event.isCompletelySuccessful() && event.isFastUpdate()) {
+            stats.incrementOptimalUpdates();
+        }
+        
+        // Track framework integration usage
+        if (event.isFrameworkIntegrationUsed()) {
+            stats.incrementFrameworkUsage();
+        }
+    }
+    
+    // Generate performance report
+    for (Map.Entry<InstanceUpdateMethod, PerformanceStats> entry : methodStats.entrySet()) {
+        InstanceUpdateMethod method = entry.getKey();
+        PerformanceStats stats = entry.getValue();
+        
+        logger.info("Update method {}: Success rate {:.1f}%, Avg time {}ms, Optimal rate {:.1f}%",
+                   method, stats.getSuccessRate(), stats.getAverageTime().toMillis(),
+                   stats.getOptimalRate());
+        
+        // Recommendations
+        if (stats.getSuccessRate() < 95.0) {
+            logger.warn("Consider improving reliability for method: " + method);
+        }
+        
+        if (stats.getAverageTime().toSeconds() > 5) {
+            logger.warn("Consider optimizing performance for method: " + method);
+        }
+    }
+}
+#+end_src
+
+** Update Strategy Effectiveness Analysis
+
+#+end_src
+public UpdateEffectivenessReport analyzeUpdateEffectiveness(List<InstancesUpdated> events) {
+    Map<String, ClassUpdateStats> classStats = new HashMap<>();
+    
+    for (InstancesUpdated event : events) {
+        String className = event.getClassName();
+        ClassUpdateStats stats = classStats.computeIfAbsent(className, k -> new ClassUpdateStats());
+        
+        stats.addEvent(event);
+        
+        // Analyze method effectiveness for this class
+        if (event.isCompletelySuccessful()) {
+            stats.recordSuccessfulMethod(event.getUpdateMethod());
+        } else {
+            stats.recordFailedMethod(event.getUpdateMethod(), event.getInstancesFailed());
+        }
+        
+        // Track state preservation effectiveness
+        if (event.wasStatePreserved() && event.isCompletelySuccessful()) {
+            stats.incrementStatePreservationSuccess();
+        }
+    }
+    
+    // Generate recommendations
+    List<String> recommendations = new ArrayList<>();
+    for (Map.Entry<String, ClassUpdateStats> entry : classStats.entrySet()) {
+        String className = entry.getKey();
+        ClassUpdateStats stats = entry.getValue();
+        
+        InstanceUpdateMethod bestMethod = stats.getBestPerformingMethod();
+        InstanceUpdateMethod worstMethod = stats.getWorstPerformingMethod();
+        
+        if (bestMethod != null && worstMethod != null && bestMethod != worstMethod) {
+            recommendations.add(String.format(
+                "For class %s, prefer %s over %s (%.1f%% vs %.1f%% success rate)",
+                className, bestMethod, worstMethod,
+                stats.getSuccessRate(bestMethod), stats.getSuccessRate(worstMethod)
+            ));
+        }
+        
+        if (stats.getStatePreservationSuccessRate() < 90.0) {
+            recommendations.add(String.format(
+                "State preservation for %s has low success rate: %.1f%%",
+                className, stats.getStatePreservationSuccessRate()
+            ));
+        }
+    }
+    
+    return new UpdateEffectivenessReport(classStats, recommendations);
+}
+#+end_src
+
+** Real-time Monitoring and Alerting
+
+#+begin_src java
+public void monitorUpdateOperations(InstancesUpdated event) {
+    // Track real-time metrics
+    realTimeMetrics.incrementUpdateCount(event.getClassName());
+    realTimeMetrics.recordUpdateDuration(event.getUpdateDuration());
+    realTimeMetrics.recordSuccessRate(event.getSuccessRate());
+    
+    // Performance alerting
+    if (event.isSlowUpdate()) {
+        alertManager.sendPerformanceAlert(
+            "Slow instance update detected",
+            event.getClassName(),
+            event.getUpdateDuration()
+        );
+    }
+    
+    // Success rate alerting
+    if (event.getSuccessRate() < 90.0) {
+        alertManager.sendReliabilityAlert(
+            "Low instance update success rate",
+            event.getClassName(),
+            event.getSuccessRate()
+        );
+    }
+    
+    // Framework integration monitoring
+    if (event.isFrameworkIntegrationUsed()) {
+        frameworkMonitor.recordIntegrationUsage(
+            event.getUpdateMethod(),
+            event.isCompletelySuccessful()
+        );
+    }
+    
+    // Update health score
+    healthScoreCalculator.updateInstanceManagementHealth(event);
+}
+#+end_src
+
+* Architecture Notes
+
+** Event-Driven Architecture Integration
+- Part of the comprehensive domain event system
+- Enables loose coupling between instance management and monitoring
+- Supports real-time analytics and decision making
+- Facilitates audit trail creation and compliance reporting
+
+** Performance and Reliability Tracking
+- Comprehensive metrics for update operation analysis
+- Support for method effectiveness comparison
+- Framework integration usage tracking
+- Real-time performance monitoring capabilities
+
+** Domain-Driven Design Alignment
+- Represents a significant business event in the ByteHot domain
+- Encapsulates complete context for downstream processing
+- Immutable event structure following DDD principles
+- Clear relationship to previous domain events in the flow
