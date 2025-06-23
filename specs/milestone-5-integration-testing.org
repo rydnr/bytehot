@@ -1,52 +1,34 @@
-#+TITLE: Milestone 5 Integration Testing
-#+AUTHOR: ByteHot Project  
-#+DATE: 2025-06-19
+#+TITLE: Milestone 5: Integration & Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
 * Milestone 5: Integration & Testing
-:PROPERTIES:
-:CUSTOM_ID: milestone-5-integration-testing
-:END:
+
 ** Overview
-:PROPERTIES:
-:CUSTOM_ID: overview
-:END:
-This final milestone focuses on comprehensive integration testing and
-ensuring the complete ByteHot system works end-to-end. It validates the
-entire workflow from file system changes to successful hot-swapping with
-instance updates, providing confidence in the MVP's reliability and
-performance.
+
+This final milestone focuses on comprehensive integration testing and ensuring the complete ByteHot system works end-to-end. It validates the entire workflow from file system changes to successful hot-swapping with instance updates, providing confidence in the MVP's reliability and performance.
 
 ** Objectives
-:PROPERTIES:
-:CUSTOM_ID: objectives
-:END:
-- *End-to-end workflow validation* from file change to instance update
-- *Integration testing* with real JVM instrumentation and class files
-- *Performance benchmarking* and optimization
-- *Production readiness* testing and validation
-- *Comprehensive documentation* and deployment guides
+
+- **End-to-end workflow validation** from file change to instance update
+- **Integration testing** with real JVM instrumentation and class files
+- **Performance benchmarking** and optimization
+- **Production readiness** testing and validation
+- **Comprehensive documentation** and deployment guides
 
 ** Integration Test Scenarios
-:PROPERTIES:
-:CUSTOM_ID: integration-test-scenarios
-:END:
+
 *** 1. Complete Hot-Swap Workflow
-:PROPERTIES:
-:CUSTOM_ID: complete-hot-swap-workflow
-:END:
-*Scenario:* Developer modifies a class, compiles it, and ByteHot
-automatically hot-swaps it
+**Scenario:** Developer modifies a class, compiles it, and ByteHot automatically hot-swaps it
 
-*Test Flow:*
-
-#+begin_example
+**Test Flow:**
+#+begin_src
 File Change → Detection → Analysis → Validation → Hot-Swap → Instance Update
      ↓            ↓          ↓          ↓          ↓           ↓
 ClassFileChanged → ClassMetadataExtracted → BytecodeValidated → HotSwapRequested → ClassRedefinitionSucceeded → InstancesUpdated
-#+end_example
+#+begin_src
 
-*Test Implementation:*
-
+**Test Implementation:**
 #+begin_src java
 @Test
 public void testCompleteHotSwapWorkflow() throws Exception {
@@ -87,17 +69,13 @@ public void testCompleteHotSwapWorkflow() throws Exception {
         InstancesUpdated.class
     );
 }
-#+end_src
+#+begin_src
 
 *** 2. Multiple Class Dependencies
-:PROPERTIES:
-:CUSTOM_ID: multiple-class-dependencies
-:END:
-*Scenario:* Hot-swap a class that depends on other classes
+**Scenario:** Hot-swap a class that depends on other classes
 
-*Test Implementation:*
-
-#+end_src
+**Test Implementation:**
+#+begin_src java
 @Test
 public void testDependentClassHotSwap() throws Exception {
     // 1. Create class hierarchy: Service -> Repository -> Entity
@@ -115,16 +93,12 @@ public void testDependentClassHotSwap() throws Exception {
     // 5. Test that Service uses new Repository behavior
     verifyServiceBehaviorUpdated(service);
 }
-#+end_src
+#+begin_src
 
 *** 3. Framework Integration Testing
-:PROPERTIES:
-:CUSTOM_ID: framework-integration-testing
-:END:
-*Scenario:* Hot-swap classes managed by Spring Framework
+**Scenario:** Hot-swap classes managed by Spring Framework
 
-*Test Implementation:*
-
+**Test Implementation:**
 #+begin_src java
 @SpringBootTest
 @TestMethodOrder(OrderAnnotation.class)
@@ -150,17 +124,13 @@ public class SpringIntegrationTest {
         assertTrue(((ConfigurableApplicationContext) context).isActive());
     }
 }
-#+end_src
+#+begin_src
 
 *** 4. Error Handling and Recovery
-:PROPERTIES:
-:CUSTOM_ID: error-handling-and-recovery
-:END:
-*Scenario:* Test various failure modes and recovery strategies
+**Scenario:** Test various failure modes and recovery strategies
 
-*Test Implementation:*
-
-#+end_src
+**Test Implementation:**
+#+begin_src java
 @Test
 public void testIncompatibleChangeRejection() throws Exception {
     // 1. Load initial class
@@ -202,16 +172,12 @@ public void testJvmRedefinitionFailure() throws Exception {
     assertEquals("original", instance.getValue()); // Unchanged
     assertTrue(isSystemHealthy());
 }
-#+end_src
+#+begin_src
 
 *** 5. Performance and Stress Testing
-:PROPERTIES:
-:CUSTOM_ID: performance-and-stress-testing
-:END:
-*Scenario:* Test system performance under various loads
+**Scenario:** Test system performance under various loads
 
-*Test Implementation:*
-
+**Test Implementation:**
 #+begin_src java
 @Test
 public void testRapidHotSwapPerformance() throws Exception {
@@ -258,17 +224,12 @@ public void testConcurrentHotSwaps() throws Exception {
         assertTrue(future.get(10, TimeUnit.SECONDS));
     }
 }
-#+end_src
+#+begin_src
 
 ** Real JVM Integration Tests
-:PROPERTIES:
-:CUSTOM_ID: real-jvm-integration-tests
-:END:
+
 *** Agent Deployment Testing
-:PROPERTIES:
-:CUSTOM_ID: agent-deployment-testing
-:END:
-#+end_src
+#+begin_src java
 @Test
 public void testAgentDeployment() throws Exception {
     // 1. Start JVM with ByteHot agent
@@ -295,12 +256,9 @@ public void testAgentDeployment() throws Exception {
     
     process.destroyForcibly();
 }
-#+end_src
+#+begin_src
 
 *** Runtime Attachment Testing
-:PROPERTIES:
-:CUSTOM_ID: runtime-attachment-testing
-:END:
 #+begin_src java
 @Test
 public void testRuntimeAgentAttachment() throws Exception {
@@ -322,19 +280,14 @@ public void testRuntimeAgentAttachment() throws Exception {
     
     targetJvm.destroyForcibly();
 }
-#+end_src
+#+begin_src
 
 ** Test Infrastructure
-:PROPERTIES:
-:CUSTOM_ID: test-infrastructure
-:END:
-*** EventCollector
-:PROPERTIES:
-:CUSTOM_ID: eventcollector
-:END:
-*Responsibility:* Capture and analyze domain events during testing
 
-#+end_src
+*** EventCollector
+**Responsibility:** Capture and analyze domain events during testing
+
+#+begin_src java
 public class EventCollector implements EventSubscriber {
     private final Map<Class<?>, List<Object>> events = new ConcurrentHashMap<>();
     private final CountDownLatch completionLatch = new CountDownLatch(1);
@@ -355,13 +308,10 @@ public class EventCollector implements EventSubscriber {
         // Verify events occurred in expected order
     }
 }
-#+end_src
+#+begin_src
 
 *** TestClassCompiler
-:PROPERTIES:
-:CUSTOM_ID: testclasscompiler
-:END:
-*Responsibility:* Dynamically compile Java source code for testing
+**Responsibility:** Dynamically compile Java source code for testing
 
 #+begin_src java
 public class TestClassCompiler {
@@ -386,15 +336,12 @@ public class TestClassCompiler {
         return sourceFile.getParent().resolve(className + ".class");
     }
 }
-#+end_src
+#+begin_src
 
 *** MockInstrumentation
-:PROPERTIES:
-:CUSTOM_ID: mockinstrumentation
-:END:
-*Responsibility:* Mock JVM instrumentation for unit testing
+**Responsibility:** Mock JVM instrumentation for unit testing
 
-#+end_src
+#+begin_src java
 public class MockInstrumentation implements Instrumentation {
     private boolean redefinitionSupported = true;
     private Exception redefinitionException = null;
@@ -419,16 +366,11 @@ public class MockInstrumentation implements Instrumentation {
         // Simulate successful redefinition
     }
 }
-#+end_src
+#+begin_src
 
 ** Performance Benchmarking
-:PROPERTIES:
-:CUSTOM_ID: performance-benchmarking
-:END:
+
 *** Metrics Collection
-:PROPERTIES:
-:CUSTOM_ID: metrics-collection
-:END:
 #+begin_src java
 public class HotSwapPerformanceMetrics {
     // Timing metrics
@@ -449,13 +391,10 @@ public class HotSwapPerformanceMetrics {
     private final Gauge cpuUsage;
     private final Counter fileSystemEvents;
 }
-#+end_src
+#+begin_src
 
 *** Performance Benchmarks
-:PROPERTIES:
-:CUSTOM_ID: performance-benchmarks
-:END:
-#+end_src
+#+begin_src java
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
@@ -479,29 +418,21 @@ public class HotSwapBenchmark {
         hotSwapManager.performSpringBeanChange("SpringService", "methodBody");
     }
 }
-#+end_src
+#+begin_src
 
 *** Performance Requirements
-:PROPERTIES:
-:CUSTOM_ID: performance-requirements
-:END:
-- *File Detection Latency:* < 100ms from file change to detection
-- *Analysis Time:* < 50ms for typical class files
-- *Validation Time:* < 20ms for compatible changes
-- *Redefinition Time:* < 30ms for JVM redefinition
-- *Instance Update Time:* < 10ms per 100 instances
-- *Total Hot-Swap Time:* < 200ms end-to-end
-- *Memory Overhead:* < 10MB for monitoring 1000 classes
-- *CPU Overhead:* < 2% during normal operation
+- **File Detection Latency:** < 100ms from file change to detection
+- **Analysis Time:** < 50ms for typical class files
+- **Validation Time:** < 20ms for compatible changes
+- **Redefinition Time:** < 30ms for JVM redefinition
+- **Instance Update Time:** < 10ms per 100 instances
+- **Total Hot-Swap Time:** < 200ms end-to-end
+- **Memory Overhead:** < 10MB for monitoring 1000 classes
+- **CPU Overhead:** < 2% during normal operation
 
 ** Production Testing
-:PROPERTIES:
-:CUSTOM_ID: production-testing
-:END:
+
 *** Smoke Tests
-:PROPERTIES:
-:CUSTOM_ID: smoke-tests
-:END:
 #+begin_src java
 @Test
 public void productionSmokeTest() throws Exception {
@@ -521,13 +452,10 @@ public void productionSmokeTest() throws Exception {
     // 5. Check for any errors or warnings
     assertNoErrorsInLogs();
 }
-#+end_src
+#+begin_src
 
 *** Load Testing
-:PROPERTIES:
-:CUSTOM_ID: load-testing
-:END:
-#+end_src
+#+begin_src java
 @Test
 public void loadTestHotSwapUnderTraffic() throws Exception {
     // 1. Start application with simulated user load
@@ -546,12 +474,9 @@ public void loadTestHotSwapUnderTraffic() throws Exception {
     
     loadGen.stop();
 }
-#+end_src
+#+begin_src
 
 *** Security Testing
-:PROPERTIES:
-:CUSTOM_ID: security-testing
-:END:
 #+begin_src java
 @Test
 public void securityValidationTest() throws Exception {
@@ -570,39 +495,34 @@ public void securityValidationTest() throws Exception {
         performUnauthorizedHotSwap();
     });
 }
-#+end_src
+#+begin_src
 
 ** Documentation and Deployment
-:PROPERTIES:
-:CUSTOM_ID: documentation-and-deployment
-:END:
+
 *** Deployment Guides
-:PROPERTIES:
-:CUSTOM_ID: deployment-guides
-:END:
-1. *Agent Installation Guide*
+1. **Agent Installation Guide**
    - JVM agent configuration
    - Manifest requirements
    - Command-line options
-2. *Framework Integration Guide*
+
+2. **Framework Integration Guide**
    - Spring Boot integration
    - CDI integration
    - Custom framework integration
-3. *Production Deployment Guide*
+
+3. **Production Deployment Guide**
    - Performance tuning
    - Monitoring setup
    - Troubleshooting guide
-4. *Developer Setup Guide*
+
+4. **Developer Setup Guide**
    - IDE integration
    - Development workflow
    - Testing procedures
 
 *** Configuration Documentation
-:PROPERTIES:
-:CUSTOM_ID: configuration-documentation
-:END:
-#+end_src
-# bytehot-config.yml
+#+begin_src yaml
+* bytehot-config.yml
 bytehot:
   agent:
     enabled: true
@@ -628,57 +548,37 @@ bytehot:
       refresh-context: true
     cdi:
       enabled: false
-#+end_src
+#+begin_src
 
 ** Success Criteria
-:PROPERTIES:
-:CUSTOM_ID: success-criteria
-:END:
+
 *** Functional Requirements
-:PROPERTIES:
-:CUSTOM_ID: functional-requirements
-:END:
-- ✅ *End-to-end workflow:* Complete hot-swap from file change to
-  instance update
-- ✅ *Framework integration:* Working integration with Spring/CDI
-- ✅ *Error handling:* Graceful failure handling and recovery
-- ✅ *Multi-class scenarios:* Complex class hierarchies and dependencies
+- ✅ **End-to-end workflow:** Complete hot-swap from file change to instance update
+- ✅ **Framework integration:** Working integration with Spring/CDI
+- ✅ **Error handling:** Graceful failure handling and recovery
+- ✅ **Multi-class scenarios:** Complex class hierarchies and dependencies
 
 *** Performance Requirements
-:PROPERTIES:
-:CUSTOM_ID: performance-requirements-1
-:END:
-- ✅ *Sub-second hot-swap:* < 200ms total time for typical classes
-- ✅ *Low overhead:* < 2% CPU, < 10MB memory for normal monitoring
-- ✅ *High reliability:* > 99% success rate for compatible changes
-- ✅ *Concurrent support:* Multiple simultaneous hot-swaps
+- ✅ **Sub-second hot-swap:** < 200ms total time for typical classes
+- ✅ **Low overhead:** < 2% CPU, < 10MB memory for normal monitoring
+- ✅ **High reliability:** > 99% success rate for compatible changes
+- ✅ **Concurrent support:** Multiple simultaneous hot-swaps
 
 *** Production Requirements
-:PROPERTIES:
-:CUSTOM_ID: production-requirements
-:END:
-- ✅ *Security compliance:* Safe for production deployment
-- ✅ *Monitoring integration:* Observable metrics and health checks
-- ✅ *Configuration management:* Flexible configuration options
-- ✅ *Documentation completeness:* Comprehensive guides and examples
+- ✅ **Security compliance:** Safe for production deployment
+- ✅ **Monitoring integration:** Observable metrics and health checks
+- ✅ **Configuration management:** Flexible configuration options
+- ✅ **Documentation completeness:** Comprehensive guides and examples
 
 *** Quality Requirements
-:PROPERTIES:
-:CUSTOM_ID: quality-requirements
-:END:
-- ✅ *Test coverage:* > 90% code coverage across all milestones
-- ✅ *Integration testing:* Real JVM and framework testing
-- ✅ *Performance benchmarking:* Established performance baselines
-- ✅ *User documentation:* Complete deployment and usage guides
+- ✅ **Test coverage:** > 90% code coverage across all milestones
+- ✅ **Integration testing:** Real JVM and framework testing
+- ✅ **Performance benchmarking:** Established performance baselines
+- ✅ **User documentation:** Complete deployment and usage guides
 
 ** Completion Criteria
-:PROPERTIES:
-:CUSTOM_ID: completion-criteria
-:END:
+
 *** MVP Readiness Checklist
-:PROPERTIES:
-:CUSTOM_ID: mvp-readiness-checklist
-:END:
 - [ ] All 10 domain events implemented and tested
 - [ ] End-to-end hot-swap workflow functional
 - [ ] JVM agent deployment working
@@ -689,48 +589,31 @@ bytehot:
 - [ ] Load testing completed successfully
 
 *** Release Artifacts
-:PROPERTIES:
-:CUSTOM_ID: release-artifacts
-:END:
-1. *ByteHot Agent JAR* - Deployable JVM agent
-2. *Integration Libraries* - Spring/CDI integration modules
-3. *Documentation Package* - Deployment and usage guides
-4. *Example Applications* - Working demonstration projects
-5. *Performance Benchmarks* - Baseline performance data
+1. **ByteHot Agent JAR** - Deployable JVM agent
+2. **Integration Libraries** - Spring/CDI integration modules
+3. **Documentation Package** - Deployment and usage guides
+4. **Example Applications** - Working demonstration projects
+5. **Performance Benchmarks** - Baseline performance data
 
 ** Future Roadmap
-:PROPERTIES:
-:CUSTOM_ID: future-roadmap
-:END:
+
 *** Post-MVP Enhancements
-:PROPERTIES:
-:CUSTOM_ID: post-mvp-enhancements
-:END:
-1. *Real Bytecode Analysis* - Replace mock parsing with ASM library
-2. *Advanced Framework Support* - Additional framework integrations
-3. *Cloud-Native Features* - Kubernetes deployment, service mesh
-   integration
-4. *Developer Tools* - IDE plugins, CLI tools, debugging utilities
-5. *Enterprise Features* - Multi-tenant support, audit logging,
-   governance
+1. **Real Bytecode Analysis** - Replace mock parsing with ASM library
+2. **Advanced Framework Support** - Additional framework integrations
+3. **Cloud-Native Features** - Kubernetes deployment, service mesh integration
+4. **Developer Tools** - IDE plugins, CLI tools, debugging utilities
+5. **Enterprise Features** - Multi-tenant support, audit logging, governance
 
 *** Community and Ecosystem
-:PROPERTIES:
-:CUSTOM_ID: community-and-ecosystem
-:END:
-1. *Open Source Release* - GitHub repository and community building
-2. *Plugin Architecture* - Extensible system for custom integrations
-3. *Documentation Website* - Comprehensive online documentation
-4. *Community Examples* - Real-world usage examples and patterns
+1. **Open Source Release** - GitHub repository and community building
+2. **Plugin Architecture** - Extensible system for custom integrations
+3. **Documentation Website** - Comprehensive online documentation
+4. **Community Examples** - Real-world usage examples and patterns
 
 ** Completion Status: 📋 PLANNED
-:PROPERTIES:
-:CUSTOM_ID: completion-status-planned
-:END:
-*Dependencies:* Requires completion of Milestones 1-4
 
-*Estimated Effort:* 2-3 weeks for comprehensive integration testing and
-documentation
+**Dependencies:** Requires completion of Milestones 1-4
 
-*Critical Path:* End-to-end testing → Performance validation →
-Production readiness → Documentation
+**Estimated Effort:** 2-3 weeks for comprehensive integration testing and documentation
+
+**Critical Path:** End-to-end testing → Performance validation → Production readiness → Documentation

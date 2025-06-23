@@ -1,58 +1,37 @@
-#+TITLE: Milestone 6c User Management
-#+AUTHOR: ByteHot Project  
-#+DATE: 2025-06-19
+#+TITLE: Milestone 6C: User Management Domain
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
 * Milestone 6C: User Management Domain
-:PROPERTIES:
-:CUSTOM_ID: milestone-6c-user-management-domain
-:END:
+
 ** Overview
-:PROPERTIES:
-:CUSTOM_ID: overview
-:END:
-*Objective:* Implement user management domain logic with EventSourcing,
-making all ByteHot operations user-aware and providing the foundation
-for user-specific features, analytics, and audit trails.
 
-*Status:* 📋 Planned (Depends on Milestones 6A, 6B)
+**Objective:** Implement user management domain logic with EventSourcing, making all ByteHot operations user-aware and providing the foundation for user-specific features, analytics, and audit trails.
 
-*Walking Skeleton Value:* Transforms ByteHot from an anonymous system to
-a user-aware platform. Enables user-specific analytics (time saved
-tracking), audit trails, personalized configurations, and multi-user
-scenarios.
+**Status:** 📋 Planned (Depends on Milestones 6A, 6B)
+
+**Walking Skeleton Value:** Transforms ByteHot from an anonymous system to a user-aware platform. Enables user-specific analytics (time saved tracking), audit trails, personalized configurations, and multi-user scenarios.
 
 ** Goals
-:PROPERTIES:
-:CUSTOM_ID: goals
-:END:
+
 *** Primary Goal
-:PROPERTIES:
-:CUSTOM_ID: primary-goal
-:END:
-Create a User aggregate with EventSourcing that can: - Automatically
-register new users - Reconstruct user state from event history -
-Associate all ByteHot operations with specific users - Provide
-foundation for user-specific features
+Create a User aggregate with EventSourcing that can:
+- Automatically register new users
+- Reconstruct user state from event history
+- Associate all ByteHot operations with specific users
+- Provide foundation for user-specific features
 
 *** Secondary Goals
-:PROPERTIES:
-:CUSTOM_ID: secondary-goals
-:END:
 - Enable user authentication and session management
 - Support user preferences and configurations
 - Create audit trails for compliance and debugging
 - Prepare for multi-user and team scenarios
 
 ** User Discovery and Registration
-:PROPERTIES:
-:CUSTOM_ID: user-discovery-and-registration
-:END:
+
 *** Automatic User Discovery
-:PROPERTIES:
-:CUSTOM_ID: automatic-user-discovery
-:END:
-ByteHot automatically discovers users through multiple identification
-methods:
+
+ByteHot automatically discovers users through multiple identification methods:
 
 #+begin_src java
 public class UserIdentificationStrategy {
@@ -83,13 +62,11 @@ public class UserIdentificationStrategy {
         return UserId.anonymous();
     }
 }
-#+end_src
+#+begin_src
 
 *** User Registration Flow
-:PROPERTIES:
-:CUSTOM_ID: user-registration-flow
-:END:
-#+end_src
+
+==`mermaid
 sequenceDiagram
     participant E as External Event
     participant A as Application
@@ -104,16 +81,12 @@ sequenceDiagram
     U->>A: UserRegistered event
     A->>ES: Save UserRegistered event
     A->>E: Proceed with original event
-#+end_src
+#+begin_src
 
 ** Domain Model
-:PROPERTIES:
-:CUSTOM_ID: domain-model
-:END:
+
 *** 1. User Aggregate
-:PROPERTIES:
-:CUSTOM_ID: user-aggregate
-:END:
+
 #+begin_src java
 package org.acmsl.bytehot.domain;
 
@@ -277,13 +250,11 @@ public class User implements AggregateRoot {
         return currentUser;
     }
 }
-#+end_src
+#+begin_src
 
 *** 2. UserId Value Object
-:PROPERTIES:
-:CUSTOM_ID: userid-value-object
-:END:
-#+end_src
+
+#+begin_src java
 package org.acmsl.bytehot.domain;
 
 @Value
@@ -337,16 +308,11 @@ public class UserId {
         return value;
     }
 }
-#+end_src
+#+begin_src
 
 *** 3. User Domain Events
-:PROPERTIES:
-:CUSTOM_ID: user-domain-events
-:END:
-**** UserRegistered Event
-:PROPERTIES:
-:CUSTOM_ID: userregistered-event
-:END:
+
+#### UserRegistered Event
 #+begin_src java
 package org.acmsl.bytehot.domain.events;
 
@@ -392,13 +358,10 @@ public class UserRegistered extends AbstractVersionedDomainEvent {
         ENVIRONMENT     // From environment variables
     }
 }
-#+end_src
+#+begin_src
 
-**** UserAuthenticated Event
-:PROPERTIES:
-:CUSTOM_ID: userauthenticated-event
-:END:
-#+end_src
+#### UserAuthenticated Event
+#+begin_src java
 package org.acmsl.bytehot.domain.events;
 
 @RequiredArgsConstructor
@@ -455,12 +418,9 @@ public class UserAuthenticated extends AbstractVersionedDomainEvent {
         TOKEN           // API token
     }
 }
-#+end_src
+#+begin_src
 
-**** UserSessionStarted Event
-:PROPERTIES:
-:CUSTOM_ID: usersessionstarted-event
-:END:
+#### UserSessionStarted Event
 #+begin_src java
 package org.acmsl.bytehot.domain.events;
 
@@ -499,19 +459,15 @@ public class UserSessionStarted extends AbstractVersionedDomainEvent {
         );
     }
 }
-#+end_src
+#+begin_src
 
 ** User Context Propagation
-:PROPERTIES:
-:CUSTOM_ID: user-context-propagation
-:END:
+
 *** Enhanced Domain Events with User Context
-:PROPERTIES:
-:CUSTOM_ID: enhanced-domain-events-with-user-context
-:END:
+
 All existing domain events will be enhanced to include user context:
 
-#+end_src
+#+begin_src java
 public abstract class AbstractVersionedDomainEvent 
     implements VersionedDomainEvent {
     
@@ -541,12 +497,10 @@ public abstract class AbstractVersionedDomainEvent
         );
     }
 }
-#+end_src
+#+begin_src
 
 *** User Context Resolution
-:PROPERTIES:
-:CUSTOM_ID: user-context-resolution
-:END:
+
 #+begin_src java
 package org.acmsl.bytehot.domain;
 
@@ -605,17 +559,13 @@ public class UserContextResolver {
         }
     }
 }
-#+end_src
+#+begin_src
 
 ** User Preferences and Configuration
-:PROPERTIES:
-:CUSTOM_ID: user-preferences-and-configuration
-:END:
+
 *** UserPreferences Value Object
-:PROPERTIES:
-:CUSTOM_ID: userpreferences-value-object
-:END:
-#+end_src
+
+#+begin_src java
 package org.acmsl.bytehot.domain;
 
 @Value
@@ -660,16 +610,12 @@ public class UserPreferences {
         return get(key, Integer.class);
     }
 }
-#+end_src
+#+begin_src
 
 ** User Statistics and Analytics
-:PROPERTIES:
-:CUSTOM_ID: user-statistics-and-analytics
-:END:
+
 *** UserStatistics Value Object
-:PROPERTIES:
-:CUSTOM_ID: userstatistics-value-object
-:END:
+
 #+begin_src java
 package org.acmsl.bytehot.domain;
 
@@ -737,17 +683,13 @@ public class UserStatistics {
         return totalTimeSaved.dividedBy(successfulHotSwaps);
     }
 }
-#+end_src
+#+begin_src
 
 ** Integration with ByteHot Operations
-:PROPERTIES:
-:CUSTOM_ID: integration-with-bytehot-operations
-:END:
+
 *** Enhanced ByteHot Aggregate
-:PROPERTIES:
-:CUSTOM_ID: enhanced-bytehot-aggregate
-:END:
-#+end_src
+
+#+begin_src java
 package org.acmsl.bytehot.domain;
 
 public class ByteHot {
@@ -777,16 +719,12 @@ public class ByteHot {
     
     // Other enhanced methods with user context...
 }
-#+end_src
+#+begin_src
 
 ** Testing with Event-Driven Framework
-:PROPERTIES:
-:CUSTOM_ID: testing-with-event-driven-framework
-:END:
+
 *** User Management Tests
-:PROPERTIES:
-:CUSTOM_ID: user-management-tests
-:END:
+
 #+begin_src java
 class UserManagementTest extends EventDrivenTestSupport {
     
@@ -829,16 +767,11 @@ class UserManagementTest extends EventDrivenTestSupport {
                 .userPreference("jane@example.com", "notification.enabled", false);
     }
 }
-#+end_src
+#+begin_src
 
 ** Success Criteria
-:PROPERTIES:
-:CUSTOM_ID: success-criteria
-:END:
+
 *** Functional Requirements
-:PROPERTIES:
-:CUSTOM_ID: functional-requirements
-:END:
 - ✅ Auto-discovers users from multiple sources (Git, system, explicit)
 - ✅ Auto-registers unknown users without manual intervention
 - ✅ Reconstructs user state from complete event history
@@ -847,56 +780,37 @@ class UserManagementTest extends EventDrivenTestSupport {
 - ✅ Tracks user statistics and analytics
 
 *** Integration Requirements
-:PROPERTIES:
-:CUSTOM_ID: integration-requirements
-:END:
 - ✅ All existing domain events enhanced with user context
 - ✅ User context propagates through all operations
 - ✅ EventStore properly stores user-associated events
 - ✅ Event-driven testing supports user scenarios
 
 *** Performance Requirements
-:PROPERTIES:
-:CUSTOM_ID: performance-requirements
-:END:
 - ✅ User discovery adds < 10ms to operation latency
 - ✅ Event reconstruction handles 1000+ events efficiently
 - ✅ User context propagation has minimal overhead
 - ✅ Supports multiple concurrent user sessions
 
 ** Future Enhancements
-:PROPERTIES:
-:CUSTOM_ID: future-enhancements
-:END:
+
 *** Team and Organization Support
-:PROPERTIES:
-:CUSTOM_ID: team-and-organization-support
-:END:
 - Team aggregates with shared configurations
 - Organization-level analytics and reporting
 - Role-based access control
 - Collaborative development features
 
 *** Advanced Analytics
-:PROPERTIES:
-:CUSTOM_ID: advanced-analytics
-:END:
 - Machine learning on user behavior patterns
 - Predictive analytics for development efficiency
 - Personalized recommendations
 - Performance optimization suggestions
 
 *** Integration with Development Tools
-:PROPERTIES:
-:CUSTOM_ID: integration-with-development-tools
-:END:
 - IDE plugin user synchronization
 - Build tool user context propagation
 - CI/CD pipeline user tracking
 - Code review integration
 
---------------
+---
 
-*Milestone 6C transforms ByteHot into a user-aware platform, enabling
-personalized experiences, detailed analytics, comprehensive audit
-trails, and the foundation for advanced collaborative features.*
+**Milestone 6C transforms ByteHot into a user-aware platform, enabling personalized experiences, detailed analytics, comprehensive audit trails, and the foundation for advanced collaborative features.**

@@ -1,35 +1,39 @@
-# Phase 5.1: Bytecode Validation Testing
+#+TITLE: Phase 5.1: Bytecode Validation Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
-## Objective
+* Phase 5.1: Bytecode Validation Testing
+
+** Objective
 Validate ByteHot's bytecode validation system, ensuring only safe and compatible bytecode modifications are allowed to proceed to the hot-swap process.
 
-## Prerequisites
+** Prerequisites
 - Phases 1-4 completed successfully
 - Understanding of Java bytecode structure
 - Knowledge of JVM class redefinition limitations
 - Test classes compiled with various modifications
 
-## Test Scenarios
+** Test Scenarios
 
-### 5.1.1 Basic Bytecode Validation
+*** 5.1.1 Basic Bytecode Validation
 
 **Description**: Test fundamental bytecode validation for method body changes.
 
 **Test Steps**:
 
 1. **Valid Method Body Change Test**
-```bash
-# Create test classes with method body modifications
+#+begin_src bash
+* Create test classes with method body modifications
 mvn -Dtest=org.acmsl.bytehot.domain.BytecodeValidatorTest#testValidMethodBodyChange test
-```
+#+begin_src
 
 2. **Bytecode Structure Validation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorTest#testBytecodeStructure test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test valid bytecode validation
 public class TestClass {
     public String greet() {
@@ -45,7 +49,7 @@ byte[] modifiedBytecode = loadClassBytecode("TestClass_modified.class");
 ValidationResult result = validator.validate(originalBytecode, modifiedBytecode);
 assert result.isValid();
 assert result.getErrorMessages().isEmpty();
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Method body changes validated successfully
@@ -53,24 +57,24 @@ assert result.getErrorMessages().isEmpty();
 - ✅ No structural compatibility issues found
 - ✅ Validation completes efficiently
 
-### 5.1.2 Incompatible Change Detection
+*** 5.1.2 Incompatible Change Detection
 
 **Description**: Test detection of incompatible bytecode changes that cannot be hot-swapped.
 
 **Test Steps**:
 
 1. **Field Addition Detection Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorTest#testFieldAdditionRejection test
-```
+#+begin_src
 
 2. **Method Signature Change Detection Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorTest#testMethodSignatureChangeRejection test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test incompatible changes
 public class TestClass {
     // Original: no fields
@@ -86,7 +90,7 @@ ValidationResult result = validator.validate(originalBytecode, incompatibleBytec
 assert !result.isValid();
 assert result.getErrorMessages().contains("Field addition not supported");
 assert result.getErrorMessages().contains("Method signature change not supported");
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Field additions detected and rejected
@@ -94,24 +98,24 @@ assert result.getErrorMessages().contains("Method signature change not supported
 - ✅ Class hierarchy changes detected and rejected
 - ✅ Clear error messages provided for each issue
 
-### 5.1.3 JVM Compatibility Validation
+*** 5.1.3 JVM Compatibility Validation
 
 **Description**: Test validation against JVM redefinition capabilities and limitations.
 
 **Test Steps**:
 
 1. **JVM Redefinition Support Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorTest#testJVMCompatibility test
-```
+#+begin_src
 
 2. **Instrumentation API Validation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*InstrumentationAdapterTest#testRedefinitionSupport test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test JVM compatibility
 Instrumentation inst = InstrumentationProvider.getInstrumentation();
 Class<?> targetClass = TestClass.class;
@@ -124,7 +128,7 @@ assert inst.isRedefineClassesSupported();
 BytecodeValidator validator = new BytecodeValidator();
 ValidationResult result = validator.validateForJVM(modifiedBytecode, targetClass, inst);
 assert result.isValid();
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ JVM redefinition capabilities checked
@@ -132,24 +136,24 @@ assert result.isValid();
 - ✅ Bytecode compatible with current JVM
 - ✅ No JVM-specific limitations violated
 
-### 5.1.4 Bytecode Analysis and Metadata Extraction
+*** 5.1.4 Bytecode Analysis and Metadata Extraction
 
 **Description**: Test bytecode analysis for extracting class metadata and dependencies.
 
 **Test Steps**:
 
 1. **Class Metadata Extraction Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeAnalyzerTest#testMetadataExtraction test
-```
+#+begin_src
 
 2. **Dependency Analysis Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeAnalyzerTest#testDependencyAnalysis test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test bytecode analysis
 BytecodeAnalyzer analyzer = new BytecodeAnalyzer();
 ClassMetadata metadata = analyzer.analyzeClass(bytecode);
@@ -159,7 +163,7 @@ assert metadata.getMethods().size() > 0;
 assert metadata.getFields().size() >= 0;
 assert metadata.getSuperclass() != null;
 assert metadata.getInterfaces() != null;
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Class names extracted correctly
@@ -168,24 +172,24 @@ assert metadata.getInterfaces() != null;
 - ✅ Inheritance hierarchy identified
 - ✅ Interface implementations listed
 
-### 5.1.5 Validation Event Generation
+*** 5.1.5 Validation Event Generation
 
 **Description**: Test generation of validation events (BytecodeValidated/BytecodeRejected).
 
 **Test Steps**:
 
 1. **BytecodeValidated Event Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.events.BytecodeValidatedTest test
-```
+#+begin_src
 
 2. **BytecodeRejected Event Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.events.BytecodeRejectedTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test validation event generation
 ClassFileChanged fileEvent = createTestFileChangedEvent();
 BytecodeValidator validator = new BytecodeValidator();
@@ -209,7 +213,7 @@ if (!invalidResult.isValid()) {
     assert rejectedEvent.getRejectionReasons().size() > 0;
     assert !rejectedEvent.isValid();
 }
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ BytecodeValidated events generated for valid bytecode
@@ -217,24 +221,24 @@ if (!invalidResult.isValid()) {
 - ✅ Events contain appropriate validation details
 - ✅ Event causality preserved from original file events
 
-### 5.1.6 Performance and Efficiency
+*** 5.1.6 Performance and Efficiency
 
 **Description**: Test bytecode validation performance and memory efficiency.
 
 **Test Steps**:
 
 1. **Validation Performance Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorPerformanceTest test
-```
+#+begin_src
 
 2. **Memory Usage Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorMemoryTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test validation performance
 BytecodeValidator validator = new BytecodeValidator();
 byte[] largeBytecode = createLargeClassBytecode(); // ~100KB class
@@ -245,7 +249,7 @@ long duration = System.nanoTime() - startTime;
 
 assert duration < 50_000_000; // Less than 50ms
 assert result != null;
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Validation completes within acceptable time limits
@@ -253,24 +257,24 @@ assert result != null;
 - ✅ Large classes handled efficiently
 - ✅ No memory leaks during repeated validation
 
-### 5.1.7 Error Handling and Edge Cases
+*** 5.1.7 Error Handling and Edge Cases
 
 **Description**: Test validation error handling and edge case scenarios.
 
 **Test Steps**:
 
 1. **Corrupted Bytecode Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorTest#testCorruptedBytecode test
-```
+#+begin_src
 
 2. **Edge Case Handling Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*BytecodeValidatorTest#testEdgeCases test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test error handling
 BytecodeValidator validator = new BytecodeValidator();
 
@@ -287,7 +291,7 @@ try {
 } catch (IllegalArgumentException e) {
     // Expected
 }
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Corrupted bytecode handled gracefully
@@ -295,9 +299,9 @@ try {
 - ✅ Clear error messages for invalid input
 - ✅ No crashes or hangs on malformed data
 
-## Success Criteria
+** Success Criteria
 
-### Automated Tests
+*** Automated Tests
 - [ ] BytecodeValidatorTest passes completely
 - [ ] BytecodeAnalyzerTest passes completely
 - [ ] Validation event tests pass
@@ -305,7 +309,7 @@ try {
 - [ ] Error handling tests pass
 - [ ] JVM compatibility tests pass
 
-### Manual Verification
+*** Manual Verification
 - [ ] Valid method body changes accepted
 - [ ] Incompatible changes properly rejected
 - [ ] JVM compatibility correctly assessed
@@ -313,15 +317,15 @@ try {
 - [ ] Performance within acceptable bounds
 - [ ] Error handling robust and informative
 
-### Performance Criteria
+*** Performance Criteria
 - [ ] Validation time < 50ms for typical classes
 - [ ] Memory usage < 10MB for validation process
 - [ ] No memory leaks during repeated validation
 - [ ] Efficient handling of large classes (>50KB)
 
-## Troubleshooting
+** Troubleshooting
 
-### Common Issues
+*** Common Issues
 
 **Issue**: Valid bytecode rejected
 **Solution**:
@@ -351,28 +355,28 @@ try {
 - Include suggestions for fixing issues
 - Log detailed validation steps
 
-### Debug Commands
+*** Debug Commands
 
-```bash
-# Enable bytecode validation debugging
+#+begin_src bash
+* Enable bytecode validation debugging
 export BYTEHOT_VALIDATION_DEBUG=true
 mvn test -Dtest=*BytecodeValidatorTest
 
-# Analyze bytecode with external tools
+* Analyze bytecode with external tools
 javap -c -p -v target/test-classes/TestClass.class
 
-# Check JVM redefinition capabilities
+* Check JVM redefinition capabilities
 java -cp target/test-classes InstrumentationCapabilityTest
 
-# Monitor validation performance
+* Monitor validation performance
 jstat -gc $(pgrep java) 1s
 java -XX:+PrintCompilation -cp target/test-classes ValidationPerformanceTest
-```
+#+begin_src
 
-### Validation Configuration
+*** Validation Configuration
 
-```yaml
-# bytehot.yml validation settings
+#+begin_src yaml
+* bytehot.yml validation settings
 bytehot:
   validation:
     strict-mode: true
@@ -385,9 +389,9 @@ bytehot:
       - field-addition
       - method-signature
       - class-hierarchy
-```
+#+begin_src
 
-## Next Steps
+** Next Steps
 
 Once Phase 5.1 passes completely:
 1. Proceed to [Class Redefinition](class-redefinition.md)

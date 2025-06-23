@@ -1,48 +1,52 @@
-# Phase 3.1: Agent Lifecycle Testing
+#+TITLE: Phase 3.1: Agent Lifecycle Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
-## Objective
+* Phase 3.1: Agent Lifecycle Testing
+
+** Objective
 Validate ByteHot's JVM agent lifecycle management, including proper agent attachment (both at startup and runtime), initialization, instrumentation setup, and graceful shutdown.
 
-## Prerequisites
+** Prerequisites
 - Phase 2 (File System Monitoring) completed successfully
 - Understanding of JVM agent architecture
 - Knowledge of Java Instrumentation API
 - Agent JAR built with proper manifest
 
-## Test Scenarios
+** Test Scenarios
 
-### 3.1.1 Agent JAR Manifest Validation
+*** 3.1.1 Agent JAR Manifest Validation
 
 **Description**: Verify the agent JAR contains correct manifest entries for JVM agent functionality.
 
 **Test Steps**:
 
 1. **JAR Manifest Test**
-```bash
-# Build agent JAR
+#+begin_src bash
+* Build agent JAR
 mvn clean package
 
-# Check manifest entries
+* Check manifest entries
 jar -tf target/bytehot-*-agent.jar | head -5
 unzip -p target/bytehot-*-agent.jar META-INF/MANIFEST.MF
-```
+#+begin_src
 
 2. **Manifest Content Validation**
-```bash
+#+begin_src bash
 mvn -Dtest=*AgentJarBuilderTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Verify required manifest entries
+#+begin_src bash
+* Verify required manifest entries
 unzip -p target/bytehot-*-agent.jar META-INF/MANIFEST.MF | grep -E "(Premain-Class|Agent-Class|Can-Redefine-Classes|Can-Retransform-Classes)"
 
-# Expected output:
-# Premain-Class: org.acmsl.bytehot.infrastructure.agent.ByteHotAgent
-# Agent-Class: org.acmsl.bytehot.infrastructure.agent.ByteHotAgent
-# Can-Redefine-Classes: true
-# Can-Retransform-Classes: true
-```
+* Expected output:
+* Premain-Class: org.acmsl.bytehot.infrastructure.agent.ByteHotAgent
+* Agent-Class: org.acmsl.bytehot.infrastructure.agent.ByteHotAgent
+* Can-Redefine-Classes: true
+* Can-Retransform-Classes: true
+#+begin_src
 
 **Expected Results**:
 - ✅ Premain-Class points to ByteHotAgent
@@ -51,15 +55,15 @@ unzip -p target/bytehot-*-agent.jar META-INF/MANIFEST.MF | grep -E "(Premain-Cla
 - ✅ Can-Retransform-Classes is true
 - ✅ JAR includes all required dependencies
 
-### 3.1.2 Agent Startup (premain) Testing
+*** 3.1.2 Agent Startup (premain) Testing
 
 **Description**: Test agent initialization when attached at JVM startup using -javaagent.
 
 **Test Steps**:
 
 1. **Basic Premain Test**
-```bash
-# Create test configuration
+#+begin_src bash
+* Create test configuration
 cat > test-agent-config.yml << EOF
 bytehot:
   watch:
@@ -69,27 +73,27 @@ bytehot:
   port: 8080
 EOF
 
-# Test agent startup
+* Test agent startup
 mvn -Dtest=org.acmsl.bytehot.infrastructure.agent.ByteHotAgentTest test
-```
+#+begin_src
 
 2. **Integration Test with Real JVM**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.integration.ByteHotAgentIntegrationTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Test with actual JVM startup
+#+begin_src bash
+* Test with actual JVM startup
 java -javaagent:target/bytehot-*-agent.jar \
      -Dbhconfig=test-agent-config.yml \
      -cp target/test-classes \
      -Djava.util.logging.level=FINE \
      org.acmsl.bytehot.TestApplication
 
-# Check for initialization messages
-# Expected: "ByteHot agent initialized successfully"
-```
+* Check for initialization messages
+* Expected: "ByteHot agent initialized successfully"
+#+begin_src
 
 **Expected Results**:
 - ✅ Agent premain method executes without errors
@@ -98,35 +102,35 @@ java -javaagent:target/bytehot-*-agent.jar \
 - ✅ Agent attachment event processed successfully
 - ✅ Success message printed to stdout
 
-### 3.1.3 Runtime Agent Attachment (agentmain) Testing
+*** 3.1.3 Runtime Agent Attachment (agentmain) Testing
 
 **Description**: Test agent attachment to running JVM using Java Attach API.
 
 **Test Steps**:
 
 1. **Runtime Attachment Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotAgentTest#testAgentmain test
-```
+#+begin_src
 
 2. **Dynamic Attachment Integration Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotAgentIntegrationTest#testRuntimeAttachment test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Start a simple Java application
+#+begin_src bash
+* Start a simple Java application
 java -cp target/test-classes TestApplication &
 APP_PID=$!
 
-# Attach agent to running process
+* Attach agent to running process
 java -cp "target/bytehot-*-agent.jar:$JAVA_HOME/lib/tools.jar" \
      com.sun.tools.attach.VirtualMachine $APP_PID target/bytehot-*-agent.jar
 
-# Check attachment success
+* Check attachment success
 kill $APP_PID
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Agent attaches to running JVM successfully
@@ -134,24 +138,24 @@ kill $APP_PID
 - ✅ No disruption to running application
 - ✅ Agent functionality available immediately
 
-### 3.1.4 Instrumentation Provider Setup
+*** 3.1.4 Instrumentation Provider Setup
 
 **Description**: Validate proper setup of InstrumentationProvider singleton.
 
 **Test Steps**:
 
 1. **InstrumentationProvider Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.InstrumentationProviderTest test
-```
+#+begin_src
 
 2. **Instrumentation Capabilities Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*InstrumentationProviderTest#testCapabilities test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test InstrumentationProvider setup
 // (This would be done within agent context)
 Instrumentation inst = InstrumentationProvider.getInstrumentation();
@@ -159,7 +163,7 @@ assert inst != null;
 assert inst.isRedefineClassesSupported();
 assert inst.isRetransformClassesSupported();
 assert inst.isModifiableClass(String.class);
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ InstrumentationProvider singleton initialized
@@ -168,24 +172,24 @@ assert inst.isModifiableClass(String.class);
 - ✅ Retransformation capabilities confirmed
 - ✅ Thread-safe access to instrumentation
 
-### 3.1.5 Application Initialization
+*** 3.1.5 Application Initialization
 
 **Description**: Test ByteHotApplication initialization during agent startup.
 
 **Test Steps**:
 
 1. **Application Bootstrap Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationTest#testInitialization test
-```
+#+begin_src
 
 2. **Adapter Injection During Init Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationIntegrationTest#testInitializationAdapterInjection test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test application initialization state
 assert ByteHotApplication.adaptersInitialized;
 
@@ -194,7 +198,7 @@ assert ports.resolve(ConfigurationPort.class) != null;
 assert ports.resolve(FileWatcherPort.class) != null;
 assert ports.resolve(InstrumentationPort.class) != null;
 assert ports.resolve(EventEmitterPort.class) != null;
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ ByteHotApplication.initialize() completes
@@ -202,39 +206,39 @@ assert ports.resolve(EventEmitterPort.class) != null;
 - ✅ Ports registry populated correctly
 - ✅ Application ready for domain events
 
-### 3.1.6 Configuration Loading During Startup
+*** 3.1.6 Configuration Loading During Startup
 
 **Description**: Test configuration loading during agent initialization.
 
 **Test Steps**:
 
 1. **Configuration Loading Test**
-```bash
-# Test with different config sources
+#+begin_src bash
+* Test with different config sources
 export BYTEHOT_PORT=9090
 java -javaagent:target/bytehot-*-agent.jar \
      -Dbhconfig=test-agent-config.yml \
      -cp target/test-classes TestApplication
-```
+#+begin_src
 
 2. **Configuration Error Handling Test**
-```bash
-# Test with missing configuration
+#+begin_src bash
+* Test with missing configuration
 java -javaagent:target/bytehot-*-agent.jar \
      -cp target/test-classes TestApplication
 
-# Should fail gracefully with clear error message
-```
+* Should fail gracefully with clear error message
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Test various configuration scenarios
-# 1. Valid YAML file
-# 2. Environment variables only
-# 3. System properties
-# 4. Missing configuration (should fail)
-# 5. Invalid YAML syntax (should fail)
-```
+#+begin_src bash
+* Test various configuration scenarios
+* 1. Valid YAML file
+* 2. Environment variables only
+* 3. System properties
+* 4. Missing configuration (should fail)
+* 5. Invalid YAML syntax (should fail)
+#+begin_src
 
 **Expected Results**:
 - ✅ Configuration loads from specified sources
@@ -243,32 +247,32 @@ java -javaagent:target/bytehot-*-agent.jar \
 - ✅ Invalid configuration handled gracefully
 - ✅ Default values used appropriately
 
-### 3.1.7 Agent Error Handling
+*** 3.1.7 Agent Error Handling
 
 **Description**: Test error handling during agent initialization and operation.
 
 **Test Steps**:
 
 1. **Initialization Error Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotAgentTest#testInitializationErrors test
-```
+#+begin_src
 
 2. **Recovery from Errors Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotAgentTest#testErrorRecovery test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Test error scenarios
-# 1. Insufficient permissions
-# 2. Missing dependencies
-# 3. Invalid configuration
-# 4. JVM incompatibility
+#+begin_src bash
+* Test error scenarios
+* 1. Insufficient permissions
+* 2. Missing dependencies
+* 3. Invalid configuration
+* 4. JVM incompatibility
 
-# Each should fail gracefully without crashing JVM
-```
+* Each should fail gracefully without crashing JVM
+#+begin_src
 
 **Expected Results**:
 - ✅ Initialization errors logged clearly
@@ -276,9 +280,9 @@ mvn -Dtest=*ByteHotAgentTest#testErrorRecovery test
 - ✅ Partial functionality available when possible
 - ✅ Error reporting includes actionable information
 
-## Success Criteria
+** Success Criteria
 
-### Automated Tests
+*** Automated Tests
 - [ ] Agent JAR manifest tests pass
 - [ ] ByteHotAgentTest passes
 - [ ] InstrumentationProviderTest passes
@@ -287,7 +291,7 @@ mvn -Dtest=*ByteHotAgentTest#testErrorRecovery test
 - [ ] Configuration loading tests pass
 - [ ] Error handling tests pass
 
-### Manual Verification
+*** Manual Verification
 - [ ] Agent attaches successfully at startup
 - [ ] Agent attaches successfully at runtime
 - [ ] InstrumentationProvider works correctly
@@ -295,16 +299,16 @@ mvn -Dtest=*ByteHotAgentTest#testErrorRecovery test
 - [ ] Configuration loads from all sources
 - [ ] Errors handled gracefully
 
-### Performance Criteria
+*** Performance Criteria
 - [ ] Agent startup time < 500ms
 - [ ] Memory overhead < 20MB
 - [ ] No significant JVM startup delay
 - [ ] Configuration loading < 100ms
 - [ ] Thread overhead minimal
 
-## Troubleshooting
+** Troubleshooting
 
-### Common Issues
+*** Common Issues
 
 **Issue**: Agent fails to load
 **Solution**:
@@ -334,32 +338,32 @@ mvn -Dtest=*ByteHotAgentTest#testErrorRecovery test
 - Test environment variable names and values
 - Validate YAML syntax
 
-### Debug Commands
+*** Debug Commands
 
-```bash
-# Enable JVM agent debugging
+#+begin_src bash
+* Enable JVM agent debugging
 export JAVA_TOOL_OPTIONS="-XX:+PrintGCDetails -XX:+TraceClassLoading"
 
-# Check agent loading
+* Check agent loading
 java -verbose:class -javaagent:target/bytehot-*-agent.jar \
      -cp target/test-classes TestApplication 2>&1 | grep ByteHot
 
-# Test JAR integrity
+* Test JAR integrity
 jar -tvf target/bytehot-*-agent.jar | grep -E "(Agent|MANIFEST)"
 
-# Check instrumentation capabilities
+* Check instrumentation capabilities
 java -javaagent:target/bytehot-*-agent.jar \
      -Djava.util.logging.level=FINE \
      -cp target/test-classes InstrumentationTest
 
-# Monitor agent memory usage
+* Monitor agent memory usage
 jcmd $(pgrep java) VM.memory
-```
+#+begin_src
 
-### Configuration for Testing
+*** Configuration for Testing
 
-```yaml
-# test-agent-config.yml
+#+begin_src yaml
+* test-agent-config.yml
 bytehot:
   debug: true
   watch:
@@ -369,9 +373,9 @@ bytehot:
   agent:
     initialization-timeout: 30s
     error-handling: lenient
-```
+#+begin_src
 
-## Next Steps
+** Next Steps
 
 Once Phase 3.1 passes completely:
 1. Proceed to [Domain Events](domain-events.md)

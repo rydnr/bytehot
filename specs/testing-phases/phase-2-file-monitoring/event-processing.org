@@ -1,48 +1,52 @@
-# Phase 2.2: Event Processing Testing
+#+TITLE: Phase 2.2: Event Processing Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
-## Objective
+* Phase 2.2: Event Processing Testing
+
+** Objective
 Validate ByteHot's file event processing pipeline, ensuring file system events are properly transformed into domain events and routed through the application layer.
 
-## Prerequisites
+** Prerequisites
 - Phase 2.1 (File Watcher) completed successfully
 - Understanding of domain event architecture
 - Knowledge of ClassFileChanged event structure
 - Test .class files prepared for monitoring
 
-## Test Scenarios
+** Test Scenarios
 
-### 2.2.1 Class File Change Detection
+*** 2.2.1 Class File Change Detection
 
 **Description**: Test detection and processing of .class file modifications.
 
 **Test Steps**:
 
 1. **Basic Class File Change Test**
-```bash
-# Prepare test class file
+#+begin_src bash
+* Prepare test class file
 mkdir -p target/test-classes/event-test
 echo "Initial bytecode content" > target/test-classes/event-test/TestClass.class
 
 mvn -Dtest=*FileWatcherAdapterTest#testClassFileChangeDetection test
-```
+#+begin_src
 
 2. **Event Generation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ClassFileChangedTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Start monitoring and modify file
+#+begin_src bash
+* Start monitoring and modify file
 cd target/test-classes/event-test
 
-# Modify file and check event generation
+* Modify file and check event generation
 echo "Modified bytecode content" > TestClass.class
 echo "Additional modification" >> TestClass.class
 
-# Check logs for ClassFileChanged events
+* Check logs for ClassFileChanged events
 grep "ClassFileChanged" target/test-logs/*.log
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ .class file modifications detected
@@ -50,24 +54,24 @@ grep "ClassFileChanged" target/test-logs/*.log
 - ✅ Event contains correct file path
 - ✅ Event includes file size and timestamp
 
-### 2.2.2 Event Metadata Extraction
+*** 2.2.2 Event Metadata Extraction
 
 **Description**: Test extraction of metadata from file change events.
 
 **Test Steps**:
 
 1. **Class Name Extraction Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*FileWatcherAdapterTest#testClassNameExtraction test
-```
+#+begin_src
 
 2. **File Size Tracking Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*EventMetadataTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test metadata extraction
 Path classFile = Paths.get("target/test-classes/event-test/UserService.class");
 ClassFileChanged event = ClassFileChanged.forNewSession(
@@ -81,7 +85,7 @@ assert "UserService".equals(event.getClassName());
 assert event.getFileSize() > 0;
 assert event.getDetectionTimestamp() != null;
 assert event.getClassFile().equals(classFile);
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Class names extracted correctly from file paths
@@ -89,24 +93,24 @@ assert event.getClassFile().equals(classFile);
 - ✅ Timestamps reflect detection time
 - ✅ File paths preserved in absolute form
 
-### 2.2.3 Event Routing to Application Layer
+*** 2.2.3 Event Routing to Application Layer
 
 **Description**: Test routing of file events through ByteHotApplication.
 
 **Test Steps**:
 
 1. **Event Routing Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.application.ByteHotApplicationIntegrationTest#testClassFileEventProcessing test
-```
+#+begin_src
 
 2. **Application Event Processing Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationTest#testProcessClassFileChanged test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test event routing
 ByteHotApplication app = ByteHotApplication.getInstance();
 ClassFileChanged event = createTestEvent();
@@ -116,7 +120,7 @@ app.processClassFileChanged(event);
 
 // Check that event was processed (logs, state changes, etc.)
 // This would be verified through mocks or test observers
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Events routed to ByteHotApplication.processClassFileChanged()
@@ -124,40 +128,40 @@ app.processClassFileChanged(event);
 - ✅ Event processing completes promptly
 - ✅ Application state reflects event processing
 
-### 2.2.4 Event Filtering and Validation
+*** 2.2.4 Event Filtering and Validation
 
 **Description**: Test filtering of relevant events and validation of event data.
 
 **Test Steps**:
 
 1. **File Type Filtering Test**
-```bash
-# Create files of different types
+#+begin_src bash
+* Create files of different types
 touch target/test-classes/event-test/TestClass.class
 touch target/test-classes/event-test/TestSource.java
 touch target/test-classes/event-test/TestData.txt
 
 mvn -Dtest=*FileWatcherAdapterTest#testFileTypeFiltering test
-```
+#+begin_src
 
 2. **Event Validation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ClassFileChangedTest#testEventValidation test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Monitor different file types
+#+begin_src bash
+* Monitor different file types
 cd target/test-classes/event-test
 
-# Modify different file types
+* Modify different file types
 echo "change" >> TestClass.class     # Should generate event
 echo "change" >> TestSource.java     # Should be ignored
 echo "change" >> TestData.txt        # Should be ignored
 
-# Check event logs
+* Check event logs
 grep "ClassFileChanged" target/test-logs/*.log | wc -l  # Should be 1
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Only .class files generate ClassFileChanged events
@@ -165,37 +169,37 @@ grep "ClassFileChanged" target/test-logs/*.log | wc -l  # Should be 1
 - ✅ Event data passes validation checks
 - ✅ Malformed events are rejected gracefully
 
-### 2.2.5 Event Timing and Ordering
+*** 2.2.5 Event Timing and Ordering
 
 **Description**: Test event timing accuracy and ordering guarantees.
 
 **Test Steps**:
 
 1. **Event Timing Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*EventTimingTest test
-```
+#+begin_src
 
 2. **Event Ordering Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*FileWatcherAdapterTest#testEventOrdering test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Test rapid sequential changes
+#+begin_src bash
+* Test rapid sequential changes
 cd target/test-classes/event-test
 
-# Make rapid changes to test ordering
+* Make rapid changes to test ordering
 for i in {1..5}; do
   echo "Change $i" >> TestClass.class
   sleep 0.1
 done
 
-# Check event timestamps are in order
+* Check event timestamps are in order
 grep "ClassFileChanged.*TestClass" target/test-logs/*.log | \
   cut -d' ' -f3 | sort -c
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Event timestamps reflect actual modification times
@@ -203,27 +207,27 @@ grep "ClassFileChanged.*TestClass" target/test-logs/*.log | \
 - ✅ No duplicate events for single modifications
 - ✅ Rapid changes handled correctly
 
-### 2.2.6 Error Handling in Event Processing
+*** 2.2.6 Error Handling in Event Processing
 
 **Description**: Test error handling when event processing fails.
 
 **Test Steps**:
 
 1. **Corrupted File Event Test**
-```bash
-# Create corrupted .class file
+#+begin_src bash
+* Create corrupted .class file
 echo "Not valid bytecode" > target/test-classes/event-test/Corrupted.class
 
 mvn -Dtest=*EventProcessingErrorTest test
-```
+#+begin_src
 
 2. **Application Error Handling Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationTest#testEventProcessingErrors test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test error handling
 ClassFileChanged corruptEvent = new ClassFileChanged(
     null,  // Invalid file path
@@ -235,7 +239,7 @@ ClassFileChanged corruptEvent = new ClassFileChanged(
 // Should handle gracefully
 app.processClassFileChanged(corruptEvent);
 // Verify error logged but no crash
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Invalid events logged but don't crash system
@@ -243,33 +247,33 @@ app.processClassFileChanged(corruptEvent);
 - ✅ Error details captured for debugging
 - ✅ System remains stable under error conditions
 
-### 2.2.7 Event Emission and Persistence
+*** 2.2.7 Event Emission and Persistence
 
 **Description**: Test event emission to external systems and optional persistence.
 
 **Test Steps**:
 
 1. **Event Emission Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*EventEmitterAdapterTest#testClassFileEventEmission test
-```
+#+begin_src
 
 2. **Event Persistence Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*FilesystemEventStoreAdapterTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Check event emission to console
+#+begin_src bash
+* Check event emission to console
 tail -f target/test-logs/events.log &
 
-# Modify file and observe events
+* Modify file and observe events
 echo "Test modification" > target/test-classes/event-test/TestClass.class
 
-# Check console output and log files
+* Check console output and log files
 grep "ClassFileChanged" target/test-logs/events.log
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Events emitted to configured outputs
@@ -277,9 +281,9 @@ grep "ClassFileChanged" target/test-logs/events.log
 - ✅ Events persist across application restarts
 - ✅ Event store maintains event order
 
-## Success Criteria
+** Success Criteria
 
-### Automated Tests
+*** Automated Tests
 - [ ] Class file change detection tests pass
 - [ ] Event metadata extraction tests pass
 - [ ] Event routing tests pass
@@ -288,7 +292,7 @@ grep "ClassFileChanged" target/test-logs/events.log
 - [ ] Error handling tests pass
 - [ ] Event emission tests pass
 
-### Manual Verification
+*** Manual Verification
 - [ ] Real-time detection of .class file changes
 - [ ] Correct event metadata extraction
 - [ ] Events reach application layer
@@ -297,16 +301,16 @@ grep "ClassFileChanged" target/test-logs/events.log
 - [ ] Graceful error handling observed
 - [ ] Events appear in outputs/logs
 
-### Performance Criteria
+*** Performance Criteria
 - [ ] Event detection latency < 1 second
 - [ ] Event processing < 10ms per event
 - [ ] Memory usage stable under load
 - [ ] No event loss under normal conditions
 - [ ] Backpressure handling for high-frequency changes
 
-## Troubleshooting
+** Troubleshooting
 
-### Common Issues
+*** Common Issues
 
 **Issue**: Events not generated for file changes
 **Solution**:
@@ -336,29 +340,29 @@ grep "ClassFileChanged" target/test-logs/events.log
 - Monitor event store growth
 - Test garbage collection behavior
 
-### Debug Commands
+*** Debug Commands
 
-```bash
-# Monitor file events at OS level
+#+begin_src bash
+* Monitor file events at OS level
 sudo strace -e write,close -p $(pgrep java) 2>&1 | grep -i class
 
-# Check event processing threads
+* Check event processing threads
 jstack $(pgrep java) | grep -A 5 -B 5 "event\|FileWatcher"
 
-# Monitor event emission
+* Monitor event emission
 tail -f target/test-logs/events.log | grep ClassFileChanged
 
-# Check memory usage patterns
+* Check memory usage patterns
 jstat -gc $(pgrep java) 1s
 
-# Test event ordering
+* Test event ordering
 find target/test-logs -name "*.log" -exec grep -h "ClassFileChanged" {} \; | sort
-```
+#+begin_src
 
-### Event Processing Configuration
+*** Event Processing Configuration
 
-```yaml
-# bytehot.yml event processing options
+#+begin_src yaml
+* bytehot.yml event processing options
 bytehot:
   events:
     buffer-size: 1000
@@ -367,9 +371,9 @@ bytehot:
     emission-targets:
       - console
       - file:/tmp/bytehot-events.log
-```
+#+begin_src
 
-## Next Steps
+** Next Steps
 
 Once Phase 2.2 passes completely:
 1. Proceed to [Phase 3: JVM Agent Integration](../phase-3-jvm-agent/agent-lifecycle.md)

@@ -1,54 +1,58 @@
-# Phase 9.2: Performance & Reliability Testing
+#+TITLE: Phase 9.2: Performance & Reliability Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
-## Objective
+* Phase 9.2: Performance & Reliability Testing
+
+** Objective
 Validate ByteHot's performance characteristics, reliability under stress, and production readiness through comprehensive load testing, stability testing, and reliability analysis.
 
-## Prerequisites
+** Prerequisites
 - Phase 9.1 (End-to-End Scenarios) completed successfully
 - Performance testing environment available
 - Load testing tools configured
 - Long-running test environment prepared
 
-## Test Scenarios
+** Test Scenarios
 
-### 9.2.1 Performance Benchmarking
+*** 9.2.1 Performance Benchmarking
 
 **Description**: Establish baseline performance metrics for ByteHot operations and overhead.
 
 **Test Steps**:
 
 1. **Baseline Performance Test**
-```bash
-# Test application performance without ByteHot
+#+begin_src bash
+* Test application performance without ByteHot
 java -cp target/test-classes PerformanceTestApp --iterations=10000 --measure-baseline
 
-# Test application performance with ByteHot agent
+* Test application performance with ByteHot agent
 java -javaagent:target/bytehot-*-agent.jar \
      -Dbhconfig=performance-config.yml \
      -cp target/test-classes PerformanceTestApp --iterations=10000 --measure-with-agent
 
-# Calculate overhead
-```
+* Calculate overhead
+#+begin_src
 
 2. **Hot-Swap Performance Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*HotSwapPerformanceTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Benchmark hot-swap operations
+#+begin_src bash
+* Benchmark hot-swap operations
 #!/bin/bash
 echo "Starting hot-swap performance test"
 
-# Start application
+* Start application
 java -javaagent:target/bytehot-*-agent.jar \
      -cp target/test-classes HotSwapBenchmarkApp &
 APP_PID=$!
 
 sleep 5
 
-# Perform timed hot-swaps
+* Perform timed hot-swaps
 for i in {1..100}; do
     start_time=$(date +%s%N)
     
@@ -67,7 +71,7 @@ for i in {1..100}; do
 done
 
 kill $APP_PID
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Agent overhead < 5% for normal operations
@@ -76,29 +80,29 @@ kill $APP_PID
 - ✅ CPU overhead < 2% during steady state
 - ✅ Performance predictable and consistent
 
-### 9.2.2 Load Testing Under Stress
+*** 9.2.2 Load Testing Under Stress
 
 **Description**: Test ByteHot behavior under high application load and frequent changes.
 
 **Test Steps**:
 
 1. **High-Load Application Test**
-```bash
-# Start high-throughput application
+#+begin_src bash
+* Start high-throughput application
 java -javaagent:target/bytehot-*-agent.jar \
      -Xmx2G -XX:+UseG1GC \
      -Dbhconfig=load-test-config.yml \
      -cp target/test-classes HighLoadApp --threads=50 --rps=1000 &
 
-# Monitor performance
+* Monitor performance
 jstat -gc $(pgrep java) 1s &
 top -p $(pgrep java) &
-```
+#+begin_src
 
 2. **Concurrent Hot-Swap Under Load Test**
-```bash
+#+begin_src bash
 #!/bin/bash
-# Stress test with concurrent changes
+* Stress test with concurrent changes
 for i in {1..20}; do
     (
         sleep $((i * 2))
@@ -110,16 +114,16 @@ done
 
 wait
 echo "All concurrent changes submitted"
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Monitor application metrics during load test
+#+begin_src bash
+* Monitor application metrics during load test
 curl http://localhost:8080/metrics | grep -E "(requests_per_second|hot_swaps_completed|error_rate)"
 
-# Check for any dropped requests or errors
+* Check for any dropped requests or errors
 grep ERROR app.log | wc -l  # Should be 0 or minimal
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Application throughput maintained during hot-swaps
@@ -128,23 +132,23 @@ grep ERROR app.log | wc -l  # Should be 0 or minimal
 - ✅ Memory usage stable under load
 - ✅ GC pressure remains manageable
 
-### 9.2.3 Long-Running Stability Testing
+*** 9.2.3 Long-Running Stability Testing
 
 **Description**: Test ByteHot stability over extended periods with continuous operation.
 
 **Test Steps**:
 
 1. **24-Hour Stability Test**
-```bash
+#+begin_src bash
 #!/bin/bash
-# Start long-running stability test
+* Start long-running stability test
 java -javaagent:target/bytehot-*-agent.jar \
      -Xmx1G -XX:+HeapDumpOnOutOfMemoryError \
      -Dbhconfig=stability-config.yml \
      -cp target/test-classes StabilityTestApp &
 APP_PID=$!
 
-# Monitor for 24 hours with periodic changes
+* Monitor for 24 hours with periodic changes
 for hour in {1..24}; do
     echo "Hour $hour - making periodic changes"
     
@@ -163,12 +167,12 @@ for hour in {1..24}; do
 done
 
 echo "24-hour stability test completed"
-```
+#+begin_src
 
 2. **Memory Leak Detection Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*MemoryLeakDetectionTest test
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Application runs continuously for 24+ hours
@@ -177,34 +181,34 @@ mvn -Dtest=*MemoryLeakDetectionTest test
 - ✅ No thread leaks or resource exhaustion
 - ✅ All hot-swaps successful throughout test period
 
-### 9.2.4 Concurrency and Thread Safety
+*** 9.2.4 Concurrency and Thread Safety
 
 **Description**: Test ByteHot's thread safety under heavy concurrent load.
 
 **Test Steps**:
 
 1. **Concurrent Access Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ConcurrencyStressTest test
-```
+#+begin_src
 
 2. **Thread Safety Validation Test**
-```bash
-# Test with high concurrency
+#+begin_src bash
+* Test with high concurrency
 java -javaagent:target/bytehot-*-agent.jar \
      -XX:+PrintConcurrentLocks \
      -XX:+PrintGCApplicationStoppedTime \
      -cp target/test-classes ConcurrencyTestApp --threads=100 --duration=600s
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Monitor for deadlocks and race conditions
+#+begin_src bash
+* Monitor for deadlocks and race conditions
 jstack $(pgrep java) | grep -A 20 -B 5 "BLOCKED\|WAITING"
 
-# Check for any concurrency errors
+* Check for any concurrency errors
 grep -E "(deadlock|race condition|concurrent modification)" app.log
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ No deadlocks under concurrent load
@@ -213,21 +217,21 @@ grep -E "(deadlock|race condition|concurrent modification)" app.log
 - ✅ Hot-swaps work correctly with concurrent access
 - ✅ No data corruption under concurrent modifications
 
-### 9.2.5 Error Rate and Reliability Analysis
+*** 9.2.5 Error Rate and Reliability Analysis
 
 **Description**: Analyze error rates, failure modes, and recovery capabilities.
 
 **Test Steps**:
 
 1. **Error Rate Analysis Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ErrorRateAnalysisTest test
-```
+#+begin_src
 
 2. **Failure Mode Testing**
-```bash
+#+begin_src bash
 #!/bin/bash
-# Test various failure scenarios
+* Test various failure scenarios
 scenarios=(
     "corrupt-bytecode"
     "invalid-changes"
@@ -246,7 +250,7 @@ for scenario in "${scenarios[@]}"; do
     grep "ERROR" app-$scenario.log | wc -l
     grep "RECOVERED" app-$scenario.log | wc -l
 done
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Error rate < 1% for valid operations
@@ -255,15 +259,15 @@ done
 - ✅ Mean time to recovery < 30 seconds
 - ✅ No cascading failures observed
 
-### 9.2.6 Resource Consumption Analysis
+*** 9.2.6 Resource Consumption Analysis
 
 **Description**: Analyze resource consumption patterns and optimization opportunities.
 
 **Test Steps**:
 
 1. **Resource Monitoring Test**
-```bash
-# Monitor resource consumption over time
+#+begin_src bash
+* Monitor resource consumption over time
 #!/bin/bash
 java -javaagent:target/bytehot-*-agent.jar \
      -XX:+FlightRecorder \
@@ -272,7 +276,7 @@ java -javaagent:target/bytehot-*-agent.jar \
 
 APP_PID=$!
 
-# Collect detailed metrics
+* Collect detailed metrics
 while kill -0 $APP_PID 2>/dev/null; do
     timestamp=$(date +%s)
     
@@ -292,12 +296,12 @@ while kill -0 $APP_PID 2>/dev/null; do
     
     sleep 10
 done
-```
+#+begin_src
 
 2. **Memory Efficiency Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*MemoryEfficiencyTest test
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Heap usage grows predictably and stabilizes
@@ -306,15 +310,15 @@ mvn -Dtest=*MemoryEfficiencyTest test
 - ✅ File descriptor usage bounded
 - ✅ CPU usage spikes only during hot-swap operations
 
-### 9.2.7 Production Readiness Assessment
+*** 9.2.7 Production Readiness Assessment
 
 **Description**: Comprehensive assessment of production readiness across all metrics.
 
 **Test Steps**:
 
 1. **Production Simulation Test**
-```bash
-# Simulate production environment
+#+begin_src bash
+* Simulate production environment
 docker run -d --name bytehot-prod-test \
     -v $(pwd)/target:/app \
     -p 8080:8080 \
@@ -324,14 +328,14 @@ docker run -d --name bytehot-prod-test \
          -Dbhconfig=/app/production-config.yml \
          -cp /app/test-classes ProductionSimulationApp
 
-# Run production-like workload for 4 hours
+* Run production-like workload for 4 hours
 ./run-production-simulation.sh --duration=4h --load=high
-```
+#+begin_src
 
 2. **Compliance and Security Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ProductionReadinessTest test
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ All performance benchmarks met
@@ -340,39 +344,39 @@ mvn -Dtest=*ProductionReadinessTest test
 - ✅ Monitoring and observability functional
 - ✅ Operational procedures documented and tested
 
-## Success Criteria
+** Success Criteria
 
-### Performance Metrics
+*** Performance Metrics
 - [ ] Agent overhead < 5% CPU, < 50MB memory
 - [ ] Hot-swap latency < 2 seconds (95th percentile)
 - [ ] Throughput impact < 5% during hot-swaps
 - [ ] Memory usage stable over 24+ hours
 - [ ] No performance degradation over time
 
-### Reliability Metrics
+*** Reliability Metrics
 - [ ] Hot-swap success rate > 95% for valid changes
 - [ ] System uptime > 99.9% during testing
 - [ ] Error recovery rate > 95%
 - [ ] Mean time to recovery < 30 seconds
 - [ ] No data loss or corruption under any scenario
 
-### Stability Metrics
+*** Stability Metrics
 - [ ] 24+ hour continuous operation without issues
 - [ ] No memory leaks detected
 - [ ] No thread leaks or resource exhaustion
 - [ ] Stable performance under varying load
 - [ ] Graceful handling of all error conditions
 
-### Production Readiness
+*** Production Readiness
 - [ ] All automated tests pass
 - [ ] Manual verification successful
 - [ ] Documentation complete and accurate
 - [ ] Monitoring and alerting functional
 - [ ] Operational procedures validated
 
-## Troubleshooting
+** Troubleshooting
 
-### Performance Issues
+*** Performance Issues
 
 **Issue**: High agent overhead
 **Solution**:
@@ -395,7 +399,7 @@ mvn -Dtest=*ProductionReadinessTest test
 - Monitor GC behavior and tuning
 - Look for circular references or leaks
 
-### Reliability Issues
+*** Reliability Issues
 
 **Issue**: Hot-swap failures under load
 **Solution**:
@@ -411,31 +415,31 @@ mvn -Dtest=*ProductionReadinessTest test
 - Test individual components in isolation
 - Review configuration and tuning parameters
 
-### Debug and Monitoring Commands
+*** Debug and Monitoring Commands
 
-```bash
-# Comprehensive performance monitoring
+#+begin_src bash
+* Comprehensive performance monitoring
 jcmd $(pgrep java) VM.info
 jcmd $(pgrep java) Thread.print
 jcmd $(pgrep java) GC.run_finalization
 
-# Flight recorder analysis
+* Flight recorder analysis
 java -XX:+FlightRecorder \
      -XX:StartFlightRecording=duration=300s,filename=analysis.jfr \
      your-app-command
 
-# Memory analysis
+* Memory analysis
 jmap -dump:format=b,file=heap.hprof $(pgrep java)
 jhat heap.hprof  # Or use Eclipse MAT
 
-# Thread analysis
+* Thread analysis
 jstack $(pgrep java) > threads.dump
-```
+#+begin_src
 
-## Production Configuration
+** Production Configuration
 
-```yaml
-# production-config.yml
+#+begin_src yaml
+* production-config.yml
 bytehot:
   performance:
     validation-timeout: 5s
@@ -449,9 +453,9 @@ bytehot:
     auto-rollback: true
     max-retry-attempts: 3
     circuit-breaker: true
-```
+#+begin_src
 
-## Next Steps
+** Next Steps
 
 Once Phase 9.2 passes completely:
 1. **Production Deployment**: Deploy to staging environment

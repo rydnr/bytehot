@@ -1,54 +1,58 @@
-# Phase 1.1: Core Components Testing
+#+TITLE: Phase 1.1: Core Components Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
-## Objective
+* Phase 1.1: Core Components Testing
+
+** Objective
 Validate the fundamental building blocks of ByteHot's hexagonal architecture: the Ports registry, configuration management, event emission, and basic domain events.
 
-## Prerequisites
+** Prerequisites
 - Maven build environment set up
 - Java 17+ available
 - ByteHot project compiled successfully
 
-## Test Scenarios
+** Test Scenarios
 
-### 1.1.1 Ports Registry Functionality
+*** 1.1.1 Ports Registry Functionality
 
-**Description**: Verify the `Ports` singleton works correctly and can manage port-adapter relationships.
+**Description**: Verify the =Ports= singleton works correctly and can manage port-adapter relationships.
 
 **Test Steps**:
 
 1. **Singleton Instance Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.PortsTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Verify singleton behavior
 Ports instance1 = Ports.getInstance();
 Ports instance2 = Ports.getInstance();
 assert instance1 == instance2;
-```
+#+begin_src
 
 2. **Port Injection Test**
-```bash
-# Run specific tests for port injection
+#+begin_src bash
+* Run specific tests for port injection
 mvn -Dtest=*PortsTest#testPortInjection test
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Singleton returns same instance
 - ✅ Port injection works without exceptions
 - ✅ Port resolution returns injected adapters
 
-### 1.1.2 Configuration Management
+*** 1.1.2 Configuration Management
 
 **Description**: Test configuration loading from multiple sources (YAML, environment variables, system properties).
 
 **Test Steps**:
 
 1. **YAML Configuration Test**
-```bash
-# Create test configuration
+#+begin_src bash
+* Create test configuration
 cat > test-config.yml << EOF
 bytehot:
   watch:
@@ -59,14 +63,14 @@ bytehot:
 EOF
 
 mvn -Dtest=org.acmsl.bytehot.infrastructure.config.ConfigurationAdapterTest test
-```
+#+begin_src
 
 2. **Environment Variable Configuration**
-```bash
+#+begin_src bash
 export BYTEHOT_WATCH_PATHS="target/classes,build/classes"
 export BYTEHOT_PORT=8080
 mvn -Dtest=*ConfigurationAdapterTest#testEnvironmentVariables test
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ YAML configuration loads successfully
@@ -74,29 +78,29 @@ mvn -Dtest=*ConfigurationAdapterTest#testEnvironmentVariables test
 - ✅ Default values used when no configuration present
 - ✅ Invalid configuration throws appropriate exceptions
 
-### 1.1.3 Event Emitter Functionality
+*** 1.1.3 Event Emitter Functionality
 
 **Description**: Verify event emission to console and file outputs.
 
 **Test Steps**:
 
 1. **Console Output Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.infrastructure.events.EventEmitterAdapterTest test
-```
+#+begin_src
 
 2. **File Output Test**
-```bash
-# Test file output capability
+#+begin_src bash
+* Test file output capability
 mvn -Dtest=*EventEmitterAdapterTest#testFileOutput test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Check for output files
+#+begin_src bash
+* Check for output files
 ls -la /tmp/bytehot-events-*.log
 cat /tmp/bytehot-events-*.log | head -5
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Events appear in console output
@@ -104,30 +108,30 @@ cat /tmp/bytehot-events-*.log | head -5
 - ✅ Event format is consistent and readable
 - ✅ Multiple events can be emitted without conflicts
 
-### 1.1.4 Domain Event Creation
+*** 1.1.4 Domain Event Creation
 
 **Description**: Test instantiation and properties of core domain events.
 
 **Test Steps**:
 
 1. **Event Instantiation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.events.*Test test
-```
+#+begin_src
 
 2. **Event Metadata Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*EventMetadataTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test basic event properties
 ByteHotAttachRequested event = new ByteHotAttachRequested(config, instrumentation);
 assert event.getTimestamp() != null;
 assert event.getConfiguration() == config;
 assert event.getInstrumentation() == instrumentation;
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ All domain events can be instantiated
@@ -135,36 +139,36 @@ assert event.getInstrumentation() == instrumentation;
 - ✅ Event metadata is preserved correctly
 - ✅ Events are immutable after creation
 
-## Success Criteria
+** Success Criteria
 
-### Automated Tests
+*** Automated Tests
 - [ ] All Ports-related tests pass
 - [ ] Configuration adapter tests pass
 - [ ] Event emitter adapter tests pass
 - [ ] All domain event tests pass
 
-### Manual Verification
+*** Manual Verification
 - [ ] Ports singleton works correctly
 - [ ] Configuration loads from all sources
 - [ ] Events emit to console and files
 - [ ] Domain events contain expected data
 
-### Performance Criteria
+*** Performance Criteria
 - [ ] Port resolution < 1ms
 - [ ] Configuration loading < 100ms
 - [ ] Event emission < 10ms per event
 - [ ] Event creation < 1ms
 
-## Troubleshooting
+** Troubleshooting
 
-### Common Issues
+*** Common Issues
 
-**Issue**: `Ports.getInstance()` returns null
+**Issue**: =Ports.getInstance()= returns null
 **Solution**: Ensure proper class loading. Check for static initialization blocks.
 
 **Issue**: Configuration not loading from YAML
 **Solution**: 
-- Verify YAML syntax with: `java -jar snakeyaml-validator.jar test-config.yml`
+- Verify YAML syntax with: =java -jar snakeyaml-validator.jar test-config.yml=
 - Check file path and permissions
 - Ensure YAML dependencies are in classpath
 
@@ -180,25 +184,25 @@ assert event.getInstrumentation() == instrumentation;
 - Check constructor parameters are all provided
 - Ensure immutability constraints are met
 
-### Debug Commands
+*** Debug Commands
 
-```bash
-# Enable debug logging
+#+begin_src bash
+* Enable debug logging
 export BYTEHOT_LOG_LEVEL=DEBUG
 mvn test
 
-# Check classpath for dependencies
+* Check classpath for dependencies
 mvn dependency:tree | grep -E "(snakeyaml|jackson|lombok)"
 
-# Verify test resources
+* Verify test resources
 ls -la src/test/resources/
 cat src/test/resources/test-config.yml
 
-# Check port injection status
+* Check port injection status
 mvn -Dtest=*PortsTest test -X
-```
+#+begin_src
 
-## Next Steps
+** Next Steps
 
 Once Phase 1.1 passes completely:
 1. Proceed to [Adapter Discovery](adapter-discovery.md)

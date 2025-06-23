@@ -1,34 +1,38 @@
-# Phase 3.2: Domain Events Testing
+#+TITLE: Phase 3.2: Domain Events Testing
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-23
 
-## Objective
+* Phase 3.2: Domain Events Testing
+
+** Objective
 Validate the complete domain event flow from agent attachment through ByteHot's hexagonal architecture, ensuring events are properly created, processed, and emitted throughout the system.
 
-## Prerequisites
+** Prerequisites
 - Phase 3.1 (Agent Lifecycle) completed successfully
 - Understanding of ByteHot's event-driven architecture
 - Knowledge of domain events vs response events
 - Agent successfully attached and initialized
 
-## Test Scenarios
+** Test Scenarios
 
-### 3.2.1 ByteHotAttachRequested Event Flow
+*** 3.2.1 ByteHotAttachRequested Event Flow
 
 **Description**: Test the creation and processing of ByteHotAttachRequested events during agent attachment.
 
 **Test Steps**:
 
 1. **Event Creation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.events.ByteHotAttachRequestedTest test
-```
+#+begin_src
 
 2. **Event Processing Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotTest#testAcceptAttachRequested test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test event creation
 WatchConfiguration config = new WatchConfiguration(8080);
 Instrumentation mockInst = Mockito.mock(Instrumentation.class);
@@ -37,7 +41,7 @@ ByteHotAttachRequested event = new ByteHotAttachRequested(config, mockInst);
 assert event.getConfiguration() == config;
 assert event.getInstrumentation() == mockInst;
 assert event.getTimestamp() != null;
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ ByteHotAttachRequested event created correctly
@@ -45,24 +49,24 @@ assert event.getTimestamp() != null;
 - ✅ Event processed by ByteHot aggregate
 - ✅ Processing completes without exceptions
 
-### 3.2.2 ByteHotAgentAttached Response Event
+*** 3.2.2 ByteHotAgentAttached Response Event
 
 **Description**: Test the generation and properties of ByteHotAgentAttached response events.
 
 **Test Steps**:
 
 1. **Response Event Generation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=org.acmsl.bytehot.domain.events.ByteHotAgentAttachedTest test
-```
+#+begin_src
 
 2. **Event Response Flow Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotTest#testAttachRequestResponse test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test response event generation
 ByteHotAttachRequested request = createTestAttachRequest();
 List<DomainResponseEvent<ByteHotAttachRequested>> responses = ByteHot.accept(request);
@@ -74,7 +78,7 @@ assert response instanceof ByteHotAgentAttached;
 ByteHotAgentAttached attached = (ByteHotAgentAttached) response;
 assert attached.getCause() == request;
 assert attached.isSuccessful();
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ ByteHotAgentAttached event generated
@@ -82,24 +86,24 @@ assert attached.isSuccessful();
 - ✅ Success status correctly set
 - ✅ Event metadata properly populated
 
-### 3.2.3 Application Layer Event Routing
+*** 3.2.3 Application Layer Event Routing
 
 **Description**: Test event routing through ByteHotApplication.accept().
 
 **Test Steps**:
 
 1. **Application Accept Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationTest#testAcceptEvent test
-```
+#+begin_src
 
 2. **Event Routing Integration Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationIntegrationTest#testEventRouting test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test application layer routing
 ByteHotApplication app = ByteHotApplication.getInstance();
 ByteHotAttachRequested request = createTestAttachRequest();
@@ -112,7 +116,7 @@ List<DomainResponseEvent<ByteHotAttachRequested>> responses = app.accept(request
 assert responses != null;
 assert !responses.isEmpty();
 assert responses.get(0) instanceof ByteHotAgentAttached;
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Events routed to domain layer correctly
@@ -120,32 +124,32 @@ assert responses.get(0) instanceof ByteHotAgentAttached;
 - ✅ No events lost during routing
 - ✅ Event processing completes successfully
 
-### 3.2.4 Event Emission Through EventEmitterPort
+*** 3.2.4 Event Emission Through EventEmitterPort
 
 **Description**: Test emission of response events through the EventEmitterPort infrastructure.
 
 **Test Steps**:
 
 1. **Event Emission Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*EventEmitterAdapterTest#testDomainEventEmission test
-```
+#+begin_src
 
 2. **Event Output Verification Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotApplicationIntegrationTest#testEventEmission test
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Start application with agent and monitor output
+#+begin_src bash
+* Start application with agent and monitor output
 java -javaagent:target/bytehot-*-agent.jar \
      -Dbhconfig=test-config.yml \
      -cp target/test-classes TestApplication 2>&1 | tee agent-output.log
 
-# Check for emitted events
+* Check for emitted events
 grep "ByteHotAgentAttached" agent-output.log
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Response events emitted to configured outputs
@@ -153,24 +157,24 @@ grep "ByteHotAgentAttached" agent-output.log
 - ✅ All response events from accept() are emitted
 - ✅ No emission failures or exceptions
 
-### 3.2.5 Event Metadata and Causality
+*** 3.2.5 Event Metadata and Causality
 
 **Description**: Test event metadata preservation and causal relationships.
 
 **Test Steps**:
 
 1. **Event Metadata Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*EventMetadataTest test
-```
+#+begin_src
 
 2. **Causal Chain Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*CausalChainTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test event causality
 ByteHotAttachRequested request = createTestAttachRequest();
 UUID requestId = request.getId();
@@ -183,7 +187,7 @@ ByteHotAgentAttached response = (ByteHotAgentAttached) responses.get(0);
 assert response.getCause() == request;
 assert response.getCauseId().equals(requestId);
 assert response.getTimestamp().isAfter(requestTime);
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Event IDs unique and properly set
@@ -191,42 +195,42 @@ assert response.getTimestamp().isAfter(requestTime);
 - ✅ Causal relationships preserved
 - ✅ Response events link to original requests
 
-### 3.2.6 Agent Integration Event Flow
+*** 3.2.6 Agent Integration Event Flow
 
 **Description**: Test the complete event flow during actual agent operations.
 
 **Test Steps**:
 
 1. **End-to-End Agent Event Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotAgentIntegrationTest#testCompleteEventFlow test
-```
+#+begin_src
 
 2. **Real JVM Agent Event Test**
-```bash
-# This test requires actual JVM with agent
+#+begin_src bash
+* This test requires actual JVM with agent
 java -javaagent:target/bytehot-*-agent.jar \
      -Dbhconfig=test-config.yml \
      -cp target/test-classes:target/test-classes/support \
      EventFlowTestApplication
-```
+#+begin_src
 
 **Manual Verification**:
-```bash
-# Monitor complete event flow
+#+begin_src bash
+* Monitor complete event flow
 java -javaagent:target/bytehot-*-agent.jar \
      -Dbhconfig=test-config.yml \
      -Djava.util.logging.level=FINE \
      -cp target/test-classes TestApplication 2>&1 | \
      grep -E "(ByteHotAttachRequested|ByteHotAgentAttached|ClassFileChanged)"
 
-# Expected sequence:
-# 1. ByteHotAttachRequested created
-# 2. Event processed by domain
-# 3. ByteHotAgentAttached generated
-# 4. Response event emitted
-# 5. Agent ready for file events
-```
+* Expected sequence:
+* 1. ByteHotAttachRequested created
+* 2. Event processed by domain
+* 3. ByteHotAgentAttached generated
+* 4. Response event emitted
+* 5. Agent ready for file events
+#+begin_src
 
 **Expected Results**:
 - ✅ Complete event flow executes correctly
@@ -234,24 +238,24 @@ java -javaagent:target/bytehot-*-agent.jar \
 - ✅ No events lost or duplicated
 - ✅ Agent becomes operational after event flow
 
-### 3.2.7 Error Events and Exception Handling
+*** 3.2.7 Error Events and Exception Handling
 
 **Description**: Test generation and handling of error events during domain processing.
 
 **Test Steps**:
 
 1. **Error Event Generation Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ByteHotNotStartedTest test
-```
+#+begin_src
 
 2. **Error Event Handling Test**
-```bash
+#+begin_src bash
 mvn -Dtest=*ErrorHandlingIntegrationTest test
-```
+#+begin_src
 
 **Manual Verification**:
-```java
+#+begin_src java
 // Test error event generation
 WatchConfiguration invalidConfig = null; // Invalid configuration
 ByteHotAttachRequested invalidRequest = new ByteHotAttachRequested(invalidConfig, null);
@@ -263,7 +267,7 @@ try {
 } catch (Exception e) {
     // Or handle via exception, depending on design
 }
-```
+#+begin_src
 
 **Expected Results**:
 - ✅ Error conditions generate appropriate events
@@ -271,9 +275,9 @@ try {
 - ✅ System continues operating after errors
 - ✅ Error events properly emitted and logged
 
-## Success Criteria
+** Success Criteria
 
-### Automated Tests
+*** Automated Tests
 - [ ] ByteHotAttachRequested event tests pass
 - [ ] ByteHotAgentAttached response tests pass
 - [ ] Application layer routing tests pass
@@ -282,23 +286,23 @@ try {
 - [ ] Integration event flow tests pass
 - [ ] Error event handling tests pass
 
-### Manual Verification
+*** Manual Verification
 - [ ] Complete event flow works end-to-end
 - [ ] Events appear in outputs/logs correctly
 - [ ] Event causality preserved throughout flow
 - [ ] Error conditions handled gracefully
 - [ ] No event loss or corruption observed
 
-### Performance Criteria
+*** Performance Criteria
 - [ ] Event creation < 1ms
 - [ ] Event processing < 10ms
 - [ ] Event emission < 5ms
 - [ ] Complete flow < 50ms
 - [ ] Memory usage stable during event processing
 
-## Troubleshooting
+** Troubleshooting
 
-### Common Issues
+*** Common Issues
 
 **Issue**: Events not being processed
 **Solution**:
@@ -328,31 +332,31 @@ try {
 - Test ID generation uniqueness
 - Ensure causality linking works correctly
 
-### Debug Commands
+*** Debug Commands
 
-```bash
-# Enable detailed event logging
+#+begin_src bash
+* Enable detailed event logging
 export BYTEHOT_EVENT_DEBUG=true
 java -javaagent:target/bytehot-*-agent.jar \
      -Djava.util.logging.level=FINEST \
      -cp target/test-classes TestApplication
 
-# Monitor event processing
+* Monitor event processing
 jstack $(pgrep java) | grep -A 10 -B 5 "event\|Event"
 
-# Check event emission files
+* Check event emission files
 find /tmp -name "*bytehot*" -type f -exec cat {} \;
 
-# Test event serialization
+* Test event serialization
 java -cp target/test-classes EventSerializationTest
 
-# Monitor memory during event processing
+* Monitor memory during event processing
 jstat -gc $(pgrep java) 1s 10
-```
+#+begin_src
 
-### Event Flow Debugging
+*** Event Flow Debugging
 
-```java
+#+begin_src java
 // Add to test code for debugging
 public class EventFlowDebugger {
     public static void traceEventFlow(DomainEvent event) {
@@ -365,9 +369,9 @@ public class EventFlowDebugger {
         }
     }
 }
-```
+#+begin_src
 
-## Next Steps
+** Next Steps
 
 Once Phase 3.2 passes completely:
 1. Proceed to [Phase 4: Event Sourcing & User Management](../phase-4-event-sourcing/event-store.md)
