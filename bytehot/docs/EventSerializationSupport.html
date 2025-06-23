@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EventSerializationSupport - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>EventSerializationSupport</code> class provides the
+critical serialization infrastructure for ByteHot's Event Sourcing
+implementation. This utility class handles the complex transformation
+between domain events and JSON representation, enabling persistent
+storage and retrieval of event streams. As a core component of ByteHot's
+"poor-man's EventStore" approach, it ensures consistent, reliable, and
+performant event serialization while maintaining domain event integrity
+and supporting event evolution.</p>
+<h1 id="event-sourcing-architecture-role">Event Sourcing Architecture
+Role</h1>
+<h2 id="serialization-infrastructure-component">Serialization
+Infrastructure Component</h2>
+<p>EventSerializationSupport serves as the serialization backbone for
+event sourcing:</p>
+<ul>
+<li>Transforms domain events into JSON format for persistent
+storage</li>
+<li>Reconstructs domain events from JSON representations with full
+fidelity</li>
+<li>Handles event metadata preservation and extraction</li>
+<li>Provides consistent serialization format across the entire
+system</li>
+</ul>
+<h2 id="domain-event-preservation-gateway">Domain Event Preservation
+Gateway</h2>
+<p>The class manages the critical boundary between domain events and
+storage:</p>
+<ul>
+<li>Preserves complete event context including metadata and lineage</li>
+<li>Handles complex object serialization with type safety</li>
+<li>Maintains event schema version compatibility</li>
+<li>Enables event replay and audit trail reconstruction</li>
+</ul>
+<h2 id="performance-optimization-center">Performance Optimization
+Center</h2>
+<p>The implementation optimizes serialization performance:</p>
+<ul>
+<li>Cached event type resolution for repeated operations</li>
+<li>Efficient JSON processing with minimal object allocation</li>
+<li>Streamlined DTO conversion for complex domain objects</li>
+<li>Bulk operation support for high-throughput scenarios</li>
+</ul>
+<h1 id="class-structure-and-configuration">Class Structure and
+Configuration</h1>
+<h2 id="core-infrastructure-components">Core Infrastructure
+Components</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> JSON property name for event type</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">final</span> <span class="bu">String</span> EVENT_TYPE_PROPERTY <span class="op">=</span> <span class="st">&quot;eventType&quot;</span><span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> JSON property name for event data</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">final</span> <span class="bu">String</span> EVENT_DATA_PROPERTY <span class="op">=</span> <span class="st">&quot;eventData&quot;</span><span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> JSON property name for event metadata</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">final</span> <span class="bu">String</span> EVENT_METADATA_PROPERTY <span class="op">=</span> <span class="st">&quot;eventMetadata&quot;</span><span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Configured object mapper for JSON operations</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">final</span> ObjectMapper OBJECT_MAPPER <span class="op">=</span> <span class="fu">createObjectMapper</span><span class="op">();</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Cache of event class mappings for performance</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;&gt;</span> EVENT_TYPE_CACHE <span class="op">=</span> <span class="kw">new</span> <span class="bu">HashMap</span><span class="op">&lt;&gt;();</span></span></code></pre></div>
+<h2 id="objectmapper-configuration">ObjectMapper Configuration</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates and configures the JSON object mapper</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> ObjectMapper <span class="fu">createObjectMapper</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    ObjectMapper mapper <span class="op">=</span> <span class="kw">new</span> <span class="fu">ObjectMapper</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    mapper<span class="op">.</span><span class="fu">registerModule</span><span class="op">(</span><span class="kw">new</span> <span class="fu">JavaTimeModule</span><span class="op">());</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    mapper<span class="op">.</span><span class="fu">disable</span><span class="op">(</span>SerializationFeature<span class="op">.</span><span class="fu">WRITE_DATES_AS_TIMESTAMPS</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    mapper<span class="op">.</span><span class="fu">enable</span><span class="op">(</span>SerializationFeature<span class="op">.</span><span class="fu">INDENT_OUTPUT</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> mapper<span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="json-structure-design">JSON Structure Design</h2>
+<p>The class implements a sophisticated JSON structure for events:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;eventType&quot;</span><span class="fu">:</span> <span class="st">&quot;ClassFileChanged&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;eventMetadata&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;eventId&quot;</span><span class="fu">:</span> <span class="st">&quot;uuid-string&quot;</span><span class="fu">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;aggregateType&quot;</span><span class="fu">:</span> <span class="st">&quot;ByteHot&quot;</span><span class="fu">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;aggregateId&quot;</span><span class="fu">:</span> <span class="st">&quot;aggregate-id&quot;</span><span class="fu">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;aggregateVersion&quot;</span><span class="fu">:</span> <span class="dv">42</span><span class="fu">,</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-06-20T10:30:00.123Z&quot;</span><span class="fu">,</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;schemaVersion&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;previousEventId&quot;</span><span class="fu">:</span> <span class="st">&quot;previous-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;userId&quot;</span><span class="fu">:</span> <span class="st">&quot;user-id&quot;</span><span class="fu">,</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;correlationId&quot;</span><span class="fu">:</span> <span class="st">&quot;correlation-id&quot;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;eventData&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;path&quot;</span><span class="fu">:</span> <span class="st">&quot;/path/to/changed/file.class&quot;</span><span class="fu">,</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;changeType&quot;</span><span class="fu">:</span> <span class="st">&quot;MODIFIED&quot;</span><span class="fu">,</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-06-20T10:30:00.123Z&quot;</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h1 id="event-serialization-implementation">Event Serialization
+Implementation</h1>
+<h2 id="primary-serialization-method">Primary Serialization Method</h2>
+<div class="sourceCode" id="cb4"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Serializes a domain event to JSON string</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">event</span><span class="co"> </span>the event to serialize</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> JSON representation of the event</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">IOException</span><span class="co"> </span>if serialization fails</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">toJson</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    ObjectNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">createObjectNode</span><span class="op">();</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add event type information</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    rootNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span>EVENT_TYPE_PROPERTY<span class="op">,</span> event<span class="op">.</span><span class="fu">getEventType</span><span class="op">());</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add event metadata</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    ObjectNode metadataNode <span class="op">=</span> <span class="fu">createMetadataNode</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    rootNode<span class="op">.</span><span class="fu">set</span><span class="op">(</span>EVENT_METADATA_PROPERTY<span class="op">,</span> metadataNode<span class="op">);</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Convert domain event to DTO and add as event data</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Object</span> dto <span class="op">=</span> <span class="fu">convertToDto</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    JsonNode eventDataNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">valueToTree</span><span class="op">(</span>dto<span class="op">);</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    rootNode<span class="op">.</span><span class="fu">set</span><span class="op">(</span>EVENT_DATA_PROPERTY<span class="op">,</span> eventDataNode<span class="op">);</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">writeValueAsString</span><span class="op">(</span>rootNode<span class="op">);</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="metadata-node-creation">Metadata Node Creation</h2>
+<div class="sourceCode" id="cb5"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a metadata node for an event</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> ObjectNode <span class="fu">createMetadataNode</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    ObjectNode metadataNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">createObjectNode</span><span class="op">();</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;eventId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getEventId</span><span class="op">());</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;aggregateType&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">());</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;aggregateId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">());</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;aggregateVersion&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getAggregateVersion</span><span class="op">());</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;timestamp&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">().</span><span class="fu">toString</span><span class="op">());</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;schemaVersion&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getSchemaVersion</span><span class="op">());</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getPreviousEventId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;previousEventId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getPreviousEventId</span><span class="op">());</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getUserId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;userId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getUserId</span><span class="op">());</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getCorrelationId</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        metadataNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;correlationId&quot;</span><span class="op">,</span> event<span class="op">.</span><span class="fu">getCorrelationId</span><span class="op">());</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> metadataNode<span class="op">;</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="serialization-features">Serialization Features</h2>
+<p>The serialization implementation provides comprehensive
+capabilities:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Serialization characteristics:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Complete metadata preservation for audit trails</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - DTO conversion for complex domain objects</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type information embedding for accurate deserialization</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optional field handling for backwards compatibility</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent timestamp formatting across events</span></span></code></pre></div>
+<h1 id="event-deserialization-implementation">Event Deserialization
+Implementation</h1>
+<h2 id="primary-deserialization-method">Primary Deserialization
+Method</h2>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Deserializes a JSON string to a domain event</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">json</span><span class="co"> </span>the JSON string</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the deserialized event<span class="co">,</span> or null if deserialization fails</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">IOException</span><span class="co"> </span>if deserialization fails</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> VersionedDomainEvent <span class="fu">fromJson</span><span class="op">(</span><span class="bu">String</span> json<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    JsonNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">readTree</span><span class="op">(</span>json<span class="op">);</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Extract event type</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    JsonNode eventTypeNode <span class="op">=</span> rootNode<span class="op">.</span><span class="fu">get</span><span class="op">(</span>EVENT_TYPE_PROPERTY<span class="op">);</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>eventTypeNode <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Missing event type in JSON&quot;</span><span class="op">);</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> eventType <span class="op">=</span> eventTypeNode<span class="op">.</span><span class="fu">asText</span><span class="op">();</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Extract event data</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    JsonNode eventDataNode <span class="op">=</span> rootNode<span class="op">.</span><span class="fu">get</span><span class="op">(</span>EVENT_DATA_PROPERTY<span class="op">);</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>eventDataNode <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Missing event data in JSON&quot;</span><span class="op">);</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Convert from DTO to domain event based on event type</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">convertFromDto</span><span class="op">(</span>eventType<span class="op">,</span> eventDataNode<span class="op">);</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="type-specific-deserialization">Type-Specific
+Deserialization</h2>
+<div class="sourceCode" id="cb8"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Deserializes a JSON string to a specific event type</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">json</span><span class="co"> </span>the JSON string</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">eventType</span><span class="co"> </span>the expected event type</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the deserialized event</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">IOException</span><span class="co"> </span>if deserialization fails</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> VersionedDomainEvent <span class="fu">fromJson</span><span class="op">(</span><span class="bu">String</span> json<span class="op">,</span> <span class="bu">String</span> eventType<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;</span> eventClass <span class="op">=</span> <span class="fu">resolveEventClass</span><span class="op">(</span>eventType<span class="op">);</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>eventClass <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Unknown event type: &quot;</span> <span class="op">+</span> eventType<span class="op">);</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    JsonNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">readTree</span><span class="op">(</span>json<span class="op">);</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    JsonNode eventDataNode <span class="op">=</span> rootNode<span class="op">.</span><span class="fu">get</span><span class="op">(</span>EVENT_DATA_PROPERTY<span class="op">);</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>eventDataNode <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fallback: try to deserialize the entire JSON as the event</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">readValue</span><span class="op">(</span>json<span class="op">,</span> eventClass<span class="op">);</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">treeToValue</span><span class="op">(</span>eventDataNode<span class="op">,</span> eventClass<span class="op">);</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="deserialization-error-handling">Deserialization Error
+Handling</h2>
+<p>The deserialization implementation provides robust error
+handling:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error handling features:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Missing field detection with descriptive error messages</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type validation and compatibility checking</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graceful fallback for legacy event formats</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Detailed exception information for debugging</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Schema version compatibility verification</span></span></code></pre></div>
+<h1 id="event-type-resolution-and-caching">Event Type Resolution and
+Caching</h1>
+<h2 id="dynamic-event-class-resolution">Dynamic Event Class
+Resolution</h2>
+<div class="sourceCode" id="cb10"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Resolves an event class from its type name</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">eventType</span><span class="co"> </span>the simple class name of the event</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the event class<span class="co">,</span> or null if not found</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;</span> <span class="fu">resolveEventClass</span><span class="op">(</span><span class="bu">String</span> eventType<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check cache first</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;</span> cachedClass <span class="op">=</span> EVENT_TYPE_CACHE<span class="op">.</span><span class="fu">get</span><span class="op">(</span>eventType<span class="op">);</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>cachedClass <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> cachedClass<span class="op">;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Try to find the class in the events package</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span><span class="op">[]</span> packagePrefixes <span class="op">=</span> <span class="op">{</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;org.acmsl.bytehot.domain.events.&quot;</span><span class="op">,</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;org.acmsl.bytehot.domain.&quot;</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="bu">String</span> packagePrefix <span class="op">:</span> packagePrefixes<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>            <span class="bu">String</span> fullClassName <span class="op">=</span> packagePrefix <span class="op">+</span> eventType<span class="op">;</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>            <span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz <span class="op">=</span> <span class="bu">Class</span><span class="op">.</span><span class="fu">forName</span><span class="op">(</span>fullClassName<span class="op">);</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>VersionedDomainEvent<span class="op">.</span><span class="fu">class</span><span class="op">.</span><span class="fu">isAssignableFrom</span><span class="op">(</span>clazz<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>                <span class="at">@SuppressWarnings</span><span class="op">(</span><span class="st">&quot;unchecked&quot;</span><span class="op">)</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>                <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;</span> eventClass <span class="op">=</span> </span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>                    <span class="op">(</span><span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;)</span> clazz<span class="op">;</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>                <span class="co">// Cache for future use</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>                EVENT_TYPE_CACHE<span class="op">.</span><span class="fu">put</span><span class="op">(</span>eventType<span class="op">,</span> eventClass<span class="op">);</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> eventClass<span class="op">;</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">ClassNotFoundException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Continue trying other packages</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-type-registration">Event Type Registration</h2>
+<div class="sourceCode" id="cb11"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Registers an event class for type resolution</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">eventType</span><span class="co"> </span>the simple class name</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">eventClass</span><span class="co"> </span>the event class</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">registerEventType</span><span class="op">(</span><span class="bu">String</span> eventType<span class="op">,</span> <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;</span> eventClass<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    EVENT_TYPE_CACHE<span class="op">.</span><span class="fu">put</span><span class="op">(</span>eventType<span class="op">,</span> eventClass<span class="op">);</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="cache-management">Cache Management</h2>
+<div class="sourceCode" id="cb12"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Clears the event type cache <span class="co">(</span>useful for testing<span class="co">)</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">clearCache</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    EVENT_TYPE_CACHE<span class="op">.</span><span class="fu">clear</span><span class="op">();</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Gets all registered event types</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> map of event type names to classes</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;&gt;</span> <span class="fu">getRegisteredEventTypes</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="bu">HashMap</span><span class="op">&lt;&gt;(</span>EVENT_TYPE_CACHE<span class="op">);</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if an event type is registered</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">eventType</span><span class="co"> </span>the event type name</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> true if the event type is known</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">isEventTypeRegistered</span><span class="op">(</span><span class="bu">String</span> eventType<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> EVENT_TYPE_CACHE<span class="op">.</span><span class="fu">containsKey</span><span class="op">(</span>eventType<span class="op">)</span> <span class="op">||</span> <span class="fu">resolveEventClass</span><span class="op">(</span>eventType<span class="op">)</span> <span class="op">!=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="dto-conversion-system">DTO Conversion System</h1>
+<h2 id="domain-to-dto-conversion">Domain to DTO Conversion</h2>
+<div class="sourceCode" id="cb13"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Converts a domain event to its corresponding DTO for JSON serialization</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">event</span><span class="co"> </span>the domain event</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the DTO object</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="bu">Object</span> <span class="fu">convertToDto</span><span class="op">(</span>VersionedDomainEvent event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> ClassFileChanged<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> JsonClassFileChanged<span class="op">.</span><span class="fu">fromDomain</span><span class="op">((</span>ClassFileChanged<span class="op">)</span> event<span class="op">);</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For other event types, fall back to direct serialization</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// </span><span class="al">TODO</span><span class="co">: Add more DTO mappings as needed</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> event<span class="op">;</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="dto-to-domain-conversion">DTO to Domain Conversion</h2>
+<div class="sourceCode" id="cb14"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Converts a DTO back to a domain event based on event type</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">eventType</span><span class="co"> </span>the event type name</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">eventDataNode</span><span class="co"> </span>the JSON node containing the DTO data</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the domain event</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">IOException</span><span class="co"> </span>if conversion fails</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> VersionedDomainEvent <span class="fu">convertFromDto</span><span class="op">(</span><span class="bu">String</span> eventType<span class="op">,</span> JsonNode eventDataNode<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span><span class="st">&quot;ClassFileChanged&quot;</span><span class="op">.</span><span class="fu">equals</span><span class="op">(</span>eventType<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        JsonClassFileChanged dto <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">treeToValue</span><span class="op">(</span>eventDataNode<span class="op">,</span> JsonClassFileChanged<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> dto<span class="op">.</span><span class="fu">toDomain</span><span class="op">();</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For other event types, fall back to direct deserialization</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// </span><span class="al">TODO</span><span class="co">: Add more DTO mappings as needed</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Class</span><span class="op">&lt;?</span> <span class="kw">extends</span> VersionedDomainEvent<span class="op">&gt;</span> eventClass <span class="op">=</span> <span class="fu">resolveEventClass</span><span class="op">(</span>eventType<span class="op">);</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>eventClass <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Unknown event type: &quot;</span> <span class="op">+</span> eventType<span class="op">);</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">treeToValue</span><span class="op">(</span>eventDataNode<span class="op">,</span> eventClass<span class="op">);</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="dto-conversion-benefits">DTO Conversion Benefits</h2>
+<p>The DTO conversion system provides significant advantages:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// DTO conversion advantages:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Clean separation between domain and persistence models</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON serialization compatibility for complex objects</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Schema evolution support through versioned DTOs</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance optimization for frequently serialized types</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type safety for complex nested objects</span></span></code></pre></div>
+<h1 id="json-validation-and-utility-methods">JSON Validation and Utility
+Methods</h1>
+<h2 id="event-json-validation">Event JSON Validation</h2>
+<div class="sourceCode" id="cb16"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Validates that a JSON string contains a valid event structure</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">json</span><span class="co"> </span>the JSON string to validate</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> true if the JSON has the expected event structure</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">boolean</span> <span class="fu">isValidEventJson</span><span class="op">(</span><span class="bu">String</span> json<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        JsonNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">readTree</span><span class="op">(</span>json<span class="op">);</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check for required fields</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> rootNode<span class="op">.</span><span class="fu">has</span><span class="op">(</span>EVENT_TYPE_PROPERTY<span class="op">)</span> <span class="op">&amp;&amp;</span> </span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>               rootNode<span class="op">.</span><span class="fu">has</span><span class="op">(</span>EVENT_METADATA_PROPERTY<span class="op">)</span> <span class="op">&amp;&amp;</span> </span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>               rootNode<span class="op">.</span><span class="fu">has</span><span class="op">(</span>EVENT_DATA_PROPERTY<span class="op">);</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-type-extraction">Event Type Extraction</h2>
+<div class="sourceCode" id="cb17"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Extracts the event type from a JSON string without full deserialization</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">json</span><span class="co"> </span>the JSON string</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the event type<span class="co">,</span> or null if not found</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">extractEventType</span><span class="op">(</span><span class="bu">String</span> json<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>        JsonNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">readTree</span><span class="op">(</span>json<span class="op">);</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        JsonNode eventTypeNode <span class="op">=</span> rootNode<span class="op">.</span><span class="fu">get</span><span class="op">(</span>EVENT_TYPE_PROPERTY<span class="op">);</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> eventTypeNode <span class="op">!=</span> <span class="kw">null</span> <span class="op">?</span> eventTypeNode<span class="op">.</span><span class="fu">asText</span><span class="op">()</span> <span class="op">:</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="minimal-event-json-creation">Minimal Event JSON Creation</h2>
+<div class="sourceCode" id="cb18"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/EventSerializationSupport.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a minimal JSON representation for testing</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">eventType</span><span class="co"> </span>the event type</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">eventData</span><span class="co"> </span>the event data as JSON</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> minimal JSON string</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="bu">String</span> <span class="fu">createMinimalEventJson</span><span class="op">(</span><span class="bu">String</span> eventType<span class="op">,</span> <span class="bu">String</span> eventData<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        ObjectNode rootNode <span class="op">=</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">createObjectNode</span><span class="op">();</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        rootNode<span class="op">.</span><span class="fu">put</span><span class="op">(</span>EVENT_TYPE_PROPERTY<span class="op">,</span> eventType<span class="op">);</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        rootNode<span class="op">.</span><span class="fu">set</span><span class="op">(</span>EVENT_DATA_PROPERTY<span class="op">,</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">readTree</span><span class="op">(</span>eventData<span class="op">));</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        rootNode<span class="op">.</span><span class="fu">set</span><span class="op">(</span>EVENT_METADATA_PROPERTY<span class="op">,</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">createObjectNode</span><span class="op">());</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> OBJECT_MAPPER<span class="op">.</span><span class="fu">writeValueAsString</span><span class="op">(</span>rootNode<span class="op">);</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Failed to create minimal event JSON&quot;</span><span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="performance-optimization">Performance Optimization</h1>
+<h2 id="serialization-performance">Serialization Performance</h2>
+<p>The implementation optimizes serialization performance through
+multiple strategies:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance optimization strategies:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Static ObjectMapper configuration for reuse</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event type caching to avoid repeated class resolution</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient JSON tree manipulation with minimal copying</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Direct DTO conversion for known event types</span></span></code></pre></div>
+<h2 id="memory-management">Memory Management</h2>
+<p>Careful memory management throughout serialization operations:</p>
+<ul>
+<li>Reuse of configured ObjectMapper instances</li>
+<li>Minimal object allocation during JSON processing</li>
+<li>Efficient string building for complex events</li>
+<li>Early garbage collection of temporary objects</li>
+</ul>
+<h2 id="caching-strategy">Caching Strategy</h2>
+<p>Sophisticated caching strategy for optimal performance:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Caching optimization features:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event type class caching for repeated deserialization</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Package prefix optimization for faster class resolution</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Lazy loading of event classes to minimize startup overhead</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cache management for testing and dynamic scenarios</span></span></code></pre></div>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="comprehensive-exception-management">Comprehensive Exception
+Management</h2>
+<p>The implementation handles all categories of serialization
+errors:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Exception handling categories:</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - IOException: JSON parsing and generation failures</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - ClassNotFoundException: Missing event class types</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - ClassCastException: Type incompatibility during conversion</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - RuntimeException: DTO conversion failures</span></span></code></pre></div>
+<h2 id="graceful-degradation-strategies">Graceful Degradation
+Strategies</h2>
+<p>The implementation provides sophisticated graceful degradation:</p>
+<ul>
+<li>Fallback to direct serialization when DTO conversion fails</li>
+<li>Alternative deserialization paths for legacy event formats</li>
+<li>Detailed error messages for troubleshooting</li>
+<li>Partial success handling for batch operations</li>
+</ul>
+<h2 id="error-recovery-mechanisms">Error Recovery Mechanisms</h2>
+<p>Multiple error recovery mechanisms ensure system resilience:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recovery strategies:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Multiple package prefix attempts for class resolution</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Fallback serialization methods for unknown types</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cache clearing for corrupted type information</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Alternative JSON parsing strategies</span></span></code></pre></div>
+<h1 id="testing-and-validation-support">Testing and Validation
+Support</h1>
+<h2 id="test-infrastructure-support">Test Infrastructure Support</h2>
+<p>The class provides comprehensive testing infrastructure:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Testing support features:</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cache clearing for isolated test execution</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event type registration for controlled testing</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal JSON creation for test data generation</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation methods for test assertions</span></span></code></pre></div>
+<h2 id="mock-event-generation">Mock Event Generation</h2>
+<p>Testing utilities enable mock event generation:</p>
+<ul>
+<li>Minimal event JSON creation for testing</li>
+<li>Event type validation for test verification</li>
+<li>Cache inspection for debugging test failures</li>
+<li>JSON structure validation for conformance testing</li>
+</ul>
+<h2 id="integration-testing-support">Integration Testing Support</h2>
+<p>The implementation supports comprehensive integration testing:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Integration testing capabilities:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Real event serialization and deserialization testing</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance testing with large event volumes</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error condition simulation and recovery testing</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cross-version compatibility testing</span></span></code></pre></div>
+<h1 id="security-considerations">Security Considerations</h1>
+<h2 id="serialization-security">Serialization Security</h2>
+<p>Event serialization requires careful security management:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security considerations:</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class loading restrictions for untrusted JSON</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Input validation for malicious JSON payloads</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type safety enforcement during deserialization</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource limit enforcement for large events</span></span></code></pre></div>
+<h2 id="type-safety-enforcement">Type Safety Enforcement</h2>
+<p>The implementation enforces strict type safety:</p>
+<ul>
+<li>Event class validation during registration</li>
+<li>VersionedDomainEvent interface compliance verification</li>
+<li>Safe casting with proper exception handling</li>
+<li>Controlled class loading from trusted packages</li>
+</ul>
+<h2 id="input-validation">Input Validation</h2>
+<p>Comprehensive input validation prevents security issues:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Input validation features:</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON structure validation before processing</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event type validation against known types</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Metadata field validation for consistency</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Size limit enforcement for resource protection</span></span></code></pre></div>
+<h1 id="event-schema-evolution">Event Schema Evolution</h1>
+<h2 id="schema-version-management">Schema Version Management</h2>
+<p>The implementation supports event schema evolution:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Schema evolution features:</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Schema version preservation in event metadata</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Backwards compatibility for older event formats</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - DTO versioning for controlled schema changes</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Migration support for evolving event structures</span></span></code></pre></div>
+<h2 id="compatibility-maintenance">Compatibility Maintenance</h2>
+<p>Comprehensive compatibility maintenance across versions:</p>
+<ul>
+<li>Fallback deserialization for legacy formats</li>
+<li>Optional field handling for schema additions</li>
+<li>Default value provision for missing fields</li>
+<li>Version-specific DTO conversion strategies</li>
+</ul>
+<h2 id="migration-support">Migration Support</h2>
+<p>The system provides event migration capabilities:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Migration support features:</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Automatic format detection and conversion</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Batch migration utilities for event stores</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation of migration success</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Rollback capabilities for failed migrations</span></span></code></pre></div>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="serialization-enhancement-roadmap">Serialization Enhancement
+Roadmap</h2>
+<p>Planned enhancements to serialization capabilities:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Future enhancement areas:</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Support for additional serialization formats (Avro, Protocol Buffers)</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced compression for large events</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Streaming serialization for huge event collections</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Custom serialization strategies per event type</span></span></code></pre></div>
+<h2 id="performance-enhancement-opportunities">Performance Enhancement
+Opportunities</h2>
+<p>Identified areas for future optimization:</p>
+<ul>
+<li>Binary serialization for performance-critical scenarios</li>
+<li>Lazy deserialization for partial event access</li>
+<li>Parallel processing for batch operations</li>
+<li>Memory-mapped serialization for large events</li>
+</ul>
+<h2 id="technology-integration">Technology Integration</h2>
+<p>Integration with emerging serialization technologies:</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Technology integration targets:</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud-native serialization services</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Distributed event schema registries</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced compression algorithms</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Streaming serialization frameworks</span></span></code></pre></div>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="FilesystemEventStoreAdapter.org"><em>FilesystemEventStoreAdapter</em></span>:
+Primary consumer of serialization services</li>
+<li><span class="spurious-link"
+target="JsonClassFileChanged.org"><em>JsonClassFileChanged</em></span>:
+DTO implementation example</li>
+<li><span class="spurious-link"
+target="events/ClassFileChanged.org"><em>ClassFileChanged</em></span>:
+Domain event requiring serialization</li>
+<li><span class="spurious-link"
+target="flows/hot-swap-complete-flow.org"><em>Hot-Swap Complete
+Flow</em></span>: Process generating events for storage</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The implementation leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Strategy Pattern</strong></strong>: Different
+serialization strategies for different event types</li>
+<li><strong><strong>Factory Pattern</strong></strong>: Event class
+creation and resolution</li>
+<li><strong><strong>Adapter Pattern</strong></strong>: DTO conversion
+between domain and persistence models</li>
+<li><strong><strong>Template Method</strong></strong>: Consistent
+serialization process across event types</li>
+</ul>
+<h2 id="static-utility-design">Static Utility Design</h2>
+<p>The class follows a static utility design pattern:</p>
+<ul>
+<li>No instance state or mutable fields</li>
+<li>Thread-safe static methods for global access</li>
+<li>Cached configurations for performance optimization</li>
+<li>Controlled resource management through static initialization</li>
+</ul>
+<p>The EventSerializationSupport provides ByteHot's critical event
+sourcing serialization infrastructure while maintaining data integrity,
+performance optimization, and architectural purity for reliable event
+persistence and retrieval across the entire system lifecycle.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

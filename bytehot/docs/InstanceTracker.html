@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>InstanceTracker - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code class="verbatim">InstanceTracker</code> class provides
+thread-safe tracking of class instances using weak references. It
+enables discovery and counting of existing instances without preventing
+garbage collection, which is crucial for hot-swap operations that need
+to update existing objects.</p>
+<h2 id="key-responsibilities">Key Responsibilities</h2>
+<ul>
+<li>Track existing instances of classes using weak references</li>
+<li>Enable/disable tracking for specific classes</li>
+<li>Provide instance discovery and counting capabilities</li>
+<li>Maintain thread-safety for concurrent access</li>
+<li>Prevent memory leaks through garbage collection compatibility</li>
+</ul>
+<h2 id="design-patterns">Design Patterns</h2>
+<ul>
+<li><strong>Observer Pattern</strong>: For instance lifecycle
+tracking</li>
+<li><strong>Weak Reference Pattern</strong>: For garbage collection
+compatibility</li>
+<li><strong>Registry Pattern</strong>: For centralized instance
+management</li>
+</ul>
+<h1 id="class-declaration-and-imports">Class Declaration and
+Imports</h1>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/*</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">                        ByteHot</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Copyright (C) 2025-today  rydnr@acm-sl.org</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">    This library is free software; you can redistribute it and/or</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">    modify it under the terms of the GNU General Public</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">    License as published by the Free Software Foundation; either</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">    version 3 of the License, or (at your option) any later version.</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">    This library is distributed in the hope that it will be useful,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">    General Public License for more details.</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">    You should have received a copy of the GNU General Public v3</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">    License along with this library; if not, write to the Free Software</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">    Thanks to ACM S.L. for distributing this library under the GPLv3 license.</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">    Contact info: jose.sanleandro@acm-sl.com</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co"> ******************************************************************************</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"> * Filename: InstanceTracker.java</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"> * Author: Claude Code</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co"> * Class name: InstanceTracker</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co"> * Responsibilities:</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Track existing instances of classes using weak references</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Enable/disable tracking for specific classes</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Provide instance discovery and counting capabilities</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co"> * Collaborators:</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - WeakReference: For tracking instances without preventing garbage collection</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - ConcurrentHashMap: For thread-safe tracking</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span><span class="im"> org</span><span class="op">.</span><span class="im">acmsl</span><span class="op">.</span><span class="im">bytehot</span><span class="op">.</span><span class="im">domain</span><span class="op">;</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">lang</span><span class="op">.</span><span class="im">ref</span><span class="op">.</span><span class="im">WeakReference</span><span class="op">;</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">ArrayList</span><span class="op">;</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">Collections</span><span class="op">;</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">HashSet</span><span class="op">;</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">List</span><span class="op">;</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">Set</span><span class="op">;</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">concurrent</span><span class="op">.</span><span class="im">ConcurrentHashMap</span><span class="op">;</span></span></code></pre></div>
+<h1 id="class-definition-and-state-management">Class Definition and
+State Management</h1>
+<p>The <code class="verbatim">InstanceTracker</code> uses thread-safe
+collections and weak references to track instances without affecting
+garbage collection.</p>
+<p>/**</p>
+<ul>
+<li>Tracks existing instances of classes using weak references</li>
+<li>@author Claude Code</li>
+<li>@since 2025-06-17</li>
+</ul>
+<p>*/ public class InstanceTracker {</p>
+<p>/**</p>
+<ul>
+<li>Registry of tracked instances per class using weak references</li>
+</ul>
+<p>*/ private final ConcurrentHashMap&lt;Class&lt;?&gt;,
+List&lt;WeakReference&lt;Object&gt;&gt;&gt; instanceRegistry;</p>
+<p>/**</p>
+<ul>
+<li>Set of classes that have tracking enabled</li>
+</ul>
+<p>*/ private final Set&lt;Class&lt;?&gt;&gt; trackedClasses;</p>
+<p>/**</p>
+<ul>
+<li>Creates a new instance tracker</li>
+</ul>
+<p>*/ public InstanceTracker() { this.instanceRegistry = new
+ConcurrentHashMap&lt;&gt;(); this.trackedClasses =
+Collections.synchronizedSet(new HashSet&lt;&gt;()); }</p>
+<h1 id="tracking-control-methods">Tracking Control Methods</h1>
+<h2 id="global-tracking-status">Global Tracking Status</h2>
+<p>Checks if any class tracking is currently enabled.</p>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if tracking is enabled globally <span class="co">(</span>any class is being tracked<span class="co">)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> true if any class has tracking enabled</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isTrackingEnabled</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="op">!</span>trackedClasses<span class="op">.</span><span class="fu">isEmpty</span><span class="op">();</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="class-specific-tracking-status">Class-Specific Tracking
+Status</h2>
+<p>Checks if tracking is enabled for a specific class.</p>
+<p>/**</p>
+<ul>
+<li>Checks if tracking is enabled for a specific class</li>
+<li>@param clazz the class to check</li>
+<li>@return true if tracking is enabled for the class</li>
+</ul>
+<p>*/ public boolean isTrackingEnabled(final Class&lt;?&gt; clazz) {
+return trackedClasses.contains(clazz); }</p>
+<h2 id="enable-tracking">Enable Tracking</h2>
+<p>Enables tracking for a specific class and initializes the instance
+registry.</p>
+<div class="sourceCode" id="cb3"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Enables tracking for a specific class</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">clazz</span><span class="co"> </span>the class to enable tracking for</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">enableTracking</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    trackedClasses<span class="op">.</span><span class="fu">add</span><span class="op">(</span>clazz<span class="op">);</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    instanceRegistry<span class="op">.</span><span class="fu">putIfAbsent</span><span class="op">(</span>clazz<span class="op">,</span> <span class="bu">Collections</span><span class="op">.</span><span class="fu">synchronizedList</span><span class="op">(</span><span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;()));</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="disable-tracking">Disable Tracking</h2>
+<p>Disables tracking for a specific class and removes all tracked
+instances.</p>
+<p>/**</p>
+<ul>
+<li>Disables tracking for a specific class</li>
+<li>@param clazz the class to disable tracking for</li>
+</ul>
+<p>*/ public void disableTracking(final Class&lt;?&gt; clazz) {
+trackedClasses.remove(clazz); instanceRegistry.remove(clazz); }</p>
+<h1 id="instance-registration-methods">Instance Registration
+Methods</h1>
+<h2 id="primary-instance-tracking">Primary Instance Tracking</h2>
+<p>Provides a convenient interface for tracking instances.</p>
+<div class="sourceCode" id="cb4"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Tracks an instance of a class</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">instance</span><span class="co"> </span>the instance to track</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">track</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Object</span> instance<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">trackInstance</span><span class="op">(</span>instance<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="core-instance-tracking">Core Instance Tracking</h2>
+<p>The main method for registering instances for tracking using weak
+references.</p>
+<p>/**</p>
+<ul>
+<li>Tracks an instance of a class</li>
+<li>@param instance the instance to track</li>
+</ul>
+<p>*/ public void trackInstance(final Object instance) { if (instance ==
+null) { return; }</p>
+<p>final Class&lt;?&gt; clazz = instance.getClass(); if
+(isTrackingEnabled(clazz)) { final
+List&lt;WeakReference&lt;Object&gt;&gt; instances =
+instanceRegistry.get(clazz); if (instances != null) { instances.add(new
+WeakReference&lt;&gt;(instance)); } } }</p>
+<h1 id="instance-discovery-methods">Instance Discovery Methods</h1>
+<h2 id="find-instances-by-class">Find Instances by Class</h2>
+<p>Discovers all currently tracked instances of a specific class.</p>
+<div class="sourceCode" id="cb5"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Finds all tracked instances of a specific class</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">clazz</span><span class="co"> </span>the class to find instances for</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> set of tracked instances <span class="co">(</span>may be empty but never null<span class="co">)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="bu">Set</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> <span class="fu">findInstances</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span><span class="fu">isTrackingEnabled</span><span class="op">(</span>clazz<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">Collections</span><span class="op">.</span><span class="fu">emptySet</span><span class="op">();</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">WeakReference</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;&gt;</span> weakRefs <span class="op">=</span> instanceRegistry<span class="op">.</span><span class="fu">get</span><span class="op">(</span>clazz<span class="op">);</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>weakRefs <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">Collections</span><span class="op">.</span><span class="fu">emptySet</span><span class="op">();</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">Set</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> instances <span class="op">=</span> <span class="kw">new</span> <span class="bu">HashSet</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">cleanupWeakReferences</span><span class="op">(</span>weakRefs<span class="op">,</span> instances<span class="op">);</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> instances<span class="op">;</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="instance-counting-methods">Instance Counting Methods</h1>
+<h2 id="count-by-class-object">Count by Class Object</h2>
+<p>Counts the number of tracked instances for a specific class.</p>
+<p>/**</p>
+<ul>
+<li>Counts tracked instances of a specific class</li>
+<li>@param clazz the class to count instances for</li>
+<li>@return number of tracked instances</li>
+</ul>
+<p>*/ public int countInstances(final Class&lt;?&gt; clazz) { return
+findInstances(clazz).size(); }</p>
+<h2 id="count-by-class-name">Count by Class Name</h2>
+<p>Provides counting capability using class names for integration with
+other components.</p>
+<div class="sourceCode" id="cb6"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Gets the number of tracked instances for a specific class name</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">className</span><span class="co"> </span>the fully qualified class name</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> number of tracked instances</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">int</span> <span class="fu">getInstanceCount</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> className<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Class</span><span class="op">&lt;?&gt;</span> clazz <span class="op">=</span> <span class="bu">Class</span><span class="op">.</span><span class="fu">forName</span><span class="op">(</span>className<span class="op">);</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">countInstances</span><span class="op">(</span>clazz<span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">ClassNotFoundException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="memory-management-methods">Memory Management Methods</h1>
+<h2 id="public-cleanup-interface">Public Cleanup Interface</h2>
+<p>Provides a public interface for triggering cleanup of dead weak
+references.</p>
+<p>/**</p>
+<ul>
+<li>Cleans up weak references that have been garbage collected</li>
+</ul>
+<p>*/ public void cleanupWeakReferences() { for (final
+List&lt;WeakReference&lt;Object&gt;&gt; weakRefs :
+instanceRegistry.values()) { cleanupWeakReferences(weakRefs, null); }
+}</p>
+<h2 id="internal-cleanup-implementation">Internal Cleanup
+Implementation</h2>
+<p>The core cleanup method that removes dead references and optionally
+collects live instances.</p>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/InstanceTracker.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Cleans up weak references and optionally collects live instances</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">     * </span><span class="an">@param</span><span class="co"> </span><span class="an">weakRefs</span><span class="co"> </span>the list of weak references to clean</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">liveInstances</span><span class="co"> </span>optional set to collect live instances into</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">protected</span> <span class="dt">void</span> <span class="fu">cleanupWeakReferences</span><span class="op">(</span><span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">WeakReference</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;&gt;</span> weakRefs<span class="op">,</span> <span class="dt">final</span> <span class="bu">Set</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> liveInstances<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">synchronized</span> <span class="op">(</span>weakRefs<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">WeakReference</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;&gt;</span> toRemove <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">WeakReference</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> weakRef <span class="op">:</span> weakRefs<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> <span class="bu">Object</span> instance <span class="op">=</span> weakRef<span class="op">.</span><span class="fu">get</span><span class="op">();</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>instance <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// Instance has been garbage collected</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                    toRemove<span class="op">.</span><span class="fu">add</span><span class="op">(</span>weakRef<span class="op">);</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>liveInstances <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// Collect live instance</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>                    liveInstances<span class="op">.</span><span class="fu">add</span><span class="op">(</span>instance<span class="op">);</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Remove dead references</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>            weakRefs<span class="op">.</span><span class="fu">removeAll</span><span class="op">(</span>toRemove<span class="op">);</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="usage-examples">Usage Examples</h1>
+<h2 id="basic-instance-tracking">Basic Instance Tracking</h2>
+<p>InstanceTracker tracker = new InstanceTracker();</p>
+<p>// Enable tracking for a specific class
+tracker.enableTracking(MyService.class);</p>
+<p>// Track instances as they are created MyService service1 = new
+MyService(); MyService service2 = new MyService();
+tracker.track(service1); tracker.track(service2);</p>
+<p>// Count tracked instances int count =
+tracker.countInstances(MyService.class); System.out.println("Tracked
+instances: " + count);</p>
+<p>// Find all instances Set&lt;Object&gt; instances =
+tracker.findInstances(MyService.class); for (Object instance :
+instances) { // Process each tracked instance System.out.println("Found
+instance: " + instance); }</p>
+<h2 id="integration-with-hot-swap-operations">Integration with Hot-Swap
+Operations</h2>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Before performing hot-swap, find all instances that need updating</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Set</span><span class="op">&lt;</span><span class="bu">Object</span><span class="op">&gt;</span> instancesToUpdate <span class="op">=</span> tracker<span class="op">.</span><span class="fu">findInstances</span><span class="op">(</span>targetClass<span class="op">);</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Perform hot-swap operation</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">redefineClass</span><span class="op">(</span>targetClass<span class="op">,</span> newBytecode<span class="op">);</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">// Update all tracked instances</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="bu">Object</span> instance <span class="op">:</span> instancesToUpdate<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">updateInstanceAfterRedefinition</span><span class="op">(</span>instance<span class="op">);</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="cleanup-and-memory-management">Cleanup and Memory
+Management</h2>
+<p>// Periodic cleanup to remove dead references Timer cleanupTimer =
+new Timer(); cleanupTimer.scheduleAtFixedRate(new TimerTask() {
+@Override public void run() { tracker.cleanupWeakReferences(); } }, 0,
+60000); // Cleanup every minute</p>
+<h2 id="dynamic-tracking-control">Dynamic Tracking Control</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Enable tracking when needed</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span><span class="fu">needsInstanceTracking</span><span class="op">(</span>someClass<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    tracker<span class="op">.</span><span class="fu">enableTracking</span><span class="op">(</span>someClass<span class="op">);</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Disable tracking to save resources</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(!</span><span class="fu">needsInstanceTracking</span><span class="op">(</span>someClass<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    tracker<span class="op">.</span><span class="fu">disableTracking</span><span class="op">(</span>someClass<span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">// Check if any tracking is active</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>tracker<span class="op">.</span><span class="fu">isTrackingEnabled</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Instance tracking is active&quot;</span><span class="op">);</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="architecture-notes">Architecture Notes</h1>
+<h2 id="thread-safety-design">Thread Safety Design</h2>
+<ul>
+<li><code class="verbatim">ConcurrentHashMap</code> for thread-safe
+class-to-instances mapping</li>
+<li>Synchronized <code class="verbatim">Set</code> for tracked classes
+management</li>
+<li>Synchronized lists for weak reference collections</li>
+<li>Atomic operations for consistent state updates</li>
+</ul>
+<h2 id="memory-management-strategy">Memory Management Strategy</h2>
+<ul>
+<li>Weak references prevent memory leaks by allowing garbage
+collection</li>
+<li>Automatic cleanup of dead references during instance discovery</li>
+<li>Manual cleanup methods for proactive memory management</li>
+<li>No strong references maintained to tracked instances</li>
+</ul>
+<h2 id="performance-considerations">Performance Considerations</h2>
+<ul>
+<li>Lazy cleanup during normal operations to minimize overhead</li>
+<li>Efficient concurrent data structures for high-performance
+access</li>
+<li>Optional manual cleanup for applications with strict memory
+requirements</li>
+<li>Minimal synchronization overhead through careful lock design</li>
+</ul>
+<h2 id="integration-points">Integration Points</h2>
+<ul>
+<li>Class name-based access for integration with reflection-based
+systems</li>
+<li>Flexible enable/disable tracking for dynamic resource
+management</li>
+<li>Compatible with dependency injection frameworks</li>
+<li>Suitable for integration with JVM agents and instrumentation</li>
+</ul>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FileWatcherPort - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<h1 id="overview">Overview</h1>
+<p>The <code>FileWatcherPort</code> interface defines the contract for
+file system monitoring within ByteHot's hexagonal architecture. This
+port abstracts file system watching operations from the domain logic,
+enabling different implementation strategies while maintaining domain
+purity.</p>
+<h1 id="hexagonal-architecture-role">Hexagonal Architecture Role</h1>
+<h2 id="primary-port-classification">Primary Port Classification</h2>
+<p>FileWatcherPort serves as a primary port in ByteHot's hexagonal
+architecture, representing the domain's need to be notified about
+external file system changes. It defines how the domain layer interacts
+with file system monitoring without being coupled to specific
+implementation technologies.</p>
+<h2 id="domain-boundary-protection">Domain Boundary Protection</h2>
+<p>This port protects the domain from infrastructure concerns:</p>
+<ul>
+<li>Abstracts NIO WatchService implementation details</li>
+<li>Hides operating system-specific file monitoring mechanisms</li>
+<li>Enables platform-independent file watching strategies</li>
+<li>Isolates domain logic from file system API evolution</li>
+</ul>
+<h2 id="adapter-integration-point">Adapter Integration Point</h2>
+<p>The port provides the integration point for infrastructure
+adapters:</p>
+<ul>
+<li><code>FileWatcherAdapter</code>: NIO-based implementation for
+standard file systems</li>
+<li><code>DockerFileWatcherAdapter</code>: Specialized monitoring for
+containerized environments</li>
+<li><code>NetworkFileWatcherAdapter</code>: Monitoring for
+network-mounted file systems</li>
+<li><code>IDEFileWatcherAdapter</code>: Integration with IDE change
+notifications</li>
+</ul>
+<h1 id="interface-definition-and-contract">Interface Definition and
+Contract</h1>
+<h2 id="core-watching-operations">Core Watching Operations</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/FileWatcherPort.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Starts watching a directory for file changes</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">path</span><span class="co"> </span>the directory path to watch</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">patterns</span><span class="co"> </span>file patterns to include</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">recursive</span><span class="co"> </span>whether to watch subdirectories</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> watch identifier for later management</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">Exception</span><span class="co"> </span>if watching cannot be started</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> <span class="fu">startWatching</span><span class="op">(</span>Path path<span class="op">,</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> patterns<span class="op">,</span> <span class="dt">boolean</span> recursive<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span><span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Stops watching a previously registered directory</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">watchId</span><span class="co"> </span>the watch identifier returned by startWatching</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">Exception</span><span class="co"> </span>if stopping fails</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">stopWatching</span><span class="op">(</span><span class="bu">String</span> watchId<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span><span class="op">;</span></span></code></pre></div>
+<h2 id="state-inquiry-operations">State Inquiry Operations</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/FileWatcherPort.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if a directory is currently being watched</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">path</span><span class="co"> </span>the directory path to check</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> true if path is being watched</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="dt">boolean</span> <span class="fu">isWatching</span><span class="op">(</span>Path path<span class="op">);</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Returns all currently watched paths</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> list of paths being watched</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="bu">List</span><span class="op">&lt;</span>Path<span class="op">&gt;</span> <span class="fu">getWatchedPaths</span><span class="op">();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if the file watcher is operational</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> true if file watching is available</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="dt">boolean</span> <span class="fu">isWatcherAvailable</span><span class="op">();</span></span></code></pre></div>
+<h1 id="file-watching-lifecycle-management">File Watching Lifecycle
+Management</h1>
+<h2 id="watch-session-initiation">Watch Session Initiation</h2>
+<p>The <code>startWatching</code> method establishes file monitoring
+with comprehensive configuration:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Example usage:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> watchId <span class="op">=</span> fileWatcherPort<span class="op">.</span><span class="fu">startWatching</span><span class="op">(</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span><span class="st">&quot;target/classes&quot;</span><span class="op">),</span>           <span class="co">// Base directory</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">.</span><span class="fu">of</span><span class="op">(</span><span class="st">&quot;**/*.class&quot;</span><span class="op">,</span> <span class="st">&quot;**/*.jar&quot;</span><span class="op">),</span>     <span class="co">// File patterns</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">true</span>                                   <span class="co">// Recursive monitoring</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<h2 id="pattern-matching-strategies">Pattern Matching Strategies</h2>
+<p>File patterns support sophisticated matching:</p>
+<ul>
+<li><strong>Glob Patterns</strong>: Standard shell-style wildcards
+(<code>*.class</code>, <code>**/*.java</code>)</li>
+<li><strong>Regular Expressions</strong>: Advanced pattern matching for
+complex scenarios</li>
+<li><strong>Directory Exclusions</strong>: Exclude specific directories
+(<code>!**/test/**</code>)</li>
+<li><strong>Extension Filtering</strong>: Specific file type monitoring
+(<code>*.{class,jar}</code>)</li>
+</ul>
+<h2 id="recursive-monitoring-control">Recursive Monitoring Control</h2>
+<p>The recursive parameter enables flexible monitoring strategies:</p>
+<ul>
+<li><code>true</code>: Monitor all subdirectories and their
+contents</li>
+<li><code>false</code>: Monitor only the specified directory level</li>
+<li>Enables performance optimization for large directory trees</li>
+<li>Allows targeted monitoring for specific development workflows</li>
+</ul>
+<h1 id="watch-identifier-management">Watch Identifier Management</h1>
+<h2 id="unique-watch-identification">Unique Watch Identification</h2>
+<p>Each watch session receives a unique identifier:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Watch ID characteristics:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Unique across all active watches</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Stable for the duration of the watch session</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Used for all subsequent operations on the watch</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Enable multiple watches on the same directory with different patterns</span></span></code></pre></div>
+<h2 id="watch-lifecycle-tracking">Watch Lifecycle Tracking</h2>
+<p>Watch identifiers enable comprehensive lifecycle management:</p>
+<ul>
+<li>Session correlation for debugging and analytics</li>
+<li>Resource cleanup for stopped watches</li>
+<li>Performance monitoring per watch session</li>
+<li>Error handling and recovery for failed watches</li>
+</ul>
+<h1 id="state-monitoring-and-introspection">State Monitoring and
+Introspection</h1>
+<h2 id="path-monitoring-status">Path Monitoring Status</h2>
+<p>The <code>isWatching</code> method provides precise monitoring
+status:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Usage patterns:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>fileWatcherPort<span class="op">.</span><span class="fu">isWatching</span><span class="op">(</span>targetPath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Path is actively monitored</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    logger<span class="op">.</span><span class="fu">info</span><span class="op">(</span><span class="st">&quot;Path {} is under active monitoring&quot;</span><span class="op">,</span> targetPath<span class="op">);</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Start monitoring if needed</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> watchId <span class="op">=</span> fileWatcherPort<span class="op">.</span><span class="fu">startWatching</span><span class="op">(</span>targetPath<span class="op">,</span> patterns<span class="op">,</span> <span class="kw">true</span><span class="op">);</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="active-watch-enumeration">Active Watch Enumeration</h2>
+<p>The <code>getWatchedPaths</code> method enables system
+introspection:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// System status reporting:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">List</span><span class="op">&lt;</span>Path<span class="op">&gt;</span> activePaths <span class="op">=</span> fileWatcherPort<span class="op">.</span><span class="fu">getWatchedPaths</span><span class="op">();</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>logger<span class="op">.</span><span class="fu">info</span><span class="op">(</span><span class="st">&quot;Currently monitoring {} directories&quot;</span><span class="op">,</span> activePaths<span class="op">.</span><span class="fu">size</span><span class="op">());</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span>Path path <span class="op">:</span> activePaths<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    logger<span class="op">.</span><span class="fu">debug</span><span class="op">(</span><span class="st">&quot;Active watch: {}&quot;</span><span class="op">,</span> path<span class="op">);</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="operational-status-verification">Operational Status
+Verification</h2>
+<p>The <code>isWatcherAvailable</code> method provides system health
+checking:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Health check integration:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(!</span>fileWatcherPort<span class="op">.</span><span class="fu">isWatcherAvailable</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    logger<span class="op">.</span><span class="fu">warn</span><span class="op">(</span><span class="st">&quot;File watcher is not operational&quot;</span><span class="op">);</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Fall back to alternative monitoring strategy</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Or notify user of reduced functionality</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="implementation-strategy-abstraction">Implementation Strategy
+Abstraction</h1>
+<h2 id="technology-independence">Technology Independence</h2>
+<p>The port abstracts various file watching technologies:</p>
+<ul>
+<li><strong>Java NIO WatchService</strong>: Standard JVM file
+monitoring</li>
+<li><strong>Operating System Events</strong>: Native OS file system
+notifications</li>
+<li><strong>Polling Strategies</strong>: Timer-based file modification
+checking</li>
+<li><strong>Hybrid Approaches</strong>: Combination of event-driven and
+polling methods</li>
+</ul>
+<h2 id="platform-adaptation">Platform Adaptation</h2>
+<p>Different platforms may require different implementations:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Platform-specific implementations:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - LinuxFileWatcherAdapter: inotify-based monitoring</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - WindowsFileWatcherAdapter: ReadDirectoryChangesW integration</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - macOSFileWatcherAdapter: FSEvents framework utilization</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - DockerFileWatcherAdapter: Container-aware monitoring</span></span></code></pre></div>
+<h2 id="performance-optimization-strategies">Performance Optimization
+Strategies</h2>
+<p>Implementations can optimize for different scenarios:</p>
+<ul>
+<li><strong>High-frequency Changes</strong>: Debouncing and batching
+strategies</li>
+<li><strong>Large Directory Trees</strong>: Selective monitoring and
+filtering</li>
+<li><strong>Network File Systems</strong>: Specialized monitoring for
+remote files</li>
+<li><strong>Resource Constraints</strong>: Memory and CPU optimized
+monitoring</li>
+</ul>
+<h1 id="error-handling-and-resilience">Error Handling and
+Resilience</h1>
+<h2 id="exception-management">Exception Management</h2>
+<p>The port defines clear exception handling contracts:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Exception scenarios:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - SecurityException: Insufficient permissions for directory access</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - IOException: File system access failures</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - UnsupportedOperationException: Platform limitations</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - IllegalArgumentException: Invalid path or pattern parameters</span></span></code></pre></div>
+<h2 id="resilience-patterns">Resilience Patterns</h2>
+<p>Implementations should provide resilience features:</p>
+<ul>
+<li>Automatic recovery from temporary file system issues</li>
+<li>Graceful degradation when monitoring becomes unavailable</li>
+<li>Resource cleanup for failed watch operations</li>
+<li>Detailed error reporting for debugging</li>
+</ul>
+<h2 id="monitoring-health-management">Monitoring Health Management</h2>
+<p>The port enables monitoring health management:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Health management patterns:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Regular availability checks through isWatcherAvailable()</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Automatic restart of failed watch sessions</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Fallback to alternative monitoring strategies</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Detailed logging for operational troubleshooting</span></span></code></pre></div>
+<h1 id="integration-with-domain-events">Integration with Domain
+Events</h1>
+<h2 id="event-generation-coordination">Event Generation
+Coordination</h2>
+<p>FileWatcherPort implementations coordinate with domain event
+generation:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event flow integration:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. File system change detected by implementation</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Change validated against patterns and filters</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. ClassFileChanged event generated and emitted</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Domain processing begins with event consumption</span></span></code></pre></div>
+<h2 id="change-detection-optimization">Change Detection
+Optimization</h2>
+<p>The port enables sophisticated change detection:</p>
+<ul>
+<li>Duplicate change filtering to prevent redundant processing</li>
+<li>Temporal batching for rapid sequential changes</li>
+<li>Content-based change detection beyond modification timestamps</li>
+<li>Integration with build tool change notifications</li>
+</ul>
+<h1 id="testing-and-mock-implementation">Testing and Mock
+Implementation</h1>
+<h2 id="test-harness-support">Test Harness Support</h2>
+<p>The port interface enables comprehensive testing:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mock implementation for testing:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MockFileWatcherPort <span class="kw">implements</span> FileWatcherPort <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> WatchConfiguration<span class="op">&gt;</span> activeWatches <span class="op">=</span> <span class="kw">new</span> <span class="bu">HashMap</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>Path<span class="op">&gt;</span> watchedPaths <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Override</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">String</span> <span class="fu">startWatching</span><span class="op">(</span>Path path<span class="op">,</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> patterns<span class="op">,</span> <span class="dt">boolean</span> recursive<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> watchId <span class="op">=</span> <span class="bu">UUID</span><span class="op">.</span><span class="fu">randomUUID</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        activeWatches<span class="op">.</span><span class="fu">put</span><span class="op">(</span>watchId<span class="op">,</span> <span class="kw">new</span> <span class="fu">WatchConfiguration</span><span class="op">(</span>path<span class="op">,</span> patterns<span class="op">,</span> recursive<span class="op">));</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        watchedPaths<span class="op">.</span><span class="fu">add</span><span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> watchId<span class="op">;</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Additional mock methods for test scenarios</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">simulateFileChange</span><span class="op">(</span>Path filePath<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Trigger domain event for testing</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="test-scenario-support">Test Scenario Support</h2>
+<p>Mock implementations enable comprehensive test scenarios:</p>
+<ul>
+<li>Simulated file changes for workflow testing</li>
+<li>Error condition simulation for resilience testing</li>
+<li>Performance testing with controlled change patterns</li>
+<li>Integration testing with various file patterns</li>
+</ul>
+<h1 id="performance-considerations">Performance Considerations</h1>
+<h2 id="resource-management">Resource Management</h2>
+<p>File watching operations require careful resource management:</p>
+<ul>
+<li>Watch session resource cleanup on stop operations</li>
+<li>Memory management for large directory monitoring</li>
+<li>Thread management for concurrent file change processing</li>
+<li>File handle management to prevent resource leaks</li>
+</ul>
+<h2 id="optimization-strategies">Optimization Strategies</h2>
+<p>Implementations should optimize for performance:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance optimization areas:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern matching efficiency for large file sets</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event debouncing to prevent processing storms</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Selective monitoring based on file types and patterns</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cache optimization for repeated path operations</span></span></code></pre></div>
+<h2 id="scalability-design">Scalability Design</h2>
+<p>The port supports scalable file monitoring:</p>
+<ul>
+<li>Multiple concurrent watch sessions</li>
+<li>Efficient handling of large directory trees</li>
+<li>Batch processing for multiple simultaneous changes</li>
+<li>Resource pooling for watch management threads</li>
+</ul>
+<h1 id="configuration-integration">Configuration Integration</h1>
+<h2 id="configuration-source-abstraction">Configuration Source
+Abstraction</h2>
+<p>The port works with <code>ConfigurationPort</code> to retrieve
+watching parameters:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration integration:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ConfigurationPort config <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>ConfigurationPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> watchPaths <span class="op">=</span> config<span class="op">.</span><span class="fu">getWatchPaths</span><span class="op">();</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> filePatterns <span class="op">=</span> config<span class="op">.</span><span class="fu">getFilePatterns</span><span class="op">();</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="dt">boolean</span> recursiveWatch <span class="op">=</span> config<span class="op">.</span><span class="fu">isRecursiveWatchingEnabled</span><span class="op">();</span></span></code></pre></div>
+<h2 id="dynamic-configuration-updates">Dynamic Configuration
+Updates</h2>
+<p>The port supports dynamic configuration changes:</p>
+<ul>
+<li>Hot-reload of watch paths and patterns</li>
+<li>Runtime adjustment of monitoring parameters</li>
+<li>User preference integration for personalized monitoring</li>
+<li>Team configuration sharing for collaborative development</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><a
+href="../infrastructure/FileWatcherAdapter.org">FileWatcherAdapter</a>:
+Primary NIO-based implementation</li>
+<li><a href="./ConfigurationPort.org">ConfigurationPort</a>:
+Configuration source for watch parameters</li>
+<li><a href="../events/ClassFileChanged.org">ClassFileChanged</a>:
+Primary event generated from file changes</li>
+<li><a href="../Ports.org">Ports</a>: Port resolution and dependency
+injection</li>
+<li><a href="../../flows/file-monitoring-setup.org">File Monitoring
+Setup</a>: Complete file watching workflow</li>
+</ul>
+<h1 id="future-evolution">Future Evolution</h1>
+<h2 id="enhanced-monitoring-capabilities">Enhanced Monitoring
+Capabilities</h2>
+<p>Anticipated improvements to file monitoring:</p>
+<ul>
+<li>Real-time content analysis beyond timestamp changes</li>
+<li>Integration with version control systems for change tracking</li>
+<li>Predictive file monitoring based on development patterns</li>
+<li>Advanced filtering based on file content and metadata</li>
+</ul>
+<h2 id="technology-integration">Technology Integration</h2>
+<p>Future file watching enhancements:</p>
+<ul>
+<li>IDE integration for enhanced change detection</li>
+<li>Build tool coordination for optimized monitoring</li>
+<li>Cloud storage integration for remote file monitoring</li>
+<li>Container-aware monitoring for modern development environments</li>
+</ul>
+<p>The FileWatcherPort interface provides the foundation for ByteHot's
+file system integration while maintaining the architectural purity that
+enables flexible, testable, and maintainable file monitoring
+solutions.</p>
+</body></html>

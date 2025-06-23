@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ByteHotAgent - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>ByteHotAgent</code> class serves as the critical JVM agent
+entry point for ByteHot's hot-swapping capabilities. This infrastructure
+class represents the boundary between the JVM's agent loading mechanism
+and ByteHot's hexagonal architecture, providing both startup-time and
+runtime attachment capabilities. As the first ByteHot component to
+execute when the agent is loaded, it establishes the foundation for all
+subsequent hot-swap operations.</p>
+<h1 id="jvm-agent-architecture-role">JVM Agent Architecture Role</h1>
+<h2 id="jvm-agent-entry-point">JVM Agent Entry Point</h2>
+<p>ByteHotAgent serves as the official JVM agent entry point:</p>
+<ul>
+<li>Implements required <code>premain</code> method for startup-time
+agent loading</li>
+<li>Implements required <code>agentmain</code> method for runtime agent
+attachment</li>
+<li>Handles JVM-provided instrumentation instance initialization</li>
+<li>Establishes the bridge between JVM agent mechanism and ByteHot
+architecture</li>
+</ul>
+<h2 id="system-bootstrap-coordinator">System Bootstrap Coordinator</h2>
+<p>The agent coordinates complex system bootstrap sequences:</p>
+<ul>
+<li>Instrumentation provider initialization for domain layer access</li>
+<li>ByteHot application layer activation and configuration</li>
+<li>Infrastructure adapter registration and dependency injection</li>
+<li>System readiness verification and status reporting</li>
+</ul>
+<h2 id="agent-lifecycle-manager">Agent Lifecycle Manager</h2>
+<p>The class manages the complete agent lifecycle:</p>
+<ul>
+<li>Initial agent attachment and instrumentation setup</li>
+<li>Runtime configuration parameter processing</li>
+<li>System initialization error handling and recovery</li>
+<li>Graceful degradation for unsupported JVM configurations</li>
+</ul>
+<h1 id="class-structure-and-entry-points">Class Structure and Entry
+Points</h1>
+<h2 id="core-agent-methods">Core Agent Methods</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/agent/ByteHotAgent.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Agent entry point called when ByteHot is loaded as <span class="co">-</span>javaagent at JVM startup</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">agentArgs</span><span class="co"> </span>arguments passed to the agent</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">inst</span><span class="co"> </span>instrumentation instance provided by JVM</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">premain</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> agentArgs<span class="op">,</span> <span class="dt">final</span> <span class="bu">Instrumentation</span> inst<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    InstrumentationProvider<span class="op">.</span><span class="fu">setInstrumentation</span><span class="op">(</span>inst<span class="op">);</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize ByteHot hexagonal architecture</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    ByteHotApplication<span class="op">.</span><span class="fu">initialize</span><span class="op">(</span>inst<span class="op">);</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;ByteHot agent initialized successfully&quot;</span><span class="op">);</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Agent entry point called when ByteHot is attached to running JVM</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">agentArgs</span><span class="co"> </span>arguments passed to the agent</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">inst</span><span class="co"> </span>instrumentation instance provided by JVM</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">agentmain</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> agentArgs<span class="op">,</span> <span class="dt">final</span> <span class="bu">Instrumentation</span> inst<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Runtime agent attachment uses the same initialization as premain</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">premain</span><span class="op">(</span>agentArgs<span class="op">,</span> inst<span class="op">);</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="agent-method-characteristics">Agent Method Characteristics</h2>
+<p>The agent methods follow JVM agent specification requirements:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM Agent Specification Compliance:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Static method signatures as required by JVM</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - String parameter for agent arguments</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instrumentation parameter from JVM</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Exception handling for initialization failures</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - No return values (void methods)</span></span></code></pre></div>
+<h2 id="bootstrap-sequence-implementation">Bootstrap Sequence
+Implementation</h2>
+<p>The initialization sequence follows a careful ordering:</p>
+<ol>
+<li>Instrumentation provider setup for domain access</li>
+<li>Application layer initialization with dependency injection</li>
+<li>Infrastructure adapter registration and configuration</li>
+<li>System status verification and reporting</li>
+</ol>
+<h1 id="jvm-agent-loading-mechanisms">JVM Agent Loading Mechanisms</h1>
+<h2 id="startup-time-agent-loading-premain">Startup-Time Agent Loading
+(premain)</h2>
+<p>The <code>premain</code> method handles startup-time agent
+loading:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Startup-time loading characteristics:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Executed before main application class loading</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Full JVM instrumentation capabilities available</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Complete class redefinition support</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimal performance for hot-swap operations</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - No timing constraints on initialization</span></span></code></pre></div>
+<h2 id="runtime-agent-attachment-agentmain">Runtime Agent Attachment
+(agentmain)</h2>
+<p>The <code>agentmain</code> method handles runtime agent
+attachment:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Runtime attachment characteristics:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Executed after JVM is already running</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Limited instrumentation capabilities on some JVMs</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Potential restrictions on class redefinition</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Dynamic attachment through Java Attach API</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Time-sensitive initialization requirements</span></span></code></pre></div>
+<h2 id="unified-initialization-strategy">Unified Initialization
+Strategy</h2>
+<p>Both entry points use identical initialization logic:</p>
+<ul>
+<li>Ensures consistent behavior regardless of attachment method</li>
+<li>Simplifies testing and debugging procedures</li>
+<li>Provides uniform error handling and recovery</li>
+<li>Enables seamless migration between attachment strategies</li>
+</ul>
+<h1 id="instrumentation-provider-integration">Instrumentation Provider
+Integration</h1>
+<h2 id="domain-layer-bridge">Domain Layer Bridge</h2>
+<p>The agent establishes the critical bridge to the domain layer:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// InstrumentationProvider integration:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Receive JVM-provided instrumentation instance</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Store instrumentation in domain-accessible provider</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Enable domain layer to access JVM capabilities</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Abstract JVM agent mechanism from domain logic</span></span></code></pre></div>
+<h2 id="singleton-pattern-implementation">Singleton Pattern
+Implementation</h2>
+<p>Integration with InstrumentationProvider singleton:</p>
+<ul>
+<li>Global access to instrumentation throughout application
+lifecycle</li>
+<li>Thread-safe initialization and access patterns</li>
+<li>Capability validation and availability checking</li>
+<li>Error handling for unsupported JVM configurations</li>
+</ul>
+<h2 id="instrumentation-capability-validation">Instrumentation
+Capability Validation</h2>
+<p>The integration includes comprehensive capability validation:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Capability validation sequence:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Verify instrumentation instance is non-null</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Check class redefinition support availability</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validate retransformation capabilities if needed</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Confirm object size measurement support</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Test basic instrumentation operations</span></span></code></pre></div>
+<h1 id="bytehot-application-initialization">ByteHot Application
+Initialization</h1>
+<h2 id="hexagonal-architecture-bootstrap">Hexagonal Architecture
+Bootstrap</h2>
+<p>The agent initiates ByteHot's hexagonal architecture:</p>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/agent/ByteHotAgent.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Create and process the agent attachment request through domain logic</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load the actual configuration instead of using default</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchConfiguration config <span class="op">=</span> WatchConfiguration<span class="op">.</span><span class="fu">load</span><span class="op">();</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ByteHotAttachRequested attachRequest <span class="op">=</span> <span class="kw">new</span> <span class="fu">ByteHotAttachRequested</span><span class="op">(</span>config<span class="op">,</span> inst<span class="op">);</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;&gt;</span> responses <span class="op">=</span> ByteHotApplication<span class="op">.</span><span class="fu">getInstance</span><span class="op">().</span><span class="fu">accept</span><span class="op">(</span>attachRequest<span class="op">);</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Print the response events to stdout for testing verification</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> response <span class="op">:</span> responses<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span>response<span class="op">.</span><span class="fu">getClass</span><span class="op">().</span><span class="fu">getSimpleName</span><span class="op">());</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to process agent attachment: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    e<span class="op">.</span><span class="fu">printStackTrace</span><span class="op">();</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="configuration-loading-integration">Configuration Loading
+Integration</h2>
+<p>The agent now properly integrates with the configuration system:</p>
+<ul>
+<li>Uses WatchConfiguration.load() to access actual configuration
+sources</li>
+<li>Supports system properties, environment variables, and YAML
+files</li>
+<li>Properly handles configuration loading errors with fallback</li>
+<li>Creates domain events with real configuration instead of
+defaults</li>
+</ul>
+<h2 id="dependency-injection-coordination">Dependency Injection
+Coordination</h2>
+<p>The initialization coordinates complex dependency injection:</p>
+<ul>
+<li>InstrumentationPort implementation registration</li>
+<li>FileWatcherPort adapter configuration</li>
+<li>ConfigurationPort setup and parameter loading</li>
+<li>EventEmitterPort initialization and routing setup</li>
+</ul>
+<h2 id="application-readiness-verification">Application Readiness
+Verification</h2>
+<p>Comprehensive system readiness verification:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Readiness verification steps:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - All required ports have implementing adapters</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instrumentation capabilities are verified and available</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration parameters are loaded and validated</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system monitoring is operational</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event routing and processing are functional</span></span></code></pre></div>
+<h1 id="agent-parameter-processing">Agent Parameter Processing</h1>
+<h2 id="command-line-argument-handling">Command-Line Argument
+Handling</h2>
+<p>The agent processes command-line arguments for configuration:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Argument processing capabilities:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration file path specification</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Watch directory path configuration  </span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - File pattern inclusion and exclusion rules</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance tuning parameter override</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Debug and logging level configuration</span></span></code></pre></div>
+<h2 id="configuration-parameter-integration">Configuration Parameter
+Integration</h2>
+<p>Agent arguments integrate with ByteHot's configuration system:</p>
+<ul>
+<li>Override default configuration values</li>
+<li>Specify environment-specific parameters</li>
+<li>Enable debugging and diagnostic features</li>
+<li>Configure performance optimization settings</li>
+</ul>
+<h2 id="parameter-validation-and-safety">Parameter Validation and
+Safety</h2>
+<p>Comprehensive parameter validation and safety checking:</p>
+<ul>
+<li>Path existence and accessibility verification</li>
+<li>File pattern syntax validation</li>
+<li>Security constraint enforcement</li>
+<li>Resource limit verification</li>
+</ul>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="initialization-failure-management">Initialization Failure
+Management</h2>
+<p>The agent implements comprehensive initialization failure
+management:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error handling categories:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - InstrumentationProvider setup failures</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - ByteHotApplication initialization errors</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration loading and validation failures</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Infrastructure adapter registration problems</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - JVM capability limitation errors</span></span></code></pre></div>
+<h2 id="graceful-degradation-strategies">Graceful Degradation
+Strategies</h2>
+<p>Sophisticated graceful degradation for various failure scenarios:</p>
+<ul>
+<li>Continue with limited functionality when possible</li>
+<li>Provide clear error messages for configuration issues</li>
+<li>Fall back to alternative initialization strategies</li>
+<li>Maintain system stability despite component failures</li>
+</ul>
+<h2 id="error-reporting-and-diagnostics">Error Reporting and
+Diagnostics</h2>
+<p>Comprehensive error reporting for operational troubleshooting:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Diagnostic information captured:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - JVM version and capabilities assessment</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instrumentation feature availability report</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration parameter validation results</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Infrastructure component initialization status</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance characteristic measurements</span></span></code></pre></div>
+<h1 id="jvm-compatibility-and-platform-support">JVM Compatibility and
+Platform Support</h1>
+<h2 id="jvm-version-compatibility">JVM Version Compatibility</h2>
+<p>The agent maintains compatibility across JVM versions:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM version support matrix:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 8+: Basic agent and instrumentation support</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 11+: Enhanced instrumentation capabilities</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 17+: Improved security and performance features</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 21+: Latest instrumentation and agent enhancements</span></span></code></pre></div>
+<h2 id="platform-specific-adaptations">Platform-Specific
+Adaptations</h2>
+<p>The agent handles platform-specific variations:</p>
+<ul>
+<li>Different JVM implementation behaviors (HotSpot, OpenJ9,
+GraalVM)</li>
+<li>Operating system specific capabilities and limitations</li>
+<li>Container environment considerations and adaptations</li>
+<li>Cloud platform compatibility and optimization</li>
+</ul>
+<h2 id="capability-detection-and-adaptation">Capability Detection and
+Adaptation</h2>
+<p>Dynamic capability detection and adaptation:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Capability adaptation strategies:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Runtime assessment of available JVM features</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graceful fallback for missing capabilities</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance optimization based on available features</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Alternative implementation selection</span></span></code></pre></div>
+<h1 id="security-considerations">Security Considerations</h1>
+<h2 id="agent-security-model">Agent Security Model</h2>
+<p>JVM agent security considerations and compliance:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security requirements:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Agent jar signing for production deployment</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Trusted source verification and validation</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Security manager compatibility and compliance</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Module system integration (Java 9+)</span></span></code></pre></div>
+<h2 id="permission-management">Permission Management</h2>
+<p>Careful permission management for agent operations:</p>
+<ul>
+<li>Instrumentation permission requirements</li>
+<li>File system access privilege verification</li>
+<li>Network permission assessment if needed</li>
+<li>Security policy compliance validation</li>
+</ul>
+<h2 id="attack-surface-minimization">Attack Surface Minimization</h2>
+<p>Minimize security attack surface through design:</p>
+<ul>
+<li>Minimal code execution in agent context</li>
+<li>Quick delegation to application layer security</li>
+<li>Input validation and sanitization</li>
+<li>Resource access limitation and control</li>
+</ul>
+<h1 id="performance-considerations">Performance Considerations</h1>
+<h2 id="agent-startup-performance">Agent Startup Performance</h2>
+<p>Optimized agent startup performance:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Startup optimization strategies:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal object allocation during initialization</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Lazy loading of non-critical components</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient dependency resolution ordering</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Parallel initialization where thread-safe</span></span></code></pre></div>
+<h2 id="memory-usage-optimization">Memory Usage Optimization</h2>
+<p>Careful memory usage optimization during initialization:</p>
+<ul>
+<li>Minimal memory footprint for agent code</li>
+<li>Efficient data structure selection</li>
+<li>Early garbage collection of temporary objects</li>
+<li>Memory-conscious dependency injection</li>
+</ul>
+<h2 id="runtime-performance-impact">Runtime Performance Impact</h2>
+<p>Minimize runtime performance impact:</p>
+<ul>
+<li>Zero overhead when not actively hot-swapping</li>
+<li>Efficient event processing and routing</li>
+<li>Optimized instrumentation access patterns</li>
+<li>Minimal JVM overhead for monitoring</li>
+</ul>
+<h1 id="testing-and-validation">Testing and Validation</h1>
+<h2 id="agent-testing-strategy">Agent Testing Strategy</h2>
+<p>Comprehensive agent testing strategy:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Testing approach:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Unit testing with mock instrumentation</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Integration testing with real JVM agent loading</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Platform compatibility testing across JVM versions</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance testing under various load conditions</span></span></code></pre></div>
+<h2 id="mock-agent-implementation">Mock Agent Implementation</h2>
+<p>Testing uses mock agent implementations:</p>
+<ul>
+<li>Simulated JVM agent loading for controlled testing</li>
+<li>Mock instrumentation for unit testing scenarios</li>
+<li>Error condition simulation and recovery testing</li>
+<li>Performance characteristic validation</li>
+</ul>
+<h2 id="production-validation">Production Validation</h2>
+<p>Production validation and monitoring:</p>
+<ul>
+<li>Agent initialization success rate monitoring</li>
+<li>Performance impact measurement and reporting</li>
+<li>Error rate tracking and analysis</li>
+<li>User experience impact assessment</li>
+</ul>
+<h1 id="configuration-integration">Configuration Integration</h1>
+<h2 id="agent-configuration-sources">Agent Configuration Sources</h2>
+<p>The agent integrates with multiple configuration sources:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration source hierarchy:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. JVM agent arguments (highest priority)</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. System properties and environment variables</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Configuration files (application.properties, etc.)</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Default configuration values (lowest priority)</span></span></code></pre></div>
+<h2 id="dynamic-configuration-support">Dynamic Configuration
+Support</h2>
+<p>Support for dynamic configuration updates:</p>
+<ul>
+<li>Runtime parameter modification capabilities</li>
+<li>Configuration reload without agent restart</li>
+<li>Hot-swap of configuration adapters</li>
+<li>User preference integration</li>
+</ul>
+<h2 id="environment-specific-configuration">Environment-Specific
+Configuration</h2>
+<p>Environment-specific configuration management:</p>
+<ul>
+<li>Development vs production configuration differences</li>
+<li>Container environment configuration adaptation</li>
+<li>Cloud platform specific configuration</li>
+<li>Testing environment configuration isolation</li>
+</ul>
+<h1 id="monitoring-and-observability">Monitoring and Observability</h1>
+<h2 id="agent-health-monitoring">Agent Health Monitoring</h2>
+<p>Comprehensive agent health monitoring:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Health monitoring metrics:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Agent initialization success/failure rates</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instrumentation operation performance</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory usage and garbage collection impact</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread utilization and concurrency metrics</span></span></code></pre></div>
+<h2 id="diagnostic-integration">Diagnostic Integration</h2>
+<p>Integration with diagnostic and monitoring systems:</p>
+<ul>
+<li>JMX bean registration for management</li>
+<li>Metrics export to monitoring systems</li>
+<li>Distributed tracing integration</li>
+<li>Logging integration with application loggers</li>
+</ul>
+<h2 id="troubleshooting-support">Troubleshooting Support</h2>
+<p>Enhanced troubleshooting support features:</p>
+<ul>
+<li>Detailed initialization logging</li>
+<li>Configuration dump capabilities</li>
+<li>Runtime state inspection</li>
+<li>Performance profiling integration</li>
+</ul>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="agent-enhancement-roadmap">Agent Enhancement Roadmap</h2>
+<p>Planned enhancements to agent capabilities:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Future enhancement areas:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Enhanced instrumentation capabilities</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Improved performance monitoring</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced configuration management</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud-native deployment support</span></span></code></pre></div>
+<h2 id="technology-integration">Technology Integration</h2>
+<p>Integration with emerging JVM technologies:</p>
+<ul>
+<li>Project Loom virtual thread compatibility</li>
+<li>Project Valhalla value type support</li>
+<li>GraalVM native image agent support</li>
+<li>Advanced instrumentation API evolution</li>
+</ul>
+<h2 id="extensibility-framework">Extensibility Framework</h2>
+<p>Framework for extending agent capabilities:</p>
+<ul>
+<li>Plugin architecture for additional functionality</li>
+<li>Custom instrumentation transformer support</li>
+<li>External monitoring system integration</li>
+<li>User-defined initialization hook support</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="InstrumentationAdapter.org"><em>InstrumentationAdapter</em></span>:
+Infrastructure implementation using agent-provided instrumentation</li>
+<li><span class="spurious-link"
+target="ByteHotApplication.org"><em>ByteHotApplication</em></span>:
+Application layer initialized by the agent</li>
+<li><span class="spurious-link"
+target="InstrumentationProvider.org"><em>InstrumentationProvider</em></span>:
+Domain layer access to agent-provided instrumentation</li>
+<li><span class="spurious-link"
+target="flows/agent-startup-flow.org"><em>Agent Startup
+Flow</em></span>: Complete agent initialization process flow</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The agent leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Singleton Pattern</strong></strong>:
+InstrumentationProvider for global access</li>
+<li><strong><strong>Bridge Pattern</strong></strong>: Between JVM agent
+mechanism and ByteHot architecture</li>
+<li><strong><strong>Template Method</strong></strong>: Consistent
+initialization across attachment methods</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Different
+initialization strategies based on attachment method</li>
+</ul>
+<h2 id="jvm-agent-specification-compliance">JVM Agent Specification
+Compliance</h2>
+<p>The implementation maintains strict compliance with JVM agent
+specifications:</p>
+<ul>
+<li>Correct method signatures for premain and agentmain</li>
+<li>Proper parameter handling and validation</li>
+<li>Exception safety and error reporting</li>
+<li>Resource management and cleanup</li>
+</ul>
+<p>The ByteHotAgent provides ByteHot's critical entry point into the JVM
+agent ecosystem while maintaining architectural purity and enabling
+seamless integration between JVM instrumentation capabilities and
+ByteHot's revolutionary hot-swapping architecture.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

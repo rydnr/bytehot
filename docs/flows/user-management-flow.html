@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>user-management-flow - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<h1 id="overview">Overview</h1>
+<p>The User Management Flow describes how ByteHot automatically
+discovers, registers, and manages users throughout their interaction
+with the hot-swapping system. This flow ensures that all ByteHot
+operations are user-aware while maintaining seamless developer
+experience.</p>
+<h1 id="flow-participants">Flow Participants</h1>
+<h2 id="domain-aggregates">Domain Aggregates</h2>
+<ul>
+<li><code>User</code> - Central user aggregate managing user
+lifecycle</li>
+<li><code>UserId</code> - User identification with auto-discovery
+capabilities</li>
+<li><code>UserProfile</code> - Complete user profile information</li>
+<li><code>UserSession</code> - Session tracking and environment
+capture</li>
+</ul>
+<h2 id="domain-events">Domain Events</h2>
+<ul>
+<li><code>UserRegistrationRequested</code> - Initial user registration
+request</li>
+<li><code>UserRegistered</code> - Successful user registration
+completion</li>
+<li><code>UserAuthenticationRequested</code> - User authentication
+initiation</li>
+<li><code>UserAuthenticated</code> - Authentication completion
+(success/failure)</li>
+<li><code>UserSessionStartRequested</code> - Session start request</li>
+<li><code>UserSessionStarted</code> - Active session establishment</li>
+</ul>
+<h2 id="infrastructure-components">Infrastructure Components</h2>
+<ul>
+<li><code>EventStorePort</code> - Event persistence for user state
+reconstruction</li>
+<li><code>Git Configuration</code> - Auto-discovery source for user
+information</li>
+<li><code>Environment Variables</code> - Fallback user identification
+mechanism</li>
+</ul>
+<h1 id="primary-flow-first-time-user-auto-discovery">Primary Flow:
+First-Time User Auto-Discovery</h1>
+<h2 id="flow-trigger">Flow Trigger</h2>
+<p>When ByteHot agent starts and encounters user operations for the
+first time.</p>
+<h2 id="flow-steps">Flow Steps</h2>
+<h3 id="step-1-auto-discovery-initiation">Step 1: Auto-Discovery
+Initiation</h3>
+<pre class="example"><code>[Agent Startup] → [User Operation Detected] → [Auto-Discovery Triggered]
+</code></pre>
+<p>The flow begins when any user-related operation is attempted:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In ByteHotApplication when user context is needed</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">handleClassFileChanged</span><span class="op">(</span>ClassFileChanged event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Auto-discover user if not known</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    UserId userId <span class="op">=</span> UserId<span class="op">.</span><span class="fu">autoDiscover</span><span class="op">();</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create event with user context</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    EventMetadata metadata <span class="op">=</span> EventMetadata<span class="op">.</span><span class="fu">withUser</span><span class="op">(</span>userId<span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ... continue with operation</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-2-git-configuration-discovery">Step 2: Git Configuration
+Discovery</h3>
+<pre class="example"><code>[Auto-Discovery] → [Git Config Read] → [User Profile Creation]
+</code></pre>
+<p>ByteHot attempts to read Git configuration:</p>
+<p>// In UserId.discoverFromGitConfig() Process gitNameProcess = new
+ProcessBuilder("git", "config", "user.name").start(); Process
+gitEmailProcess = new ProcessBuilder("git", "config",
+"user.email").start();</p>
+<p>String gitName = readProcessOutput(gitNameProcess).trim(); String
+gitEmail = readProcessOutput(gitEmailProcess).trim();</p>
+<p>if (!gitEmail.isEmpty()) { String displayName = !gitName.isEmpty() ?
+gitName : extractDisplayNameFromEmail(gitEmail); return new
+UserId(gitEmail, displayName); }</p>
+<h3 id="step-3-environment-variable-fallback">Step 3: Environment
+Variable Fallback</h3>
+<pre class="example"><code>[Git Discovery Failed] → [Environment Check] → [System User Detection]
+</code></pre>
+<p>If Git configuration is unavailable:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In UserId.fromEnvironment()</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span><span class="op">[]</span> envVariables <span class="op">=</span> <span class="op">{</span><span class="st">&quot;USER&quot;</span><span class="op">,</span> <span class="st">&quot;USERNAME&quot;</span><span class="op">,</span> <span class="st">&quot;LOGNAME&quot;</span><span class="op">};</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="op">(</span><span class="bu">String</span> envVar <span class="op">:</span> envVariables<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> username <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">getenv</span><span class="op">(</span>envVar<span class="op">);</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>username <span class="op">!=</span> <span class="kw">null</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>username<span class="op">.</span><span class="fu">trim</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">UserId</span><span class="op">(</span>username<span class="op">.</span><span class="fu">trim</span><span class="op">(),</span> <span class="fu">formatDisplayName</span><span class="op">(</span>username<span class="op">.</span><span class="fu">trim</span><span class="op">()));</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-4-user-registration-request">Step 4: User Registration
+Request</h3>
+<pre class="example"><code>[User Discovered] → [Registration Request] → [UserRegistrationRequested Event]
+</code></pre>
+<p>Once user is identified, registration is requested:</p>
+<p>// Automatic registration trigger UserRegistrationRequested
+registrationEvent = new UserRegistrationRequested( userId,
+UserRegistered.UserRegistrationSource.AUTOMATIC );</p>
+<p>// Send through application layer DomainResponseEvent response =
+User.accept(registrationEvent);</p>
+<h3 id="step-5-profile-auto-population">Step 5: Profile
+Auto-Population</h3>
+<pre class="example"><code>[Registration Request] → [Profile Creation] → [Git Integration]
+</code></pre>
+<p>User profile is automatically populated:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In User.accept(UserRegistrationRequested)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>UserProfile profile <span class="op">=</span> UserProfile<span class="op">.</span><span class="fu">defaultProfile</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getUserId</span><span class="op">());</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Profile automatically includes Git configuration</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>GitConfig gitConfig <span class="op">=</span> <span class="fu">readGitConfiguration</span><span class="op">();</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> fullName <span class="op">=</span> gitConfig<span class="op">.</span><span class="fu">getName</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">?</span> </span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    gitConfig<span class="op">.</span><span class="fu">getName</span><span class="op">()</span> <span class="op">:</span> userId<span class="op">.</span><span class="fu">getDisplayName</span><span class="op">();</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> email <span class="op">=</span> gitConfig<span class="op">.</span><span class="fu">getEmail</span><span class="op">()</span> <span class="op">!=</span> <span class="kw">null</span> <span class="op">?</span> </span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    gitConfig<span class="op">.</span><span class="fu">getEmail</span><span class="op">()</span> <span class="op">:</span> userId<span class="op">.</span><span class="fu">getValue</span><span class="op">();</span></span></code></pre></div>
+<h3 id="step-6-user-registration-completion">Step 6: User Registration
+Completion</h3>
+<pre class="example"><code>[Profile Created] → [User Aggregate Created] → [UserRegistered Event]
+</code></pre>
+<p>User aggregate is created and registration event emitted:</p>
+<p>// Complete user registration User user = new User( userId, profile,
+UserPreferences.defaults(), UserStatistics.empty(), Instant.now(),
+Instant.now(), 1L );</p>
+<p>return UserRegistered.of(event, profile, event.getSource());</p>
+<h3 id="step-7-event-persistence">Step 7: Event Persistence</h3>
+<pre class="example"><code>[UserRegistered Event] → [EventStore] → [Audit Trail Created]
+</code></pre>
+<p>Registration event is persisted for future state reconstruction:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In EventStorePort implementation</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>eventStore<span class="op">.</span><span class="fu">save</span><span class="op">(</span>userRegisteredEvent<span class="op">);</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// Event structure: eventstore/user/{userId}/timestamp-UserRegistered.json</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;eventType&quot;</span><span class="op">:</span> <span class="st">&quot;UserRegistered&quot;</span><span class="op">,</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;userId&quot;</span><span class="op">:</span> <span class="st">&quot;john.doe@example.com&quot;</span><span class="op">,</span> </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;userProfile&quot;</span><span class="op">:</span> <span class="op">{</span> <span class="kw">...</span> <span class="op">},</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;source&quot;</span><span class="op">:</span> <span class="st">&quot;AUTOMATIC&quot;</span><span class="op">,</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">&quot;timestamp&quot;</span><span class="op">:</span> <span class="st">&quot;2025-06-18T10:30:00Z&quot;</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="secondary-flow-user-authentication">Secondary Flow: User
+Authentication</h1>
+<h2 id="flow-trigger-1">Flow Trigger</h2>
+<p>When user performs authenticated operations or explicit
+authentication is required.</p>
+<h2 id="flow-steps-1">Flow Steps</h2>
+<h3 id="step-1-authentication-request">Step 1: Authentication
+Request</h3>
+<pre class="example"><code>[Operation Requires Auth] → [Authentication Check] → [UserAuthenticationRequested]
+</code></pre>
+<p>// When authenticated operation is attempted
+UserAuthenticationRequested authEvent = new
+UserAuthenticationRequested(userId); DomainResponseEvent authResponse =
+User.accept(authEvent);</p>
+<h3 id="step-2-user-existence-check">Step 2: User Existence Check</h3>
+<pre class="example"><code>[Auth Request] → [User Reconstruction] → [EventStore Query]
+</code></pre>
+<p>System checks if user exists through event reconstruction:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In User.accept(UserAuthenticationRequested)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>User user <span class="op">=</span> <span class="fu">reconstructFromEvents</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getUserId</span><span class="op">());</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(</span>user <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Auto-register if user doesn&#39;t exist</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    UserRegistrationRequested registrationEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">UserRegistrationRequested</span><span class="op">(</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        event<span class="op">.</span><span class="fu">getUserId</span><span class="op">(),</span> </span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        UserRegistered<span class="op">.</span><span class="fu">UserRegistrationSource</span><span class="op">.</span><span class="fu">AUTOMATIC</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">accept</span><span class="op">(</span>registrationEvent<span class="op">);</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="step-3-authentication-response">Step 3: Authentication
+Response</h3>
+<pre class="example"><code>[User Verified] → [Authentication Success] → [UserAuthenticated Event]
+</code></pre>
+<p>// Authentication success User authenticatedUser =
+reconstructFromEvents(event.getUserId()); UserProfile profile =
+authenticatedUser != null ? authenticatedUser.getProfile() :
+UserProfile.defaultProfile(event.getUserId());</p>
+<p>return UserAuthenticated.success(event, profile);</p>
+<h1 id="tertiary-flow-session-management">Tertiary Flow: Session
+Management</h1>
+<h2 id="flow-trigger-2">Flow Trigger</h2>
+<p>When user starts a development session or performs session-aware
+operations.</p>
+<h2 id="flow-steps-2">Flow Steps</h2>
+<h3 id="step-1-session-initiation">Step 1: Session Initiation</h3>
+<pre class="example"><code>[Development Session Start] → [Environment Capture] → [UserSessionStartRequested]
+</code></pre>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Session start request</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> environment <span class="op">=</span> <span class="fu">captureEnvironment</span><span class="op">();</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>UserSessionStartRequested sessionEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">UserSessionStartRequested</span><span class="op">(</span>userId<span class="op">,</span> environment<span class="op">);</span></span></code></pre></div>
+<h3 id="step-2-session-creation">Step 2: Session Creation</h3>
+<pre class="example"><code>[Session Request] → [Session ID Generation] → [Environment Snapshot]
+</code></pre>
+<p>// In User.accept(UserSessionStartRequested) String sessionId =
+generateSessionId(); UserSession session = UserSession.start( sessionId,
+event.getUserId(), Instant.now(), event.getEnvironment() );</p>
+<p>return UserSessionStarted.of(event, session);</p>
+<h3 id="step-3-analytics-update">Step 3: Analytics Update</h3>
+<pre class="example"><code>[Session Started] → [Statistics Update] → [User State Evolution]
+</code></pre>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In User.applyEvent for UserSessionStarted</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>UserStatistics updatedStats <span class="op">=</span> currentUser<span class="op">.</span><span class="fu">statistics</span><span class="op">.</span><span class="fu">recordSession</span><span class="op">(</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    sessionEvent<span class="op">.</span><span class="fu">getSession</span><span class="op">().</span><span class="fu">getStartedAt</span><span class="op">(),</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>    sessionEvent<span class="op">.</span><span class="fu">getSession</span><span class="op">().</span><span class="fu">getDuration</span><span class="op">()</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">// User state is updated with new statistics</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> <span class="kw">new</span> <span class="fu">User</span><span class="op">(</span><span class="co">/* updated user with new statistics */</span><span class="op">);</span></span></code></pre></div>
+<h1 id="eventsourcing-integration">EventSourcing Integration</h1>
+<h2 id="state-reconstruction-flow">State Reconstruction Flow</h2>
+<pre class="example"><code>[User Query] → [Event Retrieval] → [Event Replay] → [Current State]
+</code></pre>
+<p>// In User.reconstructFromEvents() EventStorePort eventStore =
+Ports.resolve(EventStorePort.class); List&lt;VersionedDomainEvent&gt;
+events = eventStore.getEventsForAggregate("user",
+userId.getValue());</p>
+<p>User user = null; for (VersionedDomainEvent event : events) { user =
+applyEvent(user, event); // State evolution through events } return
+user;</p>
+<h2 id="event-application-pattern">Event Application Pattern</h2>
+<p>Each event type has specific state transition logic:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event application maintains state consistency</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">static</span> User <span class="fu">applyEvent</span><span class="op">(</span>User currentUser<span class="op">,</span> VersionedDomainEvent event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> UserRegistered<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create initial user state</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createUserFromRegistrationEvent</span><span class="op">((</span>UserRegistered<span class="op">)</span> event<span class="op">);</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> UserAuthenticated<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update last active timestamp</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">updateUserFromAuthenticationEvent</span><span class="op">(</span>currentUser<span class="op">,</span> <span class="op">(</span>UserAuthenticated<span class="op">)</span> event<span class="op">);</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>event <span class="kw">instanceof</span> UserSessionStarted<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Update statistics and session info</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">updateUserFromSessionEvent</span><span class="op">(</span>currentUser<span class="op">,</span> <span class="op">(</span>UserSessionStarted<span class="op">)</span> event<span class="op">);</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> currentUser<span class="op">;</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="auto-discovery-failure-handling">Auto-Discovery Failure
+Handling</h2>
+<pre class="example"><code>[Git Discovery Fails] → [Environment Fallback] → [Anonymous User Creation]
+</code></pre>
+<p>The flow gracefully degrades through multiple fallback
+mechanisms:</p>
+<p>// Graceful degradation chain public static UserId autoDiscover() {
+try { return discoverFromGitConfig(); // Primary method } catch
+(Exception e) { try { return fromEnvironment(); // Fallback method }
+catch (Exception e2) { return anonymous(); // Final fallback } } }</p>
+<h2 id="registration-conflict-resolution">Registration Conflict
+Resolution</h2>
+<pre class="example"><code>[Duplicate Registration] → [Existing User Check] → [Authentication Instead]
+</code></pre>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Handle duplicate registration attempts</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> DomainResponseEvent<span class="op">&lt;</span>UserRegistrationRequested<span class="op">&gt;</span> <span class="fu">accept</span><span class="op">(</span>UserRegistrationRequested event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    User existingUser <span class="op">=</span> <span class="fu">reconstructFromEvents</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getUserId</span><span class="op">());</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>existingUser <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// User already exists, treat as authentication</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> UserAuthenticated<span class="op">.</span><span class="fu">success</span><span class="op">(</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">UserAuthenticationRequested</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getUserId</span><span class="op">()),</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>            existingUser<span class="op">.</span><span class="fu">getProfile</span><span class="op">()</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Proceed with normal registration</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">performRegistration</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="integration-points">Integration Points</h1>
+<h2 id="bytehot-agent-integration">ByteHot Agent Integration</h2>
+<p>User management integrates with agent lifecycle:</p>
+<p>// In ByteHotAgent.premain() public static void premain(String
+agentArgs, Instrumentation inst) { // Initialize user context during
+agent startup UserId currentUser = UserId.autoDiscover();
+ByteHotApplication.initializeWithUser(currentUser); }</p>
+<h2 id="hot-swap-operation-integration">Hot-Swap Operation
+Integration</h2>
+<p>All hot-swap operations include user context:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In ClassFileChanged event creation</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ClassFileChanged event <span class="op">=</span> ClassFileChanged<span class="op">.</span><span class="fu">forExistingAggregate</span><span class="op">(</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    classFile<span class="op">,</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    className<span class="op">,</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    detectionTimestamp<span class="op">,</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    previousEventId<span class="op">,</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    currentVersion</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="co">// Event automatically includes user context through EventMetadata</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>EventMetadata metadata <span class="op">=</span> event<span class="op">.</span><span class="fu">getMetadata</span><span class="op">();</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="bu">String</span> userId <span class="op">=</span> metadata<span class="op">.</span><span class="fu">getUserId</span><span class="op">();</span>  <span class="co">// User context preserved</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>#<span class="op">+</span>end_str</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="op">**</span> Audit Trail Integration</span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>Complete audit trail through user<span class="op">-</span>aware events<span class="op">:</span></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>#<span class="op">+</span>begin_example</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a><span class="op">[</span>User <span class="bu">Operation</span><span class="op">]</span> → <span class="op">[</span><span class="bu">Event</span> with User <span class="bu">Context</span><span class="op">]</span> → <span class="op">[</span>Audit Trail<span class="op">]</span> → <span class="op">[</span>Compliance Support<span class="op">]</span></span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>#<span class="op">+</span>end_example</span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a><span class="op">*</span> Performance Considerations</span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a><span class="op">**</span> Discovery Caching</span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>Auto<span class="op">-</span>discovery results are cached to avoid repeated Git<span class="op">/</span>environment queries<span class="op">:</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a></span></code></pre></div>
+<p>private static volatile UserId cachedUserId = null;</p>
+<p>public static UserId autoDiscover() { if (cachedUserId == null) {
+synchronized (UserId.class) { if (cachedUserId == null) { cachedUserId =
+performDiscovery(); } } } return cachedUserId; }</p>
+<h2 id="lazy-registration">Lazy Registration</h2>
+<p>User registration is deferred until actually needed:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Registration only happens when user operations are performed</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">handleUserAwareOperation</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span><span class="fu">isUserRegistered</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">performAutoRegistration</span><span class="op">();</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Continue with operation</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-store-optimization">Event Store Optimization</h2>
+<p>User events are stored efficiently with proper indexing:</p>
+<pre class="example"><code>eventstore/
+  user/
+    john.doe@example.com/
+      20250618-103000-UserRegistered.json
+      20250618-103001-UserAuthenticated.json
+      20250618-103002-UserSessionStarted.json
+</code></pre>
+<h1 id="monitoring-and-observability">Monitoring and Observability</h1>
+<h2 id="flow-metrics">Flow Metrics</h2>
+<p>User management flow provides comprehensive metrics:</p>
+<p>// In UserStatistics public class UserStatistics { private final int
+totalHotSwaps; private final int successfulHotSwaps; private final
+Duration totalTimeSaved; private final Map&lt;String, Integer&gt;
+operationCounts;</p>
+<p>public double getSuccessRate() { return totalHotSwaps &gt; 0 ?
+(double) successfulHotSwaps / totalHotSwaps : 0.0; }</p>
+<p>public Duration getAverageTimeSavedPerHotSwap() { return
+totalHotSwaps &gt; 0 ? totalTimeSaved.dividedBy(totalHotSwaps) :
+Duration.ZERO; } }</p>
+<h2 id="health-checks">Health Checks</h2>
+<p>Flow health is monitored through various checkpoints:</p>
+<pre class="example"><code>[Auto-Discovery Health] → [Registration Success Rate] → [Session Management Health]
+</code></pre>
+<h1 id="future-enhancements">Future Enhancements</h1>
+<h2 id="advanced-auto-discovery">Advanced Auto-Discovery</h2>
+<ul>
+<li>Integration with enterprise identity providers (LDAP/AD)</li>
+<li>OAuth/OIDC integration for cloud-based development</li>
+<li>SSH key-based user identification</li>
+</ul>
+<h2 id="enhanced-session-management">Enhanced Session Management</h2>
+<ul>
+<li>Distributed session management for team environments</li>
+<li>Session sharing and collaboration features</li>
+<li>Advanced session analytics and insights</li>
+</ul>
+<h2 id="workflow-integration">Workflow Integration</h2>
+<ul>
+<li>Integration with issue tracking systems</li>
+<li>Team collaboration and code review integration</li>
+<li>Advanced audit and compliance features</li>
+</ul>
+<p>The User Management Flow ensures that ByteHot operations are
+consistently user-aware while maintaining a seamless, zero-configuration
+developer experience through intelligent auto-discovery and graceful
+fallback mechanisms.</p>
+</body></html>

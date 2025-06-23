@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>agent-startup-flow - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<h1 id="overview">Overview</h1>
+<p>This flow documents the complete ByteHot agent initialization
+process, from JVM attachment to fully operational hot-swap monitoring.
+This is the foundational flow that establishes the runtime environment
+for all other ByteHot operations.</p>
+<h2 id="flow-trigger">Flow Trigger</h2>
+<ul>
+<li><strong><strong>Starting Event</strong></strong>: JVM agent
+attachment (premain or agentmain)</li>
+<li><strong><strong>Ending Event</strong></strong>: <code
+class="verbatim">HotSwapCapabilityEnabled</code> for monitored
+classes</li>
+<li><strong><strong>Duration</strong></strong>: 100-2000ms depending on
+configuration complexity</li>
+<li><strong><strong>Criticality</strong></strong>: Critical - Required
+for all ByteHot functionality</li>
+</ul>
+<h1 id="flow-participants">Flow Participants</h1>
+<h2 id="primary-actors">Primary Actors</h2>
+<ul>
+<li><code class="verbatim">ByteHotAgent</code> (Infrastructure): JVM
+agent entry point</li>
+<li><code class="verbatim">ByteHotApplication</code> (Application):
+Application layer coordinator</li>
+<li><code class="verbatim">InstrumentationProvider</code> (Domain): JVM
+instrumentation access</li>
+<li><code class="verbatim">ClassFileWatcher</code> (Infrastructure):
+File system monitoring setup</li>
+</ul>
+<h2 id="secondary-actors">Secondary Actors</h2>
+<ul>
+<li><code class="verbatim">WatchConfiguration</code> (Domain):
+Configuration management</li>
+<li><code class="verbatim">Ports</code> (Domain): Dependency injection
+coordination</li>
+<li>Various adapters for external integrations</li>
+</ul>
+<h1 id="agent-attachment-flow">Agent Attachment Flow</h1>
+<h2 id="phase-1-jvm-agent-initialization">Phase 1: JVM Agent
+Initialization</h2>
+<pre><code>[ JVM Startup ] --agent-attachment--&gt; [ ByteHotAgent.premain() ] --initialization--&gt; [ Agent Setup ]
+</code></pre>
+<p>The flow begins when the JVM loads the ByteHot agent:</p>
+<ol>
+<li><strong><strong>JVM Agent Loading</strong></strong>: JVM loads
+ByteHot agent through:
+<ul>
+<li><strong><strong>Startup attachment</strong></strong>: <code
+class="verbatim">-javaagent:bytehot.jar</code> JVM argument</li>
+<li><strong><strong>Runtime attachment</strong></strong>: Dynamic
+attachment via Attach API</li>
+</ul></li>
+<li><strong><strong>Agent Entry Point</strong></strong>: <code
+class="verbatim">ByteHotAgent.premain()</code> or <code
+class="verbatim">ByteHotAgent.agentmain()</code> called</li>
+<li><strong><strong>Instrumentation Capture</strong></strong>: Agent
+captures <code class="verbatim">Instrumentation</code> instance for
+later use</li>
+<li><strong><strong>Initial Validation</strong></strong>: Verify JVM
+supports required capabilities:
+<ul>
+<li>Class redefinition support</li>
+<li>Bytecode instrumentation</li>
+<li>File system access permissions</li>
+</ul></li>
+</ol>
+<h2 id="phase-2-core-system-initialization">Phase 2: Core System
+Initialization</h2>
+<pre><code>[ ByteHotAgent ] --bootstrap--&gt; [ ByteHotApplication ] --ports-setup--&gt; [ Dependency Injection ]
+                                        |
+                                        v
+                                [ InstrumentationProvider Setup ]
+                                        |
+                                        v
+                                [ Configuration Loading ]
+</code></pre>
+<p>Core ByteHot system components are initialized:</p>
+<ol>
+<li><strong><strong>Application Bootstrap</strong></strong>: <code
+class="verbatim">ByteHotApplication</code> instance created</li>
+<li><strong><strong>Ports Configuration</strong></strong>: Dependency
+injection system setup:
+<ul>
+<li>Register infrastructure adapters</li>
+<li>Configure port-to-adapter mappings</li>
+<li>Validate adapter implementations</li>
+</ul></li>
+<li><strong><strong>Instrumentation Provider</strong></strong>: <code
+class="verbatim">InstrumentationProvider</code> configured with captured
+<code class="verbatim">Instrumentation</code></li>
+<li><strong><strong>Configuration Loading</strong></strong>: Load
+ByteHot configuration from:
+<ul>
+<li>JVM system properties</li>
+<li>Configuration files</li>
+<li>Environment variables</li>
+<li>Default settings</li>
+</ul></li>
+</ol>
+<h2 id="phase-3-watch-configuration-setup">Phase 3: Watch Configuration
+Setup</h2>
+<pre><code>[ Configuration ] --parsing--&gt; [ WatchConfiguration ] --validation--&gt; [ Watch Setup ]
+                                        |
+                                        v
+                                [ Path Registration ]
+                                        |
+                                        v
+                                [ File System Monitoring ]
+</code></pre>
+<p>File system monitoring is configured based on loaded
+configuration:</p>
+<ol>
+<li><strong><strong>Configuration Parsing</strong></strong>: <code
+class="verbatim">WatchConfiguration</code> processes configuration:
+<ul>
+<li>Watch paths (directories to monitor)</li>
+<li>File patterns to include/exclude</li>
+<li>Monitoring frequency and sensitivity</li>
+<li>Framework integration settings</li>
+</ul></li>
+<li><strong><strong>Path Validation</strong></strong>: Validate
+configured watch paths:
+<ul>
+<li>Directory existence and accessibility</li>
+<li>Read permissions verification</li>
+<li>Path canonicalization</li>
+</ul></li>
+<li><strong><strong>Watch Registration</strong></strong>: Register watch
+paths with file system:
+<ul>
+<li>Create <code class="verbatim">ClassFileWatcher</code> instances</li>
+<li>Configure file system event listeners</li>
+<li>Set up monitoring threads</li>
+</ul></li>
+<li><strong><strong>Event Integration</strong></strong>: Connect file
+watchers to event system</li>
+</ol>
+<h1 id="capability-enablement-flow">Capability Enablement Flow</h1>
+<h2 id="phase-4-hot-swap-capability-assessment">Phase 4: Hot-Swap
+Capability Assessment</h2>
+<pre><code>[ Class Discovery ] --analysis--&gt; [ Capability Assessment ] --enablement--&gt; [ HotSwapCapabilityEnabled ]
+</code></pre>
+<p>For each discovered class, assess and enable hot-swap
+capabilities:</p>
+<ol>
+<li><strong><strong>Class Discovery</strong></strong>: Identify classes
+eligible for hot-swap monitoring:
+<ul>
+<li>Classes in configured watch paths</li>
+<li>Classes matching inclusion patterns</li>
+<li>Classes not excluded by configuration</li>
+</ul></li>
+<li><strong><strong>Capability Assessment</strong></strong>: For each
+class, evaluate:
+<ul>
+<li>JVM redefinition support for class type</li>
+<li>Class modification compatibility</li>
+<li>Framework integration availability</li>
+<li>Security restrictions</li>
+</ul></li>
+<li><strong><strong>Capability Enablement</strong></strong>: Enable
+hot-swap for eligible classes:
+<ul>
+<li>Register class with instrumentation system</li>
+<li>Set up metadata tracking</li>
+<li>Configure framework integration if available</li>
+<li>Emit <code class="verbatim">HotSwapCapabilityEnabled</code>
+event</li>
+</ul></li>
+</ol>
+<h2 id="phase-5-event-system-activation">Phase 5: Event System
+Activation</h2>
+<pre><code>[ Component Setup ] --integration--&gt; [ Event System ] --activation--&gt; [ Monitoring Active ]
+</code></pre>
+<p>Activate the complete event-driven system:</p>
+<ol>
+<li><strong><strong>Event Bus Configuration</strong></strong>: Set up
+internal event routing</li>
+<li><strong><strong>Adapter Registration</strong></strong>: Register all
+infrastructure adapters:
+<ul>
+<li>File system event adapters</li>
+<li>JVM instrumentation adapters</li>
+<li>Framework integration adapters</li>
+<li>Monitoring and logging adapters</li>
+</ul></li>
+<li><strong><strong>Event Flow Validation</strong></strong>: Test event
+flow end-to-end</li>
+<li><strong><strong>Monitoring Activation</strong></strong>: Begin
+active monitoring for:
+<ul>
+<li>File system changes</li>
+<li>Class loading events</li>
+<li>System health metrics</li>
+</ul></li>
+</ol>
+<h1 id="configuration-loading-details">Configuration Loading
+Details</h1>
+<h2 id="configuration-sources-priority-order">Configuration Sources
+(Priority Order)</h2>
+<pre><code>[ JVM Properties ] --&gt; [ Config Files ] --&gt; [ Environment Variables ] --&gt; [ Defaults ]
+                |               |                      |                    |
+                v               v                      v                    v
+        [ Property Merger ] --&gt; [ Validation ] --&gt; [ WatchConfiguration ]
+</code></pre>
+<p>Configuration is loaded from multiple sources with defined
+precedence:</p>
+<ol>
+<li><strong><strong>JVM System Properties</strong></strong>: Highest
+priority
+<ul>
+<li><code
+class="verbatim">-Dbytehot.watch.paths=/path/to/classes</code></li>
+<li><code class="verbatim">-Dbytehot.monitoring.enabled=true</code></li>
+<li><code
+class="verbatim">-Dbytehot.framework.integration=spring</code></li>
+</ul></li>
+<li><strong><strong>Configuration Files</strong></strong>: Second
+priority
+<ul>
+<li><code class="verbatim">bytehot.properties</code> in classpath</li>
+<li><code class="verbatim">bytehot.yml</code> in working directory</li>
+<li>User-specified configuration file</li>
+</ul></li>
+<li><strong><strong>Environment Variables</strong></strong>: Third
+priority
+<ul>
+<li><code class="verbatim">BYTEHOT_WATCH_PATHS</code></li>
+<li><code class="verbatim">BYTEHOT_MONITORING_ENABLED</code></li>
+<li><code class="verbatim">BYTEHOT_FRAMEWORK_INTEGRATION</code></li>
+</ul></li>
+<li><strong><strong>Default Values</strong></strong>: Lowest priority
+<ul>
+<li>Built-in sensible defaults</li>
+<li>Framework-specific defaults</li>
+<li>Platform-specific defaults</li>
+</ul></li>
+</ol>
+<h2 id="configuration-validation">Configuration Validation</h2>
+<pre><code>[ Raw Configuration ] --&gt; [ Schema Validation ] --&gt; [ Path Validation ] --&gt; [ Permission Check ]
+</code></pre>
+<p>Configuration undergoes comprehensive validation:</p>
+<ol>
+<li><strong><strong>Schema Validation</strong></strong>: Ensure
+configuration structure is correct</li>
+<li><strong><strong>Path Validation</strong></strong>: Verify all
+specified paths exist and are accessible</li>
+<li><strong><strong>Permission Checking</strong></strong>: Confirm
+ByteHot has required permissions</li>
+<li><strong><strong>Consistency Checking</strong></strong>: Validate
+configuration combinations make sense</li>
+<li><strong><strong>Security Validation</strong></strong>: Ensure no
+security policy violations</li>
+</ol>
+<h1 id="error-handling-during-startup">Error Handling During
+Startup</h1>
+<h2 id="critical-error-flow">Critical Error Flow</h2>
+<pre><code>[ Startup Error ] --&gt; [ Error Classification ] --&gt; [ Fallback Strategy ] --&gt; [ Graceful Degradation ]
+</code></pre>
+<p>When critical errors occur during startup:</p>
+<ol>
+<li><strong><strong>Error Classification</strong></strong>: Determine
+error severity and type:
+<ul>
+<li><strong><strong>Fatal</strong></strong>: JVM incompatibility,
+missing permissions</li>
+<li><strong><strong>Critical</strong></strong>: Configuration errors,
+missing resources</li>
+<li><strong><strong>Warning</strong></strong>: Non-essential feature
+failures</li>
+</ul></li>
+<li><strong><strong>Fallback Strategies</strong></strong>:
+<ul>
+<li><strong><strong>Fatal Errors</strong></strong>: Agent startup fails
+with clear error message</li>
+<li><strong><strong>Critical Errors</strong></strong>: Continue with
+reduced functionality</li>
+<li><strong><strong>Warnings</strong></strong>: Log warning and continue
+with full functionality</li>
+</ul></li>
+<li><strong><strong>Graceful Degradation</strong></strong>: For
+non-fatal errors:
+<ul>
+<li>Disable affected features</li>
+<li>Use default configurations where possible</li>
+<li>Enable monitoring for manual intervention</li>
+</ul></li>
+</ol>
+<h2 id="permission-error-flow">Permission Error Flow</h2>
+<pre><code>[ Permission Denied ] --&gt; [ Alternative Path ] --&gt; [ Reduced Functionality ] --&gt; [ User Notification ]
+</code></pre>
+<p>When permission errors prevent full functionality:</p>
+<ol>
+<li><strong><strong>Alternative Path Discovery</strong></strong>: Find
+alternative approaches</li>
+<li><strong><strong>Functionality Reduction</strong></strong>: Disable
+features requiring unavailable permissions</li>
+<li><strong><strong>User Notification</strong></strong>: Clearly
+communicate limitations and solutions</li>
+</ol>
+<h1 id="performance-optimization-during-startup">Performance
+Optimization During Startup</h1>
+<h2 id="parallel-initialization">Parallel Initialization</h2>
+<pre><code>[ Configuration Loading ] --parallel--&gt; [ File System Setup ]
+           |                                     |
+           v                                     v
+[ Component Setup ] --parallel--&gt; [ Framework Detection ]
+           |                                     |
+           v                                     v
+[ Event System ] --sync--&gt; [ Startup Completion ]
+</code></pre>
+<p>Startup operations are parallelized where possible:</p>
+<ol>
+<li><strong><strong>Parallel Configuration</strong></strong>: Load
+configuration while setting up other components</li>
+<li><strong><strong>Concurrent Setup</strong></strong>: Initialize
+independent systems concurrently</li>
+<li><strong><strong>Optimistic Framework Detection</strong></strong>:
+Detect frameworks in background</li>
+<li><strong><strong>Lazy Initialization</strong></strong>: Defer
+non-critical setup until first use</li>
+</ol>
+<h2 id="resource-pre-allocation">Resource Pre-allocation</h2>
+<pre><code>[ Startup ] --&gt; [ Thread Pool Setup ] --&gt; [ Memory Pre-allocation ] --&gt; [ Cache Initialization ]
+</code></pre>
+<p>Pre-allocate resources to avoid startup delays during operation:</p>
+<ol>
+<li><strong><strong>Thread Pool Setup</strong></strong>: Create
+monitoring and processing thread pools</li>
+<li><strong><strong>Memory Pre-allocation</strong></strong>: Allocate
+buffers and caches</li>
+<li><strong><strong>Framework Integration</strong></strong>: Initialize
+framework adapters</li>
+<li><strong><strong>Monitoring Setup</strong></strong>: Prepare
+monitoring and metrics collection</li>
+</ol>
+<h1 id="startup-flow-variations">Startup Flow Variations</h1>
+<h2 id="dynamic-attachment-flow">Dynamic Attachment Flow</h2>
+<pre><code>[ Running JVM ] --&gt; [ Attach API ] --&gt; [ Agent Loading ] --&gt; [ Late Initialization ]
+</code></pre>
+<p>When ByteHot attaches to an already running JVM:</p>
+<ol>
+<li><strong><strong>Attach API Usage</strong></strong>: Use JVM Attach
+API to load agent</li>
+<li><strong><strong>Late Initialization</strong></strong>: Initialize
+with already-loaded classes</li>
+<li><strong><strong>Existing Class Discovery</strong></strong>: Identify
+classes already eligible for hot-swap</li>
+<li><strong><strong>Retroactive Enablement</strong></strong>: Enable
+hot-swap for existing classes</li>
+</ol>
+<h2 id="framework-specific-startup">Framework-Specific Startup</h2>
+<pre><code>[ Framework Detection ] --&gt; [ Framework Adapter ] --&gt; [ Integration Setup ] --&gt; [ Enhanced Capabilities ]
+</code></pre>
+<p>When specific frameworks are detected:</p>
+<ol>
+<li><strong><strong>Framework Detection</strong></strong>: Identify
+Spring, CDI, Guice, etc.</li>
+<li><strong><strong>Adapter Selection</strong></strong>: Choose
+appropriate framework adapter</li>
+<li><strong><strong>Integration Setup</strong></strong>: Configure
+framework-specific features</li>
+<li><strong><strong>Enhanced Capabilities</strong></strong>: Enable
+framework-optimized hot-swap strategies</li>
+</ol>
+<h2 id="minimal-startup-flow">Minimal Startup Flow</h2>
+<pre><code>[ Essential Only ] --&gt; [ Basic Monitoring ] --&gt; [ On-Demand Features ]
+</code></pre>
+<p>For resource-constrained environments:</p>
+<ol>
+<li><strong><strong>Essential Components Only</strong></strong>:
+Initialize only critical components</li>
+<li><strong><strong>Basic Monitoring</strong></strong>: Minimal file
+system monitoring</li>
+<li><strong><strong>On-Demand Feature Loading</strong></strong>: Load
+additional features as needed</li>
+</ol>
+<h1 id="startup-flow-invariants">Startup Flow Invariants</h1>
+<h2 id="pre-conditions">Pre-conditions</h2>
+<ul>
+<li>JVM supports required instrumentation capabilities</li>
+<li>ByteHot has necessary file system permissions</li>
+<li>Valid configuration is available</li>
+</ul>
+<h2 id="post-conditions">Post-conditions</h2>
+<ul>
+<li>Agent is fully initialized and operational</li>
+<li>File system monitoring is active for configured paths</li>
+<li>Hot-swap capabilities are enabled for eligible classes</li>
+<li>Event system is operational and routing events correctly</li>
+</ul>
+<h2 id="system-state-guarantees">System State Guarantees</h2>
+<ul>
+<li>No partial initialization states that could cause inconsistency</li>
+<li>All registered components are fully functional</li>
+<li>Error conditions result in clear failure modes</li>
+<li>System is ready to handle hot-swap operations</li>
+</ul>
+<h1 id="monitoring-and-observability">Monitoring and Observability</h1>
+<h2 id="startup-metrics">Startup Metrics</h2>
+<ul>
+<li>Total startup duration</li>
+<li>Component initialization times</li>
+<li>Configuration loading performance</li>
+<li>Framework detection results</li>
+<li>Error counts by type</li>
+</ul>
+<h2 id="health-checks">Health Checks</h2>
+<ul>
+<li>Agent operational status</li>
+<li>File system monitoring status</li>
+<li>Event system health</li>
+<li>Framework integration status</li>
+<li>Configuration validity</li>
+</ul>
+<h2 id="startup-events">Startup Events</h2>
+<ul>
+<li><code class="verbatim">ByteHotAgentAttached</code>: Agent
+successfully attached</li>
+<li><code class="verbatim">WatchPathConfigured</code>: Each watch path
+successfully configured</li>
+<li><code class="verbatim">HotSwapCapabilityEnabled</code>: Hot-swap
+enabled for each eligible class</li>
+<li>Configuration loading events</li>
+<li>Error events for any startup issues</li>
+</ul>
+<h1 id="architecture-integration">Architecture Integration</h1>
+<p>This startup flow establishes the foundation for ByteHot's
+architecture:</p>
+<h2 id="hexagonal-architecture-setup">Hexagonal Architecture Setup</h2>
+<ul>
+<li>Ports and adapters properly configured</li>
+<li>Domain layer isolated from infrastructure concerns</li>
+<li>Clear boundaries between layers established</li>
+</ul>
+<h2 id="event-driven-system-activation">Event-Driven System
+Activation</h2>
+<ul>
+<li>Event routing infrastructure operational</li>
+<li>All components connected to event system</li>
+<li>Event flow validated end-to-end</li>
+</ul>
+<h2 id="domain-driven-design-foundation">Domain-Driven Design
+Foundation</h2>
+<ul>
+<li>Core domain concepts properly initialized</li>
+<li>Aggregates ready to process events</li>
+<li>Repository patterns established for configuration management</li>
+</ul>
+</body></html>

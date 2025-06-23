@@ -6,9 +6,9 @@ set -euo pipefail
 echo "📚 Converting documentation files to HTML..."
 
 # Process docs directory if it exists
-if [ -d "bytehot/docs" ]; then
+if [ -d "docs" ]; then
     echo "📂 Processing docs directory..."
-    for file in bytehot/docs/*.org bytehot/docs/*.md; do
+    for file in docs/*.org docs/*.md; do
         if [ -f "$file" ]; then
             basename=$(basename "$file" .org)
             basename=$(basename "$basename" .md)
@@ -49,7 +49,7 @@ else
 fi
 
 # Process subdirectories
-for subdir in bytehot/docs/*/; do
+for subdir in docs/*/; do
     if [ -d "$subdir" ]; then
         echo "📂 Processing subdirectory: $subdir"
         for file in "$subdir"*.org "$subdir"*.md; do

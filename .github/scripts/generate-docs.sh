@@ -42,18 +42,22 @@ fi
 
 # Generate index page from story.org
 echo "📄 Generating index page..."
-./.github/scripts/generate-index.sh
+bash ./.github/scripts/generate-index.sh
 
 # Generate journal page  
 echo "📔 Generating journal page..."
-./.github/scripts/generate-journal.sh
+bash ./.github/scripts/generate-journal.sh
 
 # Convert org documentation files
 echo "📚 Converting documentation files..."
-./.github/scripts/convert-docs.sh
+bash ./.github/scripts/convert-docs.sh
 
 # Generate implementation page
 echo "📋 Generating implementation page..."
-./.github/scripts/generate-implementation.sh
+bash ./.github/scripts/generate-implementation.sh
+
+# Add navigation and footer to all pages
+echo "🎨 Adding navigation and footer..."
+bash ./.github/scripts/add-navigation.sh
 
 echo "✅ Documentation generation completed successfully!"

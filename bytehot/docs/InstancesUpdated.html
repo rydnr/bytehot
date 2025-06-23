@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>InstancesUpdated - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code class="verbatim">InstancesUpdated</code> domain event
+represents the successful completion of instance update operations in
+ByteHot. This event is fired when existing instances have been updated
+to reflect changes from class redefinition, providing comprehensive
+information about the update process and its outcomes.</p>
+<h2 id="key-responsibilities">Key Responsibilities</h2>
+<ul>
+<li>Signal completion of instance update operations</li>
+<li>Provide detailed metrics about the update process</li>
+<li>Include information about update methods and strategies used</li>
+<li>Support monitoring and analysis of instance management
+operations</li>
+<li>Enable downstream processing and audit trail creation</li>
+</ul>
+<h1 id="class-declaration-and-core-structure">Class Declaration and Core
+Structure</h1>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/events/InstancesUpdated.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/*</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">                        ByteHot</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Copyright (C) 2025-today  rydnr@acm-sl.org</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">    This library is free software; you can redistribute it and/or</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">    modify it under the terms of the GNU General Public</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">    License as published by the Free Software Foundation; either</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">    version 3 of the License, or (at your option) any later version.</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">    This library is distributed in the hope that it will be useful,</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">    General Public License for more details.</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">    You should have received a copy of the GNU General Public v3</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">    License along with this library; if not, write to the Free Software</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">    Thanks to ACM S.L. for distributing this library under the GPLv3 license.</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">    Contact info: jose.sanleandro@acm-sl.com</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co"> ******************************************************************************</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co"> * Filename: InstancesUpdated.java</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"> * Author: Claude Code</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co"> * Class name: InstancesUpdated</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co"> * Responsibilities:</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Signal successful completion of instance update operations</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Provide comprehensive update metrics and details</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Support monitoring and audit trail creation</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co"> * Collaborators:</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - InstanceUpdater: Fires this event after successful updates</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - InstanceUpdateMethod: Indicates method used for updates</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span><span class="im"> org</span><span class="op">.</span><span class="im">acmsl</span><span class="op">.</span><span class="im">bytehot</span><span class="op">.</span><span class="im">domain</span><span class="op">.</span><span class="im">events</span><span class="op">;</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">org</span><span class="op">.</span><span class="im">acmsl</span><span class="op">.</span><span class="im">bytehot</span><span class="op">.</span><span class="im">domain</span><span class="op">.</span><span class="im">InstanceUpdateMethod</span><span class="op">;</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">org</span><span class="op">.</span><span class="im">acmsl</span><span class="op">.</span><span class="im">commons</span><span class="op">.</span><span class="im">patterns</span><span class="op">.</span><span class="im">DomainResponseEvent</span><span class="op">;</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">lombok</span><span class="op">.</span><span class="im">Getter</span><span class="op">;</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">time</span><span class="op">.</span><span class="im">Duration</span><span class="op">;</span></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">time</span><span class="op">.</span><span class="im">Instant</span><span class="op">;</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">List</span><span class="op">;</span></span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="im">java</span><span class="op">.</span><span class="im">util</span><span class="op">.</span><span class="im">concurrent</span><span class="op">.</span><span class="im">CopyOnWriteArrayList</span><span class="op">;</span></span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Domain event fired when instances have been successfully updated</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@author</span> Claude Code</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@since</span> <span class="co">2025-06-17</span></span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> InstancesUpdated <span class="kw">extends</span> DomainResponseEvent<span class="op">&lt;</span>ClassRedefinitionSucceeded<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Class name for which instances were updated</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> className<span class="op">;</span></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Number of instances that were successfully updated</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">int</span> instancesUpdated<span class="op">;</span></span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Number of instances that failed to update</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">int</span> instancesFailed<span class="op">;</span></span>
+<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Update method that was used</span>
+<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> InstanceUpdateMethod updateMethod<span class="op">;</span></span>
+<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Duration of the update operation</span>
+<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-83"><a href="#cb1-83" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">Duration</span> updateDuration<span class="op">;</span></span>
+<span id="cb1-84"><a href="#cb1-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-85"><a href="#cb1-85" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-86"><a href="#cb1-86" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Timestamp when update operation started</span>
+<span id="cb1-87"><a href="#cb1-87" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-88"><a href="#cb1-88" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Instant startTime<span class="op">;</span></span>
+<span id="cb1-89"><a href="#cb1-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-90"><a href="#cb1-90" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-91"><a href="#cb1-91" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Timestamp when update operation completed</span>
+<span id="cb1-92"><a href="#cb1-92" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-93"><a href="#cb1-93" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Instant endTime<span class="op">;</span></span>
+<span id="cb1-94"><a href="#cb1-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-95"><a href="#cb1-95" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-96"><a href="#cb1-96" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> List of warnings encountered during update</span>
+<span id="cb1-97"><a href="#cb1-97" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-98"><a href="#cb1-98" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> warnings<span class="op">;</span></span>
+<span id="cb1-99"><a href="#cb1-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-100"><a href="#cb1-100" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-101"><a href="#cb1-101" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Additional details about the update operation</span>
+<span id="cb1-102"><a href="#cb1-102" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-103"><a href="#cb1-103" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> details<span class="op">;</span></span>
+<span id="cb1-104"><a href="#cb1-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-105"><a href="#cb1-105" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-106"><a href="#cb1-106" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Whether framework integration was used</span>
+<span id="cb1-107"><a href="#cb1-107" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-108"><a href="#cb1-108" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">boolean</span> frameworkIntegrationUsed<span class="op">;</span></span>
+<span id="cb1-109"><a href="#cb1-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-110"><a href="#cb1-110" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-111"><a href="#cb1-111" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Creates a new instances updated event</span>
+<span id="cb1-112"><a href="#cb1-112" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-113"><a href="#cb1-113" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="fu">InstancesUpdated</span><span class="op">(</span><span class="dt">final</span> ClassRedefinitionSucceeded previousEvent<span class="op">,</span> <span class="dt">final</span> <span class="bu">String</span> className<span class="op">,</span></span>
+<span id="cb1-114"><a href="#cb1-114" aria-hidden="true" tabindex="-1"></a>                            <span class="dt">final</span> <span class="dt">int</span> instancesUpdated<span class="op">,</span> <span class="dt">final</span> <span class="dt">int</span> instancesFailed<span class="op">,</span></span>
+<span id="cb1-115"><a href="#cb1-115" aria-hidden="true" tabindex="-1"></a>                            <span class="dt">final</span> InstanceUpdateMethod updateMethod<span class="op">,</span> <span class="dt">final</span> <span class="bu">Duration</span> updateDuration<span class="op">,</span></span>
+<span id="cb1-116"><a href="#cb1-116" aria-hidden="true" tabindex="-1"></a>                            <span class="dt">final</span> Instant startTime<span class="op">,</span> <span class="dt">final</span> Instant endTime<span class="op">,</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> warnings<span class="op">,</span></span>
+<span id="cb1-117"><a href="#cb1-117" aria-hidden="true" tabindex="-1"></a>                            <span class="dt">final</span> <span class="bu">String</span> details<span class="op">,</span> <span class="dt">final</span> <span class="dt">boolean</span> frameworkIntegrationUsed<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-118"><a href="#cb1-118" aria-hidden="true" tabindex="-1"></a>        <span class="kw">super</span><span class="op">(</span>previousEvent<span class="op">);</span></span>
+<span id="cb1-119"><a href="#cb1-119" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">className</span> <span class="op">=</span> className<span class="op">;</span></span>
+<span id="cb1-120"><a href="#cb1-120" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">instancesUpdated</span> <span class="op">=</span> instancesUpdated<span class="op">;</span></span>
+<span id="cb1-121"><a href="#cb1-121" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">instancesFailed</span> <span class="op">=</span> instancesFailed<span class="op">;</span></span>
+<span id="cb1-122"><a href="#cb1-122" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">updateMethod</span> <span class="op">=</span> updateMethod<span class="op">;</span></span>
+<span id="cb1-123"><a href="#cb1-123" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">updateDuration</span> <span class="op">=</span> updateDuration<span class="op">;</span></span>
+<span id="cb1-124"><a href="#cb1-124" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">startTime</span> <span class="op">=</span> startTime<span class="op">;</span></span>
+<span id="cb1-125"><a href="#cb1-125" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">endTime</span> <span class="op">=</span> endTime<span class="op">;</span></span>
+<span id="cb1-126"><a href="#cb1-126" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">warnings</span> <span class="op">=</span> <span class="kw">new</span> <span class="bu">CopyOnWriteArrayList</span><span class="op">&lt;&gt;(</span>warnings<span class="op">);</span></span>
+<span id="cb1-127"><a href="#cb1-127" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">details</span> <span class="op">=</span> details<span class="op">;</span></span>
+<span id="cb1-128"><a href="#cb1-128" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">frameworkIntegrationUsed</span> <span class="op">=</span> frameworkIntegrationUsed<span class="op">;</span></span>
+<span id="cb1-129"><a href="#cb1-129" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-130"><a href="#cb1-130" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-131"><a href="#cb1-131" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-132"><a href="#cb1-132" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Creates a new instances updated event</span>
+<span id="cb1-133"><a href="#cb1-133" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-134"><a href="#cb1-134" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">static</span> InstancesUpdated <span class="fu">create</span><span class="op">(</span><span class="dt">final</span> ClassRedefinitionSucceeded previousEvent<span class="op">,</span> <span class="dt">final</span> <span class="bu">String</span> className<span class="op">,</span></span>
+<span id="cb1-135"><a href="#cb1-135" aria-hidden="true" tabindex="-1"></a>                                        <span class="dt">final</span> <span class="dt">int</span> instancesUpdated<span class="op">,</span> <span class="dt">final</span> <span class="dt">int</span> instancesFailed<span class="op">,</span></span>
+<span id="cb1-136"><a href="#cb1-136" aria-hidden="true" tabindex="-1"></a>                                        <span class="dt">final</span> InstanceUpdateMethod updateMethod<span class="op">,</span> <span class="dt">final</span> <span class="bu">Duration</span> updateDuration<span class="op">,</span></span>
+<span id="cb1-137"><a href="#cb1-137" aria-hidden="true" tabindex="-1"></a>                                        <span class="dt">final</span> Instant startTime<span class="op">,</span> <span class="dt">final</span> Instant endTime<span class="op">,</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> warnings<span class="op">,</span></span>
+<span id="cb1-138"><a href="#cb1-138" aria-hidden="true" tabindex="-1"></a>                                        <span class="dt">final</span> <span class="bu">String</span> details<span class="op">,</span> <span class="dt">final</span> <span class="dt">boolean</span> frameworkIntegrationUsed<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-139"><a href="#cb1-139" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">InstancesUpdated</span><span class="op">(</span>previousEvent<span class="op">,</span> className<span class="op">,</span> instancesUpdated<span class="op">,</span> instancesFailed<span class="op">,</span></span>
+<span id="cb1-140"><a href="#cb1-140" aria-hidden="true" tabindex="-1"></a>                                  updateMethod<span class="op">,</span> updateDuration<span class="op">,</span> startTime<span class="op">,</span> endTime<span class="op">,</span> warnings<span class="op">,</span></span>
+<span id="cb1-141"><a href="#cb1-141" aria-hidden="true" tabindex="-1"></a>                                  details<span class="op">,</span> frameworkIntegrationUsed<span class="op">);</span></span>
+<span id="cb1-142"><a href="#cb1-142" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-143"><a href="#cb1-143" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-144"><a href="#cb1-144" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-145"><a href="#cb1-145" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns the total number of instances processed</span>
+<span id="cb1-146"><a href="#cb1-146" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-147"><a href="#cb1-147" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> <span class="fu">getTotalInstancesProcessed</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-148"><a href="#cb1-148" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> instancesUpdated <span class="op">+</span> instancesFailed<span class="op">;</span></span>
+<span id="cb1-149"><a href="#cb1-149" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-150"><a href="#cb1-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-151"><a href="#cb1-151" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-152"><a href="#cb1-152" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns the success rate as a percentage</span>
+<span id="cb1-153"><a href="#cb1-153" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-154"><a href="#cb1-154" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">double</span> <span class="fu">getSuccessRate</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-155"><a href="#cb1-155" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">int</span> total <span class="op">=</span> <span class="fu">getTotalInstancesProcessed</span><span class="op">();</span></span>
+<span id="cb1-156"><a href="#cb1-156" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>total <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-157"><a href="#cb1-157" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="fl">100.0</span><span class="op">;</span></span>
+<span id="cb1-158"><a href="#cb1-158" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-159"><a href="#cb1-159" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">(</span><span class="dt">double</span><span class="op">)</span> instancesUpdated <span class="op">/</span> total <span class="op">*</span> <span class="fl">100.0</span><span class="op">;</span></span>
+<span id="cb1-160"><a href="#cb1-160" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-161"><a href="#cb1-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-162"><a href="#cb1-162" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-163"><a href="#cb1-163" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether the update operation was completely successful</span>
+<span id="cb1-164"><a href="#cb1-164" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-165"><a href="#cb1-165" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isCompletelySuccessful</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-166"><a href="#cb1-166" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> instancesFailed <span class="op">==</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> instancesUpdated <span class="op">&gt;</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-167"><a href="#cb1-167" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-168"><a href="#cb1-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-169"><a href="#cb1-169" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-170"><a href="#cb1-170" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether the update operation had partial success</span>
+<span id="cb1-171"><a href="#cb1-171" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-172"><a href="#cb1-172" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">hasPartialSuccess</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-173"><a href="#cb1-173" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> instancesUpdated <span class="op">&gt;</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span> instancesFailed <span class="op">&gt;</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-174"><a href="#cb1-174" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-175"><a href="#cb1-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-176"><a href="#cb1-176" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-177"><a href="#cb1-177" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether the update operation had warnings</span>
+<span id="cb1-178"><a href="#cb1-178" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-179"><a href="#cb1-179" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">hasWarnings</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-180"><a href="#cb1-180" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">!</span>warnings<span class="op">.</span><span class="fu">isEmpty</span><span class="op">();</span></span>
+<span id="cb1-181"><a href="#cb1-181" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-182"><a href="#cb1-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-183"><a href="#cb1-183" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-184"><a href="#cb1-184" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns the number of warnings</span>
+<span id="cb1-185"><a href="#cb1-185" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-186"><a href="#cb1-186" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">int</span> <span class="fu">getWarningCount</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-187"><a href="#cb1-187" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> warnings<span class="op">.</span><span class="fu">size</span><span class="op">();</span></span>
+<span id="cb1-188"><a href="#cb1-188" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-189"><a href="#cb1-189" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-190"><a href="#cb1-190" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-191"><a href="#cb1-191" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether the update operation was fast</span>
+<span id="cb1-192"><a href="#cb1-192" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-193"><a href="#cb1-193" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isFastUpdate</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-194"><a href="#cb1-194" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> updateDuration<span class="op">.</span><span class="fu">toMillis</span><span class="op">()</span> <span class="op">&lt;</span> <span class="dv">1000</span><span class="op">;</span> <span class="co">// Less than 1 second</span></span>
+<span id="cb1-195"><a href="#cb1-195" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-196"><a href="#cb1-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-197"><a href="#cb1-197" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-198"><a href="#cb1-198" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether the update operation was slow</span>
+<span id="cb1-199"><a href="#cb1-199" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-200"><a href="#cb1-200" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isSlowUpdate</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-201"><a href="#cb1-201" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> updateDuration<span class="op">.</span><span class="fu">toMillis</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">10000</span><span class="op">;</span> <span class="co">// More than 10 seconds</span></span>
+<span id="cb1-202"><a href="#cb1-202" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-203"><a href="#cb1-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-204"><a href="#cb1-204" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-205"><a href="#cb1-205" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether state was preserved during update</span>
+<span id="cb1-206"><a href="#cb1-206" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-207"><a href="#cb1-207" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">wasStatePreserved</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-208"><a href="#cb1-208" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> updateMethod<span class="op">.</span><span class="fu">preservesState</span><span class="op">();</span></span>
+<span id="cb1-209"><a href="#cb1-209" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-210"><a href="#cb1-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-211"><a href="#cb1-211" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-212"><a href="#cb1-212" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns whether new instances were created during update</span>
+<span id="cb1-213"><a href="#cb1-213" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-214"><a href="#cb1-214" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">wereNewInstancesCreated</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-215"><a href="#cb1-215" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> updateMethod<span class="op">.</span><span class="fu">createsNewInstances</span><span class="op">();</span></span>
+<span id="cb1-216"><a href="#cb1-216" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-217"><a href="#cb1-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-218"><a href="#cb1-218" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-219"><a href="#cb1-219" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns the average time per instance updated</span>
+<span id="cb1-220"><a href="#cb1-220" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-221"><a href="#cb1-221" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">Duration</span> <span class="fu">getAverageTimePerInstance</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-222"><a href="#cb1-222" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>instancesUpdated <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-223"><a href="#cb1-223" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">Duration</span><span class="op">.</span><span class="fu">ZERO</span><span class="op">;</span></span>
+<span id="cb1-224"><a href="#cb1-224" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-225"><a href="#cb1-225" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> updateDuration<span class="op">.</span><span class="fu">dividedBy</span><span class="op">(</span>instancesUpdated<span class="op">);</span></span>
+<span id="cb1-226"><a href="#cb1-226" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-227"><a href="#cb1-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-228"><a href="#cb1-228" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-229"><a href="#cb1-229" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns a summary description of the update operation</span>
+<span id="cb1-230"><a href="#cb1-230" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-231"><a href="#cb1-231" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">String</span> <span class="fu">getSummary</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-232"><a href="#cb1-232" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">isCompletelySuccessful</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-233"><a href="#cb1-233" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;Successfully updated </span><span class="sc">%d</span><span class="st"> instances of </span><span class="sc">%s</span><span class="st"> using </span><span class="sc">%s</span><span class="st"> in </span><span class="sc">%d</span><span class="st">ms&quot;</span><span class="op">,</span></span>
+<span id="cb1-234"><a href="#cb1-234" aria-hidden="true" tabindex="-1"></a>                               instancesUpdated<span class="op">,</span> className<span class="op">,</span> updateMethod<span class="op">.</span><span class="fu">getDescription</span><span class="op">(),</span> updateDuration<span class="op">.</span><span class="fu">toMillis</span><span class="op">());</span></span>
+<span id="cb1-235"><a href="#cb1-235" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span><span class="fu">hasPartialSuccess</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-236"><a href="#cb1-236" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;Partially updated </span><span class="sc">%d</span><span class="st">/</span><span class="sc">%d</span><span class="st"> instances of </span><span class="sc">%s</span><span class="st"> using </span><span class="sc">%s</span><span class="st"> in </span><span class="sc">%d</span><span class="st">ms&quot;</span><span class="op">,</span></span>
+<span id="cb1-237"><a href="#cb1-237" aria-hidden="true" tabindex="-1"></a>                               instancesUpdated<span class="op">,</span> <span class="fu">getTotalInstancesProcessed</span><span class="op">(),</span> className<span class="op">,</span></span>
+<span id="cb1-238"><a href="#cb1-238" aria-hidden="true" tabindex="-1"></a>                               updateMethod<span class="op">.</span><span class="fu">getDescription</span><span class="op">(),</span> updateDuration<span class="op">.</span><span class="fu">toMillis</span><span class="op">());</span></span>
+<span id="cb1-239"><a href="#cb1-239" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb1-240"><a href="#cb1-240" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;Failed to update </span><span class="sc">%d</span><span class="st"> instances of </span><span class="sc">%s</span><span class="st"> using </span><span class="sc">%s</span><span class="st">&quot;</span><span class="op">,</span></span>
+<span id="cb1-241"><a href="#cb1-241" aria-hidden="true" tabindex="-1"></a>                               instancesFailed<span class="op">,</span> className<span class="op">,</span> updateMethod<span class="op">.</span><span class="fu">getDescription</span><span class="op">());</span></span>
+<span id="cb1-242"><a href="#cb1-242" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-243"><a href="#cb1-243" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-244"><a href="#cb1-244" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-245"><a href="#cb1-245" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-246"><a href="#cb1-246" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Returns performance classification of the update operation</span>
+<span id="cb1-247"><a href="#cb1-247" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-248"><a href="#cb1-248" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> UpdatePerformance <span class="fu">getPerformanceClassification</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-249"><a href="#cb1-249" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">isFastUpdate</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-250"><a href="#cb1-250" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> UpdatePerformance<span class="op">.</span><span class="fu">FAST</span><span class="op">;</span></span>
+<span id="cb1-251"><a href="#cb1-251" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span><span class="fu">isSlowUpdate</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb1-252"><a href="#cb1-252" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> UpdatePerformance<span class="op">.</span><span class="fu">SLOW</span><span class="op">;</span></span>
+<span id="cb1-253"><a href="#cb1-253" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb1-254"><a href="#cb1-254" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> UpdatePerformance<span class="op">.</span><span class="fu">NORMAL</span><span class="op">;</span></span>
+<span id="cb1-255"><a href="#cb1-255" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-256"><a href="#cb1-256" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-257"><a href="#cb1-257" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-258"><a href="#cb1-258" aria-hidden="true" tabindex="-1"></a>    <span class="co">/**</span></span>
+<span id="cb1-259"><a href="#cb1-259" aria-hidden="true" tabindex="-1"></a>     <span class="co">*</span> Performance classification for update operations</span>
+<span id="cb1-260"><a href="#cb1-260" aria-hidden="true" tabindex="-1"></a>     <span class="co">*/</span></span>
+<span id="cb1-261"><a href="#cb1-261" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="kw">enum</span> UpdatePerformance <span class="op">{</span></span>
+<span id="cb1-262"><a href="#cb1-262" aria-hidden="true" tabindex="-1"></a>        <span class="fu">FAST</span><span class="op">(</span><span class="st">&quot;Fast update - completed in under 1 second&quot;</span><span class="op">),</span></span>
+<span id="cb1-263"><a href="#cb1-263" aria-hidden="true" tabindex="-1"></a>        <span class="fu">NORMAL</span><span class="op">(</span><span class="st">&quot;Normal update - completed in reasonable time&quot;</span><span class="op">),</span></span>
+<span id="cb1-264"><a href="#cb1-264" aria-hidden="true" tabindex="-1"></a>        <span class="fu">SLOW</span><span class="op">(</span><span class="st">&quot;Slow update - took more than 10 seconds&quot;</span><span class="op">);</span></span>
+<span id="cb1-265"><a href="#cb1-265" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-266"><a href="#cb1-266" aria-hidden="true" tabindex="-1"></a>        <span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> description<span class="op">;</span></span>
+<span id="cb1-267"><a href="#cb1-267" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-268"><a href="#cb1-268" aria-hidden="true" tabindex="-1"></a>        <span class="fu">UpdatePerformance</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> description<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb1-269"><a href="#cb1-269" aria-hidden="true" tabindex="-1"></a>            <span class="kw">this</span><span class="op">.</span><span class="fu">description</span> <span class="op">=</span> description<span class="op">;</span></span>
+<span id="cb1-270"><a href="#cb1-270" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-271"><a href="#cb1-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-272"><a href="#cb1-272" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> <span class="bu">String</span> <span class="fu">getDescription</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-273"><a href="#cb1-273" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> description<span class="op">;</span></span>
+<span id="cb1-274"><a href="#cb1-274" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb1-275"><a href="#cb1-275" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-276"><a href="#cb1-276" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-277"><a href="#cb1-277" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Override</span></span>
+<span id="cb1-278"><a href="#cb1-278" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">String</span> <span class="fu">toString</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb1-279"><a href="#cb1-279" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">&quot;InstancesUpdated{&quot;</span> <span class="op">+</span></span>
+<span id="cb1-280"><a href="#cb1-280" aria-hidden="true" tabindex="-1"></a>               <span class="st">&quot;className=&#39;&quot;</span> <span class="op">+</span> className <span class="op">+</span> <span class="ch">&#39;\&#39;&#39;</span> <span class="op">+</span></span>
+<span id="cb1-281"><a href="#cb1-281" aria-hidden="true" tabindex="-1"></a>               <span class="st">&quot;, instancesUpdated=&quot;</span> <span class="op">+</span> instancesUpdated <span class="op">+</span></span>
+<span id="cb1-282"><a href="#cb1-282" aria-hidden="true" tabindex="-1"></a>               <span class="st">&quot;, instancesFailed=&quot;</span> <span class="op">+</span> instancesFailed <span class="op">+</span></span>
+<span id="cb1-283"><a href="#cb1-283" aria-hidden="true" tabindex="-1"></a>               <span class="st">&quot;, updateMethod=&quot;</span> <span class="op">+</span> updateMethod <span class="op">+</span></span>
+<span id="cb1-284"><a href="#cb1-284" aria-hidden="true" tabindex="-1"></a>               <span class="st">&quot;, duration=&quot;</span> <span class="op">+</span> updateDuration<span class="op">.</span><span class="fu">toMillis</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;ms&quot;</span> <span class="op">+</span></span>
+<span id="cb1-285"><a href="#cb1-285" aria-hidden="true" tabindex="-1"></a>               <span class="st">&quot;, successRate=&quot;</span> <span class="op">+</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;</span><span class="sc">%.1f</span><span class="st">&quot;</span><span class="op">,</span> <span class="fu">getSuccessRate</span><span class="op">())</span> <span class="op">+</span> <span class="st">&quot;%&quot;</span> <span class="op">+</span></span>
+<span id="cb1-286"><a href="#cb1-286" aria-hidden="true" tabindex="-1"></a>               <span class="ch">&#39;}&#39;</span><span class="op">;</span></span>
+<span id="cb1-287"><a href="#cb1-287" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb1-288"><a href="#cb1-288" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="usage-examples">Usage Examples</h1>
+<h2 id="handling-instance-update-events">Handling Instance Update
+Events</h2>
+<p>public void handleInstancesUpdated(InstancesUpdated event) {
+logger.info("Instance update completed: " + event.getSummary());</p>
+<p>// Record metrics updateMetrics.recordUpdate( event.getClassName(),
+event.getInstancesUpdated(), event.getUpdateDuration(),
+event.getUpdateMethod() );</p>
+<p>// Check for performance issues if (event.isSlowUpdate()) {
+logger.warn("Slow instance update detected for {}: {}ms",
+event.getClassName(), event.getUpdateDuration().toMillis());
+performanceAnalyzer.analyzeSlowUpdate(event); }</p>
+<p>// Handle partial failures if (event.hasPartialSuccess()) {
+logger.warn("Partial instance update failure: {}/{} instances updated",
+event.getInstancesUpdated(), event.getTotalInstancesProcessed());
+partialFailureHandler.handlePartialFailure(event); }</p>
+<p>// Log warnings if (event.hasWarnings()) { logger.warn("Instance
+update completed with {} warnings:", event.getWarningCount());
+event.getWarnings().forEach(warning -&gt; logger.warn(" - " + warning));
+}</p>
+<p>// Update monitoring dashboards
+monitoringService.updateInstanceUpdateMetrics(event); }</p>
+<h2 id="performance-analysis-and-optimization">Performance Analysis and
+Optimization</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">analyzeUpdatePerformance</span><span class="op">(</span><span class="bu">List</span><span class="op">&lt;</span>InstancesUpdated<span class="op">&gt;</span> events<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Map</span><span class="op">&lt;</span>InstanceUpdateMethod<span class="op">,</span> PerformanceStats<span class="op">&gt;</span> methodStats <span class="op">=</span> <span class="kw">new</span> <span class="bu">EnumMap</span><span class="op">&lt;&gt;(</span>InstanceUpdateMethod<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>InstancesUpdated event <span class="op">:</span> events<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        InstanceUpdateMethod method <span class="op">=</span> event<span class="op">.</span><span class="fu">getUpdateMethod</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        PerformanceStats stats <span class="op">=</span> methodStats<span class="op">.</span><span class="fu">computeIfAbsent</span><span class="op">(</span>method<span class="op">,</span> k <span class="op">-&gt;</span> <span class="kw">new</span> <span class="fu">PerformanceStats</span><span class="op">());</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        stats<span class="op">.</span><span class="fu">addUpdate</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Analyze effectiveness</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">isCompletelySuccessful</span><span class="op">()</span> <span class="op">&amp;&amp;</span> event<span class="op">.</span><span class="fu">isFastUpdate</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            stats<span class="op">.</span><span class="fu">incrementOptimalUpdates</span><span class="op">();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Track framework integration usage</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">isFrameworkIntegrationUsed</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            stats<span class="op">.</span><span class="fu">incrementFrameworkUsage</span><span class="op">();</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate performance report</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="bu">Map</span><span class="op">.</span><span class="fu">Entry</span><span class="op">&lt;</span>InstanceUpdateMethod<span class="op">,</span> PerformanceStats<span class="op">&gt;</span> entry <span class="op">:</span> methodStats<span class="op">.</span><span class="fu">entrySet</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>        InstanceUpdateMethod method <span class="op">=</span> entry<span class="op">.</span><span class="fu">getKey</span><span class="op">();</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        PerformanceStats stats <span class="op">=</span> entry<span class="op">.</span><span class="fu">getValue</span><span class="op">();</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        logger<span class="op">.</span><span class="fu">info</span><span class="op">(</span><span class="st">&quot;Update method {}: Success rate {:.1f}%, Avg time {}ms, Optimal rate {:.1f}%&quot;</span><span class="op">,</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>                   method<span class="op">,</span> stats<span class="op">.</span><span class="fu">getSuccessRate</span><span class="op">(),</span> stats<span class="op">.</span><span class="fu">getAverageTime</span><span class="op">().</span><span class="fu">toMillis</span><span class="op">(),</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>                   stats<span class="op">.</span><span class="fu">getOptimalRate</span><span class="op">());</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Recommendations</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>stats<span class="op">.</span><span class="fu">getSuccessRate</span><span class="op">()</span> <span class="op">&lt;</span> <span class="fl">95.0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>            logger<span class="op">.</span><span class="fu">warn</span><span class="op">(</span><span class="st">&quot;Consider improving reliability for method: &quot;</span> <span class="op">+</span> method<span class="op">);</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>stats<span class="op">.</span><span class="fu">getAverageTime</span><span class="op">().</span><span class="fu">toSeconds</span><span class="op">()</span> <span class="op">&gt;</span> <span class="dv">5</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            logger<span class="op">.</span><span class="fu">warn</span><span class="op">(</span><span class="st">&quot;Consider optimizing performance for method: &quot;</span> <span class="op">+</span> method<span class="op">);</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="update-strategy-effectiveness-analysis">Update Strategy
+Effectiveness Analysis</h2>
+<p>public UpdateEffectivenessReport
+analyzeUpdateEffectiveness(List&lt;InstancesUpdated&gt; events) {
+Map&lt;String, ClassUpdateStats&gt; classStats = new
+HashMap&lt;&gt;();</p>
+<p>for (InstancesUpdated event : events) { String className =
+event.getClassName(); ClassUpdateStats stats =
+classStats.computeIfAbsent(className, k -&gt; new
+ClassUpdateStats());</p>
+<p>stats.addEvent(event);</p>
+<p>// Analyze method effectiveness for this class if
+(event.isCompletelySuccessful()) {
+stats.recordSuccessfulMethod(event.getUpdateMethod()); } else {
+stats.recordFailedMethod(event.getUpdateMethod(),
+event.getInstancesFailed()); }</p>
+<p>// Track state preservation effectiveness if
+(event.wasStatePreserved() &amp;&amp; event.isCompletelySuccessful()) {
+stats.incrementStatePreservationSuccess(); } }</p>
+<p>// Generate recommendations List&lt;String&gt; recommendations = new
+ArrayList&lt;&gt;(); for (Map.Entry&lt;String, ClassUpdateStats&gt;
+entry : classStats.entrySet()) { String className = entry.getKey();
+ClassUpdateStats stats = entry.getValue();</p>
+<p>InstanceUpdateMethod bestMethod = stats.getBestPerformingMethod();
+InstanceUpdateMethod worstMethod = stats.getWorstPerformingMethod();</p>
+<p>if (bestMethod != null &amp;&amp; worstMethod != null &amp;&amp;
+bestMethod != worstMethod) { recommendations.add(String.format( "For
+class %s, prefer %s over %s (%.1f%% vs %.1f%% success rate)", className,
+bestMethod, worstMethod, stats.getSuccessRate(bestMethod),
+stats.getSuccessRate(worstMethod) )); }</p>
+<p>if (stats.getStatePreservationSuccessRate() &lt; 90.0) {
+recommendations.add(String.format( "State preservation for %s has low
+success rate: %.1f%%", className,
+stats.getStatePreservationSuccessRate() )); } }</p>
+<p>return new UpdateEffectivenessReport(classStats, recommendations);
+}</p>
+<h2 id="real-time-monitoring-and-alerting">Real-time Monitoring and
+Alerting</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">monitorUpdateOperations</span><span class="op">(</span>InstancesUpdated event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Track real-time metrics</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    realTimeMetrics<span class="op">.</span><span class="fu">incrementUpdateCount</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    realTimeMetrics<span class="op">.</span><span class="fu">recordUpdateDuration</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getUpdateDuration</span><span class="op">());</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    realTimeMetrics<span class="op">.</span><span class="fu">recordSuccessRate</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getSuccessRate</span><span class="op">());</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Performance alerting</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">isSlowUpdate</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        alertManager<span class="op">.</span><span class="fu">sendPerformanceAlert</span><span class="op">(</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Slow instance update detected&quot;</span><span class="op">,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getUpdateDuration</span><span class="op">()</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Success rate alerting</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">getSuccessRate</span><span class="op">()</span> <span class="op">&lt;</span> <span class="fl">90.0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        alertManager<span class="op">.</span><span class="fu">sendReliabilityAlert</span><span class="op">(</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Low instance update success rate&quot;</span><span class="op">,</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getSuccessRate</span><span class="op">()</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Framework integration monitoring</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>event<span class="op">.</span><span class="fu">isFrameworkIntegrationUsed</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        frameworkMonitor<span class="op">.</span><span class="fu">recordIntegrationUsage</span><span class="op">(</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">getUpdateMethod</span><span class="op">(),</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>            event<span class="op">.</span><span class="fu">isCompletelySuccessful</span><span class="op">()</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Update health score</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    healthScoreCalculator<span class="op">.</span><span class="fu">updateInstanceManagementHealth</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="architecture-notes">Architecture Notes</h1>
+<h2 id="event-driven-architecture-integration">Event-Driven Architecture
+Integration</h2>
+<ul>
+<li>Part of the comprehensive domain event system</li>
+<li>Enables loose coupling between instance management and
+monitoring</li>
+<li>Supports real-time analytics and decision making</li>
+<li>Facilitates audit trail creation and compliance reporting</li>
+</ul>
+<h2 id="performance-and-reliability-tracking">Performance and
+Reliability Tracking</h2>
+<ul>
+<li>Comprehensive metrics for update operation analysis</li>
+<li>Support for method effectiveness comparison</li>
+<li>Framework integration usage tracking</li>
+<li>Real-time performance monitoring capabilities</li>
+</ul>
+<h2 id="domain-driven-design-alignment">Domain-Driven Design
+Alignment</h2>
+<ul>
+<li>Represents a significant business event in the ByteHot domain</li>
+<li>Encapsulates complete context for downstream processing</li>
+<li>Immutable event structure following DDD principles</li>
+<li>Clear relationship to previous domain events in the flow</li>
+</ul>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

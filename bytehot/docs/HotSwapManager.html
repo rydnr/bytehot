@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HotSwapManager - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>HotSwapManager</code> class serves as ByteHot's
+sophisticated JVM runtime class redefinition orchestrator, responsible
+for coordinating the critical transition from validated bytecode to
+actual JVM class redefinition. This essential domain service represents
+the technical heart of ByteHot's hot-swap capabilities, managing the
+complex interaction with JVM internals while maintaining system
+stability and providing comprehensive error handling. As the final
+gatekeeper before runtime modifications, it embodies ByteHot's
+revolutionary approach to zero-downtime evolution through intelligent
+runtime adaptation.</p>
+<h1 id="domain-architecture-role">Domain Architecture Role</h1>
+<h2 id="core-domain-service-for-runtime-operations">Core Domain Service
+for Runtime Operations</h2>
+<p>HotSwapManager serves as a fundamental domain service in ByteHot's
+DDD architecture:</p>
+<ul>
+<li>Orchestrates the transition from validation to JVM redefinition</li>
+<li>Encapsulates complex JVM interaction logic within domain
+boundaries</li>
+<li>Provides pure domain functionality for hot-swap coordination</li>
+<li>Acts as the authoritative source for redefinition execution
+decisions</li>
+</ul>
+<h2 id="event-driven-orchestration-engine">Event-Driven Orchestration
+Engine</h2>
+<p>The manager integrates seamlessly with ByteHot's event-driven
+architecture:</p>
+<ul>
+<li>Consumes BytecodeValidated events from validation processes</li>
+<li>Produces HotSwapRequested events for redefinition initiation</li>
+<li>Generates ClassRedefinitionSucceeded events for successful
+operations</li>
+<li>Creates ClassRedefinitionFailed events for comprehensive error
+handling</li>
+</ul>
+<h2 id="jvm-interface-abstraction-layer">JVM Interface Abstraction
+Layer</h2>
+<p>The implementation provides clean abstraction over JVM
+complexities:</p>
+<ul>
+<li>Encapsulates JVM instrumentation API interactions</li>
+<li>Manages class redefinition timing and coordination</li>
+<li>Handles JVM-specific error conditions and recovery strategies</li>
+<li>Provides consistent interface regardless of underlying JVM
+implementation</li>
+</ul>
+<h1 id="class-structure-and-hot-swap-orchestration">Class Structure and
+Hot-Swap Orchestration</h1>
+<h2 id="core-hot-swap-request-creation">Core Hot-Swap Request
+Creation</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a hot<span class="co">-</span>swap request from validated bytecode</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">classFile</span><span class="co"> </span>the class file to hot<span class="co">-</span>swap</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">validation</span><span class="co"> </span>the successful validation result</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">originalBytecode</span><span class="co"> </span>the current bytecode in the JVM</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the hot<span class="co">-</span>swap request event</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">IOException</span><span class="co"> </span>if file cannot be read</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> HotSwapRequested <span class="fu">requestHotSwap</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> BytecodeValidated validation<span class="op">,</span> </span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>                                      <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> originalBytecode<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> newBytecode <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAllBytes</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> requestReason <span class="op">=</span> <span class="fu">createRequestReason</span><span class="op">(</span>validation<span class="op">);</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create a placeholder ClassFileChanged event for the HotSwapRequested</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    ClassFileChanged placeholderEvent <span class="op">=</span> ClassFileChanged<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        validation<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>        newBytecode<span class="op">.</span><span class="fu">length</span><span class="op">,</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        timestamp</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapRequested</span><span class="op">(</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        validation<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>        originalBytecode<span class="op">,</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>        newBytecode<span class="op">,</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>        requestReason<span class="op">,</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>        placeholderEvent</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="jvm-class-redefinition-execution">JVM Class Redefinition
+Execution</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Performs JVM class redefinition for a hot<span class="co">-</span>swap request</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">request</span><span class="co"> </span>the hot<span class="co">-</span>swap request to execute</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the success event with redefinition details</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">HotSwapException</span><span class="co"> </span>if redefinition fails</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> ClassRedefinitionSucceeded <span class="fu">performRedefinition</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="kw">throws</span> HotSwapException <span class="op">{</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> startTime <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">nanoTime</span><span class="op">();</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Mock JVM redefinition logic for testing</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getNewBytecode</span><span class="op">());</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;INCOMPATIBLE_BYTECODE&quot;</span><span class="op">)</span> <span class="op">||</span> content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;SCHEMA_CHANGE_BYTECODE&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Simulate JVM rejection</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="fu">createJvmRejectionException</span><span class="op">(</span>request<span class="op">,</span> content<span class="op">);</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;NotLoadedClass&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Simulate class not found</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="fu">createClassNotFoundException</span><span class="op">(</span>request<span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Simulate successful redefinition</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">long</span> endTime <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">nanoTime</span><span class="op">();</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Duration</span> duration <span class="op">=</span> <span class="bu">Duration</span><span class="op">.</span><span class="fu">ofNanos</span><span class="op">(</span>endTime <span class="op">-</span> startTime<span class="op">);</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="dt">int</span> affectedInstances <span class="op">=</span> <span class="fu">calculateAffectedInstances</span><span class="op">(</span>request<span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">String</span> details <span class="op">=</span> <span class="fu">createRedefinitionDetails</span><span class="op">(</span>request<span class="op">);</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassRedefinitionSucceeded</span><span class="op">(</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>            request<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>            request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            affectedInstances<span class="op">,</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>            details<span class="op">,</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            duration<span class="op">,</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            timestamp</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>e <span class="kw">instanceof</span> HotSwapException<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> e<span class="op">;</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Wrap unexpected exceptions</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> ClassRedefinitionFailed failure <span class="op">=</span> <span class="fu">createUnexpectedFailure</span><span class="op">(</span>request<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">HotSwapException</span><span class="op">(</span>failure<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="jvm-redefinition-logic-and-simulation">JVM Redefinition Logic
+and Simulation</h1>
+<h2 id="mock-jvm-interaction-strategy">Mock JVM Interaction
+Strategy</h2>
+<p>The current implementation provides sophisticated mock JVM
+interaction:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mock JVM redefinition characteristics:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Simulates real JVM class redefinition API behavior</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Tests various failure scenarios and error conditions</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Provides realistic timing and performance metrics</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Enables comprehensive testing without JVM instrumentation</span></span></code></pre></div>
+<h2 id="incompatible-change-detection">Incompatible Change
+Detection</h2>
+<p>The manager simulates JVM's incompatible change detection:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM incompatibility simulation:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Schema change detection (field/method signature modifications)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Structural change identification (class hierarchy modifications)</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Binary compatibility violation recognition</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Runtime constraint enforcement (loaded class requirements)</span></span></code></pre></div>
+<h2 id="performance-metrics-collection">Performance Metrics
+Collection</h2>
+<p>Comprehensive performance tracking during redefinition:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance metrics characteristics:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Nanosecond precision timing for redefinition operations</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Affected instance counting for impact assessment</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Duration tracking for performance analysis</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Success rate monitoring for reliability metrics</span></span></code></pre></div>
+<h1 id="comprehensive-error-handling-framework">Comprehensive Error
+Handling Framework</h1>
+<h2 id="jvm-rejection-exception-creation">JVM Rejection Exception
+Creation</h2>
+<div class="sourceCode" id="cb6"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a JVM rejection exception for incompatible bytecode</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">request</span><span class="co"> </span>the hot<span class="co">-</span>swap request</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">content</span><span class="co"> </span>the bytecode content</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the hot<span class="co">-</span>swap exception</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> HotSwapException <span class="fu">createJvmRejectionException</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">,</span> <span class="dt">final</span> <span class="bu">String</span> content<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> reason<span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> jvmError<span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> recoveryAction<span class="op">;</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;SCHEMA_CHANGE&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        reason <span class="op">=</span> <span class="st">&quot;JVM detected incompatible schema changes&quot;</span><span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        jvmError <span class="op">=</span> <span class="st">&quot;java.lang.UnsupportedOperationException: class redefinition failed: attempted to change the schema&quot;</span><span class="op">;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        recoveryAction <span class="op">=</span> <span class="st">&quot;Restart application to load new class definition&quot;</span><span class="op">;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        reason <span class="op">=</span> <span class="st">&quot;JVM rejected bytecode changes as incompatible&quot;</span><span class="op">;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        jvmError <span class="op">=</span> <span class="st">&quot;java.lang.UnsupportedOperationException: class redefinition failed: incompatible changes detected&quot;</span><span class="op">;</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        recoveryAction <span class="op">=</span> <span class="st">&quot;Review changes for compatibility or restart application&quot;</span><span class="op">;</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ClassRedefinitionFailed failure <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        reason<span class="op">,</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>        jvmError<span class="op">,</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        recoveryAction<span class="op">,</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapException</span><span class="op">(</span>failure<span class="op">);</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="class-not-found-exception-handling">Class Not Found Exception
+Handling</h2>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a class not found exception</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">request</span><span class="co"> </span>the hot<span class="co">-</span>swap request</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the hot<span class="co">-</span>swap exception</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> HotSwapException <span class="fu">createClassNotFoundException</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ClassRedefinitionFailed failure <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Class not found in loaded classes&quot;</span><span class="op">,</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;java.lang.ClassNotFoundException: &quot;</span> <span class="op">+</span> request<span class="op">.</span><span class="fu">getClassName</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot; not loaded in current JVM&quot;</span><span class="op">,</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Load or instantiate the class before attempting hot-swap&quot;</span><span class="op">,</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">HotSwapException</span><span class="op">(</span>failure<span class="op">);</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="unexpected-error-recovery">Unexpected Error Recovery</h2>
+<div class="sourceCode" id="cb8"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates an unexpected failure event</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">request</span><span class="co"> </span>the hot<span class="co">-</span>swap request</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">cause</span><span class="co"> </span>the unexpected exception</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the failure event</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> ClassRedefinitionFailed <span class="fu">createUnexpectedFailure</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">,</span> <span class="dt">final</span> <span class="bu">Exception</span> cause<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassRedefinitionFailed</span><span class="op">(</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        request<span class="op">.</span><span class="fu">getClassFile</span><span class="op">(),</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Unexpected error during redefinition&quot;</span><span class="op">,</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        cause<span class="op">.</span><span class="fu">getMessage</span><span class="op">(),</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Check logs for details and retry operation&quot;</span><span class="op">,</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="hot-swap-request-orchestration">Hot-Swap Request
+Orchestration</h1>
+<h2 id="validation-to-request-transformation">Validation-to-Request
+Transformation</h2>
+<p>The manager transforms validation results into actionable
+requests:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Request creation characteristics:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Bytecode file reading and preparation</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation context preservation for audit trails</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Timestamp recording for performance analysis</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event correlation for complete traceability</span></span></code></pre></div>
+<h2 id="request-reason-generation">Request Reason Generation</h2>
+<div class="sourceCode" id="cb10"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a descriptive reason for the hot<span class="co">-</span>swap request based on validation</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">validation</span><span class="co"> </span>the validation result</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> a human<span class="co">-</span>readable reason for the request</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="bu">String</span> <span class="fu">createRequestReason</span><span class="op">(</span><span class="dt">final</span> BytecodeValidated validation<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="st">&quot;Bytecode validation passed - initiating hot-swap&quot;</span><span class="op">;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-correlation-and-traceability">Event Correlation and
+Traceability</h2>
+<p>The implementation ensures complete event correlation:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event correlation features:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation event preservation in hot-swap requests</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Timestamp consistency across event sequences</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class file path tracking for complete audit trails</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Bytecode version tracking for rollback capabilities</span></span></code></pre></div>
+<h1 id="instance-management-and-impact-analysis">Instance Management and
+Impact Analysis</h1>
+<h2 id="affected-instance-calculation">Affected Instance
+Calculation</h2>
+<div class="sourceCode" id="cb12"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Calculates the number of affected instances <span class="co">(</span>mock implementation<span class="co">)</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">request</span><span class="co"> </span>the hot<span class="co">-</span>swap request</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the number of affected instances</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">int</span> <span class="fu">calculateAffectedInstances</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>request<span class="op">.</span><span class="fu">getNewBytecode</span><span class="op">());</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;instances:multiple&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">3</span><span class="op">;</span> <span class="co">// Mock multiple instances</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span><span class="op">;</span> <span class="co">// Mock single instance</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="instance-impact-assessment">Instance Impact Assessment</h2>
+<p>The manager provides comprehensive instance impact analysis:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Instance impact characteristics:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Active instance counting for loaded classes</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory impact assessment for redefinition operations</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance impact analysis for multiple instances</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Rollback impact calculation for recovery planning</span></span></code></pre></div>
+<h2 id="redefinition-success-metrics">Redefinition Success Metrics</h2>
+<div class="sourceCode" id="cb14"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/HotSwapManager.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates redefinition details description</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">request</span><span class="co"> </span>the hot<span class="co">-</span>swap request</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the redefinition details</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="bu">String</span> <span class="fu">createRedefinitionDetails</span><span class="op">(</span><span class="dt">final</span> HotSwapRequested request<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;Class </span><span class="sc">%s</span><span class="st"> redefinition completed successfully&quot;</span><span class="op">,</span> request<span class="op">.</span><span class="fu">getClassName</span><span class="op">());</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="real-jvm-integration-architecture">Real JVM Integration
+Architecture</h1>
+<h2 id="jvm-instrumentation-api-integration-points">JVM Instrumentation
+API Integration Points</h2>
+<p>Future real JVM integration will leverage:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Real JVM integration components:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - java.lang.instrument.Instrumentation for class redefinition</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - java.lang.instrument.ClassFileTransformer for bytecode modification</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - JVM Tool Interface (JVMTI) for advanced runtime capabilities</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - HotSpot-specific APIs for performance optimization</span></span></code></pre></div>
+<h2 id="class-redefinition-protocol">Class Redefinition Protocol</h2>
+<p>The real implementation will follow JVM protocols:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM redefinition protocol:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class loading verification before redefinition attempts</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Bytecode compatibility verification with JVM constraints</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Atomic redefinition operations with rollback capabilities</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instance state preservation during redefinition processes</span></span></code></pre></div>
+<h2 id="jvm-safety-constraints">JVM Safety Constraints</h2>
+<p>Real JVM integration must respect safety constraints:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// JVM safety constraints:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Method signature preservation requirements</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Field layout compatibility maintenance</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Class hierarchy stability enforcement</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread safety during redefinition operations</span></span></code></pre></div>
+<h1 id="performance-and-optimization-strategy">Performance and
+Optimization Strategy</h1>
+<h2 id="redefinition-performance-optimization">Redefinition Performance
+Optimization</h2>
+<p>The manager optimizes hot-swap performance:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance optimization features:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal file I/O during bytecode loading</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient bytecode comparison for change detection</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimized JVM API usage for redefinition operations</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Parallel processing for multiple class redefinitions</span></span></code></pre></div>
+<h2 id="memory-management-during-redefinition">Memory Management During
+Redefinition</h2>
+<p>Sophisticated memory management throughout redefinition:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Memory management characteristics:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal bytecode duplication during processing</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient instance tracking without memory leaks</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Garbage collection optimization during redefinition</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory pressure monitoring for large classes</span></span></code></pre></div>
+<h2 id="timing-and-latency-optimization">Timing and Latency
+Optimization</h2>
+<p>Advanced timing optimization for minimal service disruption:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Timing optimization features:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Nanosecond precision timing for performance analysis</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Redefinition scheduling for minimal impact windows</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Batch redefinition capabilities for multiple classes</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Asynchronous processing for non-blocking operations</span></span></code></pre></div>
+<h1 id="security-and-safety-framework">Security and Safety
+Framework</h1>
+<h2 id="jvm-security-compliance">JVM Security Compliance</h2>
+<p>The manager ensures JVM security compliance:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security compliance features:</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - JVM security manager integration</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Permission verification for class redefinition</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Secure bytecode handling preventing injection attacks</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Audit trail maintenance for security monitoring</span></span></code></pre></div>
+<h2 id="safe-redefinition-protocols">Safe Redefinition Protocols</h2>
+<p>Comprehensive safety protocols during redefinition:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Safety protocol characteristics:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pre-redefinition safety checks</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Atomic redefinition operations preventing partial states</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Rollback capabilities for failed redefinitions</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread synchronization during redefinition processes</span></span></code></pre></div>
+<h2 id="error-recovery-and-system-stability">Error Recovery and System
+Stability</h2>
+<p>Advanced error recovery ensures system stability:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error recovery features:</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graceful degradation for redefinition failures</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - System state preservation during error conditions</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Automatic recovery strategies for transient failures</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Emergency rollback procedures for critical failures</span></span></code></pre></div>
+<h1 id="testing-and-quality-assurance">Testing and Quality
+Assurance</h1>
+<h2 id="mock-jvm-testing-framework">Mock JVM Testing Framework</h2>
+<p>Comprehensive testing approach using mock JVM simulation:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mock testing benefits:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Controlled testing environments with predictable outcomes</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Comprehensive error scenario simulation</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance testing without real JVM constraints</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Integration testing preparation for real JVM deployment</span></span></code></pre></div>
+<h2 id="redefinition-scenario-testing">Redefinition Scenario
+Testing</h2>
+<p>Extensive testing of redefinition scenarios:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Scenario testing coverage:</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Successful redefinition with various bytecode changes</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error condition testing for all failure modes</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance testing under high-load conditions</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Concurrent redefinition testing for thread safety</span></span></code></pre></div>
+<h2 id="integration-testing-strategy">Integration Testing Strategy</h2>
+<p>Comprehensive integration testing approach:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Integration testing features:</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - End-to-end hot-swap workflow testing</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event correlation verification across system components</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance regression testing for optimization validation</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error propagation testing for proper exception handling</span></span></code></pre></div>
+<h1 id="future-evolution-and-enhancement">Future Evolution and
+Enhancement</h1>
+<h2 id="real-jvm-integration-roadmap">Real JVM Integration Roadmap</h2>
+<p>Evolution path toward real JVM integration:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Real JVM integration milestones:</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - JVM Instrumentation API integration</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - HotSpot VM optimization support</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cross-JVM compatibility (Oracle, OpenJDK, GraalVM)</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced profiling and monitoring integration</span></span></code></pre></div>
+<h2 id="advanced-hot-swap-capabilities">Advanced Hot-Swap
+Capabilities</h2>
+<p>Enhancement opportunities for sophisticated hot-swap features:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Advanced capability areas:</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Semantic-preserving transformations</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cross-class dependency redefinition</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Runtime performance optimization</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Predictive hot-swap scheduling</span></span></code></pre></div>
+<h2 id="machine-learning-integration">Machine Learning Integration</h2>
+<p>Intelligence enhancement through machine learning:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// ML integration possibilities:</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Redefinition success prediction based on change patterns</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimal timing prediction for minimal service impact</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance impact forecasting for large redefinitions</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Automated rollback decision making for failed operations</span></span></code></pre></div>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="BytecodeValidator.org"><em>BytecodeValidator</em></span>:
+Provides validation input for hot-swap requests</li>
+<li><span class="spurious-link"
+target="events/HotSwapRequested.org"><em>HotSwapRequested</em></span>:
+Event generated by hot-swap request creation</li>
+<li><span class="spurious-link"
+target="events/ClassRedefinitionSucceeded.org"><em>ClassRedefinitionSucceeded</em></span>:
+Success event for completed redefinitions</li>
+<li><span class="spurious-link"
+target="events/ClassRedefinitionFailed.org"><em>ClassRedefinitionFailed</em></span>:
+Failure event for comprehensive error handling</li>
+<li><span class="spurious-link"
+target="HotSwapException.org"><em>HotSwapException</em></span>:
+Exception wrapper for redefinition failures</li>
+<li><span class="spurious-link"
+target="flows/hot-swap-execution-flow.org"><em>Hot-Swap Execution
+Flow</em></span>: Process documentation for redefinition workflow</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The manager leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Domain Service</strong></strong>: Pure business
+logic for hot-swap coordination</li>
+<li><strong><strong>Factory Pattern</strong></strong>: Event creation
+methods for structured object generation</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Different
+redefinition approaches for various scenarios</li>
+<li><strong><strong>Command Pattern</strong></strong>: Hot-swap requests
+as executable commands</li>
+</ul>
+<h2 id="domain-driven-design-principles">Domain-Driven Design
+Principles</h2>
+<p>The implementation follows strict DDD principles:</p>
+<ul>
+<li><strong><strong>Pure Domain Logic</strong></strong>: No
+infrastructure dependencies beyond file I/O</li>
+<li><strong><strong>Rich Domain Events</strong></strong>: Comprehensive
+event generation with business context</li>
+<li><strong><strong>Business Rule Encapsulation</strong></strong>:
+Hot-swap logic centralized and explicit</li>
+<li><strong><strong>Event-Driven Architecture</strong></strong>:
+Seamless integration with event processing</li>
+</ul>
+<p>The HotSwapManager provides ByteHot's essential JVM redefinition
+orchestration while maintaining clean domain boundaries, comprehensive
+error handling, and extensibility for real JVM integration across the
+entire intelligent hot-swap system lifecycle.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FileWatcherAdapter - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>FileWatcherAdapter</code> class provides the infrastructure
+implementation of the <code>FileWatcherPort</code> interface, serving as
+the critical bridge between ByteHot's domain logic and the file system
+monitoring capabilities of Java NIO. This adapter handles the accidental
+complexity of file system watching while exposing a clean,
+domain-focused interface for detecting class file changes that trigger
+hot-swap operations.</p>
+<h1 id="hexagonal-architecture-role">Hexagonal Architecture Role</h1>
+<h2 id="secondary-adapter-implementation">Secondary Adapter
+Implementation</h2>
+<p>FileWatcherAdapter serves as a secondary adapter in ByteHot's
+hexagonal architecture:</p>
+<ul>
+<li>Implements the <code>FileWatcherPort</code> interface defined in the
+domain layer</li>
+<li>Handles operating system-specific file system monitoring
+implementation details</li>
+<li>Isolates domain logic from Java NIO WatchService API evolution</li>
+<li>Provides concrete implementation for file change detection
+operations</li>
+</ul>
+<h2 id="technology-abstraction-boundary">Technology Abstraction
+Boundary</h2>
+<p>The adapter manages the boundary between domain concepts and file
+system technology:</p>
+<ul>
+<li>Translates domain watch requests into NIO WatchService
+operations</li>
+<li>Handles platform-specific file system event variations</li>
+<li>Manages resource lifecycle for file system monitoring</li>
+<li>Provides performance optimization and pattern matching
+capabilities</li>
+</ul>
+<h2 id="infrastructure-complexity-management">Infrastructure Complexity
+Management</h2>
+<p>The adapter encapsulates complex infrastructure concerns:</p>
+<ul>
+<li>Thread-safe access to file system monitoring capabilities</li>
+<li>Recursive directory traversal and watch registration</li>
+<li>Event debouncing and pattern-based filtering</li>
+<li>Resource cleanup and error recovery for watch operations</li>
+</ul>
+<h1 id="class-structure-and-responsibilities">Class Structure and
+Responsibilities</h1>
+<h2 id="core-infrastructure-components">Core Infrastructure
+Components</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The underlying NIO watch service</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> WatchService watchService<span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Thread pool for handling watch events</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">ExecutorService</span> executorService<span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Map of watch IDs to their configurations</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> WatchConfiguration<span class="op">&gt;</span> watchConfigurations<span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Map of paths to their watch keys</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span>Path<span class="op">,</span> WatchKey<span class="op">&gt;</span> pathToWatchKey<span class="op">;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Map of watch keys to their paths</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span>WatchKey<span class="op">,</span> Path<span class="op">&gt;</span> watchKeyToPath<span class="op">;</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Whether the watcher is currently running</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="kw">volatile</span> <span class="dt">boolean</span> running<span class="op">;</span></span></code></pre></div>
+<h2 id="constructor-and-initialization">Constructor and
+Initialization</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a new FileWatcherAdapter instance</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">FileWatcherAdapter</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">watchService</span> <span class="op">=</span> FileSystems<span class="op">.</span><span class="fu">getDefault</span><span class="op">().</span><span class="fu">newWatchService</span><span class="op">();</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">executorService</span> <span class="op">=</span> <span class="bu">Executors</span><span class="op">.</span><span class="fu">newCachedThreadPool</span><span class="op">(</span>r <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> <span class="bu">Thread</span> thread <span class="op">=</span> <span class="kw">new</span> <span class="bu">Thread</span><span class="op">(</span>r<span class="op">,</span> <span class="st">&quot;FileWatcher-&quot;</span> <span class="op">+</span> <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">getId</span><span class="op">());</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        thread<span class="op">.</span><span class="fu">setDaemon</span><span class="op">(</span><span class="kw">true</span><span class="op">);</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> thread<span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">watchConfigurations</span> <span class="op">=</span> <span class="kw">new</span> <span class="bu">ConcurrentHashMap</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">pathToWatchKey</span> <span class="op">=</span> <span class="kw">new</span> <span class="bu">ConcurrentHashMap</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">watchKeyToPath</span> <span class="op">=</span> <span class="kw">new</span> <span class="bu">ConcurrentHashMap</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">running</span> <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Start the watch service loop</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">startWatchServiceLoop</span><span class="op">();</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="architecture-design-principles">Architecture Design
+Principles</h2>
+<p>The adapter follows sophisticated design principles:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Design characteristics:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Immutable configuration objects</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread-safe concurrent operations</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource lifecycle management</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event-driven processing architecture</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern-based file filtering</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">// - Recursive directory monitoring</span></span></code></pre></div>
+<h1 id="file-system-monitoring-implementation">File System Monitoring
+Implementation</h1>
+<h2 id="watch-session-management">Watch Session Management</h2>
+<div class="sourceCode" id="cb4"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Starts watching a directory for file changes</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="bu">String</span> <span class="fu">startWatching</span><span class="op">(</span><span class="dt">final</span> Path path<span class="op">,</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> patterns<span class="op">,</span> <span class="dt">final</span> <span class="dt">boolean</span> recursive<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span> <span class="op">{</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>path<span class="op">)</span> <span class="op">||</span> <span class="op">!</span>Files<span class="op">.</span><span class="fu">isDirectory</span><span class="op">(</span>path<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalArgumentException</span><span class="op">(</span><span class="st">&quot;Path must be an existing directory: &quot;</span> <span class="op">+</span> path<span class="op">);</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> watchId <span class="op">=</span> <span class="bu">UUID</span><span class="op">.</span><span class="fu">randomUUID</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Pattern</span><span class="op">&gt;</span> compiledPatterns <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> pattern <span class="op">:</span> patterns<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        compiledPatterns<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="bu">Pattern</span><span class="op">.</span><span class="fu">compile</span><span class="op">(</span>pattern<span class="op">.</span><span class="fu">replace</span><span class="op">(</span><span class="st">&quot;*&quot;</span><span class="op">,</span> <span class="st">&quot;.*&quot;</span><span class="op">)));</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchConfiguration config <span class="op">=</span> <span class="kw">new</span> <span class="fu">WatchConfiguration</span><span class="op">(</span>path<span class="op">,</span> compiledPatterns<span class="op">,</span> recursive<span class="op">);</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    watchConfigurations<span class="op">.</span><span class="fu">put</span><span class="op">(</span>watchId<span class="op">,</span> config<span class="op">);</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>recursive<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">registerRecursive</span><span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">registerSingle</span><span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> watchId<span class="op">;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="watch-session-lifecycle">Watch Session Lifecycle</h2>
+<p>The implementation manages complete watch session lifecycle:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Session management features:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Unique UUID-based watch identification</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern compilation and optimization</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Recursive vs single-directory monitoring</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource tracking and cleanup</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread-safe session management</span></span></code></pre></div>
+<h2 id="pattern-matching-and-filtering">Pattern Matching and
+Filtering</h2>
+<p>Advanced pattern matching capabilities:</p>
+<div class="sourceCode" id="cb6"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if a file matches any of the given patterns</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">boolean</span> <span class="fu">matchesPatterns</span><span class="op">(</span><span class="dt">final</span> Path path<span class="op">,</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Pattern</span><span class="op">&gt;</span> patterns<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> filename <span class="op">=</span> path<span class="op">.</span><span class="fu">getFileName</span><span class="op">().</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Pattern</span> pattern <span class="op">:</span> patterns<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>pattern<span class="op">.</span><span class="fu">matcher</span><span class="op">(</span>filename<span class="op">).</span><span class="fu">matches</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="recursive-directory-monitoring">Recursive Directory
+Monitoring</h1>
+<h2 id="single-directory-registration">Single Directory
+Registration</h2>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Registers a single directory for watching</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">void</span> <span class="fu">registerSingle</span><span class="op">(</span><span class="dt">final</span> Path path<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchKey watchKey <span class="op">=</span> path<span class="op">.</span><span class="fu">register</span><span class="op">(</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        watchService<span class="op">,</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_CREATE</span><span class="op">,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_DELETE</span><span class="op">,</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        StandardWatchEventKinds<span class="op">.</span><span class="fu">ENTRY_MODIFY</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    pathToWatchKey<span class="op">.</span><span class="fu">put</span><span class="op">(</span>path<span class="op">,</span> watchKey<span class="op">);</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    watchKeyToPath<span class="op">.</span><span class="fu">put</span><span class="op">(</span>watchKey<span class="op">,</span> path<span class="op">);</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="recursive-directory-traversal">Recursive Directory
+Traversal</h2>
+<div class="sourceCode" id="cb8"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Registers a directory and all subdirectories for watching</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">void</span> <span class="fu">registerRecursive</span><span class="op">(</span><span class="dt">final</span> Path start<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    Files<span class="op">.</span><span class="fu">walkFileTree</span><span class="op">(</span>start<span class="op">,</span> <span class="kw">new</span> SimpleFileVisitor<span class="op">&lt;</span>Path<span class="op">&gt;()</span> <span class="op">{</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="at">@Override</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="kw">public</span> FileVisitResult <span class="fu">preVisitDirectory</span><span class="op">(</span><span class="dt">final</span> Path dir<span class="op">,</span> <span class="dt">final</span> BasicFileAttributes attrs<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>            <span class="fu">registerSingle</span><span class="op">(</span>dir<span class="op">);</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FileVisitResult<span class="op">.</span><span class="fu">CONTINUE</span><span class="op">;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="recursive-monitoring-strategy">Recursive Monitoring
+Strategy</h2>
+<p>The recursive implementation provides comprehensive coverage:</p>
+<ul>
+<li>Complete directory tree traversal using NIO file walking</li>
+<li>Individual registration of each subdirectory for optimal
+performance</li>
+<li>Automatic detection of new subdirectories during monitoring</li>
+<li>Efficient resource allocation per directory level</li>
+</ul>
+<h1 id="event-processing-architecture">Event Processing
+Architecture</h1>
+<h2 id="watch-service-event-loop">Watch Service Event Loop</h2>
+<div class="sourceCode" id="cb9"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Starts the watch service event processing loop</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">void</span> <span class="fu">startWatchServiceLoop</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    executorService<span class="op">.</span><span class="fu">submit</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">while</span> <span class="op">(</span>running<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> WatchKey key <span class="op">=</span> watchService<span class="op">.</span><span class="fu">take</span><span class="op">();</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> Path dir <span class="op">=</span> watchKeyToPath<span class="op">.</span><span class="fu">get</span><span class="op">(</span>key<span class="op">);</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(</span>dir <span class="op">==</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">continue</span><span class="op">;</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> WatchEvent<span class="op">&lt;?&gt;</span> event <span class="op">:</span> key<span class="op">.</span><span class="fu">pollEvents</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>                    <span class="dt">final</span> WatchEvent<span class="op">.</span><span class="fu">Kind</span><span class="op">&lt;?&gt;</span> kind <span class="op">=</span> event<span class="op">.</span><span class="fu">kind</span><span class="op">();</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> <span class="op">(</span>kind <span class="op">==</span> StandardWatchEventKinds<span class="op">.</span><span class="fu">OVERFLOW</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>                        <span class="cf">continue</span><span class="op">;</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>                    <span class="op">}</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>                    <span class="at">@SuppressWarnings</span><span class="op">(</span><span class="st">&quot;unchecked&quot;</span><span class="op">)</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>                    <span class="dt">final</span> WatchEvent<span class="op">&lt;</span>Path<span class="op">&gt;</span> pathEvent <span class="op">=</span> <span class="op">(</span>WatchEvent<span class="op">&lt;</span>Path<span class="op">&gt;)</span> event<span class="op">;</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>                    <span class="dt">final</span> Path filename <span class="op">=</span> pathEvent<span class="op">.</span><span class="fu">context</span><span class="op">();</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>                    <span class="dt">final</span> Path fullPath <span class="op">=</span> dir<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>filename<span class="op">);</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>                    <span class="fu">processFileEvent</span><span class="op">(</span>kind<span class="op">,</span> fullPath<span class="op">);</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> <span class="dt">boolean</span> valid <span class="op">=</span> key<span class="op">.</span><span class="fu">reset</span><span class="op">();</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> <span class="op">(!</span>valid<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>                    pathToWatchKey<span class="op">.</span><span class="fu">remove</span><span class="op">(</span>dir<span class="op">);</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>                    watchKeyToPath<span class="op">.</span><span class="fu">remove</span><span class="op">(</span>key<span class="op">);</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>                <span class="op">}</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">InterruptedException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>                <span class="bu">Thread</span><span class="op">.</span><span class="fu">currentThread</span><span class="op">().</span><span class="fu">interrupt</span><span class="op">();</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>                <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Error in file watcher: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="file-event-processing">File Event Processing</h2>
+<div class="sourceCode" id="cb10"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Processes a file system event</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">void</span> <span class="fu">processFileEvent</span><span class="op">(</span><span class="dt">final</span> WatchEvent<span class="op">.</span><span class="fu">Kind</span><span class="op">&lt;?&gt;</span> kind<span class="op">,</span> <span class="dt">final</span> Path path<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Check if any watch configuration matches this file</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> WatchConfiguration config <span class="op">:</span> watchConfigurations<span class="op">.</span><span class="fu">values</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span><span class="fu">matchesPatterns</span><span class="op">(</span>path<span class="op">,</span> config<span class="op">.</span><span class="fu">getPatterns</span><span class="op">()))</span> <span class="op">{</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            <span class="co">// For now, just log the event - in a real implementation, </span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// this would emit domain events</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;File &quot;</span> <span class="op">+</span> kind<span class="op">.</span><span class="fu">name</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> path<span class="op">);</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-processing-characteristics">Event Processing
+Characteristics</h2>
+<p>The event processing system provides:</p>
+<ul>
+<li>Asynchronous event handling through dedicated thread pool</li>
+<li>Overflow protection for high-volume file system changes</li>
+<li>Pattern-based filtering to reduce unnecessary processing</li>
+<li>Automatic cleanup of invalid watch keys</li>
+<li>Interrupt-safe thread management</li>
+</ul>
+<h1 id="thread-safety-and-concurrency">Thread Safety and
+Concurrency</h1>
+<h2 id="concurrent-data-structures">Concurrent Data Structures</h2>
+<p>The adapter ensures thread-safe operation through careful data
+structure selection:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Thread safety mechanisms:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - ConcurrentHashMap for all shared state</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Volatile flags for coordination</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread-safe collections for watch management</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Atomic operations for state updates</span></span></code></pre></div>
+<h2 id="thread-pool-management">Thread Pool Management</h2>
+<p>Sophisticated thread management for optimal performance:</p>
+<ul>
+<li>Cached thread pool for dynamic scaling</li>
+<li>Daemon threads to prevent JVM shutdown blocking</li>
+<li>Named threads for debugging and monitoring</li>
+<li>Graceful shutdown with proper resource cleanup</li>
+</ul>
+<h2 id="concurrent-access-patterns">Concurrent Access Patterns</h2>
+<p>The implementation optimizes for concurrent access:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Concurrency optimizations:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Lock-free read operations where possible</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimize critical sections in hot paths</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Separate read and write access patterns</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient pattern matching without synchronization</span></span></code></pre></div>
+<h1 id="watch-session-management-1">Watch Session Management</h1>
+<h2 id="session-creation-and-configuration">Session Creation and
+Configuration</h2>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Watch configuration encapsulation:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="dt">static</span> <span class="kw">class</span> WatchConfiguration <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Path path<span class="op">;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">Pattern</span><span class="op">&gt;</span> patterns<span class="op">;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">boolean</span> recursive<span class="op">;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Immutable configuration ensures thread safety</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Pattern pre-compilation optimizes matching performance</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Boolean flags enable different monitoring strategies</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="session-termination-and-cleanup">Session Termination and
+Cleanup</h2>
+<div class="sourceCode" id="cb14"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Stops watching a previously registered directory</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">stopWatching</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> watchId<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span> <span class="op">{</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> WatchConfiguration config <span class="op">=</span> watchConfigurations<span class="op">.</span><span class="fu">remove</span><span class="op">(</span>watchId<span class="op">);</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>config <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> WatchKey watchKey <span class="op">=</span> pathToWatchKey<span class="op">.</span><span class="fu">remove</span><span class="op">(</span>config<span class="op">.</span><span class="fu">getPath</span><span class="op">());</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>watchKey <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>            watchKey<span class="op">.</span><span class="fu">cancel</span><span class="op">();</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>            watchKeyToPath<span class="op">.</span><span class="fu">remove</span><span class="op">(</span>watchKey<span class="op">);</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="session-state-inquiry">Session State Inquiry</h2>
+<div class="sourceCode" id="cb15"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if a directory is currently being watched</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isWatching</span><span class="op">(</span><span class="dt">final</span> Path path<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pathToWatchKey<span class="op">.</span><span class="fu">containsKey</span><span class="op">(</span>path<span class="op">);</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Returns all currently watched paths</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>Path<span class="op">&gt;</span> <span class="fu">getWatchedPaths</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;(</span>pathToWatchKey<span class="op">.</span><span class="fu">keySet</span><span class="op">());</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if the file watcher is operational</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isWatcherAvailable</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> running <span class="op">&amp;&amp;</span> watchService <span class="op">!=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="error-handling-and-resilience">Error Handling and
+Resilience</h1>
+<h2 id="comprehensive-exception-management">Comprehensive Exception
+Management</h2>
+<p>The adapter handles all categories of file system monitoring
+errors:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Exception handling categories:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - IOException: File system access failures</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - InterruptedException: Thread coordination issues</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - IllegalArgumentException: Invalid parameters</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - SecurityException: Insufficient permissions</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - RuntimeException: Unexpected monitoring failures</span></span></code></pre></div>
+<h2 id="error-recovery-strategies">Error Recovery Strategies</h2>
+<p>The adapter implements multiple recovery strategies:</p>
+<ul>
+<li>Automatic cleanup of invalid watch keys</li>
+<li>Graceful degradation when directories become inaccessible</li>
+<li>Thread interruption handling for controlled shutdown</li>
+<li>Resource leak prevention through proper cleanup</li>
+</ul>
+<h2 id="monitoring-health-management">Monitoring Health Management</h2>
+<p>The adapter enables monitoring health management:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Health management features:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Running state tracking through volatile flags</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource availability checking</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Automatic resource cleanup on failures</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Detailed error logging for operational troubleshooting</span></span></code></pre></div>
+<h1 id="resource-lifecycle-management">Resource Lifecycle
+Management</h1>
+<h2 id="initialization-and-startup">Initialization and Startup</h2>
+<p>The adapter manages complex initialization sequences:</p>
+<ul>
+<li>WatchService creation from default file system</li>
+<li>Thread pool configuration with appropriate thread naming</li>
+<li>Concurrent data structure initialization</li>
+<li>Background event processing loop startup</li>
+</ul>
+<h2 id="shutdown-and-cleanup">Shutdown and Cleanup</h2>
+<div class="sourceCode" id="cb18"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Shuts down the file watcher</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">shutdown</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    running <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    executorService<span class="op">.</span><span class="fu">shutdown</span><span class="op">();</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        watchService<span class="op">.</span><span class="fu">close</span><span class="op">();</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Error closing watch service: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="resource-optimization">Resource Optimization</h2>
+<p>The implementation optimizes resource usage:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Resource optimization strategies:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Lazy initialization where appropriate</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient data structure selection</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory-conscious pattern compilation</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread pool reuse for multiple operations</span></span></code></pre></div>
+<h1 id="performance-optimization">Performance Optimization</h1>
+<h2 id="file-system-access-performance">File System Access
+Performance</h2>
+<p>The adapter optimizes file system monitoring performance:</p>
+<ul>
+<li>Pre-compiled regex patterns for efficient matching</li>
+<li>Minimal object allocation during event processing</li>
+<li>Efficient path resolution and comparison</li>
+<li>Optimized directory traversal algorithms</li>
+</ul>
+<h2 id="event-processing-performance">Event Processing Performance</h2>
+<p>Sophisticated event processing optimization:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance optimization areas:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern matching efficiency for large file sets</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event batching to prevent processing storms</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Selective monitoring based on file types and patterns</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cache optimization for repeated path operations</span></span></code></pre></div>
+<h2 id="memory-management">Memory Management</h2>
+<p>Careful memory management throughout operations:</p>
+<ul>
+<li>Reuse of compiled pattern objects</li>
+<li>Efficient collection sizing and growth strategies</li>
+<li>Prompt cleanup of terminated watch sessions</li>
+<li>Memory-conscious thread pool configuration</li>
+</ul>
+<h1 id="integration-with-bytehot-architecture">Integration with ByteHot
+Architecture</h1>
+<h2 id="port-interface-compliance">Port Interface Compliance</h2>
+<div class="sourceCode" id="cb21"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/filesystem/FileWatcherAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Returns the port interface this adapter implements</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="bu">Class</span><span class="op">&lt;</span>FileWatcherPort<span class="op">&gt;</span> <span class="fu">adapts</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> FileWatcherPort<span class="op">.</span><span class="fu">class</span><span class="op">;</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="adapter-pattern-implementation">Adapter Pattern
+Implementation</h2>
+<p>The adapter follows strict hexagonal architecture principles:</p>
+<ul>
+<li>Clean separation between domain and infrastructure concerns</li>
+<li>No domain logic in infrastructure implementation</li>
+<li>Complete delegation to Java NIO file system APIs</li>
+<li>Technology-specific error handling and translation</li>
+</ul>
+<h2 id="event-integration-strategy">Event Integration Strategy</h2>
+<p>The adapter integrates with ByteHot's event-driven architecture:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event integration approach:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system events trigger domain event generation</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern matching reduces unnecessary domain processing</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Asynchronous processing prevents blocking domain operations</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configurable filtering enables selective monitoring</span></span></code></pre></div>
+<h1 id="cross-platform-compatibility">Cross-Platform Compatibility</h1>
+<h2 id="operating-system-abstraction">Operating System Abstraction</h2>
+<p>The adapter maintains compatibility across operating systems:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Cross-platform considerations:</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Windows: Native file system notifications</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Linux: inotify-based monitoring</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - macOS: FSEvents framework utilization</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Container environments: Specialized monitoring approaches</span></span></code></pre></div>
+<h2 id="file-system-type-support">File System Type Support</h2>
+<p>Different file system types are handled appropriately:</p>
+<ul>
+<li>Local file systems with native notification support</li>
+<li>Network file systems with polling fallback</li>
+<li>Container overlay file systems</li>
+<li>Cloud storage mounted file systems</li>
+</ul>
+<h2 id="performance-characteristics-by-platform">Performance
+Characteristics by Platform</h2>
+<p>Platform-specific optimization strategies:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Platform optimizations:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Native event system utilization where available</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Polling frequency tuning for network file systems</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory usage optimization for large directory trees</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Thread allocation based on platform capabilities</span></span></code></pre></div>
+<h1 id="configuration-and-customization">Configuration and
+Customization</h1>
+<h2 id="pattern-syntax-support">Pattern Syntax Support</h2>
+<p>The adapter supports sophisticated pattern matching:</p>
+<ul>
+<li>Glob-style wildcards with * and ? support</li>
+<li>Regular expression compilation for complex patterns</li>
+<li>Case-sensitive and case-insensitive matching options</li>
+<li>Extension-based filtering optimization</li>
+</ul>
+<h2 id="monitoring-behavior-configuration">Monitoring Behavior
+Configuration</h2>
+<p>Flexible monitoring behavior customization:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration options:</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Recursive vs single-level monitoring</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern inclusion and exclusion lists</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event type filtering (create, modify, delete)</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance tuning parameters</span></span></code></pre></div>
+<h2 id="resource-usage-tuning">Resource Usage Tuning</h2>
+<p>Configurable resource usage parameters:</p>
+<ul>
+<li>Thread pool sizing based on expected load</li>
+<li>Memory allocation strategies for different scenarios</li>
+<li>Event queue sizing for high-volume environments</li>
+<li>Timeout configuration for various operations</li>
+</ul>
+<h1 id="testing-and-mock-support">Testing and Mock Support</h1>
+<h2 id="testability-design">Testability Design</h2>
+<p>The adapter enables comprehensive testing strategies:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Testing support features:</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Protected methods enable unit testing</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - State inspection through public accessor methods</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource cleanup verification</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event simulation through mock file systems</span></span></code></pre></div>
+<h2 id="mock-implementation-strategy">Mock Implementation Strategy</h2>
+<p>Testing uses mock file system implementations:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mock testing approach:</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - In-memory file system for controlled testing</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Simulated file system events</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance testing with synthetic loads</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error condition simulation</span></span></code></pre></div>
+<h2 id="integration-testing-support">Integration Testing Support</h2>
+<p>The adapter supports comprehensive integration testing:</p>
+<ul>
+<li>Real file system testing with temporary directories</li>
+<li>Concurrent access testing with multiple threads</li>
+<li>Resource leak detection and verification</li>
+<li>Platform-specific behavior validation</li>
+</ul>
+<h1 id="security-considerations">Security Considerations</h1>
+<h2 id="permission-management">Permission Management</h2>
+<p>File system watching operations require careful permission
+management:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security requirements:</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Directory read permissions for monitoring</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system access privileges</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Security manager compliance</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Sandbox environment compatibility</span></span></code></pre></div>
+<h2 id="path-validation-and-safety">Path Validation and Safety</h2>
+<p>The adapter enforces security through validation:</p>
+<ul>
+<li>Path traversal attack prevention</li>
+<li>Symbolic link handling policies</li>
+<li>Access control verification</li>
+<li>Directory boundary enforcement</li>
+</ul>
+<h2 id="audit-trail-integration">Audit Trail Integration</h2>
+<p>All operations contribute to comprehensive audit trails:</p>
+<ul>
+<li>Watch session establishment and termination logging</li>
+<li>File access pattern recording</li>
+<li>Security event documentation</li>
+<li>Performance metrics collection</li>
+</ul>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="extension-points">Extension Points</h2>
+<p>The adapter design supports future enhancements:</p>
+<ul>
+<li>Additional event type support</li>
+<li>Enhanced pattern matching capabilities</li>
+<li>Integration with external monitoring systems</li>
+<li>Cloud storage monitoring support</li>
+</ul>
+<h2 id="technology-integration-roadmap">Technology Integration
+Roadmap</h2>
+<p>Planned integration with emerging technologies:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Future integration targets:</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Java 21+ Virtual Threads for improved scalability</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Native image compilation support</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Container-native file system monitoring</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Distributed file system support</span></span></code></pre></div>
+<h2 id="performance-enhancement-opportunities">Performance Enhancement
+Opportunities</h2>
+<p>Identified areas for future optimization:</p>
+<ul>
+<li>Machine learning-based pattern optimization</li>
+<li>Predictive file change detection</li>
+<li>Dynamic performance tuning based on usage patterns</li>
+<li>Advanced caching strategies for pattern matching</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="ports/FileWatcherPort.org"><em>FileWatcherPort</em></span>:
+Domain interface implemented by this adapter</li>
+<li><span class="spurious-link"
+target="events/ClassFileChanged.org"><em>ClassFileChanged</em></span>:
+Primary event generated from file changes</li>
+<li><span class="spurious-link"
+target="ByteHot.org"><em>ByteHot</em></span>: Core domain aggregate
+consuming file change events</li>
+<li><span class="spurious-link"
+target="flows/hot-swap-complete-flow.org"><em>Hot-Swap Complete
+Flow</em></span>: Complete process initiated by file changes</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The adapter leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Adapter Pattern</strong></strong>: Clean interface
+between domain and infrastructure</li>
+<li><strong><strong>Observer Pattern</strong></strong>: File system
+event notification</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Different
+monitoring approaches (recursive/single)</li>
+<li><strong><strong>Template Method</strong></strong>: Consistent event
+processing patterns</li>
+</ul>
+<h2 id="code-quality-standards">Code Quality Standards</h2>
+<p>The implementation maintains high code quality:</p>
+<ul>
+<li>Comprehensive parameter validation</li>
+<li>Detailed exception handling with proper chaining</li>
+<li>Resource lifecycle management</li>
+<li>Clear separation of concerns</li>
+</ul>
+<p>The FileWatcherAdapter provides ByteHot's critical infrastructure
+implementation for file system monitoring operations while maintaining
+architectural purity and enabling efficient, reliable, and scalable file
+change detection across diverse operating system and file system
+environments.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

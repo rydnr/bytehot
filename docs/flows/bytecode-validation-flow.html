@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>bytecode-validation-flow - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<h1 id="overview-the-safety-gateway-for-hot-swap-operations">Overview:
+The Safety Gateway for Hot-Swap Operations</h1>
+<p>The Bytecode Validation Flow represents the critical safety analysis
+that determines whether detected bytecode changes can be safely applied
+to a running JVM. This flow embodies ByteHot's commitment to
+zero-downtime evolution while maintaining system stability. Unlike
+simple bytecode parsing, this flow demonstrates sophisticated
+compatibility analysis, structural change detection, and intelligent
+safety decision-making.</p>
+<h2 id="flow-participants-and-their-roles">Flow Participants and Their
+Roles</h2>
+<ul>
+<li><strong><strong>BytecodeValidator</strong></strong>: Core validation
+logic and safety analysis (Domain)</li>
+<li><strong><strong>BytecodeAnalyzer</strong></strong>: Deep bytecode
+structural analysis (Domain)</li>
+<li><strong><strong>ValidationRules</strong></strong>: Business rules
+for hot-swap compatibility (Domain)</li>
+<li><strong><strong>BytecodeValidated</strong></strong>: Success event
+with validation details (Domain)</li>
+<li><strong><strong>BytecodeRejected</strong></strong>: Failure event
+with rejection reasons (Domain)</li>
+<li><strong><strong>BytecodeValidationException</strong></strong>:
+Exception carrying rejection context (Domain)</li>
+</ul>
+<h2 id="what-this-flow-demonstrates">What This Flow Demonstrates</h2>
+<ul>
+<li><strong><strong>Conservative safety analysis</strong></strong> that
+prioritizes system stability</li>
+<li><strong><strong>Sophisticated change detection</strong></strong>
+beyond simple file comparison</li>
+<li><strong><strong>Rich error reporting</strong></strong> with
+actionable developer feedback</li>
+<li><strong><strong>Extensible validation rules</strong></strong> for
+different JVM environments</li>
+<li><strong><strong>Performance-optimized analysis</strong></strong> for
+real-time validation</li>
+</ul>
+<h2 id="the-validation-decision-pipeline">The Validation Decision
+Pipeline</h2>
+<pre><code>Class File → Bytecode Load → Compatibility Analysis → Safety Decision → Validation Event
+     ↓              ↓                 ↓                  ↓              ↓
+File System → Memory Buffer → Structural Rules → Allow/Reject → Domain Event
+</code></pre>
+<h1 id="phase-1-bytecode-loading-and-initial-analysis">Phase 1: Bytecode
+Loading and Initial Analysis</h1>
+<p>The flow begins with secure bytecode loading and initial format
+verification to ensure we're working with valid Java class files.</p>
+<h2 id="step-1.1-secure-bytecode-loading">Step 1.1: Secure Bytecode
+Loading</h2>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> BytecodeValidated <span class="fu">validate</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span><span class="op">,</span> BytecodeValidationException <span class="op">{</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Step 1: Secure bytecode loading with validation</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> BytecodeBuffer bytecode <span class="op">=</span> <span class="fu">loadAndValidateBytecode</span><span class="op">(</span>classFile<span class="op">);</span>  <span class="co">// → Step 1.2</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Step 2: Extract class metadata for analysis</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ClassMetadata metadata <span class="op">=</span> <span class="fu">extractClassMetadata</span><span class="op">(</span>classFile<span class="op">,</span> bytecode<span class="op">);</span>  <span class="co">// → Step 1.3</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Step 3: Perform compatibility analysis</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> CompatibilityAnalysis analysis <span class="op">=</span> <span class="fu">analyzeCompatibility</span><span class="op">(</span>bytecode<span class="op">,</span> metadata<span class="op">);</span>  <span class="co">// → Phase 2</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Step 4: Apply safety rules and make decision</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ValidationDecision decision <span class="op">=</span> <span class="fu">applyValidationRules</span><span class="op">(</span>analysis<span class="op">);</span>  <span class="co">// → Phase 3</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Step 5: Generate appropriate domain event</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>decision<span class="op">.</span><span class="fu">isAccepted</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">createValidatedEvent</span><span class="op">(</span>classFile<span class="op">,</span> metadata<span class="op">,</span> analysis<span class="op">,</span> decision<span class="op">);</span>  <span class="co">// → Step 4.1</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BytecodeValidationException</span><span class="op">(</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>            <span class="fu">createRejectedEvent</span><span class="op">(</span>classFile<span class="op">,</span> metadata<span class="op">,</span> analysis<span class="op">,</span> decision<span class="op">)</span>  <span class="co">// → Step 4.2</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BytecodeBuffer <span class="fu">loadAndValidateBytecode</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Load bytecode with size and security checks</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">long</span> fileSize <span class="op">=</span> Files<span class="op">.</span><span class="fu">size</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Prevent loading excessively large files</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>fileSize <span class="op">&gt;</span> MAX_BYTECODE_SIZE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Class file too large for validation: &quot;</span> <span class="op">+</span> fileSize <span class="op">+</span> <span class="st">&quot; bytes&quot;</span><span class="op">);</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Prevent loading empty files</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>fileSize <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Class file is empty: &quot;</span> <span class="op">+</span> classFile<span class="op">);</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> rawBytecode <span class="op">=</span> Files<span class="op">.</span><span class="fu">readAllBytes</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">BytecodeBuffer</span><span class="op">(</span>rawBytecode<span class="op">,</span> classFile<span class="op">);</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The validation
+process begins with secure bytecode loading that includes size
+validation and basic security checks to prevent denial-of-service
+attacks and ensure data integrity.</p>
+<h2 id="step-1.2-bytecode-format-verification">Step 1.2: Bytecode Format
+Verification</h2>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="kw">class</span> BytecodeBuffer <span class="op">{</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">byte</span><span class="op">[]</span> bytecode<span class="op">;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Path sourceFile<span class="op">;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> BytecodeFormat format<span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> ClassFileVersion version<span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="fu">BytecodeBuffer</span><span class="op">(</span><span class="dt">byte</span><span class="op">[]</span> bytecode<span class="op">,</span> Path sourceFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">bytecode</span> <span class="op">=</span> bytecode<span class="op">;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">sourceFile</span> <span class="op">=</span> sourceFile<span class="op">;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">format</span> <span class="op">=</span> <span class="fu">detectBytecodeFormat</span><span class="op">();</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">version</span> <span class="op">=</span> <span class="fu">extractClassFileVersion</span><span class="op">();</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        <span class="fu">validateFormat</span><span class="op">();</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> BytecodeFormat <span class="fu">detectBytecodeFormat</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>bytecode<span class="op">.</span><span class="fu">length</span> <span class="op">&lt;</span> <span class="dv">4</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Invalid class file: too short&quot;</span><span class="op">);</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check Java class file magic number (0xCAFEBABE)</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>bytecode<span class="op">[</span><span class="dv">0</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xCA</span> <span class="op">&amp;&amp;</span> bytecode<span class="op">[</span><span class="dv">1</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xFE</span> <span class="op">&amp;&amp;</span> </span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>            bytecode<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xBA</span> <span class="op">&amp;&amp;</span> bytecode<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">==</span> <span class="op">(</span><span class="dt">byte</span><span class="op">)</span><span class="bn">0xBE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> BytecodeFormat<span class="op">.</span><span class="fu">JAVA_CLASS</span><span class="op">;</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">// For testing, support mock bytecode format</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>bytecode<span class="op">);</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">startsWith</span><span class="op">(</span><span class="st">&quot;COMPATIBLE_BYTECODE:&quot;</span><span class="op">)</span> <span class="op">||</span> </span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>            content<span class="op">.</span><span class="fu">startsWith</span><span class="op">(</span><span class="st">&quot;INCOMPATIBLE_BYTECODE:&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> BytecodeFormat<span class="op">.</span><span class="fu">MOCK_BYTECODE</span><span class="op">;</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Unknown bytecode format&quot;</span><span class="op">);</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> ClassFileVersion <span class="fu">extractClassFileVersion</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>format <span class="op">==</span> BytecodeFormat<span class="op">.</span><span class="fu">JAVA_CLASS</span> <span class="op">&amp;&amp;</span> bytecode<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;=</span> <span class="dv">8</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Minor version at bytes 4-5, major version at bytes 6-7</span></span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>            <span class="dt">int</span> minorVersion <span class="op">=</span> <span class="op">((</span>bytecode<span class="op">[</span><span class="dv">4</span><span class="op">]</span> <span class="op">&amp;</span> <span class="bn">0xFF</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="dv">8</span><span class="op">)</span> <span class="op">|</span> <span class="op">(</span>bytecode<span class="op">[</span><span class="dv">5</span><span class="op">]</span> <span class="op">&amp;</span> <span class="bn">0xFF</span><span class="op">);</span></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>            <span class="dt">int</span> majorVersion <span class="op">=</span> <span class="op">((</span>bytecode<span class="op">[</span><span class="dv">6</span><span class="op">]</span> <span class="op">&amp;</span> <span class="bn">0xFF</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="dv">8</span><span class="op">)</span> <span class="op">|</span> <span class="op">(</span>bytecode<span class="op">[</span><span class="dv">7</span><span class="op">]</span> <span class="op">&amp;</span> <span class="bn">0xFF</span><span class="op">);</span></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassFileVersion</span><span class="op">(</span>majorVersion<span class="op">,</span> minorVersion<span class="op">);</span></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ClassFileVersion<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">validateFormat</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">switch</span> <span class="op">(</span>format<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> JAVA_CLASS <span class="op">-&gt;</span> <span class="fu">validateJavaClassFormat</span><span class="op">();</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> MOCK_BYTECODE <span class="op">-&gt;</span> <span class="fu">validateMockBytecodeFormat</span><span class="op">();</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>            <span class="kw">default</span> <span class="op">-&gt;</span> <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Unsupported bytecode format: &quot;</span> <span class="op">+</span> format<span class="op">);</span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">void</span> <span class="fu">validateJavaClassFormat</span><span class="op">()</span> <span class="kw">throws</span> <span class="bu">IOException</span> <span class="op">{</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validate minimum class file structure</span></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>bytecode<span class="op">.</span><span class="fu">length</span> <span class="op">&lt;</span> MINIMUM_CLASS_FILE_SIZE<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Class file too small to be valid&quot;</span><span class="op">);</span></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Validate supported Java versions</span></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(!</span>version<span class="op">.</span><span class="fu">isSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IOException</span><span class="op">(</span><span class="st">&quot;Unsupported Java version: &quot;</span> <span class="op">+</span> version<span class="op">);</span></span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Additional structural validation could be added here</span></span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Format
+verification ensures that we're working with valid Java bytecode or
+recognized test formats, preventing processing of corrupt or malicious
+files.</p>
+<h2 id="step-1.3-class-metadata-extraction">Step 1.3: Class Metadata
+Extraction</h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassMetadata <span class="fu">extractClassMetadata</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> <span class="dt">final</span> BytecodeBuffer bytecode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">switch</span> <span class="op">(</span>bytecode<span class="op">.</span><span class="fu">getFormat</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> JAVA_CLASS<span class="op">:</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="fu">extractJavaClassMetadata</span><span class="op">(</span>bytecode<span class="op">);</span>      <span class="co">// → Step 1.4a</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> MOCK_BYTECODE<span class="op">:</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="fu">extractMockBytecodeMetadata</span><span class="op">(</span>bytecode<span class="op">);</span>   <span class="co">// → Step 1.4b</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">default</span><span class="op">:</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalArgumentException</span><span class="op">(</span><span class="st">&quot;Unsupported format: &quot;</span> <span class="op">+</span> bytecode<span class="op">.</span><span class="fu">getFormat</span><span class="op">());</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassMetadata <span class="fu">extractJavaClassMetadata</span><span class="op">(</span>BytecodeBuffer bytecode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// In a full implementation, this would use ASM or similar library</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// to parse the constant pool and extract class information</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        BytecodeAnalyzer analyzer <span class="op">=</span> <span class="kw">new</span> <span class="fu">BytecodeAnalyzer</span><span class="op">(</span>bytecode<span class="op">.</span><span class="fu">getBytecode</span><span class="op">());</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassMetadata</span><span class="op">(</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getSuperClassName</span><span class="op">(),</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getInterfaces</span><span class="op">(),</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getFields</span><span class="op">(),</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getMethods</span><span class="op">(),</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getAccessFlags</span><span class="op">(),</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>            analyzer<span class="op">.</span><span class="fu">getSourceFile</span><span class="op">()</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Fallback to simple extraction for demonstration</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> className <span class="op">=</span> <span class="fu">extractClassNameFromPath</span><span class="op">(</span>bytecode<span class="op">.</span><span class="fu">getSourceFile</span><span class="op">());</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ClassMetadata<span class="op">.</span><span class="fu">minimal</span><span class="op">(</span>className<span class="op">);</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ClassMetadata <span class="fu">extractMockBytecodeMetadata</span><span class="op">(</span>BytecodeBuffer bytecode<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> content <span class="op">=</span> <span class="kw">new</span> <span class="bu">String</span><span class="op">(</span>bytecode<span class="op">.</span><span class="fu">getBytecode</span><span class="op">());</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span><span class="op">[]</span> parts <span class="op">=</span> content<span class="op">.</span><span class="fu">split</span><span class="op">(</span><span class="st">&quot;:&quot;</span><span class="op">);</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>parts<span class="op">.</span><span class="fu">length</span> <span class="op">&lt;</span> <span class="dv">2</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalArgumentException</span><span class="op">(</span><span class="st">&quot;Invalid mock bytecode format&quot;</span><span class="op">);</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> className <span class="op">=</span> parts<span class="op">[</span><span class="dv">1</span><span class="op">];</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> version <span class="op">=</span> parts<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;</span> <span class="dv">2</span> <span class="op">?</span> parts<span class="op">[</span><span class="dv">2</span><span class="op">]</span> <span class="op">:</span> <span class="st">&quot;v1.0&quot;</span><span class="op">;</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> changeType <span class="op">=</span> parts<span class="op">.</span><span class="fu">length</span> <span class="op">&gt;</span> <span class="dv">3</span> <span class="op">?</span> parts<span class="op">[</span><span class="dv">3</span><span class="op">]</span> <span class="op">:</span> <span class="st">&quot;unknown&quot;</span><span class="op">;</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassMetadata</span><span class="op">(</span></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>        className<span class="op">,</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;java.lang.Object&quot;</span><span class="op">,</span>              <span class="co">// Default superclass</span></span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Collections</span><span class="op">.</span><span class="fu">emptyList</span><span class="op">(),</span>          <span class="co">// No interfaces</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Collections</span><span class="op">.</span><span class="fu">emptyList</span><span class="op">(),</span>          <span class="co">// No field details</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Collections</span><span class="op">.</span><span class="fu">emptyList</span><span class="op">(),</span>          <span class="co">// No method details</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        AccessFlags<span class="op">.</span><span class="fu">PUBLIC</span><span class="op">,</span>               <span class="co">// Default access</span></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>        version<span class="op">,</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>        changeType</span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Metadata
+extraction provides the foundation for compatibility analysis by
+identifying class structure, inheritance relationships, and member
+definitions.</p>
+<h1 id="phase-2-compatibility-analysis-and-change-detection">Phase 2:
+Compatibility Analysis and Change Detection</h1>
+<p>This phase performs sophisticated analysis to understand the nature
+and impact of bytecode changes.</p>
+<h2 id="step-2.1-structural-change-analysis">Step 2.1: Structural Change
+Analysis</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> CompatibilityAnalysis <span class="fu">analyzeCompatibility</span><span class="op">(</span>BytecodeBuffer bytecode<span class="op">,</span> ClassMetadata metadata<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create analysis context</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    AnalysisContext context <span class="op">=</span> <span class="kw">new</span> <span class="fu">AnalysisContext</span><span class="op">(</span>bytecode<span class="op">,</span> metadata<span class="op">);</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Perform multiple analysis passes</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    StructuralAnalysis structural <span class="op">=</span> <span class="fu">analyzeStructuralChanges</span><span class="op">(</span>context<span class="op">);</span>      <span class="co">// → Step 2.2</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    SignatureAnalysis signatures <span class="op">=</span> <span class="fu">analyzeSignatureChanges</span><span class="op">(</span>context<span class="op">);</span>       <span class="co">// → Step 2.3</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    BehaviorAnalysis behavior <span class="op">=</span> <span class="fu">analyzeBehaviorChanges</span><span class="op">(</span>context<span class="op">);</span>           <span class="co">// → Step 2.4</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Combine analysis results</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">CompatibilityAnalysis</span><span class="op">(</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        structural<span class="op">,</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        signatures<span class="op">,</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        behavior<span class="op">,</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">calculateOverallRisk</span><span class="op">(</span>structural<span class="op">,</span> signatures<span class="op">,</span> behavior<span class="op">),</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">generateRecommendations</span><span class="op">(</span>structural<span class="op">,</span> signatures<span class="op">,</span> behavior<span class="op">)</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> StructuralAnalysis <span class="fu">analyzeStructuralChanges</span><span class="op">(</span>AnalysisContext context<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>StructuralChange<span class="op">&gt;</span> detectedChanges <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    CompatibilityRisk overallRisk <span class="op">=</span> CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">;</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For mock bytecode, parse change indicators</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>context<span class="op">.</span><span class="fu">getFormat</span><span class="op">()</span> <span class="op">==</span> BytecodeFormat<span class="op">.</span><span class="fu">MOCK_BYTECODE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> content <span class="op">=</span> context<span class="op">.</span><span class="fu">getContentString</span><span class="op">();</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;field_addition&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>            detectedChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">StructuralChange</span><span class="op">(</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>                ChangeType<span class="op">.</span><span class="fu">FIELD_ADDITION</span><span class="op">,</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;New field added to class&quot;</span><span class="op">,</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">HIGH</span><span class="op">,</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Field additions change object layout&quot;</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>            overallRisk <span class="op">=</span> CompatibilityRisk<span class="op">.</span><span class="fu">HIGH</span><span class="op">;</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;field_removal&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>            detectedChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">StructuralChange</span><span class="op">(</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>                ChangeType<span class="op">.</span><span class="fu">FIELD_REMOVAL</span><span class="op">,</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Field removed from class&quot;</span><span class="op">,</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">CRITICAL</span><span class="op">,</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Field removal breaks existing instances&quot;</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>            overallRisk <span class="op">=</span> CompatibilityRisk<span class="op">.</span><span class="fu">CRITICAL</span><span class="op">;</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;method_addition&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>            detectedChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">StructuralChange</span><span class="op">(</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>                ChangeType<span class="op">.</span><span class="fu">METHOD_ADDITION</span><span class="op">,</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;New method added to class&quot;</span><span class="op">,</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">,</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Method additions are generally safe&quot;</span></span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-57"><a href="#cb5-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-58"><a href="#cb5-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;method_body_only&quot;</span><span class="op">)</span> <span class="op">||</span> content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;method_body_changes&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb5-59"><a href="#cb5-59" aria-hidden="true" tabindex="-1"></a>            detectedChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">StructuralChange</span><span class="op">(</span></span>
+<span id="cb5-60"><a href="#cb5-60" aria-hidden="true" tabindex="-1"></a>                ChangeType<span class="op">.</span><span class="fu">METHOD_BODY_CHANGE</span><span class="op">,</span></span>
+<span id="cb5-61"><a href="#cb5-61" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Method implementation modified&quot;</span><span class="op">,</span></span>
+<span id="cb5-62"><a href="#cb5-62" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">,</span></span>
+<span id="cb5-63"><a href="#cb5-63" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Method body changes preserve compatibility&quot;</span></span>
+<span id="cb5-64"><a href="#cb5-64" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb5-65"><a href="#cb5-65" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-66"><a href="#cb5-66" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-67"><a href="#cb5-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-68"><a href="#cb5-68" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">StructuralAnalysis</span><span class="op">(</span>detectedChanges<span class="op">,</span> overallRisk<span class="op">);</span></span>
+<span id="cb5-69"><a href="#cb5-69" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Structural
+analysis identifies the fundamental changes to class layout and members,
+categorizing them by compatibility risk and impact on running
+instances.</p>
+<h2 id="step-2.2-method-signature-analysis">Step 2.2: Method Signature
+Analysis</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> SignatureAnalysis <span class="fu">analyzeSignatureChanges</span><span class="op">(</span>AnalysisContext context<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>SignatureChange<span class="op">&gt;</span> signatureChanges <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    CompatibilityRisk signatureRisk <span class="op">=</span> CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze method signature changes</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>MethodInfo method <span class="op">:</span> context<span class="op">.</span><span class="fu">getMetadata</span><span class="op">().</span><span class="fu">getMethods</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        SignatureChange change <span class="op">=</span> <span class="fu">analyzeMethodSignature</span><span class="op">(</span>method<span class="op">,</span> context<span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>change <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            signatureChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span>change<span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getRisk</span><span class="op">().</span><span class="fu">ordinal</span><span class="op">()</span> <span class="op">&gt;</span> signatureRisk<span class="op">.</span><span class="fu">ordinal</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>                signatureRisk <span class="op">=</span> change<span class="op">.</span><span class="fu">getRisk</span><span class="op">();</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze field signature changes</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>FieldInfo field <span class="op">:</span> context<span class="op">.</span><span class="fu">getMetadata</span><span class="op">().</span><span class="fu">getFields</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        SignatureChange change <span class="op">=</span> <span class="fu">analyzeFieldSignature</span><span class="op">(</span>field<span class="op">,</span> context<span class="op">);</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>change <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>            signatureChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span>change<span class="op">);</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getRisk</span><span class="op">().</span><span class="fu">ordinal</span><span class="op">()</span> <span class="op">&gt;</span> signatureRisk<span class="op">.</span><span class="fu">ordinal</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>                signatureRisk <span class="op">=</span> change<span class="op">.</span><span class="fu">getRisk</span><span class="op">();</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">SignatureAnalysis</span><span class="op">(</span>signatureChanges<span class="op">,</span> signatureRisk<span class="op">);</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> SignatureChange <span class="fu">analyzeMethodSignature</span><span class="op">(</span>MethodInfo method<span class="op">,</span> AnalysisContext context<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For mock bytecode analysis</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>context<span class="op">.</span><span class="fu">getFormat</span><span class="op">()</span> <span class="op">==</span> BytecodeFormat<span class="op">.</span><span class="fu">MOCK_BYTECODE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> content <span class="op">=</span> context<span class="op">.</span><span class="fu">getContentString</span><span class="op">();</span></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;signature_change&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">new</span> <span class="fu">SignatureChange</span><span class="op">(</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>                SignatureChangeType<span class="op">.</span><span class="fu">METHOD_SIGNATURE</span><span class="op">,</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>                method<span class="op">.</span><span class="fu">getName</span><span class="op">(),</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Method signature modified&quot;</span><span class="op">,</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">CRITICAL</span><span class="op">,</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Signature changes break binary compatibility&quot;</span></span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;return_type_change&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">new</span> <span class="fu">SignatureChange</span><span class="op">(</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>                SignatureChangeType<span class="op">.</span><span class="fu">RETURN_TYPE</span><span class="op">,</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>                method<span class="op">.</span><span class="fu">getName</span><span class="op">(),</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Method return type changed&quot;</span><span class="op">,</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">HIGH</span><span class="op">,</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Return type changes affect callers&quot;</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>    <span class="co">// In real implementation, would compare with previous version</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> SignatureChange <span class="fu">analyzeFieldSignature</span><span class="op">(</span>FieldInfo field<span class="op">,</span> AnalysisContext context<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>context<span class="op">.</span><span class="fu">getFormat</span><span class="op">()</span> <span class="op">==</span> BytecodeFormat<span class="op">.</span><span class="fu">MOCK_BYTECODE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> content <span class="op">=</span> context<span class="op">.</span><span class="fu">getContentString</span><span class="op">();</span></span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;field_type_change&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">new</span> <span class="fu">SignatureChange</span><span class="op">(</span></span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>                SignatureChangeType<span class="op">.</span><span class="fu">FIELD_TYPE</span><span class="op">,</span></span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>                field<span class="op">.</span><span class="fu">getName</span><span class="op">(),</span></span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Field type changed&quot;</span><span class="op">,</span></span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">CRITICAL</span><span class="op">,</span></span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Field type changes affect serialization and access&quot;</span></span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Signature
+analysis focuses on interface changes that would break binary
+compatibility, identifying modifications that affect how the class is
+used by other code.</p>
+<h2 id="step-2.3-behavioral-impact-analysis">Step 2.3: Behavioral Impact
+Analysis</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BehaviorAnalysis <span class="fu">analyzeBehaviorChanges</span><span class="op">(</span>AnalysisContext context<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>BehaviorChange<span class="op">&gt;</span> behaviorChanges <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    PerformanceImpact performanceImpact <span class="op">=</span> PerformanceImpact<span class="op">.</span><span class="fu">NEUTRAL</span><span class="op">;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    SecurityImpact securityImpact <span class="op">=</span> SecurityImpact<span class="op">.</span><span class="fu">NONE</span><span class="op">;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Analyze method body changes for behavioral impact</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>context<span class="op">.</span><span class="fu">getFormat</span><span class="op">()</span> <span class="op">==</span> BytecodeFormat<span class="op">.</span><span class="fu">MOCK_BYTECODE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> content <span class="op">=</span> context<span class="op">.</span><span class="fu">getContentString</span><span class="op">();</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;performance_improvement&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>            behaviorChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">BehaviorChange</span><span class="op">(</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                BehaviorChangeType<span class="op">.</span><span class="fu">PERFORMANCE_OPTIMIZATION</span><span class="op">,</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Algorithm optimization detected&quot;</span><span class="op">,</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">,</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Performance improvements are generally safe&quot;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>            performanceImpact <span class="op">=</span> PerformanceImpact<span class="op">.</span><span class="fu">POSITIVE</span><span class="op">;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;exception_handling_change&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>            behaviorChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">BehaviorChange</span><span class="op">(</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>                BehaviorChangeType<span class="op">.</span><span class="fu">EXCEPTION_HANDLING</span><span class="op">,</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Exception handling behavior modified&quot;</span><span class="op">,</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">MEDIUM</span><span class="op">,</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Exception changes may affect error handling&quot;</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;security_enhancement&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>            behaviorChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">BehaviorChange</span><span class="op">(</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>                BehaviorChangeType<span class="op">.</span><span class="fu">SECURITY_ENHANCEMENT</span><span class="op">,</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Security improvements detected&quot;</span><span class="op">,</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">,</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Security enhancements are beneficial&quot;</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>            securityImpact <span class="op">=</span> SecurityImpact<span class="op">.</span><span class="fu">POSITIVE</span><span class="op">;</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>content<span class="op">.</span><span class="fu">contains</span><span class="op">(</span><span class="st">&quot;thread_safety_change&quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>            behaviorChanges<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">BehaviorChange</span><span class="op">(</span></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>                BehaviorChangeType<span class="op">.</span><span class="fu">THREAD_SAFETY</span><span class="op">,</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Thread safety behavior modified&quot;</span><span class="op">,</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>                CompatibilityRisk<span class="op">.</span><span class="fu">HIGH</span><span class="op">,</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Concurrency changes require careful review&quot;</span></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">BehaviorAnalysis</span><span class="op">(</span></span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>        behaviorChanges<span class="op">,</span></span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>        performanceImpact<span class="op">,</span></span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>        securityImpact<span class="op">,</span></span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>        <span class="fu">calculateBehaviorRisk</span><span class="op">(</span>behaviorChanges<span class="op">)</span></span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> CompatibilityRisk <span class="fu">calculateBehaviorRisk</span><span class="op">(</span><span class="bu">List</span><span class="op">&lt;</span>BehaviorChange<span class="op">&gt;</span> changes<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>    CompatibilityRisk maxRisk <span class="op">=</span> CompatibilityRisk<span class="op">.</span><span class="fu">LOW</span><span class="op">;</span></span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>BehaviorChange change <span class="op">:</span> changes<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getRisk</span><span class="op">().</span><span class="fu">ordinal</span><span class="op">()</span> <span class="op">&gt;</span> maxRisk<span class="op">.</span><span class="fu">ordinal</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>            maxRisk <span class="op">=</span> change<span class="op">.</span><span class="fu">getRisk</span><span class="op">();</span></span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> maxRisk<span class="op">;</span></span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Behavioral
+analysis examines how the implementation changes affect runtime
+behavior, performance, security, and thread safety characteristics.</p>
+<h1 id="phase-3-safety-rules-application-and-decision-making">Phase 3:
+Safety Rules Application and Decision Making</h1>
+<p>This phase applies sophisticated business rules to determine whether
+the analyzed changes are safe for hot-swap operations.</p>
+<h2 id="step-3.1-validation-rules-engine">Step 3.1: Validation Rules
+Engine</h2>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ValidationDecision <span class="fu">applyValidationRules</span><span class="op">(</span>CompatibilityAnalysis analysis<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    ValidationRulesEngine engine <span class="op">=</span> <span class="kw">new</span> <span class="fu">ValidationRulesEngine</span><span class="op">();</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Apply core safety rules</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    violations<span class="op">.</span><span class="fu">addAll</span><span class="op">(</span>engine<span class="op">.</span><span class="fu">applyStructuralRules</span><span class="op">(</span>analysis<span class="op">.</span><span class="fu">getStructural</span><span class="op">()));</span>    <span class="co">// → Step 3.2</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    violations<span class="op">.</span><span class="fu">addAll</span><span class="op">(</span>engine<span class="op">.</span><span class="fu">applySignatureRules</span><span class="op">(</span>analysis<span class="op">.</span><span class="fu">getSignatures</span><span class="op">()));</span>    <span class="co">// → Step 3.3</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    violations<span class="op">.</span><span class="fu">addAll</span><span class="op">(</span>engine<span class="op">.</span><span class="fu">applyBehaviorRules</span><span class="op">(</span>analysis<span class="op">.</span><span class="fu">getBehavior</span><span class="op">()));</span>       <span class="co">// → Step 3.4</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate overall safety score</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    SafetyScore safetyScore <span class="op">=</span> <span class="fu">calculateSafetyScore</span><span class="op">(</span>analysis<span class="op">,</span> violations<span class="op">);</span>       <span class="co">// → Step 3.5</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Make final decision</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> isAccepted <span class="op">=</span> violations<span class="op">.</span><span class="fu">isEmpty</span><span class="op">()</span> <span class="op">&amp;&amp;</span> safetyScore<span class="op">.</span><span class="fu">isAcceptable</span><span class="op">();</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ValidationDecision</span><span class="op">(</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        isAccepted<span class="op">,</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>        safetyScore<span class="op">,</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        violations<span class="op">,</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        <span class="fu">generateDecisionRationale</span><span class="op">(</span>analysis<span class="op">,</span> violations<span class="op">,</span> safetyScore<span class="op">),</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="kw">class</span> ValidationRulesEngine <span class="op">{</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> <span class="fu">applyStructuralRules</span><span class="op">(</span>StructuralAnalysis structural<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>StructuralChange change <span class="op">:</span> structural<span class="op">.</span><span class="fu">getChanges</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>            <span class="cf">switch</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getChangeType</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> FIELD_ADDITION<span class="op">:</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;FIELD_ADDITION_PROHIBITED&quot;</span><span class="op">,</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Field additions change object layout and break serialization&quot;</span><span class="op">,</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">,</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Remove the new field or restart the application&quot;</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> FIELD_REMOVAL<span class="op">:</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;FIELD_REMOVAL_PROHIBITED&quot;</span><span class="op">,</span> </span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Field removal breaks existing object instances&quot;</span><span class="op">,</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">,</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Restore the field or restart the application&quot;</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> METHOD_BODY_CHANGE<span class="op">:</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// Method body changes are generally allowed</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> METHOD_ADDITION<span class="op">:</span></span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// Method additions are allowed but generate info</span></span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;METHOD_ADDITION_INFO&quot;</span><span class="op">,</span></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;New method added - verify no existing callers are affected&quot;</span><span class="op">,</span></span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">INFO</span><span class="op">,</span></span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Ensure new method is properly tested&quot;</span></span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> violations<span class="op">;</span></span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> <span class="fu">applySignatureRules</span><span class="op">(</span>SignatureAnalysis signatures<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>SignatureChange change <span class="op">:</span> signatures<span class="op">.</span><span class="fu">getChanges</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>            <span class="cf">switch</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getChangeType</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> METHOD_SIGNATURE<span class="op">:</span></span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;METHOD_SIGNATURE_CHANGE_PROHIBITED&quot;</span><span class="op">,</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Method signature changes break binary compatibility&quot;</span><span class="op">,</span></span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">,</span></span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Revert signature change or restart application&quot;</span></span>
+<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> RETURN_TYPE<span class="op">:</span></span>
+<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;RETURN_TYPE_CHANGE_PROHIBITED&quot;</span><span class="op">,</span></span>
+<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Return type changes affect method callers&quot;</span><span class="op">,</span></span>
+<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">,</span></span>
+<span id="cb8-89"><a href="#cb8-89" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Revert return type or restart application&quot;</span></span>
+<span id="cb8-90"><a href="#cb8-90" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-91"><a href="#cb8-91" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-92"><a href="#cb8-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-93"><a href="#cb8-93" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> FIELD_TYPE<span class="op">:</span></span>
+<span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;FIELD_TYPE_CHANGE_PROHIBITED&quot;</span><span class="op">,</span></span>
+<span id="cb8-96"><a href="#cb8-96" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Field type changes break object compatibility&quot;</span><span class="op">,</span></span>
+<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">,</span></span>
+<span id="cb8-98"><a href="#cb8-98" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Revert field type or restart application&quot;</span></span>
+<span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> violations<span class="op">;</span></span>
+<span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> <span class="fu">applyBehaviorRules</span><span class="op">(</span>BehaviorAnalysis behavior<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-108"><a href="#cb8-108" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb8-109"><a href="#cb8-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-110"><a href="#cb8-110" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>BehaviorChange change <span class="op">:</span> behavior<span class="op">.</span><span class="fu">getChanges</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-111"><a href="#cb8-111" aria-hidden="true" tabindex="-1"></a>            <span class="cf">switch</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getChangeType</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-112"><a href="#cb8-112" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> THREAD_SAFETY<span class="op">:</span></span>
+<span id="cb8-113"><a href="#cb8-113" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-114"><a href="#cb8-114" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;THREAD_SAFETY_CHANGE_WARNING&quot;</span><span class="op">,</span></span>
+<span id="cb8-115"><a href="#cb8-115" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Thread safety changes require careful review&quot;</span><span class="op">,</span></span>
+<span id="cb8-116"><a href="#cb8-116" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">WARNING</span><span class="op">,</span></span>
+<span id="cb8-117"><a href="#cb8-117" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Verify thread safety in multi-threaded environment&quot;</span></span>
+<span id="cb8-118"><a href="#cb8-118" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-119"><a href="#cb8-119" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-120"><a href="#cb8-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-121"><a href="#cb8-121" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> EXCEPTION_HANDLING<span class="op">:</span></span>
+<span id="cb8-122"><a href="#cb8-122" aria-hidden="true" tabindex="-1"></a>                    violations<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="kw">new</span> <span class="fu">RuleViolation</span><span class="op">(</span></span>
+<span id="cb8-123"><a href="#cb8-123" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;EXCEPTION_HANDLING_CHANGE_INFO&quot;</span><span class="op">,</span></span>
+<span id="cb8-124"><a href="#cb8-124" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Exception handling behavior has changed&quot;</span><span class="op">,</span></span>
+<span id="cb8-125"><a href="#cb8-125" aria-hidden="true" tabindex="-1"></a>                        RuleSeverity<span class="op">.</span><span class="fu">INFO</span><span class="op">,</span></span>
+<span id="cb8-126"><a href="#cb8-126" aria-hidden="true" tabindex="-1"></a>                        <span class="st">&quot;Review exception handling for consistency&quot;</span></span>
+<span id="cb8-127"><a href="#cb8-127" aria-hidden="true" tabindex="-1"></a>                    <span class="op">));</span></span>
+<span id="cb8-128"><a href="#cb8-128" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-129"><a href="#cb8-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-130"><a href="#cb8-130" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> PERFORMANCE_OPTIMIZATION<span class="op">:</span></span>
+<span id="cb8-131"><a href="#cb8-131" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> SECURITY_ENHANCEMENT<span class="op">:</span></span>
+<span id="cb8-132"><a href="#cb8-132" aria-hidden="true" tabindex="-1"></a>                    <span class="co">// These are positive changes - no violations</span></span>
+<span id="cb8-133"><a href="#cb8-133" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb8-134"><a href="#cb8-134" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb8-135"><a href="#cb8-135" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-136"><a href="#cb8-136" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-137"><a href="#cb8-137" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> violations<span class="op">;</span></span>
+<span id="cb8-138"><a href="#cb8-138" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-139"><a href="#cb8-139" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: The rules engine
+applies sophisticated business logic to determine safety, categorizing
+violations by severity and providing actionable guidance for
+developers.</p>
+<h2 id="step-3.2-safety-score-calculation">Step 3.2: Safety Score
+Calculation</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> SafetyScore <span class="fu">calculateSafetyScore</span><span class="op">(</span>CompatibilityAnalysis analysis<span class="op">,</span> <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> baseScore <span class="op">=</span> <span class="fl">1.0</span><span class="op">;</span> <span class="co">// Start with perfect safety</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Reduce score based on violations</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>RuleViolation violation <span class="op">:</span> violations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">switch</span> <span class="op">(</span>violation<span class="op">.</span><span class="fu">getSeverity</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> BLOCKING<span class="op">:</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                baseScore <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span> <span class="co">// Any blocking violation makes it unsafe</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> WARNING<span class="op">:</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>                baseScore <span class="op">-=</span> <span class="fl">0.3</span><span class="op">;</span> <span class="co">// Warnings significantly reduce safety</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">case</span> INFO<span class="op">:</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                baseScore <span class="op">-=</span> <span class="fl">0.1</span><span class="op">;</span> <span class="co">// Info violations slightly reduce confidence</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Adjust based on change complexity</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> complexityPenalty <span class="op">=</span> <span class="fu">calculateComplexityPenalty</span><span class="op">(</span>analysis<span class="op">);</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    baseScore <span class="op">-=</span> complexityPenalty<span class="op">;</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Ensure score stays within bounds</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> finalScore <span class="op">=</span> <span class="bu">Math</span><span class="op">.</span><span class="fu">max</span><span class="op">(</span><span class="fl">0.0</span><span class="op">,</span> <span class="bu">Math</span><span class="op">.</span><span class="fu">min</span><span class="op">(</span><span class="fl">1.0</span><span class="op">,</span> baseScore<span class="op">));</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">SafetyScore</span><span class="op">(</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        finalScore<span class="op">,</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>        ScoreConfidence<span class="op">.</span><span class="fu">fromScore</span><span class="op">(</span>finalScore<span class="op">),</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>        violations<span class="op">.</span><span class="fu">isEmpty</span><span class="op">(),</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>        <span class="fu">generateScoreExplanation</span><span class="op">(</span>finalScore<span class="op">,</span> violations<span class="op">,</span> complexityPenalty<span class="op">)</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">double</span> <span class="fu">calculateComplexityPenalty</span><span class="op">(</span>CompatibilityAnalysis analysis<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> penalty <span class="op">=</span> <span class="fl">0.0</span><span class="op">;</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Penalty for multiple structural changes</span></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> structuralChanges <span class="op">=</span> analysis<span class="op">.</span><span class="fu">getStructural</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">size</span><span class="op">();</span></span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>structuralChanges <span class="op">&gt;</span> <span class="dv">1</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>        penalty <span class="op">+=</span> structuralChanges <span class="op">*</span> <span class="fl">0.05</span><span class="op">;</span> <span class="co">// 5% per additional change</span></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Penalty for signature changes</span></span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> signatureChanges <span class="op">=</span> analysis<span class="op">.</span><span class="fu">getSignatures</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">size</span><span class="op">();</span></span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>    penalty <span class="op">+=</span> signatureChanges <span class="op">*</span> <span class="fl">0.2</span><span class="op">;</span> <span class="co">// 20% per signature change</span></span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Penalty for high-risk behavioral changes</span></span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> highRiskBehaviorChanges <span class="op">=</span> analysis<span class="op">.</span><span class="fu">getBehavior</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>change <span class="op">-&gt;</span> change<span class="op">.</span><span class="fu">getRisk</span><span class="op">()</span> <span class="op">==</span> CompatibilityRisk<span class="op">.</span><span class="fu">HIGH</span><span class="op">)</span></span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">count</span><span class="op">();</span></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>    penalty <span class="op">+=</span> highRiskBehaviorChanges <span class="op">*</span> <span class="fl">0.15</span><span class="op">;</span> <span class="co">// 15% per high-risk behavior change</span></span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">Math</span><span class="op">.</span><span class="fu">min</span><span class="op">(</span>penalty<span class="op">,</span> <span class="fl">0.5</span><span class="op">);</span> <span class="co">// Cap penalty at 50%</span></span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">generateDecisionRationale</span><span class="op">(</span>CompatibilityAnalysis analysis<span class="op">,</span> </span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>                                       <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations<span class="op">,</span> </span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>                                       SafetyScore safetyScore<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>    <span class="bu">StringBuilder</span> rationale <span class="op">=</span> <span class="kw">new</span> <span class="bu">StringBuilder</span><span class="op">();</span></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>violations<span class="op">.</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>        rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;No rule violations detected. &quot;</span><span class="op">);</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>analysis<span class="op">.</span><span class="fu">getStructural</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>            rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;No structural changes found - likely method body modification only. &quot;</span><span class="op">);</span></span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>            rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Detected changes are compatible with hot-swap requirements. &quot;</span><span class="op">);</span></span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>        rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Safety score: &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span><span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;</span><span class="sc">%.2f</span><span class="st">&quot;</span><span class="op">,</span> safetyScore<span class="op">.</span><span class="fu">getScore</span><span class="op">()));</span></span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>        <span class="dt">long</span> blockingViolations <span class="op">=</span> violations<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>v <span class="op">-&gt;</span> v<span class="op">.</span><span class="fu">getSeverity</span><span class="op">()</span> <span class="op">==</span> RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">)</span></span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">count</span><span class="op">();</span></span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>blockingViolations <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>            rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;REJECTED: &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span>blockingViolations<span class="op">)</span></span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot; blocking violation(s) detected. &quot;</span><span class="op">);</span></span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>        <span class="dt">long</span> warningViolations <span class="op">=</span> violations<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>v <span class="op">-&gt;</span> v<span class="op">.</span><span class="fu">getSeverity</span><span class="op">()</span> <span class="op">==</span> RuleSeverity<span class="op">.</span><span class="fu">WARNING</span><span class="op">)</span></span>
+<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">count</span><span class="op">();</span></span>
+<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>warningViolations <span class="op">&gt;</span> <span class="dv">0</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>            rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span>warningViolations<span class="op">).</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot; warning(s) issued. &quot;</span><span class="op">);</span></span>
+<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a>        rationale<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Review required before hot-swap can proceed.&quot;</span><span class="op">);</span></span>
+<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> rationale<span class="op">.</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb9-94"><a href="#cb9-94" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Safety scoring
+provides quantitative assessment of hot-swap risk, enabling informed
+decision-making and risk management.</p>
+<h1 id="phase-4-validation-event-generation">Phase 4: Validation Event
+Generation</h1>
+<p>The final phase generates rich domain events that communicate
+validation results with comprehensive context for downstream
+processing.</p>
+<h2 id="step-4.1-success-event-creation">Step 4.1: Success Event
+Creation</h2>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BytecodeValidated <span class="fu">createValidatedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>                                             <span class="dt">final</span> ClassMetadata metadata<span class="op">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>                                             <span class="dt">final</span> CompatibilityAnalysis analysis<span class="op">,</span> </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                                             <span class="dt">final</span> ValidationDecision decision<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate detailed validation summary</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> validationDetails <span class="op">=</span> <span class="fu">generateValidationDetails</span><span class="op">(</span>analysis<span class="op">,</span> decision<span class="op">);</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Calculate confidence level</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">double</span> confidence <span class="op">=</span> decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">().</span><span class="fu">getScore</span><span class="op">();</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create comprehensive success event</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">BytecodeValidated</span><span class="op">(</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        metadata<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="kw">true</span><span class="op">,</span>                           <span class="co">// isValid = true</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>        validationDetails<span class="op">,</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">(),</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        confidence<span class="op">,</span>                     <span class="co">// Confidence level</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getRecommendations</span><span class="op">(),</span>  <span class="co">// Action recommendations</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>        decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">(),</span>      <span class="co">// Safety metrics</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        analysis                        <span class="co">// Complete analysis for downstream use</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">generateValidationDetails</span><span class="op">(</span>CompatibilityAnalysis analysis<span class="op">,</span> ValidationDecision decision<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">StringBuilder</span> details <span class="op">=</span> <span class="kw">new</span> <span class="bu">StringBuilder</span><span class="op">();</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Describe the types of changes detected</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>StructuralChange<span class="op">&gt;</span> structuralChanges <span class="op">=</span> analysis<span class="op">.</span><span class="fu">getStructural</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">();</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>structuralChanges<span class="op">.</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>        details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Bytecode validation passed - method body changes only. &quot;</span><span class="op">);</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>        details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Bytecode validation passed - compatible changes detected: &quot;</span><span class="op">);</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>StructuralChange change <span class="op">:</span> structuralChanges<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getChangeType</span><span class="op">()</span> <span class="op">==</span> ChangeType<span class="op">.</span><span class="fu">METHOD_BODY_CHANGE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>                details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;method implementation modified, &quot;</span><span class="op">);</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">else</span> <span class="cf">if</span> <span class="op">(</span>change<span class="op">.</span><span class="fu">getChangeType</span><span class="op">()</span> <span class="op">==</span> ChangeType<span class="op">.</span><span class="fu">METHOD_ADDITION</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>                details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;new method added, &quot;</span><span class="op">);</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Remove trailing comma and space</span></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>details<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">endsWith</span><span class="op">(</span><span class="st">&quot;, &quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>            details<span class="op">.</span><span class="fu">setLength</span><span class="op">(</span>details<span class="op">.</span><span class="fu">length</span><span class="op">()</span> <span class="op">-</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>        details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;. &quot;</span><span class="op">);</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add safety score information</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>    details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Safety score: &quot;</span><span class="op">).</span><span class="fu">append</span><span class="op">(</span><span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;</span><span class="sc">%.2f</span><span class="st">&quot;</span><span class="op">,</span> decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">().</span><span class="fu">getScore</span><span class="op">()));</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add performance impact if relevant</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>analysis<span class="op">.</span><span class="fu">getBehavior</span><span class="op">().</span><span class="fu">getPerformanceImpact</span><span class="op">()</span> <span class="op">==</span> PerformanceImpact<span class="op">.</span><span class="fu">POSITIVE</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>        details<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;. Performance improvements detected&quot;</span><span class="op">);</span></span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> details<span class="op">.</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Success events
+carry comprehensive analysis results, enabling downstream processors to
+make informed decisions about hot-swap strategies and optimizations.</p>
+<h2 id="step-4.2-rejection-event-creation">Step 4.2: Rejection Event
+Creation</h2>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> BytecodeRejected <span class="fu">createRejectedEvent</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">,</span> </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                                           <span class="dt">final</span> ClassMetadata metadata<span class="op">,</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>                                           <span class="dt">final</span> CompatibilityAnalysis analysis<span class="op">,</span> </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                                           <span class="dt">final</span> ValidationDecision decision<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate detailed rejection reason</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> rejectionReason <span class="op">=</span> <span class="fu">generateRejectionReason</span><span class="op">(</span>analysis<span class="op">,</span> decision<span class="op">);</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Compile actionable recovery recommendations</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> recoveryActions <span class="op">=</span> <span class="fu">generateRecoveryActions</span><span class="op">(</span>decision<span class="op">.</span><span class="fu">getViolations</span><span class="op">());</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create comprehensive rejection event</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> BytecodeRejected<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        metadata<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>        rejectionReason<span class="op">,</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        Instant<span class="op">.</span><span class="fu">now</span><span class="op">(),</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>        decision<span class="op">.</span><span class="fu">getViolations</span><span class="op">(),</span>       <span class="co">// Detailed violation information</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        recoveryActions<span class="op">,</span>                <span class="co">// Actionable recovery steps</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getRecommendations</span><span class="op">(),</span>  <span class="co">// Alternative approaches</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>        decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">()</span>       <span class="co">// Safety metrics for context</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">String</span> <span class="fu">generateRejectionReason</span><span class="op">(</span>CompatibilityAnalysis analysis<span class="op">,</span> ValidationDecision decision<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">StringBuilder</span> reason <span class="op">=</span> <span class="kw">new</span> <span class="bu">StringBuilder</span><span class="op">();</span></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> blockingViolations <span class="op">=</span> decision<span class="op">.</span><span class="fu">getViolations</span><span class="op">().</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>v <span class="op">-&gt;</span> v<span class="op">.</span><span class="fu">getSeverity</span><span class="op">()</span> <span class="op">==</span> RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">)</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toList</span><span class="op">());</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(!</span>blockingViolations<span class="op">.</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>        reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Bytecode validation failed - incompatible changes detected: &quot;</span><span class="op">);</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>RuleViolation violation <span class="op">:</span> blockingViolations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">switch</span> <span class="op">(</span>violation<span class="op">.</span><span class="fu">getRuleId</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;FIELD_ADDITION_PROHIBITED&quot;</span><span class="op">:</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>                    reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;schema changes (field addition) not supported, &quot;</span><span class="op">);</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;FIELD_REMOVAL_PROHIBITED&quot;</span><span class="op">:</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>                    reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;schema changes (field removal) not supported, &quot;</span><span class="op">);</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;METHOD_SIGNATURE_CHANGE_PROHIBITED&quot;</span><span class="op">:</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a>                    reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;method signature changes break compatibility, &quot;</span><span class="op">);</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>                <span class="cf">case</span> <span class="st">&quot;RETURN_TYPE_CHANGE_PROHIBITED&quot;</span><span class="op">:</span></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>                    reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;return type changes affect callers, &quot;</span><span class="op">);</span></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span><span class="op">;</span></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>                <span class="kw">default</span><span class="op">:</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>                    reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span>violation<span class="op">.</span><span class="fu">getMessage</span><span class="op">()).</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;, &quot;</span><span class="op">);</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Remove trailing comma and space</span></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>reason<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">endsWith</span><span class="op">(</span><span class="st">&quot;, &quot;</span><span class="op">))</span> <span class="op">{</span></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a>            reason<span class="op">.</span><span class="fu">setLength</span><span class="op">(</span>reason<span class="op">.</span><span class="fu">length</span><span class="op">()</span> <span class="op">-</span> <span class="dv">2</span><span class="op">);</span></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span></span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a>        reason<span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="st">&quot;Bytecode validation failed - safety score too low: &quot;</span><span class="op">)</span></span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a>              <span class="op">.</span><span class="fu">append</span><span class="op">(</span><span class="bu">String</span><span class="op">.</span><span class="fu">format</span><span class="op">(</span><span class="st">&quot;</span><span class="sc">%.2f</span><span class="st">&quot;</span><span class="op">,</span> decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">().</span><span class="fu">getScore</span><span class="op">()));</span></span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> reason<span class="op">.</span><span class="fu">toString</span><span class="op">();</span></span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> <span class="fu">generateRecoveryActions</span><span class="op">(</span><span class="bu">List</span><span class="op">&lt;</span>RuleViolation<span class="op">&gt;</span> violations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> actions <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="op">(</span>RuleViolation violation <span class="op">:</span> violations<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>violation<span class="op">.</span><span class="fu">getSeverity</span><span class="op">()</span> <span class="op">==</span> RuleSeverity<span class="op">.</span><span class="fu">BLOCKING</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true" tabindex="-1"></a>            actions<span class="op">.</span><span class="fu">add</span><span class="op">(</span>violation<span class="op">.</span><span class="fu">getRecoveryAction</span><span class="op">());</span></span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb11-74"><a href="#cb11-74" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb11-75"><a href="#cb11-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-76"><a href="#cb11-76" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Add general recovery actions</span></span>
+<span id="cb11-77"><a href="#cb11-77" aria-hidden="true" tabindex="-1"></a>    actions<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="st">&quot;Review changes for JVM hot-swap compatibility&quot;</span><span class="op">);</span></span>
+<span id="cb11-78"><a href="#cb11-78" aria-hidden="true" tabindex="-1"></a>    actions<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="st">&quot;Consider restarting application to load new class definition&quot;</span><span class="op">);</span></span>
+<span id="cb11-79"><a href="#cb11-79" aria-hidden="true" tabindex="-1"></a>    actions<span class="op">.</span><span class="fu">add</span><span class="op">(</span><span class="st">&quot;Consult hot-swap compatibility guidelines&quot;</span><span class="op">);</span></span>
+<span id="cb11-80"><a href="#cb11-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-81"><a href="#cb11-81" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> actions<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">distinct</span><span class="op">().</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toList</span><span class="op">());</span></span>
+<span id="cb11-82"><a href="#cb11-82" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Rejection events
+provide detailed diagnostic information and actionable recovery
+guidance, enabling developers to understand and address compatibility
+issues.</p>
+<h1 id="phase-5-validation-intelligence-and-learning">Phase 5:
+Validation Intelligence and Learning</h1>
+<p>The validation flow includes intelligence gathering to improve future
+validation decisions and system optimization.</p>
+<h2 id="step-5.1-validation-pattern-recording">Step 5.1: Validation
+Pattern Recording</h2>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">void</span> <span class="fu">recordValidationPattern</span><span class="op">(</span>Path classFile<span class="op">,</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>                                   CompatibilityAnalysis analysis<span class="op">,</span> </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>                                   ValidationDecision decision<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Create validation pattern for learning</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        ValidationPattern pattern <span class="op">=</span> <span class="kw">new</span> <span class="fu">ValidationPattern</span><span class="op">(</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>            classFile<span class="op">,</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>            analysis<span class="op">.</span><span class="fu">getStructural</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">(),</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>            analysis<span class="op">.</span><span class="fu">getSignatures</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">(),</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>            analysis<span class="op">.</span><span class="fu">getBehavior</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">(),</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>            decision<span class="op">.</span><span class="fu">isAccepted</span><span class="op">(),</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>            decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">().</span><span class="fu">getScore</span><span class="op">(),</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>            Instant<span class="op">.</span><span class="fu">now</span><span class="op">()</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Store pattern for future learning</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        FlowDetectionPort flowDetector <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>FlowDetectionPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        ValidationFlow validationFlow <span class="op">=</span> ValidationFlow<span class="op">.</span><span class="fu">fromPattern</span><span class="op">(</span>pattern<span class="op">);</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        flowDetector<span class="op">.</span><span class="fu">storeFlow</span><span class="op">(</span>validationFlow<span class="op">);</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Don&#39;t fail validation if pattern recording fails</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to record validation pattern: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">static</span> <span class="kw">class</span> ValidationPattern <span class="op">{</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Path classFile<span class="op">;</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>StructuralChange<span class="op">&gt;</span> structuralChanges<span class="op">;</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>SignatureChange<span class="op">&gt;</span> signatureChanges<span class="op">;</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>BehaviorChange<span class="op">&gt;</span> behaviorChanges<span class="op">;</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">boolean</span> wasAccepted<span class="op">;</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="dt">double</span> safetyScore<span class="op">;</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> Instant timestamp<span class="op">;</span></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Constructor and methods...</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> ValidationOutcome <span class="fu">predict</span><span class="op">(</span>CompatibilityAnalysis newAnalysis<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Use pattern to predict outcome for similar changes</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> similarity <span class="op">=</span> <span class="fu">calculateSimilarity</span><span class="op">(</span>newAnalysis<span class="op">);</span></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>similarity <span class="op">&gt;</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ValidationOutcome</span><span class="op">(</span></span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>                wasAccepted<span class="op">,</span></span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>                safetyScore<span class="op">,</span></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>                similarity<span class="op">,</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Based on similar pattern from &quot;</span> <span class="op">+</span> timestamp</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ValidationOutcome<span class="op">.</span><span class="fu">UNKNOWN</span><span class="op">;</span></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Pattern recording
+enables machine learning from validation decisions, improving future
+accuracy and enabling predictive analysis.</p>
+<h2 id="step-5.2-performance-metrics-collection">Step 5.2: Performance
+Metrics Collection</h2>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// From: BytecodeValidator.java (Domain Service)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> ValidationMetrics <span class="fu">collectValidationMetrics</span><span class="op">(</span><span class="dt">long</span> startTime<span class="op">,</span> </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                                                   CompatibilityAnalysis analysis<span class="op">,</span> </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                                                   ValidationDecision decision<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> endTime <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">nanoTime</span><span class="op">();</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Duration</span> validationDuration <span class="op">=</span> <span class="bu">Duration</span><span class="op">.</span><span class="fu">ofNanos</span><span class="op">(</span>endTime <span class="op">-</span> startTime<span class="op">);</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ValidationMetrics</span><span class="op">(</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        validationDuration<span class="op">,</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getStructural</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">size</span><span class="op">(),</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getSignatures</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">size</span><span class="op">(),</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        analysis<span class="op">.</span><span class="fu">getBehavior</span><span class="op">().</span><span class="fu">getChanges</span><span class="op">().</span><span class="fu">size</span><span class="op">(),</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        decision<span class="op">.</span><span class="fu">getViolations</span><span class="op">().</span><span class="fu">size</span><span class="op">(),</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        decision<span class="op">.</span><span class="fu">getSafetyScore</span><span class="op">().</span><span class="fu">getScore</span><span class="op">(),</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Runtime</span><span class="op">.</span><span class="fu">getRuntime</span><span class="op">().</span><span class="fu">totalMemory</span><span class="op">()</span> <span class="op">-</span> <span class="bu">Runtime</span><span class="op">.</span><span class="fu">getRuntime</span><span class="op">().</span><span class="fu">freeMemory</span><span class="op">()</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="co">// Enhanced validation method with metrics</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> BytecodeValidated <span class="fu">validateWithMetrics</span><span class="op">(</span><span class="dt">final</span> Path classFile<span class="op">)</span> <span class="kw">throws</span> <span class="bu">IOException</span><span class="op">,</span> BytecodeValidationException <span class="op">{</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">long</span> startTime <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">nanoTime</span><span class="op">();</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>        BytecodeValidated result <span class="op">=</span> <span class="fu">validate</span><span class="op">(</span>classFile<span class="op">);</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Collect success metrics</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>        ValidationMetrics metrics <span class="op">=</span> <span class="fu">collectValidationMetrics</span><span class="op">(</span>startTime<span class="op">,</span> <span class="fu">getLastAnalysis</span><span class="op">(),</span> <span class="fu">getLastDecision</span><span class="op">());</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>        <span class="fu">recordSuccessMetrics</span><span class="op">(</span>metrics<span class="op">);</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> result<span class="op">;</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span>BytecodeValidationException e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Collect failure metrics</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>        ValidationMetrics metrics <span class="op">=</span> <span class="fu">collectValidationMetrics</span><span class="op">(</span>startTime<span class="op">,</span> <span class="fu">getLastAnalysis</span><span class="op">(),</span> <span class="fu">getLastDecision</span><span class="op">());</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>        <span class="fu">recordFailureMetrics</span><span class="op">(</span>metrics<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> e<span class="op">;</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong><strong>Runtime Behavior</strong></strong>: Metrics
+collection enables performance monitoring and optimization of the
+validation process, tracking efficiency and resource usage.</p>
+<h1 id="flow-completion-validation-decision-communication">Flow
+Completion: Validation Decision Communication</h1>
+<p>The validation flow concludes by communicating the safety decision
+through rich domain events that enable intelligent downstream
+processing.</p>
+<h2 id="validation-success-path">Validation Success Path</h2>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Successful validation result</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>BytecodeValidated successEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">BytecodeValidated</span><span class="op">(</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    classFile<span class="op">,</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    className<span class="op">,</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Bytecode validation passed - method body changes only. Safety score: 0.95&quot;</span><span class="op">,</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    timestamp<span class="op">,</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="fl">0.95</span><span class="op">,</span>                           <span class="co">// High confidence</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    recommendations<span class="op">,</span>                <span class="co">// Performance optimization suggestions</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    safetyScore<span class="op">,</span>                    <span class="co">// Detailed safety metrics</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    fullAnalysis                    <span class="co">// Complete analysis for hot-swap planning</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span></code></pre></div>
+<h2 id="validation-failure-path">Validation Failure Path</h2>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Failed validation with comprehensive error information</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>BytecodeRejected rejectionEvent <span class="op">=</span> BytecodeRejected<span class="op">.</span><span class="fu">forNewSession</span><span class="op">(</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    classFile<span class="op">,</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    className<span class="op">,</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Bytecode validation failed - schema changes (field addition) not supported&quot;</span><span class="op">,</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    timestamp<span class="op">,</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    ruleViolations<span class="op">,</span>                 <span class="co">// Detailed violation descriptions</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    recoveryActions<span class="op">,</span>                <span class="co">// Step-by-step recovery guidance</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    alternatives<span class="op">,</span>                   <span class="co">// Alternative approaches</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    safetyMetrics                   <span class="co">// Risk assessment details</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="cf">throw</span> <span class="kw">new</span> <span class="fu">BytecodeValidationException</span><span class="op">(</span>rejectionEvent<span class="op">);</span></span></code></pre></div>
+<h1 id="cross-cutting-concerns-and-architectural-patterns">Cross-Cutting
+Concerns and Architectural Patterns</h1>
+<h2 id="performance-optimization-strategies">Performance Optimization
+Strategies</h2>
+<ol>
+<li><strong><strong>Early Termination</strong></strong>: Stop analysis
+on first blocking violation</li>
+<li><strong><strong>Caching</strong></strong>: Cache validation results
+for identical bytecode</li>
+<li><strong><strong>Parallel Analysis</strong></strong>: Run multiple
+analysis passes concurrently</li>
+<li><strong><strong>Memory Management</strong></strong>: Efficient
+bytecode buffer handling</li>
+</ol>
+<h2 id="error-resilience-patterns">Error Resilience Patterns</h2>
+<ol>
+<li><strong><strong>Graceful Degradation</strong></strong>: Continue
+with reduced analysis if components fail</li>
+<li><strong><strong>Comprehensive Logging</strong></strong>: Detailed
+error context for debugging</li>
+<li><strong><strong>Safe Defaults</strong></strong>: Conservative
+decisions when analysis is uncertain</li>
+<li><strong><strong>Recovery Guidance</strong></strong>: Actionable
+steps for addressing validation failures</li>
+</ol>
+<h2 id="domain-driven-design-principles">Domain-Driven Design
+Principles</h2>
+<ol>
+<li><strong><strong>Rich Domain Events</strong></strong>: Comprehensive
+validation results with business context</li>
+<li><strong><strong>Ubiquitous Language</strong></strong>: Validation
+terminology consistent across system</li>
+<li><strong><strong>Business Rules</strong></strong>: Clear expression
+of hot-swap compatibility requirements</li>
+<li><strong><strong>Event-Driven Architecture</strong></strong>: Loose
+coupling through validation events</li>
+</ol>
+<h1 id="related-flow-documentation">Related Flow Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="complete-hot-swap-flow.org"><em>Complete Hot-Swap
+Flow</em></span>: How validation results drive hot-swap decisions</li>
+<li><span class="spurious-link"
+target="file-change-detection-flow.org"><em>File Change Detection
+Flow</em></span>: The upstream trigger for validation</li>
+<li><span class="spurious-link"
+target="error-recovery-flow.org"><em>Error Recovery Flow</em></span>:
+How validation failures are handled</li>
+<li><span class="spurious-link"
+target="flow-intelligence-learning-flow.org"><em>Flow Intelligence
+Learning</em></span>: How validation patterns improve system
+intelligence</li>
+</ul>
+<h1 id="conclusion-safety-through-sophisticated-analysis">Conclusion:
+Safety Through Sophisticated Analysis</h1>
+<p>The Bytecode Validation Flow demonstrates how complex safety analysis
+can be implemented while maintaining clean architecture principles. This
+flow provides the critical safety gate for ByteHot's hot-swap
+operations, ensuring that only compatible changes proceed to JVM
+redefinition while providing rich feedback for incompatible changes.</p>
+<p>The flow showcases the power of domain-driven design in complex
+technical domains, proving that sophisticated safety analysis can be
+expressed in clear, maintainable code that respects architectural
+boundaries while delivering the deep analysis required for safe runtime
+modifications.</p>
+</body></html>

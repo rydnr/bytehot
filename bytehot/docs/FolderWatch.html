@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FolderWatch - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>FolderWatch</code> class serves as ByteHot's fundamental
+domain entity for file system monitoring, encapsulating the core
+responsibility of watching specific folders for changes with
+configurable intervals and patterns. This essential domain entity
+provides a clean abstraction over file system monitoring operations
+while maintaining integration with ByteHot's port-based architecture
+through FileWatcherPort delegation. As a crucial component in ByteHot's
+real-time development workflow, it enables intelligent file change
+detection with sophisticated filtering, recursive monitoring
+capabilities, and comprehensive lifecycle management for sustainable
+long-running monitoring operations.</p>
+<h1 id="domain-architecture-role">Domain Architecture Role</h1>
+<h2 id="core-file-system-monitoring-entity">Core File System Monitoring
+Entity</h2>
+<p>FolderWatch serves as the fundamental domain entity for file
+monitoring:</p>
+<ul>
+<li>Encapsulates folder monitoring behavior and configuration within the
+domain layer</li>
+<li>Provides clean abstraction over complex file system watching
+operations</li>
+<li>Maintains immutable configuration while delegating operations to
+infrastructure ports</li>
+<li>Acts as the domain representation of file system monitoring
+concerns</li>
+</ul>
+<h2 id="domain-driven-design-entity">Domain-Driven Design Entity</h2>
+<p>The class follows strict DDD entity patterns:</p>
+<ul>
+<li>Represents a distinct domain concept with clear business identity
+(folder + interval)</li>
+<li>Encapsulates business rules and behavior related to folder
+monitoring</li>
+<li>Maintains clean separation between domain logic and infrastructure
+concerns</li>
+<li>Provides meaningful domain operations through expressive method
+interfaces</li>
+</ul>
+<h2 id="port-integration-and-infrastructure-delegation">Port Integration
+and Infrastructure Delegation</h2>
+<p>The implementation demonstrates sophisticated port integration:</p>
+<ul>
+<li>Delegates actual monitoring operations to FileWatcherPort for clean
+architecture</li>
+<li>Maintains domain purity while leveraging infrastructure
+capabilities</li>
+<li>Provides domain-friendly interfaces that abstract infrastructure
+complexity</li>
+<li>Enables testability through port-based dependency injection
+patterns</li>
+</ul>
+<h1 id="core-entity-structure-and-configuration">Core Entity Structure
+and Configuration</h1>
+<h2 id="essential-folder-monitoring-configuration">Essential Folder
+Monitoring Configuration</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The folder to watch for file system changes and modifications</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> Path folder<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The interval between checks for optimized polling<span class="co">-</span>based monitoring</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This enables configurable monitoring frequency for different use cases</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="dt">int</span> interval<span class="op">;</span></span></code></pre></div>
+<h2 id="immutable-entity-constructor">Immutable Entity Constructor</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a new FolderWatch entity with complete monitoring configuration</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This constructor establishes the immutable monitoring configuration</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">folder</span><span class="co"> </span>the Path to the folder to monitor for file system changes</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">interval</span><span class="co"> </span>the interval between monitoring checks in milliseconds</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">@AllArgsConstructor</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">FolderWatch</span><span class="op">(</span><span class="dt">final</span> Path folder<span class="op">,</span> <span class="dt">final</span> <span class="dt">int</span> interval<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">folder</span> <span class="op">=</span> folder<span class="op">;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">interval</span> <span class="op">=</span> interval<span class="op">;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="file-system-monitoring-operations">File System Monitoring
+Operations</h1>
+<h2 id="comprehensive-watch-initiation">Comprehensive Watch
+Initiation</h2>
+<div class="sourceCode" id="cb3"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Starts watching the folder using the FileWatcherPort with sophisticated filtering</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This initiates real<span class="co">-</span>time file system monitoring with configurable patterns and recursion</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">patterns</span><span class="co"> </span>file patterns to watch for selective monitoring <span class="co">(</span>e<span class="co">.</span>g<span class="co">.,</span> <span class="co">&quot;*.</span>class<span class="co">&quot;,</span> <span class="co">&quot;*.</span>java<span class="co">&quot;)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">recursive</span><span class="co"> </span>whether to watch recursively through subdirectories</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> watch identifier for management and lifecycle control</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">Exception</span><span class="co"> </span>if watching fails due to permissions<span class="co">,</span> resources<span class="co">,</span> or configuration issues</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="bu">String</span> <span class="fu">startWatching</span><span class="op">(</span><span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> patterns<span class="op">,</span> <span class="dt">final</span> <span class="dt">boolean</span> recursive<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span> <span class="op">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> FileWatcherPort watcherPort <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>FileWatcherPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> watcherPort<span class="op">.</span><span class="fu">startWatching</span><span class="op">(</span>folder<span class="op">,</span> patterns<span class="op">,</span> recursive<span class="op">);</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="watch-lifecycle-management">Watch Lifecycle Management</h2>
+<div class="sourceCode" id="cb4"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Stops watching using the given watch identifier for clean resource cleanup</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This ensures proper cleanup of file system monitoring resources</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">watchId</span><span class="co"> </span>the identifier returned by startWatching for precise watch targeting</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@throws</span><span class="co"> </span><span class="an">Exception</span><span class="co"> </span>if stopping fails due to resource issues or invalid identifier</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">stopWatching</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> watchId<span class="op">)</span> <span class="kw">throws</span> <span class="bu">Exception</span> <span class="op">{</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> FileWatcherPort watcherPort <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>FileWatcherPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    watcherPort<span class="op">.</span><span class="fu">stopWatching</span><span class="op">(</span>watchId<span class="op">);</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="watch-status-monitoring-and-health-checking">Watch Status
+Monitoring and Health Checking</h2>
+<div class="sourceCode" id="cb5"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/FolderWatch.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Checks if this folder is currently being watched for operational visibility</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This provides health checking and status monitoring capabilities</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@return</span> true if folder is being actively monitored<span class="co">,</span> false otherwise</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">boolean</span> <span class="fu">isWatching</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> FileWatcherPort watcherPort <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>FileWatcherPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> watcherPort<span class="op">.</span><span class="fu">isWatching</span><span class="op">(</span>folder<span class="op">);</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Return false on any error to provide safe default behavior</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="domain-driven-design-patterns-and-architecture">Domain-Driven
+Design Patterns and Architecture</h1>
+<h2 id="entity-identity-and-equality">Entity Identity and Equality</h2>
+<p>The FolderWatch entity demonstrates proper identity management:</p>
+<ul>
+<li><strong><strong>Natural Identity</strong></strong>: Combination of
+folder path and interval forms natural identity</li>
+<li><strong><strong>Value-Based Equality</strong></strong>: Lombok's
+@EqualsAndHashCode provides proper equality semantics</li>
+<li><strong><strong>Immutable Design</strong></strong>: Immutable
+configuration prevents identity corruption</li>
+<li><strong><strong>Business Identity</strong></strong>: Identity based
+on business-meaningful characteristics</li>
+</ul>
+<h2 id="port-based-architecture-integration">Port-Based Architecture
+Integration</h2>
+<p>The implementation showcases clean port integration:</p>
+<ul>
+<li><strong><strong>Port Resolution</strong></strong>: Uses
+Ports.resolve() for clean dependency resolution</li>
+<li><strong><strong>Infrastructure Delegation</strong></strong>:
+Delegates complex operations to infrastructure ports</li>
+<li><strong><strong>Domain Purity</strong></strong>: Maintains domain
+purity while leveraging infrastructure capabilities</li>
+<li><strong><strong>Testability</strong></strong>: Enables comprehensive
+testing through port mocking and substitution</li>
+</ul>
+<h2 id="domain-service-collaboration">Domain Service Collaboration</h2>
+<p>The entity collaborates effectively with domain services:</p>
+<ul>
+<li><strong><strong>FileWatcherPort</strong></strong>: Primary
+collaboration for actual monitoring operations</li>
+<li><strong><strong>Clean Interfaces</strong></strong>: Provides
+domain-friendly interfaces for complex operations</li>
+<li><strong><strong>Exception Management</strong></strong>: Proper
+exception handling with domain-appropriate behavior</li>
+<li><strong><strong>Resource Management</strong></strong>: Delegates
+resource lifecycle to appropriate infrastructure</li>
+</ul>
+<h1 id="file-system-monitoring-strategies-and-patterns">File System
+Monitoring Strategies and Patterns</h1>
+<h2 id="pattern-based-file-filtering">Pattern-Based File Filtering</h2>
+<p>The startWatching method supports sophisticated file filtering:</p>
+<ul>
+<li><strong><strong>Glob Patterns</strong></strong>: Standard glob
+patterns for file type filtering (*.class, *.java)</li>
+<li><strong><strong>Multiple Patterns</strong></strong>: Support for
+multiple patterns in a single watch operation</li>
+<li><strong><strong>Negative Patterns</strong></strong>: Support for
+exclusion patterns to ignore specific files</li>
+<li><strong><strong>Performance Optimization</strong></strong>:
+Pattern-based filtering reduces unnecessary event generation</li>
+</ul>
+<h2 id="recursive-monitoring-capabilities">Recursive Monitoring
+Capabilities</h2>
+<p>The recursive parameter enables flexible monitoring strategies:</p>
+<ul>
+<li><strong><strong>Deep Monitoring</strong></strong>: Recursive
+monitoring for complete project coverage</li>
+<li><strong><strong>Shallow Monitoring</strong></strong>: Non-recursive
+monitoring for performance optimization</li>
+<li><strong><strong>Selective Depth</strong></strong>: Combined with
+patterns for sophisticated monitoring strategies</li>
+<li><strong><strong>Dynamic Configuration</strong></strong>: Runtime
+configuration of monitoring depth and scope</li>
+</ul>
+<h2 id="interval-based-optimization">Interval-Based Optimization</h2>
+<p>The interval configuration enables performance optimization:</p>
+<ul>
+<li><strong><strong>High-Frequency Monitoring</strong></strong>: Short
+intervals for rapid development scenarios</li>
+<li><strong><strong>Resource Conservation</strong></strong>: Longer
+intervals for production or resource-constrained environments</li>
+<li><strong><strong>Adaptive Monitoring</strong></strong>: Different
+intervals for different types of projects or usage patterns</li>
+<li><strong><strong>Performance Tuning</strong></strong>: Configurable
+intervals for optimal performance vs. responsiveness trade-offs</li>
+</ul>
+<h1 id="integration-with-bytehot-monitoring-pipeline">Integration with
+ByteHot Monitoring Pipeline</h1>
+<h2 id="file-change-event-generation">File Change Event Generation</h2>
+<p>FolderWatch integration generates comprehensive file change
+events:</p>
+<ul>
+<li><strong><strong>ClassFileChanged Events</strong></strong>: Primary
+events for .class file modifications</li>
+<li><strong><strong>ClassFileCreated Events</strong></strong>: Events
+for new class file creation</li>
+<li><strong><strong>ClassFileDeleted Events</strong></strong>: Events
+for class file removal</li>
+<li><strong><strong>Event Correlation</strong></strong>: Proper event
+correlation with monitoring session context</li>
+</ul>
+<h2 id="real-time-development-workflow-integration">Real-Time
+Development Workflow Integration</h2>
+<p>The entity supports real-time development workflows:</p>
+<ul>
+<li><strong><strong>IDE Integration</strong></strong>: Compatible with
+IDE build and compilation workflows</li>
+<li><strong><strong>Build Tool Integration</strong></strong>:
+Integration with Maven, Gradle, and other build tools</li>
+<li><strong><strong>Continuous Integration</strong></strong>: Support
+for CI/CD pipeline integration</li>
+<li><strong><strong>Development Server Integration</strong></strong>:
+Integration with development server restart workflows</li>
+</ul>
+<h2 id="performance-and-resource-management">Performance and Resource
+Management</h2>
+<p>The implementation provides efficient resource management:</p>
+<ul>
+<li><strong><strong>Resource Cleanup</strong></strong>: Proper cleanup
+of file system monitoring resources</li>
+<li><strong><strong>Memory Efficiency</strong></strong>: Efficient
+memory usage for long-running monitoring operations</li>
+<li><strong><strong>CPU Optimization</strong></strong>: Optimized CPU
+usage through intelligent polling and event handling</li>
+<li><strong><strong>I/O Optimization</strong></strong>: Minimized I/O
+operations through efficient file system API usage</li>
+</ul>
+<h1 id="error-handling-and-resilience-patterns">Error Handling and
+Resilience Patterns</h1>
+<h2 id="exception-management-strategy">Exception Management
+Strategy</h2>
+<p>The implementation provides robust exception handling:</p>
+<ul>
+<li><strong><strong>Graceful Degradation</strong></strong>: Safe
+defaults on errors (isWatching returns false)</li>
+<li><strong><strong>Error Propagation</strong></strong>: Appropriate
+error propagation for actionable errors</li>
+<li><strong><strong>Resource Safety</strong></strong>: Exception-safe
+resource management and cleanup</li>
+<li><strong><strong>Diagnostic Information</strong></strong>:
+Comprehensive error information for debugging and resolution</li>
+</ul>
+<h2 id="resilience-and-recovery-patterns">Resilience and Recovery
+Patterns</h2>
+<p>The design supports various resilience patterns:</p>
+<ul>
+<li><strong><strong>Automatic Recovery</strong></strong>: Automatic
+recovery from transient file system errors</li>
+<li><strong><strong>Health Monitoring</strong></strong>: Continuous
+health monitoring through isWatching() method</li>
+<li><strong><strong>Failover Support</strong></strong>: Support for
+failover to alternative monitoring strategies</li>
+<li><strong><strong>Circuit Breaker</strong></strong>: Integration with
+circuit breaker patterns for resource protection</li>
+</ul>
+<h2 id="monitoring-and-observability">Monitoring and Observability</h2>
+<p>The entity enables comprehensive monitoring:</p>
+<ul>
+<li><strong><strong>Status Visibility</strong></strong>: Real-time
+visibility into monitoring status and health</li>
+<li><strong><strong>Performance Metrics</strong></strong>: Integration
+with performance monitoring and metrics collection</li>
+<li><strong><strong>Error Tracking</strong></strong>: Comprehensive
+error tracking and analysis capabilities</li>
+<li><strong><strong>Operational Intelligence</strong></strong>: Rich
+operational intelligence for monitoring optimization</li>
+</ul>
+<h1 id="testing-and-validation-strategies">Testing and Validation
+Strategies</h1>
+<h2 id="unit-testing-patterns">Unit Testing Patterns</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldCreateFolderWatchWithConfiguration</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Folder path and interval configuration</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    Path watchFolder <span class="op">=</span> Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span><span class="st">&quot;/project/target/classes&quot;</span><span class="op">);</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> pollInterval <span class="op">=</span> <span class="dv">1000</span><span class="op">;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: FolderWatch is created</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    FolderWatch folderWatch <span class="op">=</span> <span class="kw">new</span> <span class="fu">FolderWatch</span><span class="op">(</span>watchFolder<span class="op">,</span> pollInterval<span class="op">);</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should contain correct configuration</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>folderWatch<span class="op">.</span><span class="fu">getFolder</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>watchFolder<span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>folderWatch<span class="op">.</span><span class="fu">getInterval</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>pollInterval<span class="op">);</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="integration-testing-with-ports">Integration Testing with
+Ports</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldStartWatchingWithPatterns</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: FolderWatch and mock FileWatcherPort</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    FolderWatch folderWatch <span class="op">=</span> <span class="fu">createFolderWatch</span><span class="op">();</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> patterns <span class="op">=</span> <span class="bu">Arrays</span><span class="op">.</span><span class="fu">asList</span><span class="op">(</span><span class="st">&quot;*.class&quot;</span><span class="op">,</span> <span class="st">&quot;*.java&quot;</span><span class="op">);</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> recursive <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">when</span><span class="op">(</span>mockFileWatcherPort<span class="op">.</span><span class="fu">startWatching</span><span class="op">(</span><span class="fu">any</span><span class="op">(),</span> <span class="fu">any</span><span class="op">(),</span> <span class="fu">anyBoolean</span><span class="op">()))</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">thenReturn</span><span class="op">(</span><span class="st">&quot;watch-id-123&quot;</span><span class="op">);</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Starting watching with patterns</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> watchId <span class="op">=</span> folderWatch<span class="op">.</span><span class="fu">startWatching</span><span class="op">(</span>patterns<span class="op">,</span> recursive<span class="op">);</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should return valid watch ID</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>watchId<span class="op">).</span><span class="fu">isEqualTo</span><span class="op">(</span><span class="st">&quot;watch-id-123&quot;</span><span class="op">);</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">verify</span><span class="op">(</span>mockFileWatcherPort<span class="op">).</span><span class="fu">startWatching</span><span class="op">(</span>folderWatch<span class="op">.</span><span class="fu">getFolder</span><span class="op">(),</span> patterns<span class="op">,</span> recursive<span class="op">);</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="error-handling-testing">Error Handling Testing</h2>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldHandleWatchingErrors</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: FolderWatch with unavailable FileWatcherPort</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    FolderWatch folderWatch <span class="op">=</span> <span class="fu">createFolderWatch</span><span class="op">();</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">when</span><span class="op">(</span>mockFileWatcherPort<span class="op">.</span><span class="fu">isWatching</span><span class="op">(</span><span class="fu">any</span><span class="op">()))</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span><span class="fu">thenThrow</span><span class="op">(</span><span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;File system error&quot;</span><span class="op">));</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Checking if watching</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> isWatching <span class="op">=</span> folderWatch<span class="op">.</span><span class="fu">isWatching</span><span class="op">();</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should return false for safety</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>isWatching<span class="op">).</span><span class="fu">isFalse</span><span class="op">();</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="performance-optimization-and-scalability">Performance
+Optimization and Scalability</h1>
+<h2 id="memory-efficiency-strategies">Memory Efficiency Strategies</h2>
+<p>The implementation optimizes memory usage:</p>
+<ul>
+<li><strong><strong>Lightweight Objects</strong></strong>: Minimal
+memory footprint with efficient field organization</li>
+<li><strong><strong>Immutable Design</strong></strong>: Prevents memory
+leaks through immutable object design</li>
+<li><strong><strong>Resource Sharing</strong></strong>: Efficient
+sharing of monitoring resources across multiple watches</li>
+<li><strong><strong>Garbage Collection Friendly</strong></strong>:
+Design optimized for efficient garbage collection</li>
+</ul>
+<h2 id="cpu-and-io-optimization">CPU and I/O Optimization</h2>
+<p>The entity design promotes efficient resource usage:</p>
+<ul>
+<li><strong><strong>Lazy Evaluation</strong></strong>: Lazy evaluation
+of expensive operations like port resolution</li>
+<li><strong><strong>Efficient Delegation</strong></strong>: Minimal
+overhead delegation to infrastructure ports</li>
+<li><strong><strong>Optimized Polling</strong></strong>: Intelligent
+polling strategies based on interval configuration</li>
+<li><strong><strong>Event Batching</strong></strong>: Support for event
+batching to reduce processing overhead</li>
+</ul>
+<h2 id="scalability-considerations">Scalability Considerations</h2>
+<p>The design supports large-scale deployments:</p>
+<ul>
+<li><strong><strong>Multiple Watch Support</strong></strong>: Efficient
+support for monitoring multiple folders simultaneously</li>
+<li><strong><strong>Resource Pooling</strong></strong>: Integration with
+resource pooling for large-scale monitoring</li>
+<li><strong><strong>Distributed Monitoring</strong></strong>: Support
+for distributed monitoring patterns</li>
+<li><strong><strong>Cloud Integration</strong></strong>: Integration
+with cloud-based file system monitoring services</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="FileWatcherPort.org"><em>FileWatcherPort</em></span>: Primary
+port interface for file system monitoring operations</li>
+<li><span class="spurious-link"
+target="ports/FileWatcherPort.org"><em>FileWatcherPort Port
+Documentation</em></span>: Detailed port interface documentation</li>
+<li><span class="spurious-link"
+target="WatchConfiguration.org"><em>WatchConfiguration</em></span>:
+Configuration entity for comprehensive watch management</li>
+<li><span class="spurious-link"
+target="events/ClassFileChanged.org"><em>ClassFileChanged</em></span>:
+Primary event generated by folder watching operations</li>
+<li><span class="spurious-link"
+target="flows/file-change-detection-flow.org"><em>File Change Detection
+Flow</em></span>: Complete file monitoring workflow documentation</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The entity leverages several sophisticated design patterns:</p>
+<ul>
+<li><strong><strong>Entity Pattern</strong></strong>: Proper domain
+entity with business identity and behavior</li>
+<li><strong><strong>Delegation Pattern</strong></strong>: Clean
+delegation to infrastructure ports for complex operations</li>
+<li><strong><strong>Port and Adapter Pattern</strong></strong>:
+Integration with hexagonal architecture through port delegation</li>
+<li><strong><strong>Value Object Pattern</strong></strong>: Immutable
+configuration with proper equality semantics</li>
+</ul>
+<h2 id="domain-driven-design-principles">Domain-Driven Design
+Principles</h2>
+<p>The implementation follows strict DDD principles:</p>
+<ul>
+<li><strong><strong>Rich Domain Entities</strong></strong>: Meaningful
+domain behavior beyond simple data containers</li>
+<li><strong><strong>Infrastructure Independence</strong></strong>: Pure
+domain logic without infrastructure dependencies</li>
+<li><strong><strong>Ubiquitous Language</strong></strong>: Clear,
+business-focused naming and comprehensive documentation</li>
+<li><strong><strong>Aggregate Boundary Respect</strong></strong>: Proper
+integration with domain aggregate boundaries</li>
+</ul>
+<h2 id="future-enhancement-opportunities">Future Enhancement
+Opportunities</h2>
+<p>The design supports future enhancements:</p>
+<ul>
+<li><strong><strong>Advanced Filtering</strong></strong>: Machine
+learning-based intelligent file filtering</li>
+<li><strong><strong>Performance Analytics</strong></strong>: Advanced
+performance monitoring and optimization</li>
+<li><strong><strong>Cloud Integration</strong></strong>: Native cloud
+file system monitoring integration</li>
+<li><strong><strong>Real-Time Streaming</strong></strong>: Integration
+with real-time event streaming platforms</li>
+</ul>
+<p>The FolderWatch entity provides ByteHot's essential file system
+monitoring foundation while maintaining clean domain boundaries,
+comprehensive functionality, and extensibility for advanced monitoring
+scenarios throughout the entire intelligent development workflow
+lifecycle.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

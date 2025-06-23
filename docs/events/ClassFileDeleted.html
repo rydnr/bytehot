@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ClassFileDeleted - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<h1 id="overview">Overview</h1>
+<p>The <code>ClassFileDeleted</code> event serves as ByteHot's
+comprehensive detection and cleanup orchestration signal for removed
+.class files, representing the discovery of deleted bytecode artifacts
+that require intelligent cleanup, state management, and runtime
+adaptation. This critical domain event provides complete deletion
+context including file metadata, impact analysis, and cleanup strategy
+information that enables sophisticated resource management and system
+consistency maintenance. As the authoritative signal for class file
+removal in ByteHot's monitoring infrastructure, it triggers
+comprehensive cleanup workflows while maintaining complete audit trails
+and supporting intelligent resource reclamation, dependency management,
+and system state consistency throughout the entire intelligent hot-swap
+system lifecycle.</p>
+<h1 id="domain-architecture-role">Domain Architecture Role</h1>
+<h2 id="class-removal-detection-and-impact-assessment-hub">Class Removal
+Detection and Impact Assessment Hub</h2>
+<p>ClassFileDeleted serves as the comprehensive removal detection and
+impact assessment hub:</p>
+<ul>
+<li>Detects and reports the removal of .class files from monitored
+directories with complete context</li>
+<li>Provides comprehensive impact analysis for intelligent cleanup
+strategy selection and execution</li>
+<li>Enables sophisticated dependency analysis and cascade impact
+assessment for system consistency</li>
+<li>Acts as the authoritative trigger for cleanup workflows and resource
+reclamation processes</li>
+</ul>
+<h2 id="cleanup-orchestration-and-state-management-gateway">Cleanup
+Orchestration and State Management Gateway</h2>
+<p>The event serves as the orchestration gateway for cleanup and state
+management:</p>
+<ul>
+<li>Triggers comprehensive cleanup workflows for removed classes and
+associated resources</li>
+<li>Enables intelligent state management and consistency maintenance
+across system components</li>
+<li>Provides foundation for dependency cleanup and cascade removal
+operations</li>
+<li>Supports sophisticated resource reclamation and memory management
+optimization</li>
+</ul>
+<h2 id="system-consistency-and-integrity-intelligence-hub">System
+Consistency and Integrity Intelligence Hub</h2>
+<p>The implementation provides system consistency and integrity
+capabilities:</p>
+<ul>
+<li>Enables intelligent system consistency maintenance after class
+removal operations</li>
+<li>Supports sophisticated integrity verification and validation after
+cleanup operations</li>
+<li>Provides foundation for comprehensive audit trails and compliance
+verification</li>
+<li>Enables advanced monitoring and analytics for deletion patterns and
+system health</li>
+</ul>
+<h1 id="event-structure-and-deletion-context">Event Structure and
+Deletion Context</h1>
+<h2 id="core-file-identification-and-removal-context">Core File
+Identification and Removal Context</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileDeleted.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The path to the deleted <span class="co">.</span>class file for complete file system context and audit trails</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> Path classFile<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The fully qualified name of the deleted class for precise identification and cleanup</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> className<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The timestamp when the deletion was detected for temporal analysis and sequencing</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> Instant timestamp<span class="op">;</span></span></code></pre></div>
+<h2 id="deletion-metadata-and-impact-context">Deletion Metadata and
+Impact Context</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileDeleted.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The source of the deletion operation for context and audit trail purposes</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">String</span> deletionSource<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Whether the deletion was expected <span class="co">(</span>planned<span class="co">)</span> or unexpected <span class="co">(</span>accidental<span class="co">/</span>external<span class="co">)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="dt">boolean</span> wasExpected<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The impact assessment indicating the scope of cleanup required</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> DeletionImpact impactAssessment<span class="op">;</span></span></code></pre></div>
+<h2 id="system-state-and-cleanup-context">System State and Cleanup
+Context</h2>
+<div class="sourceCode" id="cb3"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileDeleted.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The number of active instances that existed when the class was deleted</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="dt">int</span> activeInstances<span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> List of dependent classes that may be affected by this deletion</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> dependentClasses<span class="op">;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The cleanup strategy recommended for this deletion event</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> CleanupStrategy cleanupStrategy<span class="op">;</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Additional metadata about the deletion context for enhanced processing</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> deletionMetadata<span class="op">;</span></span></code></pre></div>
+<h2 id="comprehensive-deletion-event-constructor">Comprehensive Deletion
+Event Constructor</h2>
+<div class="sourceCode" id="cb4"
+data-tangle="../../bytehot/src/main/java/org/acmsl/bytehot/domain/events/ClassFileDeleted.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a new ClassFileDeleted event with complete deletion context and impact analysis</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> This constructor provides comprehensive information about class file removal operations</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"> * </span><span class="an">@param</span><span class="co"> </span><span class="an">classFile</span><span class="co"> </span>the path to the deleted <span class="co">.</span>class file for audit and context</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">className</span><span class="co"> </span>the fully qualified name of the deleted class for identification</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">deletionSource</span><span class="co"> </span>the source of the deletion operation for audit trails</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">wasExpected</span><span class="co"> </span>whether the deletion was expected or unexpected</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">impactAssessment</span><span class="co"> </span>the impact assessment indicating cleanup scope</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">activeInstances</span><span class="co"> </span>the number of active instances when deletion occurred</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">dependentClasses</span><span class="co"> </span>list of dependent classes that may be affected</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">cleanupStrategy</span><span class="co"> </span>the recommended cleanup strategy for this deletion</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">deletionMetadata</span><span class="co"> </span>additional metadata about the deletion context</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">timestamp</span><span class="co"> </span>the timestamp when the deletion was detected</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="at">@RequiredArgsConstructor</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">ClassFileDeleted</span><span class="op">(</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Path classFile<span class="op">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> className<span class="op">,</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">String</span> deletionSource<span class="op">,</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">boolean</span> wasExpected<span class="op">,</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> DeletionImpact impactAssessment<span class="op">,</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="dt">int</span> activeInstances<span class="op">,</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> dependentClasses<span class="op">,</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> CleanupStrategy cleanupStrategy<span class="op">,</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> deletionMetadata<span class="op">,</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> Instant timestamp</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">classFile</span> <span class="op">=</span> classFile<span class="op">;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">className</span> <span class="op">=</span> className<span class="op">;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">deletionSource</span> <span class="op">=</span> deletionSource<span class="op">;</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">wasExpected</span> <span class="op">=</span> wasExpected<span class="op">;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">impactAssessment</span> <span class="op">=</span> impactAssessment<span class="op">;</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">activeInstances</span> <span class="op">=</span> activeInstances<span class="op">;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">dependentClasses</span> <span class="op">=</span> dependentClasses<span class="op">;</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">cleanupStrategy</span> <span class="op">=</span> cleanupStrategy<span class="op">;</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">deletionMetadata</span> <span class="op">=</span> deletionMetadata<span class="op">;</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">timestamp</span> <span class="op">=</span> timestamp<span class="op">;</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="deletion-impact-analysis-and-intelligence">Deletion Impact
+Analysis and Intelligence</h1>
+<h2 id="impact-assessment-and-risk-analysis">Impact Assessment and Risk
+Analysis</h2>
+<p>The impactAssessment field enables comprehensive impact analysis:</p>
+<ul>
+<li><strong><strong>Low Impact</strong></strong>: Simple classes with no
+dependencies or active instances</li>
+<li><strong><strong>Medium Impact</strong></strong>: Classes with
+limited dependencies requiring careful cleanup</li>
+<li><strong><strong>High Impact</strong></strong>: Critical classes with
+extensive dependencies and active instances</li>
+<li><strong><strong>Critical Impact</strong></strong>: Core system
+classes requiring immediate attention and special handling</li>
+</ul>
+<h2 id="dependency-analysis-and-cascade-assessment">Dependency Analysis
+and Cascade Assessment</h2>
+<p>The dependentClasses list enables dependency management:</p>
+<ul>
+<li><strong><strong>Direct Dependencies</strong></strong>: Classes
+directly dependent on the deleted class</li>
+<li><strong><strong>Transitive Dependencies</strong></strong>: Indirect
+dependencies requiring cascade analysis</li>
+<li><strong><strong>Framework Dependencies</strong></strong>:
+Framework-managed dependencies and integrations</li>
+<li><strong><strong>Runtime Dependencies</strong></strong>:
+Runtime-created dependencies and dynamic relationships</li>
+</ul>
+<h2 id="instance-management-and-resource-assessment">Instance Management
+and Resource Assessment</h2>
+<p>The activeInstances field provides resource management context:</p>
+<ul>
+<li><strong><strong>Instance Cleanup</strong></strong>: Number of
+instances requiring cleanup and resource reclamation</li>
+<li><strong><strong>Memory Impact</strong></strong>: Memory impact
+assessment for garbage collection optimization</li>
+<li><strong><strong>Resource Reclamation</strong></strong>: Resources
+requiring reclamation and cleanup operations</li>
+<li><strong><strong>Performance Impact</strong></strong>: Performance
+impact of cleanup operations and resource management</li>
+</ul>
+<h1 id="integration-with-bytehot-cleanup-infrastructure">Integration
+with ByteHot Cleanup Infrastructure</h1>
+<h2 id="filemonitoringsession-integration">FileMonitoringSession
+Integration</h2>
+<p>ClassFileDeleted events are generated by FileMonitoringSession
+operations:</p>
+<ul>
+<li>Detect class file deletion through sophisticated file system
+monitoring and change detection</li>
+<li>Provide comprehensive deletion context and impact analysis for
+cleanup workflows</li>
+<li>Enable FileMonitoringSession to track deletion patterns and system
+activity monitoring</li>
+<li>Support comprehensive monitoring workflow coordination and cleanup
+orchestration</li>
+</ul>
+<h2 id="cleanup-manager-integration">Cleanup Manager Integration</h2>
+<p>The events trigger comprehensive cleanup manager operations:</p>
+<ul>
+<li><strong><strong>Resource Cleanup</strong></strong>: Initiation of
+resource cleanup and reclamation workflows</li>
+<li><strong><strong>State Consistency</strong></strong>: Maintenance of
+system state consistency after deletion operations</li>
+<li><strong><strong>Dependency Cleanup</strong></strong>: Cleanup of
+dependent resources and cascade removal operations</li>
+<li><strong><strong>Audit Trail</strong></strong>: Comprehensive audit
+trail maintenance for deletion and cleanup operations</li>
+</ul>
+<h2 id="runtime-integration-and-adaptation">Runtime Integration and
+Adaptation</h2>
+<p>The event coordinates with runtime systems:</p>
+<ul>
+<li><strong><strong>ClassLoader Coordination</strong></strong>:
+Coordination with class loaders for class unloading and cleanup</li>
+<li><strong><strong>Framework Integration</strong></strong>: Integration
+with frameworks for managed bean cleanup and lifecycle management</li>
+<li><strong><strong>Instance Management</strong></strong>: Coordination
+with instance management systems for cleanup and finalization</li>
+<li><strong><strong>Memory Management</strong></strong>: Integration
+with memory management systems for efficient resource reclamation</li>
+</ul>
+<h1 id="cleanup-strategies-and-workflow-management">Cleanup Strategies
+and Workflow Management</h1>
+<h2 id="immediate-cleanup-workflows">Immediate Cleanup Workflows</h2>
+<p>The cleanupStrategy enables immediate cleanup operations:</p>
+<ul>
+<li><strong><strong>Aggressive Cleanup</strong></strong>: Immediate
+cleanup of all resources and dependencies for critical deletions</li>
+<li><strong><strong>Instance Termination</strong></strong>: Immediate
+termination of active instances with proper finalization</li>
+<li><strong><strong>Resource Reclamation</strong></strong>: Immediate
+resource reclamation and memory cleanup operations</li>
+<li><strong><strong>Dependency Resolution</strong></strong>: Immediate
+resolution of dependency conflicts and cleanup requirements</li>
+</ul>
+<h2 id="graceful-cleanup-and-transition-management">Graceful Cleanup and
+Transition Management</h2>
+<p>The implementation supports graceful cleanup operations:</p>
+<ul>
+<li><strong><strong>Graceful Termination</strong></strong>: Graceful
+termination of active instances with proper shutdown procedures</li>
+<li><strong><strong>Transition Management</strong></strong>: Management
+of transitions to alternative implementations or fallbacks</li>
+<li><strong><strong>Dependency Migration</strong></strong>: Migration of
+dependencies to alternative implementations</li>
+<li><strong><strong>State Preservation</strong></strong>: Preservation
+of critical state during cleanup and transition operations</li>
+</ul>
+<h2 id="background-cleanup-and-optimization">Background Cleanup and
+Optimization</h2>
+<p>The event supports background cleanup operations:</p>
+<ul>
+<li><strong><strong>Deferred Cleanup</strong></strong>: Deferred cleanup
+operations for non-critical deletions</li>
+<li><strong><strong>Batch Cleanup</strong></strong>: Efficient batch
+cleanup operations for multiple deletions</li>
+<li><strong><strong>Resource Pooling</strong></strong>: Resource pooling
+and reuse optimization during cleanup operations</li>
+<li><strong><strong>Performance Optimization</strong></strong>:
+Performance optimization for cleanup operations and resource
+management</li>
+</ul>
+<h1 id="system-consistency-and-integrity-management">System Consistency
+and Integrity Management</h1>
+<h2 id="consistency-verification-and-validation">Consistency
+Verification and Validation</h2>
+<p>The event enables consistency verification:</p>
+<ul>
+<li><strong><strong>State Consistency</strong></strong>: Verification of
+system state consistency after deletion and cleanup</li>
+<li><strong><strong>Dependency Integrity</strong></strong>: Validation
+of dependency integrity and resolution correctness</li>
+<li><strong><strong>Resource Consistency</strong></strong>: Verification
+of resource consistency and cleanup completeness</li>
+<li><strong><strong>System Health</strong></strong>: Overall system
+health assessment after deletion operations</li>
+</ul>
+<h2 id="error-recovery-and-rollback-support">Error Recovery and Rollback
+Support</h2>
+<p>The implementation supports error recovery:</p>
+<ul>
+<li><strong><strong>Rollback Capabilities</strong></strong>: Support for
+rollback of cleanup operations when errors occur</li>
+<li><strong><strong>Recovery Procedures</strong></strong>: Automated
+recovery procedures for failed cleanup operations</li>
+<li><strong><strong>Fallback Strategies</strong></strong>: Fallback
+strategies for handling cleanup failures and inconsistencies</li>
+<li><strong><strong>Emergency Procedures</strong></strong>: Emergency
+procedures for critical cleanup failures</li>
+</ul>
+<h2 id="audit-trail-and-compliance-management">Audit Trail and
+Compliance Management</h2>
+<p>The event provides comprehensive audit capabilities:</p>
+<ul>
+<li><strong><strong>Deletion Tracking</strong></strong>: Complete
+tracking of deletion operations and cleanup activities</li>
+<li><strong><strong>Compliance Verification</strong></strong>:
+Verification of compliance with cleanup policies and procedures</li>
+<li><strong><strong>Forensic Analysis</strong></strong>: Support for
+forensic analysis of deletion patterns and system behavior</li>
+<li><strong><strong>Regulatory Compliance</strong></strong>: Support for
+regulatory compliance requirements and auditing</li>
+</ul>
+<h1 id="performance-analytics-and-optimization">Performance Analytics
+and Optimization</h1>
+<h2 id="deletion-pattern-analysis">Deletion Pattern Analysis</h2>
+<p>The event enables deletion pattern analysis:</p>
+<ul>
+<li><strong><strong>Temporal Patterns</strong></strong>: Analysis of
+temporal patterns in class deletion activities</li>
+<li><strong><strong>Source Analysis</strong></strong>: Analysis of
+deletion sources and their characteristics</li>
+<li><strong><strong>Impact Correlation</strong></strong>: Correlation of
+deletion impact with system performance and behavior</li>
+<li><strong><strong>Cleanup Performance</strong></strong>: Analysis of
+cleanup performance and efficiency metrics</li>
+</ul>
+<h2 id="resource-management-optimization">Resource Management
+Optimization</h2>
+<p>The implementation supports resource optimization:</p>
+<ul>
+<li><strong><strong>Cleanup Efficiency</strong></strong>: Optimization
+of cleanup efficiency and resource reclamation</li>
+<li><strong><strong>Memory Management</strong></strong>: Intelligent
+memory management during cleanup operations</li>
+<li><strong><strong>Performance Impact</strong></strong>: Minimization
+of performance impact during cleanup operations</li>
+<li><strong><strong>Resource Pooling</strong></strong>: Optimization of
+resource pooling and reuse strategies</li>
+</ul>
+<h2 id="system-health-and-monitoring">System Health and Monitoring</h2>
+<p>The event provides system health metrics:</p>
+<ul>
+<li><strong><strong>Health Assessment</strong></strong>: Assessment of
+system health after deletion and cleanup operations</li>
+<li><strong><strong>Performance Monitoring</strong></strong>: Monitoring
+of performance impact and recovery metrics</li>
+<li><strong><strong>Resource Utilization</strong></strong>: Analysis of
+resource utilization during cleanup operations</li>
+<li><strong><strong>Quality Metrics</strong></strong>: Quality metrics
+for cleanup operations and system consistency</li>
+</ul>
+<h1 id="testing-and-validation-strategies">Testing and Validation
+Strategies</h1>
+<h2 id="deletion-detection-testing">Deletion Detection Testing</h2>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldDetectClassFileDeletion</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Class file deletion parameters</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    Path classFile <span class="op">=</span> Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span><span class="st">&quot;/project/classes/DeletedService.class&quot;</span><span class="op">);</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> className <span class="op">=</span> <span class="st">&quot;com.example.DeletedService&quot;</span><span class="op">;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> source <span class="op">=</span> <span class="st">&quot;deployment-cleanup&quot;</span><span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">boolean</span> expected <span class="op">=</span> <span class="kw">true</span><span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    DeletionImpact impact <span class="op">=</span> DeletionImpact<span class="op">.</span><span class="fu">MEDIUM</span><span class="op">;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">int</span> instances <span class="op">=</span> <span class="dv">3</span><span class="op">;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> dependents <span class="op">=</span> <span class="bu">Arrays</span><span class="op">.</span><span class="fu">asList</span><span class="op">(</span><span class="st">&quot;com.example.ClientService&quot;</span><span class="op">);</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    CleanupStrategy strategy <span class="op">=</span> CleanupStrategy<span class="op">.</span><span class="fu">GRACEFUL</span><span class="op">;</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">String</span><span class="op">&gt;</span> metadata <span class="op">=</span> <span class="bu">Map</span><span class="op">.</span><span class="fu">of</span><span class="op">(</span><span class="st">&quot;reason&quot;</span><span class="op">,</span> <span class="st">&quot;deployment-update&quot;</span><span class="op">);</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    Instant timestamp <span class="op">=</span> Instant<span class="op">.</span><span class="fu">now</span><span class="op">();</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Creating class file deleted event</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    ClassFileDeleted deleted <span class="op">=</span> <span class="kw">new</span> <span class="fu">ClassFileDeleted</span><span class="op">(</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        classFile<span class="op">,</span> className<span class="op">,</span> source<span class="op">,</span> expected<span class="op">,</span> impact<span class="op">,</span> </span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        instances<span class="op">,</span> dependents<span class="op">,</span> strategy<span class="op">,</span> metadata<span class="op">,</span> timestamp<span class="op">);</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should contain complete deletion information</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">getClassName</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>className<span class="op">);</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">getDeletionSource</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>source<span class="op">);</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">wasExpected</span><span class="op">()).</span><span class="fu">isTrue</span><span class="op">();</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">getImpactAssessment</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>impact<span class="op">);</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">getActiveInstances</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>instances<span class="op">);</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">getDependentClasses</span><span class="op">()).</span><span class="fu">containsExactlyElementsOf</span><span class="op">(</span>dependents<span class="op">);</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deleted<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">()).</span><span class="fu">isEqualTo</span><span class="op">(</span>timestamp<span class="op">);</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="impact-assessment-testing">Impact Assessment Testing</h2>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldAssessDeleteionImpact</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Different deletion scenarios</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    ClassFileDeleted lowImpact <span class="op">=</span> <span class="fu">createLowImpactDeletion</span><span class="op">();</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    ClassFileDeleted highImpact <span class="op">=</span> <span class="fu">createHighImpactDeletion</span><span class="op">();</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Analyzing deletion impact</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    DeletionImpact lowLevel <span class="op">=</span> lowImpact<span class="op">.</span><span class="fu">getImpactAssessment</span><span class="op">();</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    DeletionImpact highLevel <span class="op">=</span> highImpact<span class="op">.</span><span class="fu">getImpactAssessment</span><span class="op">();</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should provide appropriate impact assessment</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>lowLevel<span class="op">).</span><span class="fu">isEqualTo</span><span class="op">(</span>DeletionImpact<span class="op">.</span><span class="fu">LOW</span><span class="op">);</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>highLevel<span class="op">).</span><span class="fu">isEqualTo</span><span class="op">(</span>DeletionImpact<span class="op">.</span><span class="fu">HIGH</span><span class="op">);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>highImpact<span class="op">.</span><span class="fu">getDependentClasses</span><span class="op">()).</span><span class="fu">hasSizeGreaterThan</span><span class="op">(</span>lowImpact<span class="op">.</span><span class="fu">getDependentClasses</span><span class="op">().</span><span class="fu">size</span><span class="op">());</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>highImpact<span class="op">.</span><span class="fu">getActiveInstances</span><span class="op">()).</span><span class="fu">isGreaterThan</span><span class="op">(</span>lowImpact<span class="op">.</span><span class="fu">getActiveInstances</span><span class="op">());</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="cleanup-strategy-testing">Cleanup Strategy Testing</h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">shouldSelectAppropriateCleanupStrategy</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Deletion with active instances and dependencies</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    ClassFileDeleted deletion <span class="op">=</span> <span class="fu">createDeletionWithDependencies</span><span class="op">();</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Analyzing cleanup strategy</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    CleanupStrategy strategy <span class="op">=</span> deletion<span class="op">.</span><span class="fu">getCleanupStrategy</span><span class="op">();</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">List</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">&gt;</span> dependents <span class="op">=</span> deletion<span class="op">.</span><span class="fu">getDependentClasses</span><span class="op">();</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Should provide appropriate cleanup strategy</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>strategy<span class="op">).</span><span class="fu">isNotNull</span><span class="op">();</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>dependents<span class="op">).</span><span class="fu">isNotEmpty</span><span class="op">();</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>deletion<span class="op">.</span><span class="fu">getActiveInstances</span><span class="op">()).</span><span class="fu">isPositive</span><span class="op">();</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h1 id="integration-with-system-management">Integration with System
+Management</h1>
+<h2 id="deployment-and-lifecycle-management">Deployment and Lifecycle
+Management</h2>
+<p>The event integrates with deployment systems:</p>
+<ul>
+<li><strong><strong>Deployment Coordination</strong></strong>:
+Coordination with deployment systems for planned deletions</li>
+<li><strong><strong>Lifecycle Management</strong></strong>: Integration
+with application lifecycle management systems</li>
+<li><strong><strong>Version Management</strong></strong>: Coordination
+with version management and artifact lifecycle</li>
+<li><strong><strong>Rolling Updates</strong></strong>: Support for
+rolling updates and deployment strategies</li>
+</ul>
+<h2 id="framework-and-container-integration">Framework and Container
+Integration</h2>
+<p>The implementation supports framework integration:</p>
+<ul>
+<li><strong><strong>Spring Integration</strong></strong>: Integration
+with Spring container for bean lifecycle management</li>
+<li><strong><strong>CDI Integration</strong></strong>: Integration with
+CDI containers for managed bean cleanup</li>
+<li><strong><strong>Container Orchestration</strong></strong>:
+Integration with container orchestration systems</li>
+<li><strong><strong>Microservice Coordination</strong></strong>:
+Coordination with microservice deployment and management</li>
+</ul>
+<h2 id="monitoring-and-alerting-integration">Monitoring and Alerting
+Integration</h2>
+<p>The event coordinates with monitoring systems:</p>
+<ul>
+<li><strong><strong>Alert Generation</strong></strong>: Generation of
+alerts for unexpected or critical deletions</li>
+<li><strong><strong>Monitoring Integration</strong></strong>:
+Integration with monitoring systems for deletion tracking</li>
+<li><strong><strong>Dashboard Updates</strong></strong>: Updates to
+operational dashboards and management interfaces</li>
+<li><strong><strong>Notification Systems</strong></strong>: Integration
+with notification systems for stakeholder communication</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="ClassFileCreated.org"><em>ClassFileCreated</em></span>: Related
+event for new class file creation operations</li>
+<li><span class="spurious-link"
+target="ClassFileChanged.org"><em>ClassFileChanged</em></span>: Related
+event for existing class file modifications</li>
+<li><span class="spurious-link"
+target="ClassRedefinitionFailed.org"><em>ClassRedefinitionFailed</em></span>:
+Related event for cleanup after failed operations</li>
+<li><a href="../FileMonitoringSession.org">FileMonitoringSession</a>:
+Primary generator of ClassFileDeleted events</li>
+<li><a href="../../flows/class-deletion-cleanup-flow.org">Class Deletion
+Cleanup Flow</a>: Complete deletion processing workflow</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The event leverages several sophisticated design patterns:</p>
+<ul>
+<li><strong><strong>Domain Event Pattern</strong></strong>: Pure domain
+event with comprehensive deletion context</li>
+<li><strong><strong>Value Object Pattern</strong></strong>: Immutable
+event with comprehensive data encapsulation</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Support for
+different cleanup strategies based on deletion characteristics</li>
+<li><strong><strong>Observer Pattern</strong></strong>: Event
+notification for deletion detection and cleanup workflows</li>
+</ul>
+<h2 id="domain-driven-design-principles">Domain-Driven Design
+Principles</h2>
+<p>The implementation follows strict DDD principles:</p>
+<ul>
+<li><strong><strong>Rich Domain Events</strong></strong>: Comprehensive
+business context with detailed deletion information</li>
+<li><strong><strong>Event-Driven Architecture</strong></strong>: Enables
+reactive processing and sophisticated cleanup workflows</li>
+<li><strong><strong>Impact Analysis</strong></strong>: Built-in impact
+analysis for intelligent cleanup and resource management</li>
+<li><strong><strong>Ubiquitous Language</strong></strong>: Clear,
+business-focused naming and comprehensive documentation</li>
+</ul>
+<h2 id="future-enhancement-opportunities">Future Enhancement
+Opportunities</h2>
+<p>The design supports future enhancements:</p>
+<ul>
+<li><strong><strong>Machine Learning Impact</strong></strong>: AI-driven
+impact assessment and cleanup optimization</li>
+<li><strong><strong>Intelligent Recovery</strong></strong>: Machine
+learning-based recovery and rollback strategies</li>
+<li><strong><strong>Predictive Cleanup</strong></strong>: Predictive
+cleanup based on deletion patterns and system behavior</li>
+<li><strong><strong>Advanced Integration</strong></strong>: Enhanced
+integration with cloud platforms and orchestration systems</li>
+</ul>
+<p>The ClassFileDeleted event provides ByteHot's essential class removal
+detection foundation while maintaining comprehensive deletion context,
+intelligent cleanup capabilities, and extensibility for advanced
+deletion management scenarios throughout the entire intelligent hot-swap
+system lifecycle.</p>
+</body></html>

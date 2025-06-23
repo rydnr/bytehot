@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ByteHot - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>ByteHot</code> class represents the core domain aggregate
+of the ByteHot system, embodying the central business logic for runtime
+bytecode hot-swapping. This aggregate serves as the primary entry point
+for hot-swap operations and orchestrates the initialization of the
+ByteHot runtime environment.</p>
+<h1 id="domain-responsibilities">Domain Responsibilities</h1>
+<p>The ByteHot aggregate encapsulates the following essential domain
+responsibilities:</p>
+<h2 id="primary-responsibilities">Primary Responsibilities</h2>
+<ul>
+<li><strong>Hot-swap Orchestration</strong>: Coordinates runtime
+bytecode modification operations</li>
+<li><strong>Runtime Initialization</strong>: Manages the startup
+sequence of the ByteHot agent</li>
+<li><strong>Configuration Management</strong>: Maintains and validates
+system configuration</li>
+<li><strong>Instrumentation Coordination</strong>: Interfaces with JVM
+instrumentation capabilities</li>
+</ul>
+<h2 id="secondary-responsibilities">Secondary Responsibilities</h2>
+<ul>
+<li><strong>Event Emission</strong>: Triggers domain events to
+communicate state changes</li>
+<li><strong>Capability Detection</strong>: Verifies JVM support for
+hot-swap operations</li>
+<li><strong>Error Handling</strong>: Manages startup failures and error
+conditions</li>
+</ul>
+<h1 id="architectural-role">Architectural Role</h1>
+<p>Within the Domain-Driven Design and Hexagonal Architecture
+framework:</p>
+<h2 id="domain-layer-position">Domain Layer Position</h2>
+<p>The ByteHot aggregate sits at the heart of the domain layer,
+implementing pure business logic without dependencies on external
+technologies. It represents the core concept that gives the system its
+name and primary value proposition.</p>
+<h2 id="event-driven-behavior">Event-Driven Behavior</h2>
+<p>As a primary port in the hexagonal architecture, ByteHot accepts
+incoming domain events and produces resulting events. It follows the
+pattern:</p>
+<pre><code>External Trigger → Domain Event → ByteHot.accept() → Response Events
+</code></pre>
+<h2 id="invariants-maintained">Invariants Maintained</h2>
+<ul>
+<li>Configuration must be valid and non-null</li>
+<li>Instrumentation must be available and support required
+operations</li>
+<li>State transitions must be event-driven and auditable</li>
+</ul>
+<h1 id="class-structure">Class Structure</h1>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/*</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">                        ByteHot</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Copyright (C) 2025-today  rydnr@acm-sl.org</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">    This library is free software; you can redistribute it and/or</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">    modify it under the terms of the GNU General Public</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">    License as published by the Free Software Foundation; either</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">    version 3 of the License, or (at your option) any later version.</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">    This library is distributed in the hope that it will be useful,</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">    General Public License for more details.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">    You should have received a copy of the GNU General Public v3</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">    License along with this library; if not, write to the Free Software</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">    Thanks to ACM S.L. for distributing this library under the GPLv3 license.</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">    Contact info: jose.sanleandro@acm-sl.com</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co"> ******************************************************************************</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co"> * Filename: ByteHot.java</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co"> * Author: rydnr</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co"> * Class name: ByteHot</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="co"> * Responsibilities:</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Hot-swap bytecode at runtime.</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Receive callbacks when watched classes change.</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co"> *</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="co"> * Collaborators:</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - ByteHotAttachRequested: the event that triggers ByteHot agent attachment.</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - FolderWatch: the domain object that represents a folder to watch for changes.</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="co"> *   - Defaults: the default configuration values for ByteHot.</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="co"> */</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="kw">package</span><span class="im"> org</span><span class="op">.</span><span class="im">acmsl</span><span class="op">.</span><span class="im">bytehot</span><span class="op">.</span><span class="im">domain</span><span class="op">;</span></span></code></pre></div>
+<h1 id="core-attributes">Core Attributes</h1>
+<h2 id="configuration-management">Configuration Management</h2>
+<p>The aggregate maintains a <code>WatchConfiguration</code> that
+encapsulates all behavioral parameters:</p>
+<div class="sourceCode" id="cb3"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Retrieves the ByteHot configuration<span class="co">.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the configuration<span class="co">.</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> WatchConfiguration configuration<span class="op">;</span></span></code></pre></div>
+<p><strong>Invariant</strong>: Configuration must always be non-null and
+valid. This represents the behavioral contract that ByteHot will honor
+during its lifetime.</p>
+<h2 id="instrumentation-interface">Instrumentation Interface</h2>
+<p>Direct access to JVM instrumentation capabilities:</p>
+<div class="sourceCode" id="cb4"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> The Instrumentation instance used for bytecode manipulation<span class="co">.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> the Instrumentation instance<span class="co">.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">@Getter</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">;</span></span></code></pre></div>
+<p><strong>Invariant</strong>: Instrumentation must support class
+redefinition and retransformation for hot-swap operations to
+succeed.</p>
+<h1 id="constructor-logic">Constructor Logic</h1>
+<p>The constructor enforces domain invariants through defensive
+programming:</p>
+<div class="sourceCode" id="cb5"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Creates a new ByteHot instance with the specified port<span class="co">.</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">instrumentation</span><span class="co"> </span>the Instrumentation instance for the JVM<span class="co">.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">config</span><span class="co"> </span>the configuration for ByteHot<span class="co">.</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">ByteHot</span><span class="op">(</span><span class="dt">final</span> <span class="bu">Instrumentation</span> instrumentation<span class="op">,</span> <span class="dt">final</span> WatchConfiguration config<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">instrumentation</span> <span class="op">=</span> Objects<span class="op">.</span><span class="fu">requireNonNull</span><span class="op">(</span>instrumentation<span class="op">);</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">configuration</span> <span class="op">=</span> Objects<span class="op">.</span><span class="fu">requireNonNull</span><span class="op">(</span>config<span class="op">);</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p><strong>Design Rationale</strong>: Fail-fast construction ensures
+that invalid aggregates cannot exist, maintaining system integrity from
+the moment of creation.</p>
+<h1 id="primary-port-event-acceptance">Primary Port: Event
+Acceptance</h1>
+<h2 id="accept-method-pattern">Accept Method Pattern</h2>
+<p>The <code>accept</code> method implements the primary port pattern,
+serving as the entry point for domain event processing:</p>
+<div class="sourceCode" id="cb6"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Accepts a ByteHotAttachRequested event and starts the ByteHot runtime<span class="co">.</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">event</span><span class="co"> </span>the event containing the configuration to attach ByteHot<span class="co">.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@return</span> an event representing ByteHot agent has been attached and started or</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> an error occurred during the attachment<span class="co">.</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> <span class="fu">accept</span><span class="op">(</span><span class="dt">final</span> ByteHotAttachRequested event<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> result <span class="op">=</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">new</span> <span class="fu">ByteHot</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getInstrumentation</span><span class="op">(),</span> event<span class="op">.</span><span class="fu">getConfiguration</span><span class="op">())</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">start</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> <span class="kw">new</span> <span class="fu">ByteHotAgentAttached</span><span class="op">(</span>event<span class="op">,</span> event<span class="op">.</span><span class="fu">getConfiguration</span><span class="op">());</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Throwable</span> t<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> <span class="kw">new</span> <span class="fu">ByteHotNotStarted</span><span class="op">(</span>event<span class="op">,</span> t<span class="op">);</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result<span class="op">;</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="event-processing-flow">Event Processing Flow</h2>
+<ol>
+<li><strong>Event Reception</strong>: Receives
+<code>ByteHotAttachRequested</code> containing initialization
+parameters</li>
+<li><strong>Aggregate Creation</strong>: Instantiates new ByteHot
+aggregate with event data</li>
+<li><strong>Startup Execution</strong>: Triggers the startup
+sequence</li>
+<li><strong>Result Production</strong>: Returns either success
+(<code>ByteHotAgentAttached</code>) or failure
+(<code>ByteHotNotStarted</code>) event</li>
+</ol>
+<h2 id="error-handling-strategy">Error Handling Strategy</h2>
+<p>The aggregate implements comprehensive error handling that transforms
+exceptions into domain events, maintaining the event-driven contract
+even in failure scenarios.</p>
+<h1 id="startup-orchestration">Startup Orchestration</h1>
+<h2 id="start-method-logic">Start Method Logic</h2>
+<p>The startup sequence coordinates multiple domain operations:</p>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/domain/ByteHot.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Starts ByteHot with the provided configuration<span class="co">.</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">precedingEvent</span><span class="co"> </span>the event that triggered this startup</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">void</span> <span class="fu">start</span><span class="op">(</span><span class="dt">final</span> ByteHotAttachRequested precedingEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> EventEmitterPort eventEmitter <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventEmitterPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> FileWatcherPort fileWatcher <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>FileWatcherPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Configure watch paths and start file watching</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> WatchPathConfigured watchEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">WatchPathConfigured</span><span class="op">(</span>configuration<span class="op">,</span> precedingEvent<span class="op">);</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        eventEmitter<span class="op">.</span><span class="fu">emit</span><span class="op">(</span>watchEvent<span class="op">);</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Start watching each configured folder</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span><span class="dt">final</span> FolderWatch folderWatch <span class="op">:</span> configuration<span class="op">.</span><span class="fu">getFolders</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>                <span class="dt">final</span> <span class="bu">String</span> watchId <span class="op">=</span> fileWatcher<span class="op">.</span><span class="fu">startWatching</span><span class="op">(</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>                    folderWatch<span class="op">.</span><span class="fu">getFolder</span><span class="op">(),</span> </span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>                    <span class="bu">List</span><span class="op">.</span><span class="fu">of</span><span class="op">(</span><span class="st">&quot;*.class&quot;</span><span class="op">),</span> <span class="co">// Default pattern for class files</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">true</span> <span class="co">// Recursive watching</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>                <span class="op">);</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>                <span class="bu">System</span><span class="op">.</span><span class="fu">out</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Started watching folder: &quot;</span> <span class="op">+</span> folderWatch<span class="op">.</span><span class="fu">getFolder</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot; (ID: &quot;</span> <span class="op">+</span> watchId <span class="op">+</span> <span class="st">&quot;)&quot;</span><span class="op">);</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>                <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to start watching folder &quot;</span> <span class="op">+</span> folderWatch<span class="op">.</span><span class="fu">getFolder</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Check and emit hot-swap capability</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>instrumentation<span class="op">.</span><span class="fu">isRedefineClassesSupported</span><span class="op">()</span> <span class="op">&amp;&amp;</span> instrumentation<span class="op">.</span><span class="fu">isRetransformClassesSupported</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>            <span class="dt">final</span> HotSwapCapabilityEnabled capabilityEvent <span class="op">=</span> <span class="kw">new</span> <span class="fu">HotSwapCapabilityEnabled</span><span class="op">(</span>instrumentation<span class="op">,</span> precedingEvent<span class="op">);</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>            eventEmitter<span class="op">.</span><span class="fu">emit</span><span class="op">(</span>capabilityEvent<span class="op">);</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Failed to emit domain events during startup: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Continue with startup even if event emission fails</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="startup-event-sequence">Startup Event Sequence</h2>
+<ol>
+<li><strong>Port Resolution</strong>: Obtains event emitter and file
+watcher through ports infrastructure</li>
+<li><strong>Watch Configuration</strong>: Emits
+<code>WatchPathConfigured</code> event to establish file monitoring</li>
+<li><strong>File Watching Activation</strong>: Calls
+<code>FileWatcherPort.startWatching()</code> for each configured folder
+<ul>
+<li>Uses <code>*.class</code> pattern for Java bytecode files</li>
+<li>Enables recursive directory monitoring</li>
+<li>Provides error handling for individual folder watch failures</li>
+<li>Logs successful watch registrations with unique IDs</li>
+</ul></li>
+<li><strong>Capability Detection</strong>: Verifies JVM hot-swap support
+and emits <code>HotSwapCapabilityEnabled</code> if available</li>
+<li><strong>Error Resilience</strong>: Continues startup even if event
+emission fails, ensuring system robustness</li>
+</ol>
+<h2 id="critical-file-watching-integration">Critical File Watching
+Integration</h2>
+<p>The startup sequence includes essential file watching activation that
+was missing in earlier versions:</p>
+<p><strong>Previous Behavior (Buggy)</strong>:</p>
+<ul>
+<li>Generated <code>WatchPathConfigured</code> events successfully</li>
+<li>Never called <code>FileWatcherPort.startWatching()</code></li>
+<li>File changes were never detected</li>
+<li>Hot-swapping was impossible</li>
+</ul>
+<p><strong>Current Behavior (Fixed)</strong>:</p>
+<ul>
+<li>Generates <code>WatchPathConfigured</code> events for audit
+trail</li>
+<li>Actively calls <code>FileWatcherPort.startWatching()</code> for each
+folder</li>
+<li>File system monitoring becomes operational</li>
+<li>Hot-swapping works as intended</li>
+</ul>
+<p>This integration resolves the critical disconnect between event
+generation and actual file monitoring infrastructure activation.</p>
+<h1 id="domain-event-collaborations">Domain Event Collaborations</h1>
+<h2 id="incoming-events">Incoming Events</h2>
+<ul>
+<li><code>ByteHotAttachRequested</code>: Triggers aggregate
+initialization and startup</li>
+</ul>
+<h2 id="outgoing-events">Outgoing Events</h2>
+<ul>
+<li><code>ByteHotAgentAttached</code>: Successful startup
+completion</li>
+<li><code>ByteHotNotStarted</code>: Startup failure with error
+context</li>
+<li><code>WatchPathConfigured</code>: File monitoring establishment</li>
+<li><code>HotSwapCapabilityEnabled</code>: JVM capability
+confirmation</li>
+</ul>
+<h1 id="ports-integration">Ports Integration</h1>
+<p>The aggregate demonstrates proper hexagonal architecture by resolving
+ports through the domain's port resolution mechanism:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">final</span> EventEmitterPort eventEmitter <span class="op">=</span> Ports<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>EventEmitterPort<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span></code></pre></div>
+<p>This pattern ensures:</p>
+<ul>
+<li><strong>Dependency Inversion</strong>: Domain depends on
+abstractions, not implementations</li>
+<li><strong>Technology Independence</strong>: Infrastructure adapters
+can be swapped without domain changes</li>
+<li><strong>Testability</strong>: Ports can be mocked or stubbed for
+testing</li>
+</ul>
+<h1 id="invariants-and-constraints">Invariants and Constraints</h1>
+<h2 id="state-invariants">State Invariants</h2>
+<ul>
+<li>Configuration and instrumentation must always be non-null</li>
+<li>Event causality must be preserved through preceding event
+references</li>
+<li>Error conditions must be represented as domain events, not
+exceptions</li>
+</ul>
+<h2 id="behavioral-constraints">Behavioral Constraints</h2>
+<ul>
+<li>Startup must be idempotent - multiple calls should not cause
+issues</li>
+<li>Event emission failures should not prevent core functionality</li>
+<li>JVM capabilities must be verified before attempting hot-swap
+operations</li>
+</ul>
+<h1 id="testing-strategy">Testing Strategy</h1>
+<h2 id="unit-testing-approach">Unit Testing Approach</h2>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Example test structure</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">@Test</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="dt">void</span> <span class="fu">should_accept_attach_request_and_return_agent_attached</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Given: Valid attach request event</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    ByteHotAttachRequested request <span class="op">=</span> <span class="fu">createValidAttachRequest</span><span class="op">();</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// When: Event is accepted</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> result <span class="op">=</span> ByteHot<span class="op">.</span><span class="fu">accept</span><span class="op">(</span>request<span class="op">);</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Then: Success event is returned</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">assertThat</span><span class="op">(</span>result<span class="op">).</span><span class="fu">isInstanceOf</span><span class="op">(</span>ByteHotAgentAttached<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="integration-testing-considerations">Integration Testing
+Considerations</h2>
+<ul>
+<li>Test with actual JVM instrumentation</li>
+<li>Verify event emission through real port implementations</li>
+<li>Validate configuration edge cases and error scenarios</li>
+</ul>
+<h1 id="future-evolution">Future Evolution</h1>
+<h2 id="anticipated-extensions">Anticipated Extensions</h2>
+<ul>
+<li>Support for additional JVM languages (Kotlin, Scala)</li>
+<li>Enhanced configuration validation and migration</li>
+<li>Distributed hot-swap coordination for microservices</li>
+<li>Advanced capability detection and feature toggling</li>
+</ul>
+<h2 id="architectural-flexibility">Architectural Flexibility</h2>
+<p>The event-driven design enables extension without modification:</p>
+<ul>
+<li>New events can be added to the processing flow</li>
+<li>Additional startup steps can be inserted via event handlers</li>
+<li>Configuration can be enhanced without changing core logic</li>
+</ul>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><a href="./WatchConfiguration.org">WatchConfiguration</a>:
+Configuration management</li>
+<li><a href="./Ports.org">Ports</a>: Dependency injection
+infrastructure</li>
+<li><a
+href="./events/ByteHotAttachRequested.org">ByteHotAttachRequested</a>:
+Primary input event</li>
+<li><a
+href="./events/ByteHotAgentAttached.org">ByteHotAgentAttached</a>:
+Success response event</li>
+<li><a href="../flows/bytehot-startup-flow.org">ByteHot Startup
+Flow</a>: Complete startup sequence documentation</li>
+</ul>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

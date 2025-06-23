@@ -5,9 +5,9 @@ set -euo pipefail
 
 echo "📄 Creating index page from story.org..."
 
-if [ -f "bytehot/story.org" ]; then
+if [ -f "story.org" ]; then
     # Convert content only, then wrap in proper HTML structure
-    pandoc -f org -t html5 --toc bytehot/story.org -o bytehot/index_content.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
+    pandoc -f org -t html5 --toc story.org -o bytehot/index_content.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
     
     # Create complete HTML structure
     cat > bytehot/index.html << 'HTML_EOF'

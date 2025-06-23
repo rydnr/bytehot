@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JsonClassFileChanged - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>JsonClassFileChanged</code> class serves as ByteHot's
+critical Data Transfer Object (DTO) for serializing and deserializing
+<code>ClassFileChanged</code> domain events within the Event Sourcing
+infrastructure. This infrastructure component provides the essential
+bridge between domain events and their JSON persistence representation,
+ensuring clean separation between domain logic and serialization
+concerns. As a cornerstone of ByteHot's event sourcing architecture, it
+enables reliable event storage and retrieval while maintaining domain
+event integrity and supporting schema evolution.</p>
+<h1 id="event-sourcing-architecture-role">Event Sourcing Architecture
+Role</h1>
+<h2 id="domain-infrastructure-boundary-adapter">Domain-Infrastructure
+Boundary Adapter</h2>
+<p>JsonClassFileChanged serves as the primary boundary adapter for event
+persistence:</p>
+<ul>
+<li>Cleanly separates domain events from JSON serialization
+concerns</li>
+<li>Provides Jackson-compatible serialization without polluting domain
+layer</li>
+<li>Maintains complete event fidelity during
+serialization/deserialization cycles</li>
+<li>Enables schema evolution through versioned DTO representations</li>
+</ul>
+<h2 id="event-persistence-optimization-gateway">Event Persistence
+Optimization Gateway</h2>
+<p>The DTO optimizes event persistence operations:</p>
+<ul>
+<li>Efficient JSON serialization with minimal object allocation</li>
+<li>Type-safe conversion between domain and persistence
+representations</li>
+<li>Streamlined Jackson integration for consistent JSON formatting</li>
+<li>Performance-optimized field access patterns for serialization</li>
+</ul>
+<h2 id="schema-evolution-foundation">Schema Evolution Foundation</h2>
+<p>The implementation provides the foundation for event schema
+evolution:</p>
+<ul>
+<li>Versioned DTO structure to support backward compatibility</li>
+<li>Flexible field handling for optional and evolving properties</li>
+<li>Clean migration path for event structure changes</li>
+<li>Forward compatibility through extensible JSON structure</li>
+</ul>
+<h1 id="class-structure-and-field-mapping">Class Structure and Field
+Mapping</h1>
+<h2 id="core-event-metadata-fields">Core Event Metadata Fields</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Event identification and metadata</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;eventId&quot;</span><span class="op">)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> eventId<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;aggregateType&quot;</span><span class="op">)</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> aggregateType<span class="op">;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;aggregateId&quot;</span><span class="op">)</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> aggregateId<span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;aggregateVersion&quot;</span><span class="op">)</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="dt">long</span> aggregateVersion<span class="op">;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;timestamp&quot;</span><span class="op">)</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> Instant timestamp<span class="op">;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;previousEventId&quot;</span><span class="op">)</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> previousEventId<span class="op">;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;schemaVersion&quot;</span><span class="op">)</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="dt">int</span> schemaVersion<span class="op">;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;userId&quot;</span><span class="op">)</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> userId<span class="op">;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;correlationId&quot;</span><span class="op">)</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> correlationId<span class="op">;</span></span></code></pre></div>
+<h2 id="domain-specific-event-data">Domain-Specific Event Data</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> ClassFileChanged<span class="co">-</span>specific event data</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;classFile&quot;</span><span class="op">)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> classFile<span class="op">;</span> <span class="co">// Store as String for JSON compatibility</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;className&quot;</span><span class="op">)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="bu">String</span> className<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;fileSize&quot;</span><span class="op">)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> <span class="dt">long</span> fileSize<span class="op">;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;detectionTimestamp&quot;</span><span class="op">)</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">final</span> Instant detectionTimestamp<span class="op">;</span></span></code></pre></div>
+<h2 id="json-serialization-configuration">JSON Serialization
+Configuration</h2>
+<p>The DTO leverages Jackson annotations for optimal JSON
+processing:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Jackson configuration benefits:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Explicit property naming for stable JSON format</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Final fields for immutability and thread safety</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type-safe deserialization with JsonCreator</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Null handling for optional event metadata</span></span></code></pre></div>
+<h1 id="json-deserialization-infrastructure">JSON Deserialization
+Infrastructure</h1>
+<h2 id="comprehensive-jackson-constructor">Comprehensive Jackson
+Constructor</h2>
+<div class="sourceCode" id="cb4"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> JSON constructor for deserialization</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">@JsonCreator</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">JsonClassFileChanged</span><span class="op">(</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;eventId&quot;</span><span class="op">)</span> <span class="bu">String</span> eventId<span class="op">,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;aggregateType&quot;</span><span class="op">)</span> <span class="bu">String</span> aggregateType<span class="op">,</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;aggregateId&quot;</span><span class="op">)</span> <span class="bu">String</span> aggregateId<span class="op">,</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;aggregateVersion&quot;</span><span class="op">)</span> <span class="dt">long</span> aggregateVersion<span class="op">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;timestamp&quot;</span><span class="op">)</span> Instant timestamp<span class="op">,</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;previousEventId&quot;</span><span class="op">)</span> <span class="bu">String</span> previousEventId<span class="op">,</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;schemaVersion&quot;</span><span class="op">)</span> <span class="dt">int</span> schemaVersion<span class="op">,</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;userId&quot;</span><span class="op">)</span> <span class="bu">String</span> userId<span class="op">,</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;correlationId&quot;</span><span class="op">)</span> <span class="bu">String</span> correlationId<span class="op">,</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;classFile&quot;</span><span class="op">)</span> <span class="bu">String</span> classFile<span class="op">,</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;className&quot;</span><span class="op">)</span> <span class="bu">String</span> className<span class="op">,</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;fileSize&quot;</span><span class="op">)</span> <span class="dt">long</span> fileSize<span class="op">,</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">@JsonProperty</span><span class="op">(</span><span class="st">&quot;detectionTimestamp&quot;</span><span class="op">)</span> Instant detectionTimestamp</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">eventId</span> <span class="op">=</span> eventId<span class="op">;</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">aggregateType</span> <span class="op">=</span> aggregateType<span class="op">;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">aggregateId</span> <span class="op">=</span> aggregateId<span class="op">;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">aggregateVersion</span> <span class="op">=</span> aggregateVersion<span class="op">;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">timestamp</span> <span class="op">=</span> timestamp<span class="op">;</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">previousEventId</span> <span class="op">=</span> previousEventId<span class="op">;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">schemaVersion</span> <span class="op">=</span> schemaVersion<span class="op">;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">userId</span> <span class="op">=</span> userId<span class="op">;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">correlationId</span> <span class="op">=</span> correlationId<span class="op">;</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">classFile</span> <span class="op">=</span> classFile<span class="op">;</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">className</span> <span class="op">=</span> className<span class="op">;</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">fileSize</span> <span class="op">=</span> fileSize<span class="op">;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">detectionTimestamp</span> <span class="op">=</span> detectionTimestamp<span class="op">;</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="deserialization-features">Deserialization Features</h2>
+<p>The constructor provides comprehensive deserialization
+capabilities:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Deserialization characteristics:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Complete parameter validation through final field assignment</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type-safe conversion from JSON primitive types</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Null handling for optional metadata fields</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Immutable object creation for thread safety</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Jackson integration for seamless JSON processing</span></span></code></pre></div>
+<h1 id="domain-event-conversion-system">Domain Event Conversion
+System</h1>
+<h2 id="domain-to-dto-transformation">Domain to DTO Transformation</h2>
+<div class="sourceCode" id="cb6"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Converts a domain ClassFileChanged event to a JSON DTO</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> JsonClassFileChanged <span class="fu">fromDomain</span><span class="op">(</span>ClassFileChanged domainEvent<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">JsonClassFileChanged</span><span class="op">(</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getEventId</span><span class="op">(),</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getAggregateType</span><span class="op">(),</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getAggregateId</span><span class="op">(),</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getAggregateVersion</span><span class="op">(),</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getTimestamp</span><span class="op">(),</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getPreviousEventId</span><span class="op">(),</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getSchemaVersion</span><span class="op">(),</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getUserId</span><span class="op">(),</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getCorrelationId</span><span class="op">(),</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getClassFile</span><span class="op">().</span><span class="fu">toString</span><span class="op">(),</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getClassName</span><span class="op">(),</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getFileSize</span><span class="op">(),</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        domainEvent<span class="op">.</span><span class="fu">getDetectionTimestamp</span><span class="op">()</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="dto-to-domain-reconstruction">DTO to Domain Reconstruction</h2>
+<div class="sourceCode" id="cb7"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/eventsourcing/JsonClassFileChanged.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Converts this JSON DTO back to a domain ClassFileChanged event</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> ClassFileChanged <span class="fu">toDomain</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">new</span> <span class="fu">ClassFileChanged</span><span class="op">(</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        eventId<span class="op">,</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        aggregateType<span class="op">,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        aggregateId<span class="op">,</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>        aggregateVersion<span class="op">,</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">,</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        previousEventId<span class="op">,</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        schemaVersion<span class="op">,</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        userId<span class="op">,</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>        correlationId<span class="op">,</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>        Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span>classFile<span class="op">),</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        className<span class="op">,</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>        fileSize<span class="op">,</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>        detectionTimestamp</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="conversion-system-benefits">Conversion System Benefits</h2>
+<p>The bidirectional conversion system provides critical advantages:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Conversion system benefits:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Complete fidelity between domain and persistence representations</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type-safe transformation of complex objects (Path to String)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Immutable object patterns throughout conversion process</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Clean error handling for invalid data during reconstruction</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance optimization through direct field mapping</span></span></code></pre></div>
+<h1 id="type-safety-and-data-integrity">Type Safety and Data
+Integrity</h1>
+<h2 id="path-handling-strategy">Path Handling Strategy</h2>
+<p>The DTO handles the Path-to-String conversion with careful
+consideration:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Path handling characteristics:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Path.toString() for serialization (cross-platform compatibility)</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Paths.get() for deserialization (platform-aware reconstruction)</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - String storage for JSON compatibility and portability</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type safety maintained through conversion methods</span></span></code></pre></div>
+<h2 id="timestamp-precision-management">Timestamp Precision
+Management</h2>
+<p>Sophisticated timestamp handling ensures data integrity:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Timestamp management features:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instant type preservation for nanosecond precision</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON-compatible ISO-8601 serialization format</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Timezone-aware handling through Instant type</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent formatting across all event instances</span></span></code></pre></div>
+<h2 id="metadata-field-validation">Metadata Field Validation</h2>
+<p>The implementation provides comprehensive metadata validation:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Metadata validation characteristics:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Required field enforcement through constructor parameters</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optional field handling for backward compatibility</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type safety for all metadata components</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent null handling across optional fields</span></span></code></pre></div>
+<h1 id="json-structure-design">JSON Structure Design</h1>
+<h2 id="event-json-format">Event JSON Format</h2>
+<p>The DTO produces a well-structured JSON representation:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;eventId&quot;</span><span class="fu">:</span> <span class="st">&quot;uuid-string&quot;</span><span class="fu">,</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;aggregateType&quot;</span><span class="fu">:</span> <span class="st">&quot;ByteHot&quot;</span><span class="fu">,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;aggregateId&quot;</span><span class="fu">:</span> <span class="st">&quot;aggregate-instance-id&quot;</span><span class="fu">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;aggregateVersion&quot;</span><span class="fu">:</span> <span class="dv">42</span><span class="fu">,</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;timestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-06-20T10:30:00.123456789Z&quot;</span><span class="fu">,</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;previousEventId&quot;</span><span class="fu">:</span> <span class="st">&quot;previous-uuid-string&quot;</span><span class="fu">,</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;schemaVersion&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;userId&quot;</span><span class="fu">:</span> <span class="st">&quot;user-identifier&quot;</span><span class="fu">,</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;correlationId&quot;</span><span class="fu">:</span> <span class="st">&quot;correlation-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;classFile&quot;</span><span class="fu">:</span> <span class="st">&quot;/absolute/path/to/changed/file.class&quot;</span><span class="fu">,</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;className&quot;</span><span class="fu">:</span> <span class="st">&quot;com.example.ChangedClass&quot;</span><span class="fu">,</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;fileSize&quot;</span><span class="fu">:</span> <span class="dv">4096</span><span class="fu">,</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;detectionTimestamp&quot;</span><span class="fu">:</span> <span class="st">&quot;2025-06-20T10:30:00.123456789Z&quot;</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="json-schema-compatibility">JSON Schema Compatibility</h2>
+<p>The structure ensures broad compatibility and extensibility:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Schema compatibility features:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent property naming conventions</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Standard JSON primitive type usage</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optional field handling for extensibility</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Version information for schema evolution</span></span></code></pre></div>
+<h1 id="performance-optimization">Performance Optimization</h1>
+<h2 id="serialization-performance">Serialization Performance</h2>
+<p>The DTO optimizes serialization performance through careful
+design:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Serialization optimization strategies:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Final fields for JVM optimization</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Direct field access without complex getter logic</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal object allocation during conversion</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient Jackson annotation usage</span></span></code></pre></div>
+<h2 id="memory-management">Memory Management</h2>
+<p>Sophisticated memory management throughout the conversion
+process:</p>
+<ul>
+<li>Immutable object pattern reduces memory allocation overhead</li>
+<li>Direct field mapping minimizes temporary object creation</li>
+<li>String caching for repeated path representations</li>
+<li>Efficient Jackson integration with minimal reflection overhead</li>
+</ul>
+<h2 id="conversion-performance">Conversion Performance</h2>
+<p>Optimized conversion strategies for high-throughput scenarios:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Conversion optimization features:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Direct constructor parameter passing</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal validation overhead for trusted data</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient Path conversion strategies</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Single-object allocation for conversion operations</span></span></code></pre></div>
+<h1 id="error-handling-and-validation">Error Handling and
+Validation</h1>
+<h2 id="conversion-error-management">Conversion Error Management</h2>
+<p>The DTO handles conversion errors with sophisticated strategies:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error handling characteristics:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Path conversion error handling for invalid path strings</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Null value handling for optional metadata fields</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type validation during JSON deserialization</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graceful degradation for missing optional data</span></span></code></pre></div>
+<h2 id="data-validation-strategies">Data Validation Strategies</h2>
+<p>Comprehensive data validation ensures event integrity:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Validation strategies:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Required field validation through constructor parameters</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Type compatibility checking during conversion</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Range validation for numeric fields</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Format validation for string representations</span></span></code></pre></div>
+<h2 id="recovery-mechanisms">Recovery Mechanisms</h2>
+<p>The implementation provides error recovery capabilities:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recovery mechanisms:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Fallback path handling for cross-platform compatibility</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Default value provision for missing optional fields</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Partial reconstruction for corrupted event data</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Detailed error reporting for debugging support</span></span></code></pre></div>
+<h1 id="testing-and-mock-support">Testing and Mock Support</h1>
+<h2 id="test-data-generation">Test Data Generation</h2>
+<p>The DTO enables comprehensive test data generation:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Testing support features:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Simple constructor for creating test instances</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configurable field values for scenario testing</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON serialization testing with known outputs</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Conversion round-trip testing for fidelity verification</span></span></code></pre></div>
+<h2 id="mock-event-creation">Mock Event Creation</h2>
+<p>Testing utilities for various scenarios:</p>
+<ul>
+<li>Builder pattern support for complex test scenarios</li>
+<li>Minimal instance creation for unit testing</li>
+<li>JSON string generation for integration testing</li>
+<li>Performance testing with synthetic event loads</li>
+</ul>
+<h2 id="validation-testing-support">Validation Testing Support</h2>
+<p>The DTO supports comprehensive validation testing:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Validation testing capabilities:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Conversion fidelity testing with assertion support</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error condition simulation for robustness testing</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cross-platform path handling testing</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON schema compliance testing</span></span></code></pre></div>
+<h1 id="security-considerations">Security Considerations</h1>
+<h2 id="data-sanitization">Data Sanitization</h2>
+<p>Event DTO requires careful data sanitization:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security considerations:</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Path traversal attack prevention in file paths</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Input validation for untrusted JSON data</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Safe string handling for user-provided identifiers</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource limit enforcement for large event data</span></span></code></pre></div>
+<h2 id="type-safety-enforcement">Type Safety Enforcement</h2>
+<p>The implementation enforces strict type safety:</p>
+<ul>
+<li>Final field enforcement to prevent mutation</li>
+<li>Type validation during JSON deserialization</li>
+<li>Safe casting with proper exception handling</li>
+<li>Controlled object construction through validated parameters</li>
+</ul>
+<h2 id="information-disclosure-prevention">Information Disclosure
+Prevention</h2>
+<p>Comprehensive measures prevent information disclosure:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Information security features:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Safe path representation without system information leakage</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent error messages that don&#39;t reveal internal structure</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Controlled serialization of sensitive metadata</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Audit trail support for security monitoring</span></span></code></pre></div>
+<h1 id="schema-evolution-support">Schema Evolution Support</h1>
+<h2 id="version-management">Version Management</h2>
+<p>The DTO supports comprehensive schema version management:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Schema evolution features:</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Schema version field for backward compatibility tracking</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optional field handling for new schema additions</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Default value provision for missing fields in older versions</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Migration support for evolving event structures</span></span></code></pre></div>
+<h2 id="backward-compatibility">Backward Compatibility</h2>
+<p>Sophisticated backward compatibility mechanisms:</p>
+<ul>
+<li>Graceful handling of missing fields in older JSON formats</li>
+<li>Default value provision for newly added optional fields</li>
+<li>Schema version-aware deserialization strategies</li>
+<li>Migration utilities for upgrading legacy event formats</li>
+</ul>
+<h2 id="forward-compatibility">Forward Compatibility</h2>
+<p>The system provides forward compatibility features:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Forward compatibility mechanisms:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Extensible JSON structure for future field additions</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Unknown field handling during deserialization</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Schema validation for compatibility verification</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Evolution strategy documentation for future changes</span></span></code></pre></div>
+<h1 id="integration-patterns">Integration Patterns</h1>
+<h2 id="event-sourcing-integration">Event Sourcing Integration</h2>
+<p>The DTO integrates seamlessly with ByteHot's event sourcing
+architecture:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Integration characteristics:</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Clean separation between domain and infrastructure concerns</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent pattern for other event type DTOs</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimized performance for frequent serialization operations</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Standard conversion pattern across the entire system</span></span></code></pre></div>
+<h2 id="jackson-framework-integration">Jackson Framework
+Integration</h2>
+<p>Sophisticated Jackson framework integration:</p>
+<ul>
+<li>Optimal annotation usage for performance and compatibility</li>
+<li>Custom serialization strategies for complex types</li>
+<li>Error handling integration with Jackson exception hierarchy</li>
+<li>Configuration compatibility with global ObjectMapper settings</li>
+</ul>
+<h2 id="event-store-integration">Event Store Integration</h2>
+<p>The DTO provides seamless event store integration:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event store integration features:</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Compatible JSON format for filesystem storage</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient serialization for high-throughput scenarios</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Consistent metadata structure across all event types</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimized deserialization for event replay operations</span></span></code></pre></div>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="dto-enhancement-roadmap">DTO Enhancement Roadmap</h2>
+<p>Planned enhancements to DTO capabilities:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Future enhancement areas:</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Compression support for large event payloads</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Binary serialization alternatives for performance</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced validation rules for business logic constraints</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Custom serialization strategies for specialized use cases</span></span></code></pre></div>
+<h2 id="schema-evolution-strategy">Schema Evolution Strategy</h2>
+<p>Identified areas for schema evolution support:</p>
+<ul>
+<li>Automated migration utilities for version upgrades</li>
+<li>Schema registry integration for centralized schema management</li>
+<li>Advanced compatibility checking for breaking changes</li>
+<li>Documentation generation for schema evolution tracking</li>
+</ul>
+<h2 id="technology-integration">Technology Integration</h2>
+<p>Integration with emerging serialization technologies:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Technology integration targets:</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Protocol Buffers integration for performance-critical scenarios</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Avro schema evolution support for complex migrations</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud-native serialization service integration</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced compression algorithms for storage optimization</span></span></code></pre></div>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="EventSerializationSupport.org"><em>EventSerializationSupport</em></span>:
+Serialization infrastructure using this DTO</li>
+<li><span class="spurious-link"
+target="FilesystemEventStoreAdapter.org"><em>FilesystemEventStoreAdapter</em></span>:
+Event store persisting this DTO format</li>
+<li><span class="spurious-link"
+target="events/ClassFileChanged.org"><em>ClassFileChanged</em></span>:
+Domain event represented by this DTO</li>
+<li><span class="spurious-link"
+target="flows/hot-swap-complete-flow.org"><em>Hot-Swap Complete
+Flow</em></span>: Process generating events using this DTO</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The DTO leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Data Transfer Object</strong></strong>: Clean
+separation between domain and persistence concerns</li>
+<li><strong><strong>Adapter Pattern</strong></strong>: Bridge between
+domain events and JSON serialization</li>
+<li><strong><strong>Immutable Object</strong></strong>: Thread-safe and
+side-effect-free design</li>
+<li><strong><strong>Factory Pattern</strong></strong>: Static conversion
+methods for object creation</li>
+</ul>
+<h2 id="infrastructure-layer-design">Infrastructure Layer Design</h2>
+<p>The class follows infrastructure layer design principles:</p>
+<ul>
+<li>No business logic beyond data transformation</li>
+<li>Framework-specific annotations isolated to infrastructure layer</li>
+<li>Clean conversion interfaces for domain boundary management</li>
+<li>Performance optimization through infrastructure-specific
+patterns</li>
+</ul>
+<p>The JsonClassFileChanged DTO provides ByteHot's essential event
+sourcing serialization infrastructure while maintaining clean
+architectural boundaries, performance optimization, and schema evolution
+support for reliable event persistence across the entire system
+lifecycle.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

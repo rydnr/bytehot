@@ -5,9 +5,9 @@ set -euo pipefail
 
 echo "📔 Creating journal page from journal.org..."
 
-if [ -f "bytehot/journal.org" ]; then
+if [ -f "journal.org" ]; then
     # Convert content only, then wrap in proper HTML structure
-    pandoc -f org -t html5 --toc bytehot/journal.org -o bytehot/journal_content.html --metadata title="ByteHot Development Journal" || echo "journal.org conversion failed"
+    pandoc -f org -t html5 --toc journal.org -o bytehot/journal_content.html --metadata title="ByteHot Development Journal" || echo "journal.org conversion failed"
     
     # Create complete HTML structure
     cat > bytehot/journal.html << 'HTML_EOF'

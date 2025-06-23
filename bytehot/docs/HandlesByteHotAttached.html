@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HandlesByteHotAttached - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>HandlesByteHotAttached</code> interface defines the
+contract for handling ByteHot agent attachment requests within the
+application layer. This interface represents the critical entry point
+for JVM agent initialization, acting as the bridge between external
+attachment commands and the domain logic that manages agent
+lifecycle.</p>
+<h1 id="hexagonal-architecture-role">Hexagonal Architecture Role</h1>
+<h2 id="application-layer-responsibility">Application Layer
+Responsibility</h2>
+<p>HandlesByteHotAttached serves as a primary application interface in
+ByteHot's hexagonal architecture, responsible for:</p>
+<ul>
+<li>Accepting external agent attachment requests from infrastructure
+adapters</li>
+<li>Coordinating the agent initialization process through domain
+services</li>
+<li>Ensuring proper event routing and response handling during
+attachment</li>
+<li>Maintaining application state consistency throughout the attachment
+lifecycle</li>
+</ul>
+<h2 id="domain-event-processing-gateway">Domain Event Processing
+Gateway</h2>
+<p>This interface acts as the gateway for
+<code>ByteHotAttachRequested</code> events:</p>
+<ul>
+<li>Validates incoming attachment requests for completeness and
+security</li>
+<li>Routes validated requests to appropriate domain aggregates</li>
+<li>Handles both successful attachment confirmations and failure
+scenarios</li>
+<li>Ensures event sourcing integrity for agent attachment
+operations</li>
+</ul>
+<h2 id="infrastructure-abstraction-layer">Infrastructure Abstraction
+Layer</h2>
+<p>The interface abstracts infrastructure concerns from domain
+logic:</p>
+<ul>
+<li>Hides JVM agent attachment implementation details from domain</li>
+<li>Enables different attachment strategies (command-line, programmatic,
+IDE integration)</li>
+<li>Supports testing through mockable interface design</li>
+<li>Allows attachment method evolution without domain changes</li>
+</ul>
+<h1 id="interface-definition-and-contract">Interface Definition and
+Contract</h1>
+<h2 id="primary-method-contract">Primary Method Contract</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/application/HandlesByteHotAttached.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Defines the methods to implement to accept a ByteHotAttachRequested<span class="co">.</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@author</span> <span class="dt">&lt;</span><span class="kw">a</span><span class="ot"> href</span><span class="op">=</span><span class="st">&quot;mailto:rydnr@acm-sl.org&quot;</span><span class="dt">&gt;</span>rydnr<span class="dt">&lt;/</span><span class="kw">a</span><span class="dt">&gt;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@since</span> <span class="co">2025-06-07</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">interface</span> HandlesByteHotAttached</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">extends</span> Application<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">,</span> DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;&gt;</span> <span class="op">{</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="application-interface-implementation">Application Interface
+Implementation</h2>
+<p>The interface extends the generic <code>Application</code> pattern
+with specific type parameters:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Type signature breakdown:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Input: ByteHotAttachRequested (domain event)</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Output: DomainResponseEvent&lt;ByteHotAttachRequested&gt; (response event)</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern: Application&lt;I, O&gt; for event-driven processing</span></span></code></pre></div>
+<h2 id="event-processing-contract">Event Processing Contract</h2>
+<p>The implementation must handle the complete attachment lifecycle:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event processing requirements:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Accept ByteHotAttachRequested events from infrastructure</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Validate request parameters and security constraints</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Coordinate with domain aggregates for agent initialization</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Return appropriate success or failure response events</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Ensure idempotent operation for duplicate requests</span></span></code></pre></div>
+<h1 id="bytehot-agent-attachment-process">ByteHot Agent Attachment
+Process</h1>
+<h2 id="attachment-request-lifecycle">Attachment Request Lifecycle</h2>
+<p>The attachment process follows a well-defined sequence:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Typical attachment flow:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Infrastructure receives attachment command (CLI, API, IDE)</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Infrastructure creates ByteHotAttachRequested event</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. HandlesByteHotAttached validates and processes request</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Domain aggregates initialize agent capabilities</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Response event confirms successful attachment or reports failure</span></span></code></pre></div>
+<h2 id="request-validation-and-security">Request Validation and
+Security</h2>
+<p>Attachment requests undergo comprehensive validation:</p>
+<ul>
+<li>JVM compatibility verification (version, capabilities)</li>
+<li>Security policy compliance checking</li>
+<li>Resource availability assessment (memory, permissions)</li>
+<li>Configuration parameter validation</li>
+<li>Duplicate attachment prevention</li>
+</ul>
+<h2 id="agent-initialization-coordination">Agent Initialization
+Coordination</h2>
+<p>The handler coordinates complex initialization sequences:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Initialization coordination responsibilities:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system monitoring setup</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Instrumentation capability verification</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event sourcing infrastructure preparation</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - User session establishment</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Framework integration activation</span></span></code></pre></div>
+<h1 id="event-driven-architecture-integration">Event-Driven Architecture
+Integration</h1>
+<h2 id="bytehotattachrequested-event-processing">ByteHotAttachRequested
+Event Processing</h2>
+<p>The handler processes incoming attachment requests with full event
+context:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event processing pattern:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> <span class="fu">accept</span><span class="op">(</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">final</span> ByteHotAttachRequested event</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 1. Validate attachment parameters</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">validateAttachmentRequest</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 2. Initialize agent components</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        ByteHotAgentAttached result <span class="op">=</span> <span class="fu">initializeAgent</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 3. Return successful response</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> DomainResponseEvent<span class="op">.</span><span class="fu">success</span><span class="op">(</span>result<span class="op">,</span> event<span class="op">);</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">Exception</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 4. Handle attachment failures</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> DomainResponseEvent<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">AgentAttachmentFailed</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getRequestId</span><span class="op">(),</span> e<span class="op">),</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            event</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="response-event-generation">Response Event Generation</h2>
+<p>The handler generates appropriate response events for all
+scenarios:</p>
+<ul>
+<li><code>ByteHotAgentAttached</code>: Successful agent
+initialization</li>
+<li><code>AgentAttachmentFailed</code>: Attachment process failures</li>
+<li><code>AttachmentValidationFailed</code>: Invalid request
+parameters</li>
+<li><code>AttachmentSecurityViolation</code>: Security policy
+violations</li>
+</ul>
+<h2 id="event-sourcing-integration">Event Sourcing Integration</h2>
+<p>All attachment operations integrate with event sourcing:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event sourcing considerations:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - All attachment attempts are recorded for audit</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Failed attachments generate recoverable events</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Attachment state can be replayed for debugging</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Multiple attachment attempts are properly sequenced</span></span></code></pre></div>
+<h1 id="domain-aggregate-coordination">Domain Aggregate
+Coordination</h1>
+<h2 id="bytehot-aggregate-interaction">ByteHot Aggregate
+Interaction</h2>
+<p>The handler coordinates with the main ByteHot aggregate:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Aggregate interaction pattern:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Pass attachment request to ByteHot.accept()</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Handle aggregate response events</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Coordinate with supporting aggregates as needed</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Ensure consistent state across all aggregates</span></span></code></pre></div>
+<h2 id="multi-aggregate-orchestration">Multi-Aggregate
+Orchestration</h2>
+<p>Attachment involves coordination across multiple domain
+aggregates:</p>
+<ul>
+<li><code>ByteHot</code>: Core agent functionality</li>
+<li><code>User</code>: Session and authentication management</li>
+<li><code>FolderWatch</code>: File system monitoring setup</li>
+<li><code>InstanceTracker</code>: Object tracking initialization</li>
+</ul>
+<h2 id="error-handling-and-recovery">Error Handling and Recovery</h2>
+<p>The handler implements comprehensive error handling:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error handling strategies:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graceful degradation for partial failures</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Automatic retry for transient errors</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Detailed error reporting for debugging</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - State cleanup for failed attachments</span></span></code></pre></div>
+<h1 id="infrastructure-layer-integration">Infrastructure Layer
+Integration</h1>
+<h2 id="command-line-interface-support">Command-Line Interface
+Support</h2>
+<p>The handler supports CLI-initiated attachments:</p>
+<ul>
+<li>JVM agent command-line argument processing</li>
+<li>Configuration file parameter parsing</li>
+<li>Environment variable integration</li>
+<li>Process argument validation</li>
+</ul>
+<h2 id="programmatic-attachment-support">Programmatic Attachment
+Support</h2>
+<p>The interface enables programmatic agent attachment:</p>
+<ul>
+<li>Runtime agent loading through Java APIs</li>
+<li>IDE plugin integration support</li>
+<li>Build tool integration capabilities</li>
+<li>Testing framework attachment support</li>
+</ul>
+<h2 id="container-and-cloud-integration">Container and Cloud
+Integration</h2>
+<p>Modern deployment scenarios are fully supported:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Container integration considerations:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Docker container agent attachment</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Kubernetes pod lifecycle integration</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud function runtime support</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Microservice architecture compatibility</span></span></code></pre></div>
+<h1 id="security-and-validation-framework">Security and Validation
+Framework</h1>
+<h2 id="attachment-security-policies">Attachment Security Policies</h2>
+<p>The handler enforces comprehensive security policies:</p>
+<ul>
+<li>JVM security manager compliance</li>
+<li>Module system integration (Java 9+)</li>
+<li>Code signing verification for agent JARs</li>
+<li>Resource access permission validation</li>
+</ul>
+<h2 id="request-parameter-validation">Request Parameter Validation</h2>
+<p>All attachment parameters undergo strict validation:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Validation categories:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - JVM version compatibility</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration parameter syntax</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system path accessibility</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Network permission requirements</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory and resource limits</span></span></code></pre></div>
+<h2 id="audit-trail-generation">Audit Trail Generation</h2>
+<p>Every attachment attempt generates comprehensive audit
+information:</p>
+<ul>
+<li>Request timestamp and source identification</li>
+<li>Parameter validation results</li>
+<li>Security check outcomes</li>
+<li>Initialization step completion status</li>
+<li>Performance metrics and resource usage</li>
+</ul>
+<h1 id="testing-and-mock-implementation">Testing and Mock
+Implementation</h1>
+<h2 id="test-support-infrastructure">Test Support Infrastructure</h2>
+<p>The interface enables comprehensive testing strategies:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Mock implementation for testing:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="kw">class</span> MockHandlesByteHotAttached <span class="kw">implements</span> HandlesByteHotAttached <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> processedRequests <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">private</span> <span class="dt">boolean</span> simulateFailure <span class="op">=</span> <span class="kw">false</span><span class="op">;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">@Override</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> DomainResponseEvent<span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> <span class="fu">accept</span><span class="op">(</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">final</span> ByteHotAttachRequested event</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        processedRequests<span class="op">.</span><span class="fu">add</span><span class="op">(</span>event<span class="op">);</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>simulateFailure<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> DomainResponseEvent<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>                <span class="kw">new</span> <span class="fu">AgentAttachmentFailed</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getRequestId</span><span class="op">(),</span> </span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Simulated failure&quot;</span><span class="op">)),</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>                event</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> DomainResponseEvent<span class="op">.</span><span class="fu">success</span><span class="op">(</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>            <span class="kw">new</span> <span class="fu">ByteHotAgentAttached</span><span class="op">(</span>event<span class="op">.</span><span class="fu">getRequestId</span><span class="op">()),</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>            event</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">);</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Test-specific methods</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="bu">List</span><span class="op">&lt;</span>ByteHotAttachRequested<span class="op">&gt;</span> <span class="fu">getProcessedRequests</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;(</span>processedRequests<span class="op">);</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">public</span> <span class="dt">void</span> <span class="fu">simulateFailure</span><span class="op">(</span><span class="dt">boolean</span> failure<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>        <span class="kw">this</span><span class="op">.</span><span class="fu">simulateFailure</span> <span class="op">=</span> failure<span class="op">;</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="integration-testing-support">Integration Testing Support</h2>
+<p>Mock implementations enable comprehensive integration testing:</p>
+<ul>
+<li>Attachment failure scenario simulation</li>
+<li>Performance testing under load</li>
+<li>Security policy violation testing</li>
+<li>Multi-threaded attachment testing</li>
+</ul>
+<h1 id="performance-considerations">Performance Considerations</h1>
+<h2 id="attachment-performance-optimization">Attachment Performance
+Optimization</h2>
+<p>Agent attachment is optimized for minimal startup overhead:</p>
+<ul>
+<li>Lazy initialization of non-critical components</li>
+<li>Parallel processing where thread-safe</li>
+<li>Resource pooling for repeated operations</li>
+<li>Caching of validation results</li>
+</ul>
+<h2 id="memory-management">Memory Management</h2>
+<p>The attachment process manages memory efficiently:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Memory optimization strategies:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal object allocation during attachment</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Early garbage collection of temporary objects</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource cleanup for failed attachments</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory monitoring during initialization</span></span></code></pre></div>
+<h2 id="scalability-design">Scalability Design</h2>
+<p>The handler supports scalable deployment scenarios:</p>
+<ul>
+<li>Concurrent attachment request processing</li>
+<li>Resource contention management</li>
+<li>Load balancing for multiple JVM instances</li>
+<li>Cloud-native scaling support</li>
+</ul>
+<h1 id="configuration-integration">Configuration Integration</h1>
+<h2 id="configuration-source-abstraction">Configuration Source
+Abstraction</h2>
+<p>The handler integrates with ByteHot's configuration system:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration integration pattern:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Retrieve attachment configuration from ConfigurationPort</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Apply configuration defaults and overrides</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Validate configuration consistency</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Pass configuration to domain aggregates</span></span></code></pre></div>
+<h2 id="dynamic-configuration-support">Dynamic Configuration
+Support</h2>
+<p>Configuration can be updated during runtime:</p>
+<ul>
+<li>Hot-reload of attachment parameters</li>
+<li>User preference integration</li>
+<li>Environment-specific configuration</li>
+<li>A/B testing configuration support</li>
+</ul>
+<h1 id="error-recovery-and-resilience">Error Recovery and
+Resilience</h1>
+<h2 id="attachment-failure-recovery">Attachment Failure Recovery</h2>
+<p>The handler implements sophisticated failure recovery:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recovery strategies:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Automatic retry with exponential backoff</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Partial attachment recovery for component failures</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - State rollback for inconsistent attachments</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Alternative attachment method fallback</span></span></code></pre></div>
+<h2 id="system-resilience">System Resilience</h2>
+<p>The attachment system maintains resilience through:</p>
+<ul>
+<li>Circuit breaker patterns for external dependencies</li>
+<li>Timeout management for long-running operations</li>
+<li>Resource limit enforcement to prevent system overload</li>
+<li>Graceful degradation for non-critical component failures</li>
+</ul>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="interface-evolution-strategy">Interface Evolution Strategy</h2>
+<p>The interface design supports future enhancements:</p>
+<ul>
+<li>Backward compatibility through versioned events</li>
+<li>Extension points for new attachment methods</li>
+<li>Plugin architecture for custom validation</li>
+<li>Integration hooks for monitoring systems</li>
+</ul>
+<h2 id="cloud-native-enhancement">Cloud-Native Enhancement</h2>
+<p>Future cloud-native capabilities:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Planned enhancements:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Service mesh integration</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Distributed tracing support</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Health check endpoint integration</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Metrics collection and reporting</span></span></code></pre></div>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="ByteHotApplication.org"><em>ByteHotApplication</em></span>: Main
+application coordination class</li>
+<li><span class="spurious-link"
+target="events/ByteHotAttachRequested.org"><em>ByteHotAttachRequested</em></span>:
+Input event for attachment requests</li>
+<li><span class="spurious-link"
+target="ByteHot.org"><em>ByteHot</em></span>: Core domain aggregate
+handling attachment</li>
+<li><span class="spurious-link" target="User.org"><em>User</em></span>:
+User session management during attachment</li>
+<li><span class="spurious-link"
+target="flows/agent-startup-flow.org"><em>Agent Startup
+Flow</em></span>: Complete attachment process flow</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The interface leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Command Pattern</strong></strong>: Attachment
+requests as executable commands</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Multiple
+attachment method support</li>
+<li><strong><strong>Observer Pattern</strong></strong>: Event-driven
+response handling</li>
+<li><strong><strong>Template Method</strong></strong>: Standardized
+attachment process steps</li>
+</ul>
+<h2 id="architecture-compliance">Architecture Compliance</h2>
+<p>The interface maintains strict hexagonal architecture compliance:</p>
+<ul>
+<li>No infrastructure dependencies in interface definition</li>
+<li>Clean separation between application and domain concerns</li>
+<li>Testable design through dependency injection</li>
+<li>Technology-agnostic attachment request handling</li>
+</ul>
+<p>The HandlesByteHotAttached interface provides ByteHot's critical
+application layer entry point for agent attachment operations while
+maintaining architectural purity and enabling flexible, secure, and
+performant agent initialization across diverse deployment
+environments.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

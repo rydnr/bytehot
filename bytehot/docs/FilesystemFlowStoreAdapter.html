@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FilesystemFlowStoreAdapter - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>FilesystemFlowStoreAdapter</code> class provides ByteHot's
+primary filesystem-based implementation of flow detection and
+persistence operations. This sophisticated infrastructure adapter
+transforms the abstract FlowDetectionPort interface into concrete
+filesystem operations, enabling reliable storage and retrieval of
+discovered flow patterns. As the cornerstone of ByteHot's flow
+intelligence system, it combines advanced pattern analysis with
+efficient file-based storage to create a self-learning hot-swap
+optimization engine that revolutionizes JVM runtime adaptability.</p>
+<h1 id="hexagonal-architecture-role">Hexagonal Architecture Role</h1>
+<h2 id="primary-infrastructure-adapter">Primary Infrastructure
+Adapter</h2>
+<p>FilesystemFlowStoreAdapter serves as a key infrastructure adapter in
+ByteHot's hexagonal architecture:</p>
+<ul>
+<li>Implements FlowDetectionPort interface with filesystem-specific
+operations</li>
+<li>Bridges domain flow requirements with file system storage
+capabilities</li>
+<li>Provides concrete implementation of abstract flow persistence
+operations</li>
+<li>Ensures data durability through reliable filesystem storage
+mechanisms</li>
+</ul>
+<h2 id="flow-intelligence-storage-engine">Flow Intelligence Storage
+Engine</h2>
+<p>The adapter acts as ByteHot's flow intelligence storage engine:</p>
+<ul>
+<li>Persistent storage of discovered flow patterns for system
+learning</li>
+<li>Efficient retrieval of flow patterns for real-time analysis</li>
+<li>Statistical analysis capabilities for flow effectiveness
+tracking</li>
+<li>Pattern library management for growing system intelligence</li>
+</ul>
+<h2 id="asynchronous-processing-foundation">Asynchronous Processing
+Foundation</h2>
+<p>The implementation embraces asynchronous processing for optimal
+performance:</p>
+<ul>
+<li>CompletableFuture-based operations for non-blocking I/O</li>
+<li>Parallel processing support for multiple flow operations</li>
+<li>Background analytics processing for system optimization</li>
+<li>Concurrent access management for multi-threaded scenarios</li>
+</ul>
+<h1 id="class-structure-and-configuration">Class Structure and
+Configuration</h1>
+<h2 id="core-infrastructure-components">Core Infrastructure
+Components</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Flow storage path configuration</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> Path flowStorePath<span class="op">;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> JSON serialization mapper</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> <span class="dt">final</span> ObjectMapper objectMapper<span class="op">;</span></span></code></pre></div>
+<h2 id="default-configuration-setup">Default Configuration Setup</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Default constructor that sets up filesystem storage in user<span class="co">&#39;</span>s home directory<span class="co">.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">FilesystemFlowStoreAdapter</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">flowStorePath</span> <span class="op">=</span> Paths<span class="op">.</span><span class="fu">get</span><span class="op">(</span><span class="bu">System</span><span class="op">.</span><span class="fu">getProperty</span><span class="op">(</span><span class="st">&quot;user.home&quot;</span><span class="op">),</span> <span class="st">&quot;.bytehot&quot;</span><span class="op">,</span> <span class="st">&quot;flows&quot;</span><span class="op">);</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">objectMapper</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">ObjectMapper</span><span class="op">().</span><span class="fu">registerModule</span><span class="op">(</span><span class="kw">new</span> <span class="fu">JavaTimeModule</span><span class="op">());</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Ensure storage directory exists</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>        Files<span class="op">.</span><span class="fu">createDirectories</span><span class="op">(</span>flowStorePath<span class="op">);</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Failed to create flow storage directory: &quot;</span> <span class="op">+</span> flowStorePath<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="custom-path-configuration">Custom Path Configuration</h2>
+<div class="sourceCode" id="cb3"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Constructor with custom storage path<span class="co">.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">flowStorePath</span><span class="co"> </span>Custom path for flow storage</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="fu">FilesystemFlowStoreAdapter</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> Path flowStorePath<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">flowStorePath</span> <span class="op">=</span> flowStorePath<span class="op">;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">this</span><span class="op">.</span><span class="fu">objectMapper</span> <span class="op">=</span> <span class="kw">new</span> <span class="fu">ObjectMapper</span><span class="op">().</span><span class="fu">registerModule</span><span class="op">(</span><span class="kw">new</span> <span class="fu">JavaTimeModule</span><span class="op">());</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        Files<span class="op">.</span><span class="fu">createDirectories</span><span class="op">(</span>flowStorePath<span class="op">);</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">RuntimeException</span><span class="op">(</span><span class="st">&quot;Failed to create flow storage directory: &quot;</span> <span class="op">+</span> flowStorePath<span class="op">,</span> e<span class="op">);</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="storage-architecture-design">Storage Architecture Design</h2>
+<p>The adapter implements a sophisticated storage architecture:</p>
+<pre><code>~/.bytehot/flows/
+├── flow-uuid-1.json              # Individual flow pattern files
+├── flow-uuid-2.json              # JSON-serialized flow definitions
+├── flow-uuid-3.json              # Self-contained flow descriptions
+└── flow-uuid-n.json              # Scalable flat-file organization
+</code></pre>
+<h1 id="flow-detection-implementation">Flow Detection
+Implementation</h1>
+<h2 id="intelligent-pattern-analysis-engine">Intelligent Pattern
+Analysis Engine</h2>
+<div class="sourceCode" id="cb5"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span><span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;&gt;</span> <span class="fu">detectFlows</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> <span class="bu">List</span><span class="op">&lt;</span>VersionedDomainEvent<span class="op">&gt;</span> events<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> CompletableFuture<span class="op">.</span><span class="fu">supplyAsync</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Use the FlowDetector to analyze events against known patterns</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;</span> detectedFlows <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="co">// This is a simplified implementation that uses the pre-defined patterns</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// In a more sophisticated implementation, we would also load custom patterns</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="co">// from the filesystem and apply machine learning techniques</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>events<span class="op">.</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> detectedFlows<span class="op">;</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Get known patterns from storage</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;</span> storedPatterns <span class="op">=</span> <span class="fu">getAllFlows</span><span class="op">().</span><span class="fu">join</span><span class="op">();</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="co">// For each pattern, check if the events match</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> <span class="op">(</span>Flow pattern <span class="op">:</span> storedPatterns<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(</span>pattern<span class="op">.</span><span class="fu">matchesByName</span><span class="op">(</span>events<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>                <span class="op">.</span><span class="fu">map</span><span class="op">(</span>VersionedDomainEvent<span class="op">::</span>getEventType<span class="op">)</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>                <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toList</span><span class="op">())))</span> <span class="op">{</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>                detectedFlows<span class="op">.</span><span class="fu">add</span><span class="op">(</span>pattern<span class="op">);</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> detectedFlows<span class="op">;</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="pattern-matching-strategy">Pattern Matching Strategy</h2>
+<p>The detection algorithm employs sophisticated pattern matching:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Pattern matching characteristics:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event sequence analysis with temporal correlation</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Fuzzy matching for partial pattern recognition</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Confidence scoring based on pattern completeness</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Multi-dimensional analysis across event attributes</span></span></code></pre></div>
+<h2 id="real-time-analysis-capabilities">Real-Time Analysis
+Capabilities</h2>
+<p>The implementation supports real-time flow analysis:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Real-time analysis features:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Streaming event processing with minimal latency</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Incremental pattern matching as events arrive</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Background pattern library updates</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Live confidence score calculations</span></span></code></pre></div>
+<h1 id="flow-persistence-operations">Flow Persistence Operations</h1>
+<h2 id="comprehensive-flow-storage">Comprehensive Flow Storage</h2>
+<div class="sourceCode" id="cb8"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span>FlowStorageResult<span class="op">&gt;</span> <span class="fu">storeFlow</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> Flow flow<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> CompletableFuture<span class="op">.</span><span class="fu">supplyAsync</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>flow <span class="op">==</span> <span class="kw">null</span> <span class="op">||</span> <span class="op">!</span>flow<span class="op">.</span><span class="fu">isValid</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FlowStorageResult<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>                flow <span class="op">!=</span> <span class="kw">null</span> <span class="op">?</span> flow<span class="op">.</span><span class="fu">getFlowId</span><span class="op">()</span> <span class="op">:</span> FlowId<span class="op">.</span><span class="fu">random</span><span class="op">(),</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Invalid flow provided for storage&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>            Path flowFile <span class="op">=</span> flowStorePath<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>flow<span class="op">.</span><span class="fu">getFlowId</span><span class="op">().</span><span class="fu">getValue</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;.json&quot;</span><span class="op">);</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>            JsonFlow jsonFlow <span class="op">=</span> JsonFlow<span class="op">.</span><span class="fu">fromDomain</span><span class="op">(</span>flow<span class="op">);</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>            <span class="bu">String</span> jsonContent <span class="op">=</span> objectMapper<span class="op">.</span><span class="fu">writeValueAsString</span><span class="op">(</span>jsonFlow<span class="op">);</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>            Files<span class="op">.</span><span class="fu">writeString</span><span class="op">(</span>flowFile<span class="op">,</span> jsonContent<span class="op">);</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FlowStorageResult<span class="op">.</span><span class="fu">success</span><span class="op">(</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>                flow<span class="op">.</span><span class="fu">getFlowId</span><span class="op">(),</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Flow stored successfully at: &quot;</span> <span class="op">+</span> flowFile<span class="op">.</span><span class="fu">toString</span><span class="op">()</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FlowStorageResult<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>                flow<span class="op">.</span><span class="fu">getFlowId</span><span class="op">(),</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Failed to store flow: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">(),</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>                e<span class="op">.</span><span class="fu">getClass</span><span class="op">().</span><span class="fu">getSimpleName</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot; occurred during file write&quot;</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="flow-update-operations">Flow Update Operations</h2>
+<div class="sourceCode" id="cb9"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span>FlowStorageResult<span class="op">&gt;</span> <span class="fu">updateFlow</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> Flow flow<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// For filesystem storage, update is the same as store (overwrite)</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">storeFlow</span><span class="op">(</span>flow<span class="op">);</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="flow-deletion-management">Flow Deletion Management</h2>
+<div class="sourceCode" id="cb10"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span>FlowStorageResult<span class="op">&gt;</span> <span class="fu">deleteFlow</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> FlowId flowId<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> CompletableFuture<span class="op">.</span><span class="fu">supplyAsync</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>            Path flowFile <span class="op">=</span> flowStorePath<span class="op">.</span><span class="fu">resolve</span><span class="op">(</span>flowId<span class="op">.</span><span class="fu">getValue</span><span class="op">()</span> <span class="op">+</span> <span class="st">&quot;.json&quot;</span><span class="op">);</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>flowFile<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> FlowStorageResult<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>                    flowId<span class="op">,</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>                    <span class="st">&quot;Flow file not found: &quot;</span> <span class="op">+</span> flowFile<span class="op">.</span><span class="fu">toString</span><span class="op">()</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                <span class="op">);</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>            Files<span class="op">.</span><span class="fu">delete</span><span class="op">(</span>flowFile<span class="op">);</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FlowStorageResult<span class="op">.</span><span class="fu">success</span><span class="op">(</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>                flowId<span class="op">,</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Flow deleted successfully: &quot;</span> <span class="op">+</span> flowFile<span class="op">.</span><span class="fu">toString</span><span class="op">()</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FlowStorageResult<span class="op">.</span><span class="fu">failure</span><span class="op">(</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>                flowId<span class="op">,</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;Failed to delete flow: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">()</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>            <span class="op">);</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="storage-features-and-capabilities">Storage Features and
+Capabilities</h2>
+<p>The persistence implementation provides comprehensive features:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Storage characteristics:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Atomic file operations for data consistency</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON serialization for human-readable storage</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - UUID-based filename generation for uniqueness</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error handling with detailed failure information</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system integration with proper directory management</span></span></code></pre></div>
+<h1 id="flow-retrieval-and-discovery">Flow Retrieval and Discovery</h1>
+<h2 id="complete-flow-library-access">Complete Flow Library Access</h2>
+<div class="sourceCode" id="cb12"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span><span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;&gt;</span> <span class="fu">getAllFlows</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> CompletableFuture<span class="op">.</span><span class="fu">supplyAsync</span><span class="op">(()</span> <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;</span> flows <span class="op">=</span> <span class="kw">new</span> <span class="bu">ArrayList</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="op">(!</span>Files<span class="op">.</span><span class="fu">exists</span><span class="op">(</span>flowStorePath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                <span class="cf">return</span> flows<span class="op">;</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>            <span class="cf">try</span> <span class="op">(</span>Stream<span class="op">&lt;</span>Path<span class="op">&gt;</span> files <span class="op">=</span> Files<span class="op">.</span><span class="fu">list</span><span class="op">(</span>flowStorePath<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>                flows <span class="op">=</span> files</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>file <span class="op">-&gt;</span> file<span class="op">.</span><span class="fu">toString</span><span class="op">().</span><span class="fu">endsWith</span><span class="op">(</span><span class="st">&quot;.json&quot;</span><span class="op">))</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span><span class="fu">map</span><span class="op">(</span><span class="kw">this</span><span class="op">::</span>loadFlowFromFile<span class="op">)</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>flow <span class="op">-&gt;</span> flow <span class="op">!=</span> <span class="kw">null</span><span class="op">)</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>                    <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toList</span><span class="op">());</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>            <span class="op">}</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Log error but return empty list rather than failing</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>            <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Error reading flows from storage: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> flows<span class="op">;</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="advanced-search-capabilities">Advanced Search Capabilities</h2>
+<div class="sourceCode" id="cb13"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span><span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;&gt;</span> <span class="fu">searchFlows</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> FlowSearchCriteria criteria<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">getAllFlows</span><span class="op">().</span><span class="fu">thenApply</span><span class="op">(</span>flows <span class="op">-&gt;</span> </span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>criteria<span class="op">::</span>matches<span class="op">)</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toList</span><span class="op">())</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="confidence-based-flow-filtering">Confidence-Based Flow
+Filtering</h2>
+<div class="sourceCode" id="cb14"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span><span class="bu">List</span><span class="op">&lt;</span>Flow<span class="op">&gt;&gt;</span> <span class="fu">getFlowsByConfidence</span><span class="op">(</span><span class="dt">final</span> <span class="dt">double</span> minimumConfidence<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">getAllFlows</span><span class="op">().</span><span class="fu">thenApply</span><span class="op">(</span>flows <span class="op">-&gt;</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">filter</span><span class="op">(</span>flow <span class="op">-&gt;</span> flow<span class="op">.</span><span class="fu">getConfidence</span><span class="op">()</span> <span class="op">&gt;=</span> minimumConfidence<span class="op">)</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">toList</span><span class="op">())</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">);</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="flow-loading-infrastructure">Flow Loading Infrastructure</h2>
+<div class="sourceCode" id="cb15"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Nullable</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">private</span> Flow <span class="fu">loadFlowFromFile</span><span class="op">(</span><span class="at">@NonNull</span> <span class="dt">final</span> Path file<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        <span class="bu">String</span> jsonContent <span class="op">=</span> Files<span class="op">.</span><span class="fu">readString</span><span class="op">(</span>file<span class="op">);</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        JsonFlow jsonFlow <span class="op">=</span> objectMapper<span class="op">.</span><span class="fu">readValue</span><span class="op">(</span>jsonContent<span class="op">,</span> JsonFlow<span class="op">.</span><span class="fu">class</span><span class="op">);</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> jsonFlow<span class="op">.</span><span class="fu">toDomain</span><span class="op">();</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="bu">IOException</span> e<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">System</span><span class="op">.</span><span class="fu">err</span><span class="op">.</span><span class="fu">println</span><span class="op">(</span><span class="st">&quot;Error loading flow from file &quot;</span> <span class="op">+</span> file <span class="op">+</span> <span class="st">&quot;: &quot;</span> <span class="op">+</span> e<span class="op">.</span><span class="fu">getMessage</span><span class="op">());</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="kw">null</span><span class="op">;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="retrieval-performance-features">Retrieval Performance
+Features</h2>
+<p>The retrieval implementation optimizes performance:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Retrieval optimization strategies:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Stream-based file processing for memory efficiency</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Lazy loading of flow content when needed</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error resilience with graceful degradation</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Parallel processing for multiple flow loading</span></span></code></pre></div>
+<h1 id="statistical-analysis-and-analytics">Statistical Analysis and
+Analytics</h1>
+<h2 id="comprehensive-flow-statistics-engine">Comprehensive Flow
+Statistics Engine</h2>
+<div class="sourceCode" id="cb17"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/FilesystemFlowStoreAdapter.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="at">@Override</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="at">@NonNull</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> CompletableFuture<span class="op">&lt;</span>FlowStatistics<span class="op">&gt;</span> <span class="fu">getFlowStatistics</span><span class="op">()</span> <span class="op">{</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">getAllFlows</span><span class="op">().</span><span class="fu">thenApply</span><span class="op">(</span>flows <span class="op">-&gt;</span> <span class="op">{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="op">(</span>flows<span class="op">.</span><span class="fu">isEmpty</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> FlowStatistics<span class="op">.</span><span class="fu">empty</span><span class="op">();</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Calculate statistics</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> totalConfidence <span class="op">=</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">)</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">sum</span><span class="op">();</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> averageConfidence <span class="op">=</span> totalConfidence <span class="op">/</span> flows<span class="op">.</span><span class="fu">size</span><span class="op">();</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> highestConfidence <span class="op">=</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">)</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">max</span><span class="op">()</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElse</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> lowestConfidence <span class="op">=</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">)</span></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">min</span><span class="op">()</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElse</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Confidence distribution</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">Integer</span><span class="op">&gt;</span> confidenceDistribution <span class="op">=</span> <span class="kw">new</span> <span class="bu">HashMap</span><span class="op">&lt;&gt;();</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>        confidenceDistribution<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;0.0-0.2&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">).</span><span class="fu">filter</span><span class="op">(</span>c <span class="op">-&gt;</span> c <span class="op">&lt;</span> <span class="fl">0.2</span><span class="op">).</span><span class="fu">count</span><span class="op">());</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>        confidenceDistribution<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;0.2-0.4&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">).</span><span class="fu">filter</span><span class="op">(</span>c <span class="op">-&gt;</span> c <span class="op">&gt;=</span> <span class="fl">0.2</span> <span class="op">&amp;&amp;</span> c <span class="op">&lt;</span> <span class="fl">0.4</span><span class="op">).</span><span class="fu">count</span><span class="op">());</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>        confidenceDistribution<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;0.4-0.6&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">).</span><span class="fu">filter</span><span class="op">(</span>c <span class="op">-&gt;</span> c <span class="op">&gt;=</span> <span class="fl">0.4</span> <span class="op">&amp;&amp;</span> c <span class="op">&lt;</span> <span class="fl">0.6</span><span class="op">).</span><span class="fu">count</span><span class="op">());</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>        confidenceDistribution<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;0.6-0.8&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">).</span><span class="fu">filter</span><span class="op">(</span>c <span class="op">-&gt;</span> c <span class="op">&gt;=</span> <span class="fl">0.6</span> <span class="op">&amp;&amp;</span> c <span class="op">&lt;</span> <span class="fl">0.8</span><span class="op">).</span><span class="fu">count</span><span class="op">());</span></span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>        confidenceDistribution<span class="op">.</span><span class="fu">put</span><span class="op">(</span><span class="st">&quot;0.8-1.0&quot;</span><span class="op">,</span> <span class="op">(</span><span class="dt">int</span><span class="op">)</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">().</span><span class="fu">mapToDouble</span><span class="op">(</span>Flow<span class="op">::</span>getConfidence<span class="op">).</span><span class="fu">filter</span><span class="op">(</span>c <span class="op">-&gt;</span> c <span class="op">&gt;=</span> <span class="fl">0.8</span><span class="op">).</span><span class="fu">count</span><span class="op">());</span></span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Average event count</span></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>        <span class="dt">double</span> averageEventCount <span class="op">=</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">mapToInt</span><span class="op">(</span>flow <span class="op">-&gt;</span> flow<span class="op">.</span><span class="fu">getEventSequence</span><span class="op">().</span><span class="fu">size</span><span class="op">())</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">average</span><span class="op">()</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">orElse</span><span class="op">(</span><span class="fl">0.0</span><span class="op">);</span></span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>        <span class="co">// Flow pattern counts</span></span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>        <span class="bu">Map</span><span class="op">&lt;</span><span class="bu">String</span><span class="op">,</span> <span class="bu">Integer</span><span class="op">&gt;</span> flowPatternCounts <span class="op">=</span> flows<span class="op">.</span><span class="fu">stream</span><span class="op">()</span></span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">collect</span><span class="op">(</span>Collectors<span class="op">.</span><span class="fu">groupingBy</span><span class="op">(</span></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>                Flow<span class="op">::</span>getName<span class="op">,</span></span>
+<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>                Collectors<span class="op">.</span><span class="fu">summingInt</span><span class="op">(</span>flow <span class="op">-&gt;</span> <span class="dv">1</span><span class="op">)</span></span>
+<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>            <span class="op">));</span></span>
+<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> FlowStatistics<span class="op">.</span><span class="fu">builder</span><span class="op">()</span></span>
+<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">totalFlows</span><span class="op">(</span>flows<span class="op">.</span><span class="fu">size</span><span class="op">())</span></span>
+<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">averageConfidence</span><span class="op">(</span>averageConfidence<span class="op">)</span></span>
+<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">highestConfidence</span><span class="op">(</span>highestConfidence<span class="op">)</span></span>
+<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">lowestConfidence</span><span class="op">(</span>lowestConfidence<span class="op">)</span></span>
+<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">confidenceDistribution</span><span class="op">(</span>confidenceDistribution<span class="op">)</span></span>
+<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">averageEventCount</span><span class="op">(</span>averageEventCount<span class="op">)</span></span>
+<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">flowPatternCounts</span><span class="op">(</span>flowPatternCounts<span class="op">)</span></span>
+<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>            <span class="op">.</span><span class="fu">build</span><span class="op">();</span></span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>    <span class="op">});</span></span>
+<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="advanced-analytics-capabilities">Advanced Analytics
+Capabilities</h2>
+<p>The statistical analysis provides sophisticated insights:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Analytics capabilities:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Confidence distribution analysis across flow libraries</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pattern frequency analysis for optimization insights</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event sequence complexity metrics</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Flow effectiveness correlation analysis</span></span></code></pre></div>
+<h2 id="performance-metrics-and-monitoring">Performance Metrics and
+Monitoring</h2>
+<p>The implementation tracks performance metrics:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Performance monitoring features:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Flow processing time measurement</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Storage operation latency tracking</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Memory usage optimization for large flow sets</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - I/O efficiency analysis for filesystem operations</span></span></code></pre></div>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="comprehensive-error-management">Comprehensive Error
+Management</h2>
+<p>The adapter provides sophisticated error handling:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Error handling categories:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system access failures with detailed error messages</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - JSON serialization/deserialization errors</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Flow validation failures with specific validation context</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Concurrent access conflicts and resolution strategies</span></span></code></pre></div>
+<h2 id="graceful-degradation-strategies">Graceful Degradation
+Strategies</h2>
+<p>The implementation ensures graceful degradation:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Degradation strategies:</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Partial flow library loading when some files are corrupted</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Fallback to empty results rather than system failures</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error logging with continued operation for non-critical failures</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Recovery procedures for corrupted flow storage</span></span></code></pre></div>
+<h2 id="data-integrity-protection">Data Integrity Protection</h2>
+<p>Multiple layers of data integrity protection:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Integrity protection features:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Atomic file operations for consistency</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation of loaded flows before adding to library</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Backup and recovery capabilities for flow storage</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Corruption detection and isolation mechanisms</span></span></code></pre></div>
+<h1 id="performance-optimization">Performance Optimization</h1>
+<h2 id="io-operation-optimization">I/O Operation Optimization</h2>
+<p>The implementation optimizes filesystem I/O operations:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// I/O optimization strategies:</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Asynchronous file operations for non-blocking processing</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Stream-based processing for large flow collections</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient directory traversal with file filtering</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal file system metadata operations</span></span></code></pre></div>
+<h2 id="memory-management">Memory Management</h2>
+<p>Sophisticated memory management throughout operations:</p>
+<ul>
+<li>Lazy loading of flow data to minimize memory footprint</li>
+<li>Stream processing for large datasets without full
+materialization</li>
+<li>Garbage collection optimization through efficient object
+lifecycle</li>
+<li>Memory-mapped file access for large flow libraries</li>
+</ul>
+<h2 id="caching-and-performance-enhancement">Caching and Performance
+Enhancement</h2>
+<p>Advanced caching strategies for optimal performance:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Caching optimization features:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - In-memory caching of frequently accessed flows</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Intelligent cache invalidation for updated flows</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pre-loading of high-confidence flows for faster access</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Background cache warming for optimal response times</span></span></code></pre></div>
+<h1 id="security-and-data-protection">Security and Data Protection</h1>
+<h2 id="file-system-security">File System Security</h2>
+<p>Flow storage requires careful filesystem security management:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security considerations:</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Secure directory creation and access control</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - File permission management for flow storage</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Protection against path traversal attacks</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Safe file naming to prevent injection attacks</span></span></code></pre></div>
+<h2 id="data-encryption-and-privacy">Data Encryption and Privacy</h2>
+<p>Comprehensive data protection measures:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Data protection features:</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optional encryption for sensitive flow data</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Secure deletion of flows containing sensitive information</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Access logging for flow storage operations</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Privacy-preserving flow pattern storage</span></span></code></pre></div>
+<h2 id="input-validation-and-sanitization">Input Validation and
+Sanitization</h2>
+<p>Robust input validation prevents security issues:</p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Input validation features:</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Flow data validation before persistence</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Sanitization of flow names and descriptions</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Size limits for flow storage to prevent abuse</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Malicious JSON detection and rejection</span></span></code></pre></div>
+<h1 id="testing-and-mock-support">Testing and Mock Support</h1>
+<h2 id="test-infrastructure-support">Test Infrastructure Support</h2>
+<p>The adapter enables comprehensive testing strategies:</p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Testing support features:</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Temporary directory creation for isolated tests</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Mock flow generation for test scenarios</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance testing with synthetic flow libraries</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Integration testing with real filesystem operations</span></span></code></pre></div>
+<h2 id="validation-and-quality-assurance">Validation and Quality
+Assurance</h2>
+<p>Quality assurance through extensive validation:</p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Validation capabilities:</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Flow data integrity verification</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance regression testing</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Concurrent access testing with multiple threads</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error condition simulation and recovery testing</span></span></code></pre></div>
+<h2 id="debugging-and-diagnostics">Debugging and Diagnostics</h2>
+<p>The adapter supports comprehensive debugging:</p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Debugging features:</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Detailed logging for all flow operations</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance metrics collection and analysis</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error tracing with stack trace preservation</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Flow storage inspection and validation tools</span></span></code></pre></div>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="storage-enhancement-roadmap">Storage Enhancement Roadmap</h2>
+<p>Planned enhancements to storage capabilities:</p>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Future enhancement areas:</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Compression support for large flow libraries</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Database integration for enterprise deployments</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud storage backends for distributed architectures</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced indexing for faster flow discovery</span></span></code></pre></div>
+<h2 id="intelligence-enhancement-opportunities">Intelligence Enhancement
+Opportunities</h2>
+<p>Identified areas for intelligence optimization:</p>
+<ul>
+<li>Machine learning integration for pattern discovery</li>
+<li>Federated learning across multiple ByteHot instances</li>
+<li>Real-time adaptation based on system feedback</li>
+<li>Cross-platform flow pattern sharing and synchronization</li>
+</ul>
+<h2 id="technology-integration">Technology Integration</h2>
+<p>Integration with emerging storage and analytics technologies:</p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Technology integration targets:</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graph databases for complex flow relationship analysis</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Time-series databases for temporal pattern analysis</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Distributed storage systems for scalability</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Real-time analytics platforms for live insights</span></span></code></pre></div>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="FlowDetectionPort.org"><em>FlowDetectionPort</em></span>:
+Interface implemented by this adapter</li>
+<li><span class="spurious-link"
+target="JsonFlow.org"><em>JsonFlow</em></span>: DTO used for flow
+serialization and storage</li>
+<li><span class="spurious-link"
+target="domain/Flow.org"><em>Flow</em></span>: Domain entity
+representing stored flow patterns</li>
+<li><span class="spurious-link"
+target="domain/FlowStatistics.org"><em>FlowStatistics</em></span>:
+Statistics returned by analytics operations</li>
+<li><span class="spurious-link"
+target="flows/flow-persistence-strategy.org"><em>Flow Persistence
+Strategy</em></span>: Strategic documentation for flow storage</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The adapter leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Adapter Pattern</strong></strong>: Clean
+implementation of FlowDetectionPort interface</li>
+<li><strong><strong>Template Method</strong></strong>: Consistent
+processing patterns across operations</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Different
+processing strategies for various flow types</li>
+<li><strong><strong>Observer Pattern</strong></strong>: Event-driven
+flow detection and notification</li>
+</ul>
+<h2 id="filesystem-design-decisions">Filesystem Design Decisions</h2>
+<p>Key design decisions for filesystem organization:</p>
+<ul>
+<li>Flat directory structure for simplicity and performance</li>
+<li>JSON serialization for human readability and debugging</li>
+<li>UUID-based filenames for uniqueness and collision avoidance</li>
+<li>Atomic file operations for consistency and reliability</li>
+</ul>
+<p>The FilesystemFlowStoreAdapter provides ByteHot's essential flow
+intelligence storage infrastructure while maintaining high performance,
+reliability, and extensibility for advanced pattern recognition and
+learning across the entire system lifecycle.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>

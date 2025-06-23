@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ByteHotCLI - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="navigation">
+    <a href="../index.html">🏠 Home</a>
+    <a href="../implementation.html">🏗️ Implementation</a>
+    <a href="../journal.html">📔 Journal</a>
+    <a href="../docs/">📚 Docs</a>
+    <a href="../javadocs/">📖 Javadocs</a>
+    <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+</div>
+<main>
+<h1 id="overview">Overview</h1>
+<p>The <code>ByteHotCLI</code> class serves as the primary
+infrastructure adapter for command-line interface interactions within
+ByteHot's hexagonal architecture. This class acts as the primary adapter
+that transforms command-line arguments and system properties into domain
+events, bridging the gap between external command-line invocation and
+ByteHot's event-driven domain logic. As a critical entry point for JVM
+agent operations, it ensures proper parameter extraction, validation,
+and event generation.</p>
+<h1 id="hexagonal-architecture-role">Hexagonal Architecture Role</h1>
+<h2 id="primary-adapter-implementation">Primary Adapter
+Implementation</h2>
+<p>ByteHotCLI serves as a primary adapter in ByteHot's hexagonal
+architecture:</p>
+<ul>
+<li>Transforms external command-line inputs into domain events</li>
+<li>Acts as the primary port for JVM agent command-line
+interactions</li>
+<li>Isolates domain logic from command-line parsing implementation
+details</li>
+<li>Provides the bridge between JVM agent mechanism and event-driven
+architecture</li>
+</ul>
+<h2 id="command-line-abstraction-boundary">Command-Line Abstraction
+Boundary</h2>
+<p>The adapter manages the boundary between command-line technology and
+domain concepts:</p>
+<ul>
+<li>Translates system properties and agent arguments into domain
+events</li>
+<li>Handles command-line specific validation and error reporting</li>
+<li>Manages configuration loading and parameter processing</li>
+<li>Provides standardized event generation from diverse input
+sources</li>
+</ul>
+<h2 id="infrastructure-integration-gateway">Infrastructure Integration
+Gateway</h2>
+<p>The adapter serves as the integration gateway for infrastructure
+concerns:</p>
+<ul>
+<li>Coordinates JVM agent initialization with application layer</li>
+<li>Manages configuration loading and validation processes</li>
+<li>Handles error propagation and recovery for command-line
+failures</li>
+<li>Ensures proper dependency injection and adapter registration</li>
+</ul>
+<h1 id="class-structure-and-responsibilities">Class Structure and
+Responsibilities</h1>
+<h2 id="core-cli-architecture">Core CLI Architecture</h2>
+<div class="sourceCode" id="cb1"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/cli/ByteHotCLI.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Protected constructor to prevent instantiation<span class="co">.</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">protected</span> <span class="fu">ByteHotCLI</span><span class="op">()</span> <span class="op">{}</span></span></code></pre></div>
+<h2 id="agent-entry-point-methods">Agent Entry Point Methods</h2>
+<div class="sourceCode" id="cb2"
+data-tangle="../bytehot/src/main/java/org/acmsl/bytehot/infrastructure/cli/ByteHotCLI.java"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Called when we are attached at JVM startup<span class="co">.</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">agentArgs</span><span class="co"> </span>Arguments passed to the agent<span class="co">.</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">inst</span><span class="co"> </span>Instrumentation instance for the JVM<span class="co">.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">premain</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> agentArgs<span class="op">,</span> <span class="dt">final</span> <span class="bu">Instrumentation</span> inst<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">String</span> configPath <span class="op">=</span> <span class="bu">System</span><span class="op">.</span><span class="fu">getProperty</span><span class="op">(</span><span class="st">&quot;bhconfig&quot;</span><span class="op">);</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="op">(</span>configPath <span class="op">==</span> <span class="kw">null</span> <span class="op">||</span> configPath<span class="op">.</span><span class="fu">isBlank</span><span class="op">())</span> <span class="op">{</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalStateException</span><span class="op">(</span><span class="st">&quot;Missing required system property bhconfig&quot;</span><span class="op">);</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Initialize the application with instrumentation (this will inject all adapters)</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    ByteHotApplication<span class="op">.</span><span class="fu">initialize</span><span class="op">(</span>inst<span class="op">);</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    WatchConfiguration config<span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> <span class="op">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>        config <span class="op">=</span> WatchConfiguration<span class="op">.</span><span class="fu">load</span><span class="op">();</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="cf">catch</span> <span class="op">(</span><span class="dt">final</span> <span class="bu">Exception</span> exception<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">throw</span> <span class="kw">new</span> <span class="bu">IllegalStateException</span><span class="op">(</span><span class="st">&quot;Failed to load configuration&quot;</span><span class="op">,</span> exception<span class="op">);</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Process the attach request</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    ByteHotApplication<span class="op">.</span><span class="fu">getInstance</span><span class="op">().</span><span class="fu">accept</span><span class="op">(</span><span class="kw">new</span> <span class="fu">ByteHotAttachRequested</span><span class="op">(</span>config<span class="op">,</span> inst<span class="op">));</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co">/**</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> Called when we are attached to a running JVM<span class="co">.</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">agentArgs</span><span class="co"> </span>Arguments passed to the agent<span class="co">.</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a> <span class="co">*</span> <span class="an">@param</span><span class="co"> </span><span class="an">inst</span><span class="co"> </span>Instrumentation instance for the JVM<span class="co">.</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a> <span class="co">*/</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span> <span class="dt">static</span> <span class="dt">void</span> <span class="fu">agentmain</span><span class="op">(</span><span class="dt">final</span> <span class="bu">String</span> agentArgs<span class="op">,</span> <span class="dt">final</span> <span class="bu">Instrumentation</span> inst<span class="op">)</span> <span class="op">{</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">premain</span><span class="op">(</span>agentArgs<span class="op">,</span> inst<span class="op">);</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="static-utility-design-pattern">Static Utility Design
+Pattern</h2>
+<p>The class follows a static utility design pattern:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Static utility characteristics:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - No instance state or mutable fields</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Prevented instantiation through protected constructor</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Static methods for JVM agent entry points</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Stateless parameter processing</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Pure function approach to event generation</span></span></code></pre></div>
+<h1 id="command-line-parameter-processing">Command-Line Parameter
+Processing</h1>
+<h2 id="system-property-integration">System Property Integration</h2>
+<p>The CLI integrates with JVM system properties for configuration:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">// System property processing:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - &quot;bhconfig&quot;: Required configuration file path</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation of required properties</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error handling for missing configuration</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Support for additional properties as needed</span></span></code></pre></div>
+<h2 id="configuration-path-validation">Configuration Path
+Validation</h2>
+<p>Comprehensive validation of configuration parameters:</p>
+<ul>
+<li>Required property existence verification</li>
+<li>Path accessibility and readability validation</li>
+<li>Configuration format and content verification</li>
+<li>Security constraint enforcement</li>
+</ul>
+<h2 id="agent-argument-processing">Agent Argument Processing</h2>
+<p>Processing of JVM agent arguments:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Agent argument capabilities:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Command-line argument parsing and validation</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Override configuration with command-line parameters</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Debug and diagnostic flag processing</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Performance tuning parameter extraction</span></span></code></pre></div>
+<h1 id="configuration-loading-and-management">Configuration Loading and
+Management</h1>
+<h2 id="watchconfiguration-integration">WatchConfiguration
+Integration</h2>
+<p>Integration with ByteHot's configuration system:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration loading sequence:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. System property validation and extraction</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. WatchConfiguration.load() for file-based config</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Configuration parameter validation</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Error handling for configuration failures</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Configuration object creation and validation</span></span></code></pre></div>
+<h2 id="configuration-error-handling">Configuration Error Handling</h2>
+<p>Robust error handling for configuration issues:</p>
+<ul>
+<li>Missing configuration file detection</li>
+<li>Invalid configuration format handling</li>
+<li>Inaccessible file path error reporting</li>
+<li>Graceful degradation for partial configuration</li>
+</ul>
+<h2 id="configuration-validation-pipeline">Configuration Validation
+Pipeline</h2>
+<p>Multi-stage configuration validation:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Validation pipeline stages:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - File existence and accessibility verification</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration syntax and format validation</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Parameter range and constraint checking</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cross-parameter consistency validation</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">// - Security policy compliance verification</span></span></code></pre></div>
+<h1 id="domain-event-generation">Domain Event Generation</h1>
+<h2 id="bytehotattachrequested-event-creation">ByteHotAttachRequested
+Event Creation</h2>
+<p>The CLI generates the primary domain event for agent attachment:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event generation process:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. Configuration loading and validation</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Instrumentation instance verification</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. ByteHotAttachRequested event creation</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Event parameter population and validation</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Event dispatch to application layer</span></span></code></pre></div>
+<h2 id="event-parameter-composition">Event Parameter Composition</h2>
+<p>Sophisticated event parameter composition:</p>
+<ul>
+<li>Configuration object encapsulation</li>
+<li>Instrumentation instance integration</li>
+<li>Metadata addition for traceability</li>
+<li>Context information preservation</li>
+</ul>
+<h2 id="event-validation-and-safety">Event Validation and Safety</h2>
+<p>Comprehensive event validation before dispatch:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Event validation requirements:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Non-null configuration object verification</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Valid instrumentation instance checking</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Required parameter completeness validation</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event consistency and integrity verification</span></span></code></pre></div>
+<h1 id="application-layer-integration">Application Layer
+Integration</h1>
+<h2 id="bytehotapplication-initialization">ByteHotApplication
+Initialization</h2>
+<p>Coordination with application layer initialization:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Application initialization sequence:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. ByteHotApplication.initialize(inst) call</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Dependency injection and adapter registration</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Port resolution and interface satisfaction</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. System readiness verification</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// 5. Event processing capability confirmation</span></span></code></pre></div>
+<h2 id="event-dispatch-and-processing">Event Dispatch and
+Processing</h2>
+<p>Event dispatch to the application layer:</p>
+<ul>
+<li>Application instance retrieval and verification</li>
+<li>Event acceptance through application layer interface</li>
+<li>Response event handling and processing</li>
+<li>Error propagation and recovery coordination</li>
+</ul>
+<h2 id="application-layer-abstraction">Application Layer
+Abstraction</h2>
+<p>Clean abstraction of application layer complexity:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Abstraction characteristics:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - No direct domain layer interaction</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Clean application layer interface usage</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event-driven communication pattern</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal infrastructure coupling</span></span></code></pre></div>
+<h1 id="jvm-agent-integration-patterns">JVM Agent Integration
+Patterns</h1>
+<h2 id="startup-time-agent-loading">Startup-Time Agent Loading</h2>
+<p>Support for startup-time agent loading through premain:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Startup-time characteristics:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Full JVM instrumentation capabilities</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Complete class redefinition support</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimal performance for hot-swap operations</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Comprehensive configuration loading time</span></span></code></pre></div>
+<h2 id="runtime-agent-attachment">Runtime Agent Attachment</h2>
+<p>Support for runtime agent attachment through agentmain:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Runtime attachment characteristics:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Dynamic attachment to running JVM</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Potential instrumentation limitations</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Time-sensitive initialization requirements</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Shared implementation with startup loading</span></span></code></pre></div>
+<h2 id="unified-processing-strategy">Unified Processing Strategy</h2>
+<p>Both entry points use identical processing logic:</p>
+<ul>
+<li>Ensures consistent behavior across attachment methods</li>
+<li>Simplifies testing and validation procedures</li>
+<li>Provides uniform error handling and recovery</li>
+<li>Enables seamless transition between attachment strategies</li>
+</ul>
+<h1 id="error-handling-and-recovery">Error Handling and Recovery</h1>
+<h2 id="configuration-error-management">Configuration Error
+Management</h2>
+<p>Comprehensive configuration error management:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration error categories:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - IllegalStateException for missing required properties</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration loading failures and format errors</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - File system access and permission issues</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Validation constraint violations</span></span></code></pre></div>
+<h2 id="exception-propagation-strategy">Exception Propagation
+Strategy</h2>
+<p>Sophisticated exception propagation and handling:</p>
+<ul>
+<li>Early validation with fail-fast behavior</li>
+<li>Detailed error messages for troubleshooting</li>
+<li>Exception chaining for root cause analysis</li>
+<li>Graceful error reporting to calling environment</li>
+</ul>
+<h2 id="recovery-and-fallback-mechanisms">Recovery and Fallback
+Mechanisms</h2>
+<p>Recovery mechanisms for various failure scenarios:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recovery strategies:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Default configuration fallback for missing files</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Alternative configuration source attempts</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Graceful degradation for partial failures</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - User guidance for configuration resolution</span></span></code></pre></div>
+<h1 id="security-considerations">Security Considerations</h1>
+<h2 id="input-validation-and-sanitization">Input Validation and
+Sanitization</h2>
+<p>Comprehensive input validation and sanitization:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Security validation measures:</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - System property input validation</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration path sanitization</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Agent argument safety checking</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Resource access permission verification</span></span></code></pre></div>
+<h2 id="configuration-security">Configuration Security</h2>
+<p>Security considerations for configuration handling:</p>
+<ul>
+<li>Configuration file access permission validation</li>
+<li>Sensitive parameter protection and encryption</li>
+<li>Path traversal attack prevention</li>
+<li>Configuration integrity verification</li>
+</ul>
+<h2 id="agent-security-compliance">Agent Security Compliance</h2>
+<p>JVM agent security compliance:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Agent security requirements:</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Agent jar signing for production deployment</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Trusted source verification</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Security manager compatibility</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Module system integration (Java 9+)</span></span></code></pre></div>
+<h1 id="performance-optimization">Performance Optimization</h1>
+<h2 id="startup-performance">Startup Performance</h2>
+<p>Optimized startup performance for rapid agent loading:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Startup optimization strategies:</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Minimal object allocation during initialization</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Efficient configuration loading algorithms</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Lazy loading of non-critical components</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Optimized error checking and validation</span></span></code></pre></div>
+<h2 id="configuration-loading-performance">Configuration Loading
+Performance</h2>
+<p>Efficient configuration loading and processing:</p>
+<ul>
+<li>Optimized file I/O operations</li>
+<li>Minimal memory allocation for configuration objects</li>
+<li>Efficient parameter validation algorithms</li>
+<li>Cached configuration parsing where appropriate</li>
+</ul>
+<h2 id="memory-usage-optimization">Memory Usage Optimization</h2>
+<p>Careful memory usage optimization:</p>
+<ul>
+<li>Minimal memory footprint for CLI processing</li>
+<li>Efficient data structure selection</li>
+<li>Early garbage collection of temporary objects</li>
+<li>Memory-conscious event object creation</li>
+</ul>
+<h1 id="testing-and-validation">Testing and Validation</h1>
+<h2 id="cli-testing-strategy">CLI Testing Strategy</h2>
+<p>Comprehensive CLI testing strategy:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Testing approach:</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Unit testing with mock dependencies</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Integration testing with real agent loading</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration validation testing</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error condition simulation and recovery testing</span></span></code></pre></div>
+<h2 id="mock-implementation-support">Mock Implementation Support</h2>
+<p>Testing uses mock implementations:</p>
+<ul>
+<li>Simulated JVM agent loading for controlled testing</li>
+<li>Mock configuration loading for various scenarios</li>
+<li>Error condition simulation and validation</li>
+<li>Performance characteristic testing</li>
+</ul>
+<h2 id="integration-testing">Integration Testing</h2>
+<p>Comprehensive integration testing:</p>
+<ul>
+<li>Real JVM agent loading with test configurations</li>
+<li>End-to-end event generation and processing</li>
+<li>Cross-platform compatibility validation</li>
+<li>Performance impact measurement</li>
+</ul>
+<h1 id="configuration-integration-patterns">Configuration Integration
+Patterns</h1>
+<h2 id="configuration-source-hierarchy">Configuration Source
+Hierarchy</h2>
+<p>Integration with multiple configuration sources:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Configuration source priority:</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co">// 1. System properties (highest priority)</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co">// 2. Agent arguments override</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co">// 3. Configuration file parameters</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">// 4. Default configuration values (lowest priority)</span></span></code></pre></div>
+<h2 id="dynamic-configuration-support">Dynamic Configuration
+Support</h2>
+<p>Support for dynamic configuration updates:</p>
+<ul>
+<li>Runtime configuration modification capabilities</li>
+<li>Configuration reload without agent restart</li>
+<li>User preference integration</li>
+<li>Environment-specific configuration adaptation</li>
+</ul>
+<h2 id="environment-specific-configuration">Environment-Specific
+Configuration</h2>
+<p>Environment-specific configuration management:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Environment adaptation:</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Development vs production configuration</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Container environment configuration</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud platform specific settings</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Testing environment isolation</span></span></code></pre></div>
+<h1 id="monitoring-and-observability">Monitoring and Observability</h1>
+<h2 id="cli-operation-monitoring">CLI Operation Monitoring</h2>
+<p>Monitoring of CLI operations and performance:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Monitoring metrics:</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Agent initialization success/failure rates</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Configuration loading performance</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Event generation and dispatch timing</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Error rate tracking and analysis</span></span></code></pre></div>
+<h2 id="diagnostic-integration">Diagnostic Integration</h2>
+<p>Integration with diagnostic and monitoring systems:</p>
+<ul>
+<li>Detailed initialization logging</li>
+<li>Configuration validation reporting</li>
+<li>Performance metrics collection</li>
+<li>Error tracking and analysis</li>
+</ul>
+<h2 id="troubleshooting-support">Troubleshooting Support</h2>
+<p>Enhanced troubleshooting support:</p>
+<ul>
+<li>Comprehensive error messages with context</li>
+<li>Configuration debugging capabilities</li>
+<li>Runtime state inspection</li>
+<li>Diagnostic information collection</li>
+</ul>
+<h1 id="platform-and-environment-support">Platform and Environment
+Support</h1>
+<h2 id="cross-platform-compatibility">Cross-Platform Compatibility</h2>
+<p>Support for diverse platforms and environments:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Platform compatibility:</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Windows, Linux, macOS support</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Different JVM implementations (HotSpot, OpenJ9, GraalVM)</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Container environment compatibility</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud platform integration</span></span></code></pre></div>
+<h2 id="container-environment-support">Container Environment
+Support</h2>
+<p>Specialized support for container environments:</p>
+<ul>
+<li>Docker container agent loading</li>
+<li>Kubernetes pod lifecycle integration</li>
+<li>Container-specific configuration handling</li>
+<li>Resource constraint awareness</li>
+</ul>
+<h2 id="cloud-platform-integration">Cloud Platform Integration</h2>
+<p>Cloud platform specific integrations:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Cloud integration features:</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud provider specific configuration</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Serverless function compatibility</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Auto-scaling environment support</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud storage configuration integration</span></span></code></pre></div>
+<h1 id="future-evolution-and-extensibility">Future Evolution and
+Extensibility</h1>
+<h2 id="cli-enhancement-roadmap">CLI Enhancement Roadmap</h2>
+<p>Planned enhancements to CLI capabilities:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Future enhancement areas:</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Enhanced command-line argument parsing</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Interactive configuration setup</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced validation and error recovery</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Integration with external configuration systems</span></span></code></pre></div>
+<h2 id="configuration-system-evolution">Configuration System
+Evolution</h2>
+<p>Evolution of configuration system integration:</p>
+<ul>
+<li>Support for additional configuration formats</li>
+<li>External configuration service integration</li>
+<li>Real-time configuration updates</li>
+<li>Configuration validation service integration</li>
+</ul>
+<h2 id="technology-integration">Technology Integration</h2>
+<p>Integration with emerging technologies:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode java"><code class="sourceCode java"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Technology integration targets:</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co">// - Cloud-native configuration management</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">// - Advanced monitoring and observability</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co">// - Container orchestration integration</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co">// - Service mesh configuration integration</span></span></code></pre></div>
+<h1 id="related-documentation">Related Documentation</h1>
+<ul>
+<li><span class="spurious-link"
+target="ByteHotApplication.org"><em>ByteHotApplication</em></span>:
+Application layer receiving CLI-generated events</li>
+<li><span class="spurious-link"
+target="events/ByteHotAttachRequested.org"><em>ByteHotAttachRequested</em></span>:
+Primary event generated by CLI</li>
+<li><span class="spurious-link"
+target="WatchConfiguration.org"><em>WatchConfiguration</em></span>:
+Configuration object loaded by CLI</li>
+<li><span class="spurious-link"
+target="flows/agent-startup-flow.org"><em>Agent Startup
+Flow</em></span>: Complete CLI-initiated process flow</li>
+</ul>
+<h1 id="implementation-notes">Implementation Notes</h1>
+<h2 id="design-patterns-applied">Design Patterns Applied</h2>
+<p>The CLI leverages several key design patterns:</p>
+<ul>
+<li><strong><strong>Adapter Pattern</strong></strong>: Between
+command-line interface and domain events</li>
+<li><strong><strong>Factory Pattern</strong></strong>: Event creation
+and configuration object generation</li>
+<li><strong><strong>Template Method</strong></strong>: Consistent
+processing across entry points</li>
+<li><strong><strong>Strategy Pattern</strong></strong>: Different
+processing strategies based on attachment method</li>
+</ul>
+<h2 id="hexagonal-architecture-compliance">Hexagonal Architecture
+Compliance</h2>
+<p>The implementation maintains strict hexagonal architecture
+compliance:</p>
+<ul>
+<li>Clean separation between infrastructure and application
+concerns</li>
+<li>Event-driven communication with application layer</li>
+<li>No direct domain layer interaction</li>
+<li>Technology-agnostic event generation</li>
+</ul>
+<p>The ByteHotCLI provides ByteHot's critical command-line interface
+integration while maintaining architectural purity and enabling seamless
+translation between command-line invocation and ByteHot's revolutionary
+event-driven hot-swapping architecture.</p>
+</main>
+<div class="footer">
+    ByteHot - Revolutionary JVM Hot-Swapping | 
+    <a href="https://github.com/rydnr/bytehot">GitHub</a> | 
+    <a href="https://rydnr.github.io/bytehot/docs/">Documentation</a> | 
+    <a href="https://rydnr.github.io/bytehot/javadocs/">API Docs</a>
+</div>
+</body></html>
