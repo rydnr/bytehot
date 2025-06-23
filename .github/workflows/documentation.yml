@@ -375,7 +375,28 @@ jobs:
           
           # Convert story.org to index.html with navigation (check if file exists in bytehot directory)
           if [ -f "bytehot/story.org" ]; then
-            pandoc -f org -t html5 -s --css=style.css --toc bytehot/story.org -o bytehot/index.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
+            # Convert content only, then wrap in proper HTML structure
+            pandoc -f org -t html5 --toc bytehot/story.org -o bytehot/index_content.html --metadata title="ByteHot - Revolutionary JVM Hot-Swapping Agent" || echo "story.org conversion failed, using fallback"
+            
+            # Create complete HTML structure
+            cat > bytehot/index.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ByteHot - Revolutionary JVM Hot-Swapping Agent</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+EOF
+            
+            # Add content if it exists
+            if [ -f "bytehot/index_content.html" ]; then
+              cat bytehot/index_content.html >> bytehot/index.html
+              rm bytehot/index_content.html
+            fi
+            
+            # Close HTML structure
+            echo '</body></html>' >> bytehot/index.html
           else
             echo "story.org not found in bytehot directory, creating fallback index.html"
             echo "<html><head><title>ByteHot Documentation</title><link rel='stylesheet' href='style.css'></head><body><h1>ByteHot Documentation</h1><p>Documentation generation in progress...</p></body></html>" > bytehot/index.html
@@ -400,58 +421,39 @@ jobs:
           echo '  </div>' >> temp_nav.html
           echo '</div>' >> temp_nav.html
           
-          # Create footer component
+          # Create compact footer component
           echo '<footer class="footer">' > temp_footer.html
-          echo '  <div class="container">' >> temp_footer.html
-          echo '    <div class="footer-content">' >> temp_footer.html
-          echo '      <div class="footer-section">' >> temp_footer.html
-          echo '        <h4>🔥 ByteHot Project</h4>' >> temp_footer.html
-          echo '        <ul>' >> temp_footer.html
-          echo '          <li><a href="https://github.com/rydnr/bytehot">Source Code</a></li>' >> temp_footer.html
-          echo '          <li><a href="https://github.com/rydnr/bytehot/releases">Releases</a></li>' >> temp_footer.html
-          echo '          <li><a href="https://github.com/rydnr/bytehot/issues">Issues & Support</a></li>' >> temp_footer.html
-          echo '          <li><a href="https://github.com/rydnr/bytehot/actions">CI/CD Status</a></li>' >> temp_footer.html
-          echo '        </ul>' >> temp_footer.html
-          echo '      </div>' >> temp_footer.html
-          echo '      <div class="footer-section">' >> temp_footer.html
-          echo '        <h4>📚 Documentation</h4>' >> temp_footer.html
-          echo '        <ul>' >> temp_footer.html
-          echo '          <li><a href="GETTING_STARTED.html">Getting Started</a></li>' >> temp_footer.html
-          echo '          <li><a href="javadocs/index.html">API Reference</a></li>' >> temp_footer.html
-          echo '          <li><a href="docs/configuration.html">Configuration</a></li>' >> temp_footer.html
-          echo '          <li><a href="specs/README.html">Specifications</a></li>' >> temp_footer.html
-          echo '        </ul>' >> temp_footer.html
-          echo '      </div>' >> temp_footer.html
-          echo '      <div class="footer-section">' >> temp_footer.html
-          echo '        <h4>🔄 Process Flows</h4>' >> temp_footer.html
-          echo '        <ul>' >> temp_footer.html
-          echo '          <li><a href="docs/flows/agent-startup-flow.html">Agent Startup</a></li>' >> temp_footer.html
-          echo '          <li><a href="docs/flows/hot-swap-complete-flow.html">Hot-Swap Complete</a></li>' >> temp_footer.html
-          echo '          <li><a href="docs/flows/error-recovery-flow.html">Error Recovery</a></li>' >> temp_footer.html
-          echo '          <li><a href="docs/flows/index.html">All Flows</a></li>' >> temp_footer.html
-          echo '        </ul>' >> temp_footer.html
-          echo '      </div>' >> temp_footer.html
-          echo '      <div class="footer-section">' >> temp_footer.html
-          echo '        <h4>⚡ Architecture</h4>' >> temp_footer.html
-          echo '        <ul>' >> temp_footer.html
-          echo '          <li><a href="implementation.html">Domain-Driven Design</a></li>' >> temp_footer.html
-          echo '          <li><a href="implementation.html">Hexagonal Architecture</a></li>' >> temp_footer.html
-          echo '          <li><a href="implementation.html">Event Sourcing</a></li>' >> temp_footer.html
-          echo '          <li><a href="journal.html">Development Journal</a></li>' >> temp_footer.html
-          echo '        </ul>' >> temp_footer.html
-          echo '      </div>' >> temp_footer.html
-          echo '    </div>' >> temp_footer.html
-          echo '    <div class="footer-bottom">' >> temp_footer.html
-          echo '      <p><strong>ByteHot</strong> - Revolutionary JVM Hot-Swapping Agent</p>' >> temp_footer.html
-          echo '      <p>Licensed under <a href="https://github.com/rydnr/bytehot/blob/main/LICENSE">GPL v3</a> | Built with Domain-Driven Design & Hexagonal Architecture</p>' >> temp_footer.html
-          echo '      <p>🤖 Documentation generated with <a href="https://claude.ai/code">Claude Code</a></p>' >> temp_footer.html
-          echo '    </div>' >> temp_footer.html
-          echo '  </div>' >> temp_footer.html
+          echo '  <p><strong>ByteHot</strong> - Revolutionary JVM Hot-Swapping Agent | ' >> temp_footer.html
+          echo '  <a href="https://github.com/rydnr/bytehot">GitHub</a> | ' >> temp_footer.html
+          echo '  <a href="GETTING_STARTED.html">Getting Started</a> | ' >> temp_footer.html
+          echo '  <a href="javadocs/index.html">API Docs</a> | ' >> temp_footer.html
+          echo '  <a href="https://github.com/rydnr/bytehot/blob/main/LICENSE">GPL v3</a></p>' >> temp_footer.html
           echo '</footer>' >> temp_footer.html
           
           # Convert journal.org to journal.html
           if [ -f "bytehot/journal.org" ]; then
-            pandoc -f org -t html5 -s --css=style.css --toc bytehot/journal.org -o bytehot/journal.html --metadata title="ByteHot Development Journal" || echo "journal.org conversion failed"
+            # Convert content only, then wrap in proper HTML structure
+            pandoc -f org -t html5 --toc bytehot/journal.org -o bytehot/journal_content.html --metadata title="ByteHot Development Journal" || echo "journal.org conversion failed"
+            
+            # Create complete HTML structure
+            cat > bytehot/journal.html << 'EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ByteHot Development Journal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+EOF
+            
+            # Add content if it exists
+            if [ -f "bytehot/journal_content.html" ]; then
+              cat bytehot/journal_content.html >> bytehot/journal.html
+              rm bytehot/journal_content.html
+            fi
+            
+            # Close HTML structure
+            echo '</body></html>' >> bytehot/journal.html
           else
             echo "journal.org not found, creating fallback"
             echo "<html><head><title>ByteHot Development Journal</title><link rel='stylesheet' href='style.css'></head><body><h1>Development Journal</h1><p>Journal content not available</p></body></html>" > bytehot/journal.html
@@ -468,11 +470,31 @@ jobs:
                 basename=$(basename "$file" .org)
                 basename=$(basename "$basename" .md)
                 echo "Converting: $file -> bytehot/docs/${basename}.html"
+                # Create proper HTML structure for each file
+                cat > "bytehot/docs/${basename}.html" << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>${basename} - ByteHot Documentation</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+EOF
+                
                 if [[ "$file" == *.org ]]; then
-                  pandoc -f org -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
+                  pandoc -f org -t html5 --toc "$file" -o "bytehot/docs/${basename}_content.html" || echo "Failed to convert $file"
                 else
-                  pandoc -f markdown -t html5 -s --css=../style.css --toc "$file" -o "bytehot/docs/${basename}.html" || echo "Failed to convert $file"
+                  pandoc -f markdown -t html5 --toc "$file" -o "bytehot/docs/${basename}_content.html" || echo "Failed to convert $file"
                 fi
+                
+                # Add content if it exists
+                if [ -f "bytehot/docs/${basename}_content.html" ]; then
+                  cat "bytehot/docs/${basename}_content.html" >> "bytehot/docs/${basename}.html"
+                  rm "bytehot/docs/${basename}_content.html"
+                fi
+                
+                # Close HTML structure
+                echo '</body></html>' >> "bytehot/docs/${basename}.html"
               fi
             done
           fi
