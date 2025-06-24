@@ -120,13 +120,13 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
             
             // Update version tracking
             aggregateVersions.computeIfAbsent(versionKey, k -> new AtomicLong(0))
-                           .set(event.getEventVersion());
+                           .set(event.getAggregateVersion());
             
             // Add to global log for cross-aggregate queries
             globalEventLog.add(event);
             
         } catch (Exception e) {
-            throw new EventStoreException("Failed to save event to in-memory store: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to save event to in-memory store: " + e.getMessage(), e, EventStoreException.OperationType.SAVE);
         }
     }
 
@@ -141,10 +141,10 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
             return eventStorage.getOrDefault(aggregateType, Map.of())
                              .getOrDefault(aggregateId, List.of())
                              .stream()
-                             .sorted(Comparator.comparing(VersionedDomainEvent::getEventVersion))
+                             .sorted(Comparator.comparing(VersionedDomainEvent::getAggregateVersion))
                              .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new EventStoreException("Failed to retrieve events for aggregate: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to retrieve events for aggregate: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -159,10 +159,10 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
         try {
             return getEventsForAggregate(aggregateType, aggregateId)
                 .stream()
-                .filter(event -> event.getEventVersion() > sinceVersion)
+                .filter(event -> event.getAggregateVersion() > sinceVersion)
                 .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new EventStoreException("Failed to retrieve events since version: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to retrieve events since version: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -176,7 +176,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
                 .sorted(Comparator.comparing(VersionedDomainEvent::getTimestamp))
                 .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new EventStoreException("Failed to retrieve events by type: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to retrieve events by type: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -197,7 +197,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
                 .sorted(Comparator.comparing(VersionedDomainEvent::getTimestamp))
                 .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new EventStoreException("Failed to retrieve events in time range: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to retrieve events in time range: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -211,7 +211,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
             AtomicLong version = aggregateVersions.get(versionKey);
             return version != null ? version.get() : 0L;
         } catch (Exception e) {
-            throw new EventStoreException("Failed to get current version: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to get current version: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -227,7 +227,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
         try {
             return globalEventLog.size();
         } catch (Exception e) {
-            throw new EventStoreException("Failed to get total event count: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to get total event count: " + e.getMessage(), e, EventStoreException.OperationType.COUNT);
         }
     }
 
@@ -243,7 +243,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
                              .getOrDefault(aggregateId, List.of())
                              .size();
         } catch (Exception e) {
-            throw new EventStoreException("Failed to get event count for aggregate: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to get event count for aggregate: " + e.getMessage(), e, EventStoreException.OperationType.COUNT);
         }
     }
 
@@ -256,7 +256,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
             return eventStorage.getOrDefault(aggregateType, Map.of())
                              .containsKey(aggregateId);
         } catch (Exception e) {
-            throw new EventStoreException("Failed to check aggregate existence: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to check aggregate existence: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -267,7 +267,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
         try {
             return new ArrayList<>(eventStorage.keySet());
         } catch (Exception e) {
-            throw new EventStoreException("Failed to get aggregate types: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to get aggregate types: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -281,7 +281,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
                              .stream()
                              .collect(Collectors.toList());
         } catch (Exception e) {
-            throw new EventStoreException("Failed to get aggregate IDs: " + e.getMessage(), e);
+            throw new EventStoreException("Failed to get aggregate IDs: " + e.getMessage(), e, EventStoreException.OperationType.RETRIEVE);
         }
     }
 
@@ -398,7 +398,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
             .getOrDefault(aggregateId, List.of());
         
         return events.stream()
-            .max(Comparator.comparing(VersionedDomainEvent::getEventVersion))
+            .max(Comparator.comparing(VersionedDomainEvent::getAggregateVersion))
             .orElse(null);
     }
 
@@ -423,7 +423,7 @@ public class InMemoryEventStoreAdapter implements EventStorePort, Adapter<EventS
      */
     private void validateHealthy() throws EventStoreException {
         if (!healthy) {
-            throw new EventStoreException("InMemoryEventStore is not healthy");
+            throw new EventStoreException("InMemoryEventStore is not healthy", EventStoreException.OperationType.HEALTH_CHECK);
         }
     }
 }
