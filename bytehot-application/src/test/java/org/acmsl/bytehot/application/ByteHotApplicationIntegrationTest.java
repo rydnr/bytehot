@@ -236,13 +236,13 @@ public class ByteHotApplicationIntegrationTest {
             // FileWatcherAdapter discovery will be attempted by ByteHotApplication.initialize()
             
             ByteHotApplication application = ByteHotApplication.getInstance();
-            List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
+            List<? extends DomainResponseEvent<?>> responses = application.accept(attachRequest);
 
             // Then: Exactly one response event is produced
             assertEquals(1, responses.size(), "Should produce exactly one response event");
             
             // And: The response is a ByteHotAgentAttached event
-            DomainResponseEvent<ByteHotAttachRequested> response = responses.get(0);
+            DomainResponseEvent<?> response = responses.get(0);
             assertInstanceOf(ByteHotAgentAttached.class, response, "Response should be ByteHotAgentAttached");
             
             ByteHotAgentAttached agentAttached = (ByteHotAgentAttached) response;
@@ -303,7 +303,7 @@ public class ByteHotApplicationIntegrationTest {
             // FileWatcherAdapter discovery will be attempted by ByteHotApplication.initialize()
             
             ByteHotApplication application = ByteHotApplication.getInstance();
-            List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
+            List<? extends DomainResponseEvent<?>> responses = application.accept(attachRequest);
 
             // Then: Agent still attaches successfully
             assertEquals(1, responses.size(), "Should produce exactly one response event");
