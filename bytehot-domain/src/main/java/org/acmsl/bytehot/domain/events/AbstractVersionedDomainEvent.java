@@ -261,6 +261,24 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
     }
 
     /**
+     * Gets the event metadata for this event
+     * @return reconstructed EventMetadata object
+     */
+    public EventMetadata getMetadata() {
+        return new EventMetadata(
+            eventId,
+            aggregateType,
+            aggregateId,
+            aggregateVersion,
+            timestamp,
+            previousEventId,
+            schemaVersion,
+            userId,
+            correlationId
+        );
+    }
+
+    /**
      * Gets a human-readable description of this event
      * @return a description of the event
      */

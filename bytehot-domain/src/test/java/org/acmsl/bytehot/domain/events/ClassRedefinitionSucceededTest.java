@@ -34,7 +34,9 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
+import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.bytehot.domain.testing.MockInstrumentationService;
 
 import org.junit.jupiter.api.Test;
@@ -67,7 +69,9 @@ public class ClassRedefinitionSucceededTest {
         Path classFile = tempDir.resolve("UserService.class");
         Files.write(classFile, createNewBytecode("UserService"));
         
+        EventMetadata metadata = EventMetadata.forNewAggregate("hotswap", "UserService-test");
         HotSwapRequested request = new HotSwapRequested(
+            metadata,
             classFile,
             "UserService",
             createOriginalBytecode("UserService"),
@@ -108,7 +112,9 @@ public class ClassRedefinitionSucceededTest {
         Path classFile = tempDir.resolve("ComplexService.class");
         Files.write(classFile, createComplexBytecode("ComplexService"));
         
+        EventMetadata metadata_temp = EventMetadata.forNewAggregate("hotswap", "test-class");
         HotSwapRequested request = new HotSwapRequested(
+            metadata_temp,
             classFile,
             "ComplexService",
             createOriginalBytecode("ComplexService"),
@@ -146,7 +152,9 @@ public class ClassRedefinitionSucceededTest {
         Path classFile = tempDir.resolve("ServiceWithInstances.class");
         Files.write(classFile, createServiceBytecode("ServiceWithInstances"));
         
+        EventMetadata metadata_temp = EventMetadata.forNewAggregate("hotswap", "test-class");
         HotSwapRequested request = new HotSwapRequested(
+            metadata_temp,
             classFile,
             "ServiceWithInstances",
             createOriginalBytecode("ServiceWithInstances"),

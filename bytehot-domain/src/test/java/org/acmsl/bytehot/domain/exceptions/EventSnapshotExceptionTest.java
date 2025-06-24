@@ -18,6 +18,7 @@
 */
 package org.acmsl.bytehot.domain.exceptions;
 
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.commons.patterns.DomainEvent;
@@ -50,7 +51,9 @@ class EventSnapshotExceptionTest {
             Instant.now()
         );
         
+        final EventMetadata metadata = EventMetadata.forNewAggregate("hotswap", "TestClass-test");
         final HotSwapRequested hotSwapRequested = new HotSwapRequested(
+            metadata,
             Paths.get("/test/TestClass.class"),
             "TestClass",
             new byte[]{1, 2, 3},

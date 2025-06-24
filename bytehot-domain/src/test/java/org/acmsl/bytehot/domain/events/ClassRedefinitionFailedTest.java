@@ -34,7 +34,9 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
+import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.bytehot.domain.testing.MockInstrumentationService;
 
 import org.junit.jupiter.api.Test;
@@ -66,7 +68,9 @@ public class ClassRedefinitionFailedTest {
         Path classFile = tempDir.resolve("IncompatibleClass.class");
         Files.write(classFile, createIncompatibleBytecode("IncompatibleClass"));
         
+        EventMetadata metadata = EventMetadata.forNewAggregate("hotswap", "IncompatibleClass-test");
         HotSwapRequested request = new HotSwapRequested(
+            metadata,
             classFile,
             "IncompatibleClass",
             createOriginalBytecode("IncompatibleClass"),
@@ -121,7 +125,9 @@ public class ClassRedefinitionFailedTest {
         Path classFile = tempDir.resolve("SchemaChangeClass.class");
         Files.write(classFile, createSchemaChangeBytecode("SchemaChangeClass"));
         
+        EventMetadata metadata2 = EventMetadata.forNewAggregate("hotswap", "SchemaChangeClass-test");
         HotSwapRequested request = new HotSwapRequested(
+            metadata2,
             classFile,
             "SchemaChangeClass",
             createOriginalBytecode("SchemaChangeClass"),
@@ -178,7 +184,9 @@ public class ClassRedefinitionFailedTest {
         Path classFile = tempDir.resolve("NotLoadedClass.class");
         Files.write(classFile, createNewBytecode("NotLoadedClass"));
         
+        EventMetadata metadata3 = EventMetadata.forNewAggregate("hotswap", "NotLoadedClass-test");
         HotSwapRequested request = new HotSwapRequested(
+            metadata3,
             classFile,
             "NotLoadedClass",
             createOriginalBytecode("NotLoadedClass"),

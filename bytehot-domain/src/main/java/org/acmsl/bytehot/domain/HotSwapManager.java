@@ -38,6 +38,7 @@
  */
 package org.acmsl.bytehot.domain;
 
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.events.BytecodeValidated;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionFailed;
@@ -84,7 +85,14 @@ public class HotSwapManager {
             timestamp
         );
         
+        // Create metadata for the hot-swap request
+        EventMetadata metadata = EventMetadata.forNewAggregate(
+            "hotswap",
+            validation.getClassName() + "-request"
+        );
+        
         return new HotSwapRequested(
+            metadata,
             classFile,
             validation.getClassName(),
             originalBytecode,

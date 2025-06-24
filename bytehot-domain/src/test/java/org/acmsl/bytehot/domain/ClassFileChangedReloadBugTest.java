@@ -39,6 +39,7 @@ package org.acmsl.bytehot.domain;
 
 // Note: Domain test should not import application layer
 // import org.acmsl.bytehot.application.ByteHotApplication;
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionSucceeded;
@@ -119,7 +120,11 @@ public class ClassFileChangedReloadBugTest {
         final byte[] originalBytecode = "ORIGINAL_BYTECODE:HelloWorld:version:1".getBytes();
         final byte[] newBytecode = Files.readAllBytes(tempClassFile);
         
+        // Create metadata for the hot-swap request
+        final EventMetadata metadata = EventMetadata.forNewAggregate("hotswap", className + "-test");
+        
         final HotSwapRequested hotSwapRequest = new HotSwapRequested(
+            metadata,
             tempClassFile,
             className,
             originalBytecode,
