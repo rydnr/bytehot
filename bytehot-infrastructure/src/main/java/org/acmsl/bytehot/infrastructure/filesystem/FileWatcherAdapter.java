@@ -111,7 +111,7 @@ public class FileWatcherAdapter
     /**
      * Application instance for processing events (following hexagonal architecture)
      */
-    private Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application;
+    private Application application;
 
     /**
      * Default constructor for adapter discovery
@@ -128,7 +128,7 @@ public class FileWatcherAdapter
      * Creates a new FileWatcherAdapter instance
      * @param application the application instance for processing events
      */
-    public FileWatcherAdapter(final Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application) throws IOException {
+    public FileWatcherAdapter(final Application application) throws IOException {
         this.application = application;
         this.watchService = FileSystems.getDefault().newWatchService();
         this.executorService = Executors.newCachedThreadPool(r -> {
@@ -214,7 +214,7 @@ public class FileWatcherAdapter
      * Properly initializes this adapter with full functionality
      * @param application the application instance for processing events
      */
-    public void initialize(final Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application) throws IOException {
+    public void initialize(final Application application) throws IOException {
         if (this.watchService != null) {
             return; // Already initialized
         }
@@ -244,7 +244,7 @@ public class FileWatcherAdapter
      * Sets the application instance for processing events
      * @param application the application instance
      */
-    public void setApplication(final Application<ClassFileChanged, DomainResponseEvent<ClassFileChanged>> application) {
+    public void setApplication(final Application application) {
         this.application = application;
     }
 
@@ -361,17 +361,20 @@ public class FileWatcherAdapter
             
             // Process the event through the Application layer following hexagonal architecture
             if (application != null) {
-                // For ClassFileChanged events, we need to use a different method signature
-                // since the Application interface expect generic DomainEvent/DomainResponseEvent
-                // TODO: This needs proper integration with the application layer
                 try {
-                    final Class<?> applicationClass = application.getClass();
-                    final var processMethod = applicationClass.getMethod("processClassFileChanged", ClassFileChanged.class);
-                    processMethod.invoke(application, event);
-                } catch (final Exception reflectionException) {
-                    System.err.println("Failed to process ClassFileChanged event via reflection: " + reflectionException.getMessage());
-                    // Fallback: just log the event
-                    System.out.println("ClassFileChanged detected: " + className + " at " + classFile);
+                    // Use the generic Application interface directly - no reflection needed!
+                    final List<? extends DomainResponseEvent<?>> responseEvents = application.accept(event);
+                    System.out.println("ClassFileChanged event processed successfully. Generated " + 
+                                     responseEvents.size() + " response events.");
+                    
+                    // Log response events for debugging
+                    for (final DomainResponseEvent<?> responseEvent : responseEvents) {
+                        System.out.println("Response event: " + responseEvent.getClass().getSimpleName());
+                    }
+                    
+                } catch (final Exception processingException) {
+                    System.err.println("Failed to process ClassFileChanged event: " + processingException.getMessage());
+                    processingException.printStackTrace();
                 }
             } else {
                 System.err.println("No application instance available to process ClassFileChanged event");

@@ -133,12 +133,12 @@ public class ByteHotApplication
     }
 
     /**
-     * Accepts a ByteHotAttachRequested event.
-     * @param event such event.
-     * @return A list of events in response.
+     * Handles a ByteHotAttachRequested event specifically.
+     * @param event the ByteHotAttachRequested event to process
+     * @return a list of response events
      */
     @Override
-    public List<DomainResponseEvent<ByteHotAttachRequested>> accept(final ByteHotAttachRequested event) {
+    public List<DomainResponseEvent<ByteHotAttachRequested>> handleByteHotAttachRequested(final ByteHotAttachRequested event) {
         // Ensure adapters are initialized
         if (!adaptersInitialized) {
             throw new IllegalStateException("Application not initialized. Call initialize() with Instrumentation first.");
@@ -162,26 +162,131 @@ public class ByteHotApplication
     }
 
     /**
-     * Processes a ClassFileChanged event from file monitoring
-     * @param event the class file changed event
+     * Generic event dispatcher that handles different types of domain events.
+     * @param event the domain event to process
+     * @return a list of response events
      */
-    public void processClassFileChanged(final ClassFileChanged event) {
+    @Override
+    public List<? extends DomainResponseEvent<?>> accept(final DomainEvent event) {
+        // Ensure adapters are initialized
+        if (!adaptersInitialized) {
+            throw new IllegalStateException("Application not initialized. Call initialize() with Instrumentation first.");
+        }
+
+        // Dispatch based on event type
+        if (event instanceof ByteHotAttachRequested attachEvent) {
+            return handleByteHotAttachRequested(attachEvent);
+        } else if (event instanceof ClassFileChanged classFileEvent) {
+            return handleClassFileChanged(classFileEvent);
+        } else {
+            throw new UnsupportedOperationException(
+                "ByteHotApplication does not support events of type: " + event.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Handles a ClassFileChanged event and returns response events.
+     * @param event the class file changed event
+     * @return a list of response events
+     */
+    protected List<? extends DomainResponseEvent<?>> handleClassFileChanged(final ClassFileChanged event) {
+        final List<DomainResponseEvent<?>> responseEvents = new ArrayList<>();
+        
         try {
-            // Ensure adapters are initialized
-            if (!adaptersInitialized) {
-                System.err.println("Application not initialized - cannot process ClassFileChanged event");
-                return;
-            }
-            
             System.out.println("Processing ClassFileChanged: " + event.getClassName() + " at " + event.getClassFile());
             
-            // Trigger the complete hot-swap pipeline
-            executeHotSwapPipeline(event);
+            // Execute the hot-swap pipeline and collect response events
+            final List<? extends DomainResponseEvent<?>> pipelineEvents = executeHotSwapPipelineWithEvents(event);
+            responseEvents.addAll(pipelineEvents);
+            
+            // Emit the response events
+            try {
+                final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+                eventEmitter.emit(responseEvents);
+            } catch (final Exception e) {
+                System.err.println("Failed to emit response events: " + e.getMessage());
+            }
             
         } catch (final Exception e) {
             System.err.println("Failed to process ClassFileChanged event: " + e.getMessage());
             e.printStackTrace();
         }
+        
+        return responseEvents;
+    }
+
+    /**
+     * Processes a ClassFileChanged event from file monitoring.
+     * This method is kept for backward compatibility but now delegates to the event-based handler.
+     * @param event the class file changed event
+     */
+    public void processClassFileChanged(final ClassFileChanged event) {
+        handleClassFileChanged(event);
+    }
+
+    /**
+     * Executes the complete hot-swap pipeline for a class file change and returns response events.
+     * @param event the class file changed event
+     * @return list of response events generated during the pipeline
+     */
+    protected List<? extends DomainResponseEvent<?>> executeHotSwapPipelineWithEvents(final ClassFileChanged event) {
+        final List<DomainEvent> pipelineEvents = new ArrayList<>();
+        
+        try {
+            // Step 1: Validate the new bytecode
+            System.out.println("Validating bytecode for class: " + event.getClassName());
+            final BytecodeValidator validator = new BytecodeValidator();
+            final BytecodeValidated validation = validator.validate(event.getClassFile());
+            pipelineEvents.add(validation);
+            
+            System.out.println("Bytecode validation successful for: " + event.getClassName());
+            
+            // Step 2: Create hot-swap request
+            System.out.println("Creating HotSwapRequested event for: " + event.getClassName());
+            final HotSwapManager hotSwapManager = new HotSwapManager(instrumentationService);
+            
+            // Get the current bytecode (mock empty for now since we don't have class tracking)
+            final byte[] originalBytecode = new byte[0];
+            final HotSwapRequested hotSwapRequest = hotSwapManager.requestHotSwap(
+                event.getClassFile(), 
+                validation, 
+                originalBytecode
+            );
+            pipelineEvents.add(hotSwapRequest);
+            
+            // Step 3: Perform class redefinition
+            System.out.println("Performing class redefinition for: " + event.getClassName());
+            final ClassRedefinitionSucceeded result = hotSwapManager.performRedefinition(hotSwapRequest);
+            pipelineEvents.add(result);
+            
+            // Step 4: Log success
+            System.out.println("Hot-swap completed successfully for: " + event.getClassName() + 
+                             " (affected instances: " + result.getAffectedInstances() + ")");
+            System.out.println("ClassRedefinitionSucceeded event generated for: " + event.getClassName());
+            
+        } catch (final BytecodeValidationException e) {
+            // Handle validation failure - add rejection event
+            System.err.println("Bytecode validation failed for " + event.getClassName() + ": " + e.getMessage());
+            System.err.println("BytecodeRejected event generated: " + e.getRejectionEvent().getRejectionReason());
+            pipelineEvents.add(e.getRejectionEvent());
+            
+        } catch (final HotSwapException e) {
+            // Handle redefinition failure - add failure event
+            System.err.println("Class redefinition failed for " + event.getClassName() + ": " + e.getMessage());
+            System.err.println("ClassRedefinitionFailed event generated: " + e.getFailureEvent().getFailureReason());
+            pipelineEvents.add(e.getFailureEvent());
+            
+        } catch (final Exception e) {
+            // Handle unexpected errors
+            System.err.println("Unexpected error in hot-swap pipeline for " + event.getClassName() + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        // Filter and convert to DomainResponseEvent list for return
+        return pipelineEvents.stream()
+            .filter(e -> e instanceof DomainResponseEvent)
+            .map(e -> (DomainResponseEvent<?>) e)
+            .toList();
     }
 
     /**

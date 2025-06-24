@@ -40,16 +40,20 @@ import java.util.List;
 
 /**
  * Marks all classes in charge of the Application layer.
+ * This interface now supports generic event handling while maintaining type safety
+ * through internal dispatching mechanisms in implementing classes.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-07
  */
 @SuppressWarnings("unused")
-public interface Application<E extends DomainEvent, R extends DomainResponseEvent<? extends E>> {
+public interface Application {
 
     /**
-     * Accepts a domain event.
-     * @param event such event.
-     * @return A list of events in response.
+     * Accepts any domain event and returns appropriate response events.
+     * Implementing classes should provide internal dispatching to handle
+     * different event types while maintaining type safety.
+     * @param event the domain event to process
+     * @return a list of response events, possibly empty
      */
-    List<R> accept(final E event);
+    List<? extends DomainResponseEvent<?>> accept(final DomainEvent event);
 }

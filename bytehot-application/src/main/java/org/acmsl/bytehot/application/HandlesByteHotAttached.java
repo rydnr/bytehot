@@ -40,13 +40,39 @@ package org.acmsl.bytehot.application;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 
 import org.acmsl.commons.patterns.Application;
+import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
+
+import java.util.List;
 
 /**
  * Defines the methods to implement to accept a ByteHotAttachRequested.
+ * This interface extends the generic Application interface and provides
+ * a specific method for handling ByteHotAttachRequested events.
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-07
  */
 public interface HandlesByteHotAttached
-    extends Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> {
+    extends Application {
+
+    /**
+     * Handles a ByteHotAttachRequested event specifically.
+     * @param event the ByteHotAttachRequested event to process
+     * @return a list of response events
+     */
+    List<DomainResponseEvent<ByteHotAttachRequested>> handleByteHotAttachRequested(final ByteHotAttachRequested event);
+
+    /**
+     * Default implementation that dispatches to the specific handler.
+     * @param event the domain event to process
+     * @return a list of response events
+     */
+    @Override
+    default List<? extends DomainResponseEvent<?>> accept(final DomainEvent event) {
+        if (event instanceof ByteHotAttachRequested attachEvent) {
+            return handleByteHotAttachRequested(attachEvent);
+        }
+        throw new UnsupportedOperationException(
+            "HandlesByteHotAttached does not support events of type: " + event.getClass().getSimpleName());
+    }
 }

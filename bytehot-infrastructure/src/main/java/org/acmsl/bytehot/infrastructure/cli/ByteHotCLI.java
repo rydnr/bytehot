@@ -72,7 +72,7 @@ public class ByteHotCLI {
 
         try {
             // Discover and initialize the Application layer through reflection
-            final Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> application = discoverApplication(inst);
+            final Application application = discoverApplication(inst);
             
             WatchConfiguration config = WatchConfiguration.load();
             
@@ -101,7 +101,7 @@ public class ByteHotCLI {
      * @throws Exception if application discovery fails
      */
     @SuppressWarnings("unchecked")
-    protected static Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> discoverApplication(final Instrumentation inst) throws Exception {
+    protected static Application discoverApplication(final Instrumentation inst) throws Exception {
         try {
             // Try to find ByteHotApplication in the application layer
             final String applicationClassName = "org.acmsl.bytehot.application.ByteHotApplication";
@@ -120,7 +120,7 @@ public class ByteHotCLI {
                 throw new IllegalStateException("Discovered application class does not implement Application interface");
             }
             
-            return (Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>>) applicationInstance;
+            return (Application) applicationInstance;
             
         } catch (final ClassNotFoundException e) {
             throw new Exception("ByteHotApplication not found in classpath. Ensure bytehot-application module is included.", e);

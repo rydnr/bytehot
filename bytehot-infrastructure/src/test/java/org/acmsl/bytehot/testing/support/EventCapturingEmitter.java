@@ -40,12 +40,12 @@
  */
 package org.acmsl.bytehot.testing.support;
 
-import org.acmsl.bytehot.domain.ports.EventEmitterPort;
+import org.acmsl.bytehot.domain.EventEmitterPort;
 import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.commons.patterns.DomainResponseEvent;
 import org.acmsl.commons.patterns.Test;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Test implementation of EventEmitterPort that captures all emitted events
@@ -78,35 +78,31 @@ public class EventCapturingEmitter
     }
 
     /**
-     * Emits a single domain event by capturing it in the test context.
-     * @param event the domain event to emit
-     * @param <E> the type of the domain event
-     * @return a completed future indicating immediate completion
+     * Emits a single domain response event by capturing it in the test context.
+     * @param event the domain response event to emit
+     * @throws Exception if emission fails (never in test implementation)
      */
     @Override
-    public <E extends DomainEvent> CompletableFuture<Void> emit(final E event) {
+    public void emit(final DomainResponseEvent<?> event) throws Exception {
         if (captureEnabled && event != null) {
             context.addEmittedEvent(event);
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
-     * Emits multiple domain events by capturing them in the test context.
-     * @param events the list of domain events to emit
-     * @param <E> the type of the domain events
-     * @return a completed future indicating immediate completion
+     * Emits multiple domain response events by capturing them in the test context.
+     * @param events the list of domain response events to emit
+     * @throws Exception if emission fails (never in test implementation)
      */
     @Override
-    public <E extends DomainEvent> CompletableFuture<Void> emit(final List<E> events) {
+    public void emit(final List<DomainResponseEvent<?>> events) throws Exception {
         if (captureEnabled && events != null) {
-            for (final E event : events) {
+            for (final DomainResponseEvent<?> event : events) {
                 if (event != null) {
                     context.addEmittedEvent(event);
                 }
             }
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -132,6 +128,33 @@ public class EventCapturingEmitter
      */
     public EventTestContext getContext() {
         return context;
+    }
+
+    /**
+     * Checks if event emission is available (always true for test implementation).
+     * @return true always
+     */
+    @Override
+    public boolean isEmissionAvailable() {
+        return true;
+    }
+
+    /**
+     * Returns the emission target description for testing.
+     * @return description of the test emission target
+     */
+    @Override
+    public String getEmissionTarget() {
+        return "Test Event Capture (EventTestContext)";
+    }
+
+    /**
+     * Returns the number of events emitted.
+     * @return count of emitted events
+     */
+    @Override
+    public long getEmittedEventCount() {
+        return context.getEventCount();
     }
 
     /**

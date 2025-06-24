@@ -62,7 +62,7 @@ public class ByteHotAgent {
     /**
      * The discovered application instance (cached after first discovery)
      */
-    private static Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> applicationInstance;
+    private static Application applicationInstance;
 
     /**
      * Agent entry point called when ByteHot is loaded as -javaagent at JVM startup
@@ -75,15 +75,15 @@ public class ByteHotAgent {
         // Create and process the agent attachment request through domain logic
         try {
             // Discover and initialize the Application layer through reflection
-            final Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> application = discoverApplication(inst);
+            final Application application = discoverApplication(inst);
             
             // Load the actual configuration instead of using default
             final WatchConfiguration config = WatchConfiguration.load();
             final ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, inst);
-            final List<DomainResponseEvent<ByteHotAttachRequested>> responses = application.accept(attachRequest);
+            final List<? extends DomainResponseEvent<?>> responses = application.accept(attachRequest);
             
             // Print the response events to stdout for testing verification
-            for (final DomainResponseEvent<ByteHotAttachRequested> response : responses) {
+            for (final DomainResponseEvent<?> response : responses) {
                 System.out.println(response.getClass().getSimpleName());
             }
             
@@ -113,7 +113,7 @@ public class ByteHotAgent {
      * @throws Exception if application discovery fails
      */
     @SuppressWarnings("unchecked")
-    protected static Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>> discoverApplication(final Instrumentation inst) throws Exception {
+    protected static Application discoverApplication(final Instrumentation inst) throws Exception {
         try {
             // Try to find ByteHotApplication in the application layer
             final String applicationClassName = "org.acmsl.bytehot.application.ByteHotApplication";
@@ -132,7 +132,7 @@ public class ByteHotAgent {
                 throw new IllegalStateException("Discovered application class does not implement Application interface");
             }
             
-            return (Application<ByteHotAttachRequested, DomainResponseEvent<ByteHotAttachRequested>>) applicationInstance;
+            return (Application) applicationInstance;
             
         } catch (final ClassNotFoundException e) {
             throw new Exception("ByteHotApplication not found in classpath. Ensure bytehot-application module is included.", e);
