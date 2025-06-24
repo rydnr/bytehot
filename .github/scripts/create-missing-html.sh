@@ -9,14 +9,18 @@ echo "🔧 Creating missing HTML content files..."
 # Create bytehot directory if not exists
 mkdir -p bytehot
 
+CSS="$(source ./.github/scripts/css.sh)"
+NAV_CHILD="$(source ./.github/scripts/nav-child.sh)"
+FOOTER="$(source ./.github/scripts/footer.sh)"
+MATRIX="$(source ./.github/scripts/matrix.sh)"
 # Convert GETTING_STARTED.org to simple HTML content
 if [ -f "GETTING_STARTED.org" ]; then
     echo "📖 Converting GETTING_STARTED.org to simple content..."
-    
+
     # Convert to simple HTML without full styling (styling will be added later)
     pandoc GETTING_STARTED.org -o bytehot/GETTING_STARTED.html \
         --metadata title="Getting Started" || echo "⚠️ Failed to convert GETTING_STARTED.org"
-    
+
     echo "✅ Created GETTING_STARTED.html content"
 fi
 
@@ -26,17 +30,17 @@ declare -a org_files=("ErrorHandler" "RollbackManager" "InstanceTracker" "Framew
 for org_file in "${org_files[@]}"; do
     if [ -f "docs/${org_file}.org" ]; then
         echo "📖 Converting docs/${org_file}.org to simple content..."
-        
+
         # Convert to simple HTML without full styling
         pandoc "docs/${org_file}.org" -o "bytehot/${org_file}.html" \
             --metadata title="${org_file}" || echo "⚠️ Failed to convert docs/${org_file}.org"
-        
+
         echo "✅ Created ${org_file}.html content"
     else
         echo "⚠️ docs/${org_file}.org not found, creating placeholder..."
-        
+
         # Create placeholder content for missing org files
-        cat > "bytehot/${org_file}.html" <<EOF
+        cat >"bytehot/${org_file}.html" <<EOF
 <h1>${org_file}</h1>
 <p>This is the ${org_file} class documentation.</p>
 <h2>Overview</h2>
@@ -54,7 +58,7 @@ done
 if [ ! -d "bytehot/javadocs" ]; then
     echo "📚 Creating javadocs directory with placeholder..."
     mkdir -p bytehot/javadocs
-    cat > bytehot/javadocs/index.html <<'EOF'
+    cat >bytehot/javadocs/index.html <<'EOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,6 +66,7 @@ if [ ! -d "bytehot/javadocs" ]; then
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JavaDocs - ByteHot</title>
     <style>
+${CSS}
         body { font-family: 'Courier New', monospace; background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%); color: #00ff00; line-height: 1.6; margin: 0; padding: 2rem; }
         .container { max-width: 1200px; margin: 0 auto; background: rgba(26, 26, 58, 0.8); border: 1px solid #00ff00; border-radius: 8px; padding: 2rem; text-align: center; }
         h1 { color: #00cccc; text-shadow: 0 0 10px #00cccc; font-size: 2.5rem; margin-bottom: 2rem; }
@@ -75,11 +80,7 @@ if [ ! -d "bytehot/javadocs" ]; then
 <body>
     <div class="container">
         <div class="nav">
-            <a href="../index.html">🏠 Home</a>
-            <a href="../story.html">📖 Story</a>
-            <a href="../GETTING_STARTED.html">🚀 Getting Started</a>
-            <a href="../implementation.html">⚙️ Implementation</a>
-            <a href="https://github.com/rydnr/bytehot">🔗 GitHub</a>
+${NAV_CHILD}
         </div>
         
         <h1>📚 ByteHot JavaDocs</h1>
@@ -97,6 +98,10 @@ if [ ! -d "bytehot/javadocs" ]; then
         <p style="margin-top: 2rem; color: #888;">
             In the meantime, explore our comprehensive literate programming documentation above.
         </p>
+${FOOTER}
+      <script>
+${MATRIX}
+      </script>
     </div>
 </body>
 </html>

@@ -5,15 +5,28 @@ set -euo pipefail
 
 echo "📋 Creating implementation index page..."
 
+CSS="$(source ./.github/scripts/css.sh)"
+NAV="$(source ./.github/scripts/nav.sh)"
+FOOTER="$(source ./.github/scripts/footer.sh)"
+MATRIX="$(source ./.github/scripts/matrix.sh)"
+
 # Create Implementation index page (index files are allowed per CLAUDE.md)
-cat > bytehot/implementation.html << 'HTML_EOF'
+cat >bytehot/implementation.html <<'HTML_EOF'
 <!DOCTYPE html>
 <html>
 <head>
     <title>ByteHot Implementation - Literate Programming Documentation</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+${CSS}
+    </style>
 </head>
 <body>
+    <div class="matrix-bg"></div>
+
+    <nav class="nav-header">
+${NAV}
+    </nav>
+    <div class="content">
         <h1>🔥 ByteHot Implementation - Literate Programming Documentation</h1>
         
         <p>This section contains comprehensive literate programming documentation for all ByteHot components, following Domain-Driven Design principles and hexagonal architecture patterns.</p>
@@ -72,6 +85,11 @@ cat > bytehot/implementation.html << 'HTML_EOF'
             <li><strong>Code Tangling:</strong> Documentation fragments that generate actual implementation</li>
             <li><strong>Living Documentation:</strong> Documentation that evolves with the codebase</li>
         </ul>
+    </div>
+${FOOTER}
+<script>
+${MATRIX}
+</script>
 </body>
 </html>
 HTML_EOF

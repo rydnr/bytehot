@@ -7,7 +7,11 @@ echo "📄 Creating Javadoc placeholder..."
 
 mkdir -p target/site/apidocs
 
-cat > target/site/apidocs/index.html << 'EOF'
+CSS="$(source ./.github/scripts/css.sh)"
+NAV="$(source ./.github/scripts/nav.sh)"
+FOOTER="$(source ./.github/scripts/footer.sh)"
+MATRIX="$(source ./.github/scripts/matrix.sh)"
+cat >target/site/apidocs/index.html <<'EOF'
 <!DOCTYPE html>
 <html>
 <head>
@@ -17,9 +21,17 @@ cat > target/site/apidocs/index.html << 'EOF'
         h1 { color: #2c3e50; border-bottom: 2px solid #3498db; }
         .notice { background: #f39c12; color: white; padding: 15px; border-radius: 5px; margin: 20px 0; }
         .module { background: #ecf0f1; padding: 15px; margin: 10px 0; border-left: 4px solid #3498db; }
+${CSS}
     </style>
 </head>
 <body>
+    <div class="matrix-bg"></div>
+
+    <nav class="nav-header">
+${NAV}
+    </nav>
+
+    <div class="container">
     <h1>ByteHot API Documentation</h1>
     <p><em>Revolutionary JVM Hot-Swapping Agent</em></p>
     
@@ -51,8 +63,11 @@ cat > target/site/apidocs/index.html << 'EOF'
         <li><a href="https://github.com/rydnr/bytehot">Source Code</a> - Browse the source code directly</li>
     </ul>
     
-    <hr>
-    <p><small>ByteHot - Revolutionary JVM Hot-Swapping Agent</small></p>
+</div>
+${FOOTER}
+<script>
+${MATRIX}
+</script>
 </body>
 </html>
 EOF
