@@ -121,25 +121,14 @@
  * <h3>Reproduction Test Generation</h3>
  * <p>Automatically generate test cases to reproduce bugs:</p>
  * <pre>{@code
- * // Generate reproduction test from bug report
  * String reproductionTest = bugReport.getReproductionTestCase();
  * 
- * // Output includes complete test method:
- * // @Test
- * // public void reproduceBug_12345() {
- * //     given()
- * //         .testContext()
- * //         .scenario("Original test scenario")
- * //     .when()
- * //         .replayingEvents(5 /* captured events */)
- * //         .executingAction(() -> {
- * //             // TODO: Add the specific action that caused the failure
- * //             fail("This reproduction test needs completion");
- * //         })
- * //     .then()
- * //         .expectsException(HotSwapException.class)
- * //         .withMessage("Expected error message");
- * // }
+ * TestMethod generatedTest = TestMethodBuilder.create()
+ *     .withName("reproduceBug_" + bugReport.getId())
+ *     .withScenario(bugReport.getOriginalScenario())
+ *     .withEventReplay(bugReport.getCapturedEvents())
+ *     .withExpectedException(bugReport.getOriginalException())
+ *     .build();
  * }</pre>
  * 
  * <h2>In-Memory Event Store</h2>
@@ -167,18 +156,14 @@
  * <h3>Event Store Operations</h3>
  * <p>Comprehensive event store testing capabilities:</p>
  * <pre>{@code
- * // Save events
  * eventStore.save(event);
  * 
- * // Query events
  * List<VersionedDomainEvent> hotSwapEvents = eventStore.getEventsByType(
  *     HotSwapRequested.class
  * );
  * 
- * // Clear events between tests
  * eventStore.clearAllEvents();
  * 
- * // Get diagnostic information
  * String diagnostics = eventStore.getDiagnosticInfo();
  * System.out.println("Event store state: " + diagnostics);
  * }</pre>
@@ -188,19 +173,16 @@
  * <h3>Fluent Test API</h3>
  * <p>Fluent API for readable and maintainable tests:</p>
  * <pre>{@code
- * // Given stage - test setup
  * GivenStage given = given()
  *     .applicationInitialized()
  *     .fileWatchingEnabled()
  *     .eventCapturingEnabled();
  * 
- * // When stage - test actions
  * WhenStage when = given.when()
  *     .classFileIsCreated("NewService.java")
  *     .classFileIsModified("ExistingService.java")
  *     .waitForEventProcessing();
  * 
- * // Then stage - verification
  * ThenStage then = when.then()
  *     .expectEvents(ClassFileChanged.class, HotSwapRequested.class)
  *     .expectNoErrorEvents()
@@ -218,12 +200,10 @@
  *     
  *     public static class HotSwapGivenStage extends GivenStage {
  *         public HotSwapGivenStage compatibleClassChange() {
- *             // Setup compatible class change scenario
  *             return this;
  *         }
  *         
  *         public HotSwapGivenStage incompatibleClassChange() {
- *             // Setup incompatible class change scenario
  *             return this;
  *         }
  *     }
@@ -235,7 +215,6 @@
  * <h3>Event Assertions</h3>
  * <p>Specialized assertions for event verification:</p>
  * <pre>{@code
- * // Event-specific assertions
  * assertThat(capturedEvents)
  *     .hasEventOfType(ClassRedefinitionSucceeded.class)
  *     .hasEventCount(3)
@@ -245,7 +224,6 @@
  *         ClassRedefinitionSucceeded.class
  *     );
  * 
- * // Event property assertions
  * assertThat(hotSwapEvent)
  *     .hasClassName("UserService")
  *     .hasNonNegativeInstanceCount()

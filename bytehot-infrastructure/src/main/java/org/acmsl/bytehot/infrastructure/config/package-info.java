@@ -88,7 +88,7 @@
  * 
  * # File filtering
  * bytehot.watch.file.patterns=*.java,*.class
- * bytehot.watch.exclude.patterns=**/target/**,**/.git/**
+ * bytehot.watch.exclude.patterns=target/,target/classes/**,.git/objects/**
  * }</pre>
  * 
  * <h3>Validation Configuration</h3>

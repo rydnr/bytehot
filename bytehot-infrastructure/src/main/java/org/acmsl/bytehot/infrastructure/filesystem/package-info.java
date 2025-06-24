@@ -143,7 +143,7 @@
  * bytehot.watch.recursive=true
  * bytehot.watch.debounce.ms=500
  * bytehot.watch.file.patterns=*.java,*.class
- * bytehot.watch.exclude.patterns=**/target/**,**/.git/**
+ * bytehot.watch.exclude.patterns=target/,target/classes/**,.git/objects/**
  * bytehot.watch.poll.fallback=true
  * }</pre>
  * 
