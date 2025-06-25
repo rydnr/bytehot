@@ -37,6 +37,8 @@
  */
 package org.acmsl.bytehot.domain;
 
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
+
 /**
  * Visitor interface for classifying errors using double dispatch pattern.
  * @author Claude Code
@@ -124,6 +126,11 @@ public interface ErrorClassifier {
         // First check if it implements ErrorClassifiable
         if (throwable instanceof ErrorClassifiable) {
             return ((ErrorClassifiable) throwable).acceptClassifier(this);
+        }
+        
+        // Handle EventSnapshotException specially
+        if (throwable instanceof EventSnapshotException) {
+            return classifyEventSnapshotException((EventSnapshotException) throwable);
         }
         
         // Handle standard Java exceptions

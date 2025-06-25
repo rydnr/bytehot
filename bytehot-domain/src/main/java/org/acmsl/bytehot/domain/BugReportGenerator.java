@@ -43,7 +43,7 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.EventSnapshot;
-import org.acmsl.bytehot.domain.EventSnapshotException;
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
 import org.acmsl.bytehot.domain.ErrorContext;
 import org.acmsl.bytehot.domain.CausalChain;
 
@@ -364,9 +364,9 @@ public class BugReportGenerator {
         md.append("## Debugging Information\n\n");
         md.append("For complete debugging context, see the attached EventSnapshot with ID `");
         md.append(report.getSourceException().getEventSnapshot().getSnapshotId()).append("`.\n\n");
-        md.append("Use the following debugging report for detailed analysis:\n\n");
+        md.append("Use the following debugging information for detailed analysis:\n\n");
         md.append("```\n");
-        md.append(report.getSourceException().getDebuggingReport());
+        md.append(report.getSourceException().generateBugReport());
         md.append("\n```\n");
 
         return md.toString();
@@ -382,7 +382,9 @@ public class BugReportGenerator {
             return BugSeverity.CRITICAL;
         }
         
-        if (exception.getErrorContext().isHighMemoryUsage()) {
+        // Check if memory usage indicates high severity from debug metadata
+        Object memoryUsage = exception.getDebugMetadata().get("memory_usage_high");
+        if (Boolean.TRUE.equals(memoryUsage)) {
             return BugSeverity.HIGH;
         }
         
@@ -443,22 +445,32 @@ public class BugReportGenerator {
         StringBuilder analysis = new StringBuilder();
         
         analysis.append("This error occurred in the context of ")
-                .append(exception.getErrorContext().getThreadName())
+                .append(exception.getEventSnapshot().getThreadName())
                 .append(" thread with ")
                 .append(exception.getEventSnapshot().getEventCount())
                 .append(" related events. ");
         
-        if (exception.getCausalChain() != null) {
+        // Check for causal chain from event snapshot
+        if (exception.getEventSnapshot().getCausalChain() != null) {
             analysis.append("Causal analysis indicates: ")
-                    .append(exception.getCausalChain().getDescription())
+                    .append(exception.getEventSnapshot().getCausalChain().getDescription())
                     .append(" ");
         }
         
-        analysis.append("Memory usage at error time: ")
-                .append(String.format("%.1f%%", exception.getErrorContext().getMemoryUsagePercentage() * 100))
-                .append(". ");
+        // Get memory usage from performance metrics
+        Object totalMemory = exception.getEventSnapshot().getPerformanceMetrics().get("total_memory");
+        Object freeMemory = exception.getEventSnapshot().getPerformanceMetrics().get("free_memory");
+        if (totalMemory instanceof Number && freeMemory instanceof Number) {
+            double usagePercent = (1.0 - ((Number) freeMemory).doubleValue() / ((Number) totalMemory).doubleValue()) * 100;
+            analysis.append("Memory usage at error time: ")
+                    .append(String.format("%.1f%%", usagePercent))
+                    .append(". ");
+        }
         
-        if (exception.isLikelyReproducible()) {
+        // Determine if error is likely reproducible based on event count and classification
+        boolean isReproducible = exception.getEventSnapshot().getEventCount() > 0 && 
+                                 !exception.getClassification().equals(EventSnapshotException.ErrorClassification.UNKNOWN);
+        if (isReproducible) {
             analysis.append("This error appears to be reproducible based on the event context captured.");
         } else {
             analysis.append("This error may be difficult to reproduce due to limited event context or timing-dependent conditions.");
@@ -509,8 +521,24 @@ public class BugReportGenerator {
             recommendations.add("Consider implementing circuit breaker patterns to prevent cascading failures");
         }
         
-        // Add general recommendations
-        recommendations.addAll(exception.getDebuggingSuggestions());
+        // Add general recommendations based on exception classification
+        switch (exception.getClassification()) {
+            case HOT_SWAP_FAILURE:
+                recommendations.add("Verify that the JVM supports the requested hot-swap operation");
+                recommendations.add("Check for structural changes that may not be supported");
+                break;
+            case NULL_REFERENCE:
+                recommendations.add("Add null checks before accessing object methods or fields");
+                recommendations.add("Consider using Optional<T> for nullable values");
+                break;
+            case TYPE_MISMATCH:
+                recommendations.add("Verify type compatibility in the hot-swap operation");
+                recommendations.add("Check generic type parameters and inheritance hierarchy");
+                break;
+            default:
+                recommendations.add("Review the captured event sequence for patterns");
+                recommendations.add("Use the reproduction test case to debug locally");
+        }
         
         return recommendations;
     }
@@ -525,13 +553,18 @@ public class BugReportGenerator {
         steps.add("Load the EventSnapshot with ID: " + exception.getEventSnapshot().getSnapshotId());
         steps.add("Replay the " + exception.getEventSnapshot().getEventCount() + " events leading to the error");
         
-        if (exception.getCausalChain() != null) {
-            steps.add("Pay special attention to: " + exception.getCausalChain().getDescription());
+        if (exception.getEventSnapshot().getCausalChain() != null) {
+            steps.add("Pay special attention to: " + exception.getEventSnapshot().getCausalChain().getDescription());
         }
         
-        steps.add("Monitor memory usage - error occurred at " + 
-                 String.format("%.1f%%", exception.getErrorContext().getMemoryUsagePercentage() * 100) + " memory usage");
-        steps.add("Execute the failing operation in thread: " + exception.getErrorContext().getThreadName());
+        // Calculate memory usage from performance metrics
+        Object totalMemory = exception.getEventSnapshot().getPerformanceMetrics().get("total_memory");
+        Object freeMemory = exception.getEventSnapshot().getPerformanceMetrics().get("free_memory");
+        if (totalMemory instanceof Number && freeMemory instanceof Number) {
+            double usagePercent = (1.0 - ((Number) freeMemory).doubleValue() / ((Number) totalMemory).doubleValue()) * 100;
+            steps.add("Monitor memory usage - error occurred at " + String.format("%.1f%%", usagePercent) + " memory usage");
+        }
+        steps.add("Execute the failing operation in thread: " + exception.getEventSnapshot().getThreadName());
         steps.add("Verify that the same exception type is thrown: " + 
                  exception.getOriginalException().getClass().getSimpleName());
         
@@ -574,23 +607,27 @@ public class BugReportGenerator {
     protected Map<String, String> extractReproductionEnvironment(@NonNull final EventSnapshotException exception) {
         Map<String, String> environment = new java.util.HashMap<>();
         
-        ErrorContext errorContext = exception.getErrorContext();
+        // Add essential environment information from EventSnapshot
+        environment.putAll(exception.getEventSnapshot().getSystemProperties());
+        environment.putAll(exception.getEventSnapshot().getEnvironmentContext());
         
-        // Add essential environment information
-        environment.putAll(errorContext.getSystemProperties());
-        environment.putAll(errorContext.getEnvironmentVariables());
-        
-        // Add ByteHot-specific context
-        environment.putAll(errorContext.getByteHotContext().entrySet().stream()
+        // Add ByteHot-specific context from debug metadata
+        environment.putAll(exception.getDebugMetadata().entrySet().stream()
             .collect(java.util.stream.Collectors.toMap(
                 Map.Entry::getKey,
                 entry -> String.valueOf(entry.getValue())
             )));
         
-        // Add memory requirements
-        environment.put("memory.required", String.format("%.1f%%", errorContext.getMemoryUsagePercentage() * 100));
-        environment.put("thread.name", errorContext.getThreadName());
-        environment.put("thread.state", errorContext.getThreadState().toString());
+        // Add thread information
+        environment.put("thread.name", exception.getEventSnapshot().getThreadName());
+        
+        // Add memory requirements if available
+        Object totalMemory = exception.getEventSnapshot().getPerformanceMetrics().get("total_memory");
+        Object freeMemory = exception.getEventSnapshot().getPerformanceMetrics().get("free_memory");
+        if (totalMemory instanceof Number && freeMemory instanceof Number) {
+            double usagePercent = (1.0 - ((Number) freeMemory).doubleValue() / ((Number) totalMemory).doubleValue()) * 100;
+            environment.put("memory.required", String.format("%.1f%%", usagePercent));
+        }
         
         return environment;
     }
@@ -607,12 +644,12 @@ public class BugReportGenerator {
         }
         
         // Causal chain analysis (20% weight)
-        if (exception.getCausalChain() != null) {
-            score += 0.2 * exception.getCausalChain().getConfidence();
+        if (exception.getEventSnapshot().getCausalChain() != null) {
+            score += 0.2 * exception.getEventSnapshot().getCausalChain().getConfidence();
         }
         
         // Environmental context (20% weight)
-        if (!exception.getErrorContext().getSystemProperties().isEmpty()) {
+        if (!exception.getEventSnapshot().getSystemProperties().isEmpty()) {
             score += 0.2;
         }
         
@@ -639,8 +676,8 @@ public class BugReportGenerator {
         String exceptionType = exception.getOriginalException().getClass().getSimpleName();
         relatedIssues.add("Search for similar " + exceptionType + " exceptions in bug tracking system");
         
-        if (exception.getCausalChain() != null) {
-            relatedIssues.add("Look for issues related to: " + exception.getCausalChain().getDescription());
+        if (exception.getEventSnapshot().getCausalChain() != null) {
+            relatedIssues.add("Look for issues related to: " + exception.getEventSnapshot().getCausalChain().getDescription());
         }
         
         relatedIssues.add("Check for similar patterns in event snapshot ID: " + 

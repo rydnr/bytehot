@@ -38,6 +38,8 @@
  */
 package org.acmsl.bytehot.domain;
 
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
+
 /**
  * Default implementation of error severity assessment using double dispatch pattern.
  * @author Claude Code

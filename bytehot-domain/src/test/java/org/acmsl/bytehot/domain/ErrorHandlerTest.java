@@ -37,6 +37,7 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.events.ClassRedefinitionFailed;
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

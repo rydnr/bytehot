@@ -38,6 +38,8 @@
  */
 package org.acmsl.bytehot.domain;
 
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
+
 /**
  * Default implementation of error classification using double dispatch pattern.
  * @author Claude Code
@@ -108,7 +110,7 @@ public class DefaultErrorClassifier implements ErrorClassifier {
     @Override
     public ErrorType classifyEventSnapshotException(final EventSnapshotException exception) {
         // Delegate to the original exception if available
-        Throwable originalException = exception.getOriginalException();
+        Throwable originalException = exception.getOriginalCause();
         if (originalException != null) {
             return classifyThrowable(originalException);
         }

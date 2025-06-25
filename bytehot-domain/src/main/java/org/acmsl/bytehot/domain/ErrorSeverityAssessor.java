@@ -37,6 +37,8 @@
  */
 package org.acmsl.bytehot.domain;
 
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
+
 /**
  * Visitor interface for assessing error severity using double dispatch pattern.
  * @author Claude Code

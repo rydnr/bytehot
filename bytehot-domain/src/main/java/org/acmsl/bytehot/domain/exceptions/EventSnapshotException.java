@@ -160,6 +160,14 @@ public class EventSnapshotException extends RuntimeException {
     }
 
     /**
+     * Gets the original exception that caused this error (alias for getOriginalCause for compatibility).
+     * @return the original exception
+     */
+    public Throwable getOriginalException() {
+        return originalCause;
+    }
+
+    /**
      * Factory method to capture complete error context and create enhanced exception.
      * 
      * This is the primary entry point for creating EventSnapshotExceptions. It automatically

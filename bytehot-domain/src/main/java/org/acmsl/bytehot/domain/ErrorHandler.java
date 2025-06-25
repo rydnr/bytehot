@@ -44,7 +44,11 @@
 package org.acmsl.bytehot.domain;
 
 import org.acmsl.bytehot.domain.events.ClassRedefinitionFailed;
+import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
+import org.acmsl.commons.patterns.DomainEvent;
 
+import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -107,7 +111,12 @@ public class ErrorHandler {
         final ErrorType errorType = classifyError(enhancedException);
         
         // Assess severity (use enhanced exception)
-        final ErrorSeverity severity = assessSeverity(enhancedException);
+        ErrorSeverity severity = assessSeverity(enhancedException);
+        
+        // Ensure CRITICAL_SYSTEM_ERROR always has CRITICAL severity for consistency
+        if (errorType == ErrorType.CRITICAL_SYSTEM_ERROR && severity != ErrorSeverity.FATAL) {
+            severity = ErrorSeverity.CRITICAL;
+        }
         
         // Determine recovery strategy based on error type and context
         final RecoveryStrategy strategy = determineRecoveryStrategy(errorType, enhancedException, operation);
@@ -236,7 +245,7 @@ public class ErrorHandler {
      */
     protected boolean isRecoverable(final ErrorType errorType, final ErrorSeverity severity) {
         // Critical system errors are generally not recoverable
-        if (errorType == ErrorType.CRITICAL_SYSTEM_ERROR || severity == ErrorSeverity.FATAL) {
+        if (errorType == ErrorType.CRITICAL_SYSTEM_ERROR || severity == ErrorSeverity.FATAL || severity == ErrorSeverity.CRITICAL) {
             return false;
         }
         
@@ -296,8 +305,15 @@ public class ErrorHandler {
         }
         
         try {
-            ErrorContext errorContext = ErrorContext.capture();
-            return new EventSnapshotException(originalError, eventSnapshot, errorContext);
+            // Use the static factory method to create EventSnapshotException
+            return EventSnapshotException.captureAndThrow(
+                originalError,
+                originalError.getMessage() != null ? originalError.getMessage() : "Error during ByteHot operation",
+                eventSnapshot.getEventHistory().stream()
+                    .map(event -> (DomainEvent) event)
+                    .toList(),
+                Map.of("errorHandler", "true", "enhancedAt", Instant.now().toString())
+            );
         } catch (Exception e) {
             // If enhancement fails, return original error
             return originalError;
@@ -311,8 +327,14 @@ public class ErrorHandler {
      * @return enhanced exception with complete context
      */
     public EventSnapshotException createEventSnapshotException(final Throwable error, final EventSnapshot snapshot) {
-        ErrorContext errorContext = ErrorContext.capture();
-        return new EventSnapshotException(error, snapshot, errorContext);
+        return EventSnapshotException.captureAndThrow(
+            error,
+            error.getMessage() != null ? error.getMessage() : "Error during ByteHot operation",
+            snapshot.getEventHistory().stream()
+                .map(event -> (DomainEvent) event)
+                .toList(),
+            Map.of("errorHandler", "createEventSnapshotException", "createdAt", Instant.now().toString())
+        );
     }
 
     /**
