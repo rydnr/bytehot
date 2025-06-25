@@ -21,8 +21,7 @@ mvn javadoc:aggregate \
 if [ -d "target/site/apidocs" ] && [ -n "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
     echo "✅ Javadocs generated successfully"
     ls -la target/site/apidocs/
-    return 0
 else
     echo "⚠️ Javadocs generation failed"
-    return 1
+    exit 1
 fi
