@@ -222,7 +222,7 @@ public class ByteHotApplicationIntegrationTest {
         // Test instrumentation that supports hot-swap capabilities
         Instrumentation instrumentation = new TestInstrumentation(true, true);
         
-        ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, instrumentation);
+        ByteHotAttachRequested attachRequest = ByteHotAttachRequested.withUserContext(config, instrumentation);
 
         // Capture system output to verify all expected messages are printed
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -289,7 +289,7 @@ public class ByteHotApplicationIntegrationTest {
         // Test instrumentation that doesn't support hot-swap capabilities
         Instrumentation instrumentation = new TestInstrumentation(false, false);
         
-        ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, instrumentation);
+        ByteHotAttachRequested attachRequest = ByteHotAttachRequested.withUserContext(config, instrumentation);
 
         // Capture system output
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
