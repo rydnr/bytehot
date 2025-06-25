@@ -1,0 +1,387 @@
+#+TITLE: DocumentationLinkGenerated
+#+AUTHOR: Claude Code
+#+EMAIL: claude@anthropic.com
+#+DATE: 2025-06-24
+
+* DocumentationLinkGenerated
+
+The ~DocumentationLinkGenerated~ event represents the successful creation of a documentation URL through ByteHot's intelligent documentation generation system. This event is crucial for tracking performance, caching strategies, and analytics.
+
+** Class Overview
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationLinkGenerated.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: DocumentationLinkGenerated.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: DocumentationLinkGenerated
+ *
+ * Responsibilities:
+ *   - Represent successful documentation URL generation
+ *   - Track generation performance and strategy
+ *   - Enable caching and analytics optimizations
+ *
+ * Collaborators:
+ *   - AbstractVersionedDomainEvent: Base class providing event metadata
+ *   - DocumentationRequested: Original request that triggered generation
+ *   - DocumentationGenerationStrategy: Strategy used for URL generation
+ */
+package org.acmsl.bytehot.domain.events;
+
+import org.acmsl.bytehot.domain.DocumentationGenerationStrategy;
+import org.acmsl.bytehot.domain.EventMetadata;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.Optional;
+#+end_src
+
+** Event Properties
+
+The event captures comprehensive URL generation information:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationLinkGenerated.java
+/**
+ * Event fired when a documentation URL is successfully generated.
+ * This event tracks the generation process, performance metrics,
+ * and provides data for caching and analytics systems.
+ * @author Claude Code
+ * @since 2025-06-24
+ */
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public final class DocumentationLinkGenerated 
+    extends AbstractVersionedDomainEvent {
+
+    /**
+     * The original documentation request that triggered this generation.
+     */
+    @Getter
+    private final DocumentationRequested originalRequest;
+
+    /**
+     * The generated documentation URL.
+     */
+    @Getter
+    private final String generatedUrl;
+
+    /**
+     * Strategy used for URL generation.
+     */
+    @Getter
+    private final DocumentationGenerationStrategy generationStrategy;
+
+    /**
+     * Time taken to generate the URL.
+     */
+    @Getter
+    private final Duration generationTime;
+
+    /**
+     * Whether this URL was retrieved from cache.
+     */
+    @Getter
+    private final boolean fromCache;
+
+    /**
+     * Template parameters used in URL generation, if any.
+     */
+    @Getter
+    private final Map<String, String> templateParameters;
+
+    /**
+     * Flow context used for contextual URL generation, if applicable.
+     */
+    @Getter
+    private final Optional<String> flowContext;
+
+    /**
+     * Timestamp when the URL was generated.
+     */
+    @Getter
+    private final Instant generatedAt;
+#+end_src
+
+** Constructor and Factory Methods
+
+The event provides specialized factory methods for different generation scenarios:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationLinkGenerated.java
+    /**
+     * Creates a new DocumentationLinkGenerated event.
+     * @param metadata event metadata
+     * @param originalRequest the original documentation request
+     * @param generatedUrl the generated documentation URL
+     * @param generationStrategy strategy used for generation
+     * @param generationTime time taken to generate the URL
+     * @param fromCache whether the URL was retrieved from cache
+     * @param templateParameters template parameters used
+     * @param flowContext flow context if applicable
+     * @param generatedAt timestamp when generated
+     */
+    public DocumentationLinkGenerated(
+        final EventMetadata metadata,
+        final DocumentationRequested originalRequest,
+        final String generatedUrl,
+        final DocumentationGenerationStrategy generationStrategy,
+        final Duration generationTime,
+        final boolean fromCache,
+        final Map<String, String> templateParameters,
+        final Optional<String> flowContext,
+        final Instant generatedAt
+    ) {
+        super(metadata);
+        this.originalRequest = originalRequest;
+        this.generatedUrl = generatedUrl;
+        this.generationStrategy = generationStrategy;
+        this.generationTime = generationTime;
+        this.fromCache = fromCache;
+        this.templateParameters = Map.copyOf(templateParameters);
+        this.flowContext = flowContext;
+        this.generatedAt = generatedAt;
+    }
+
+    /**
+     * Factory method for basic documentation URL generation.
+     * @param originalRequest the original documentation request
+     * @param generatedUrl the generated URL
+     * @param generationTime time taken to generate
+     * @return new DocumentationLinkGenerated event
+     */
+    public static DocumentationLinkGenerated forBasicGeneration(
+        final DocumentationRequested originalRequest,
+        final String generatedUrl,
+        final Duration generationTime
+    ) {
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "documentation-generation",
+            originalRequest.getRequestingClass().getSimpleName()
+        );
+
+        return new DocumentationLinkGenerated(
+            metadata,
+            originalRequest,
+            generatedUrl,
+            DocumentationGenerationStrategy.BASIC_CLASS,
+            generationTime,
+            false, // Not from cache
+            Map.of(),
+            Optional.empty(),
+            Instant.now()
+        );
+    }
+
+    /**
+     * Factory method for cached URL retrieval.
+     * @param originalRequest the original documentation request
+     * @param cachedUrl the URL retrieved from cache
+     * @param retrievalTime time taken to retrieve from cache
+     * @return new DocumentationLinkGenerated event
+     */
+    public static DocumentationLinkGenerated forCacheHit(
+        final DocumentationRequested originalRequest,
+        final String cachedUrl,
+        final Duration retrievalTime
+    ) {
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "documentation-generation",
+            originalRequest.getRequestingClass().getSimpleName() + "-cached"
+        );
+
+        return new DocumentationLinkGenerated(
+            metadata,
+            originalRequest,
+            cachedUrl,
+            DocumentationGenerationStrategy.CACHED,
+            retrievalTime,
+            true, // From cache
+            Map.of(),
+            Optional.empty(),
+            Instant.now()
+        );
+    }
+
+    /**
+     * Factory method for contextual URL generation with flow.
+     * @param originalRequest the original documentation request
+     * @param generatedUrl the generated contextual URL
+     * @param generationTime time taken to generate
+     * @param flowContext the flow context used
+     * @param templateParams template parameters used
+     * @return new DocumentationLinkGenerated event
+     */
+    public static DocumentationLinkGenerated forContextualGeneration(
+        final DocumentationRequested originalRequest,
+        final String generatedUrl,
+        final Duration generationTime,
+        final String flowContext,
+        final Map<String, String> templateParams
+    ) {
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "documentation-generation",
+            originalRequest.getRequestingClass().getSimpleName() + "-contextual"
+        );
+
+        return new DocumentationLinkGenerated(
+            metadata,
+            originalRequest,
+            generatedUrl,
+            DocumentationGenerationStrategy.CONTEXTUAL_FLOW,
+            generationTime,
+            false, // Not from cache
+            templateParams,
+            Optional.of(flowContext),
+            Instant.now()
+        );
+    }
+#+end_src
+
+** Analysis and Utility Methods
+
+The event provides methods for analyzing generation performance and characteristics:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationLinkGenerated.java
+    /**
+     * Checks if this was a fast generation (< 10ms).
+     * @return true if generation was fast
+     */
+    public boolean isFastGeneration() {
+        return generationTime.toMillis() < 10;
+    }
+
+    /**
+     * Checks if this was a slow generation (> 50ms).
+     * @return true if generation was slow
+     */
+    public boolean isSlowGeneration() {
+        return generationTime.toMillis() > 50;
+    }
+
+    /**
+     * Gets the performance category for this generation.
+     * @return performance category (FAST, NORMAL, SLOW)
+     */
+    public String getPerformanceCategory() {
+        if (isFastGeneration()) {
+            return "FAST";
+        } else if (isSlowGeneration()) {
+            return "SLOW";
+        } else {
+            return "NORMAL";
+        }
+    }
+
+    /**
+     * Checks if this was a contextual generation.
+     * @return true if flow context was used
+     */
+    public boolean isContextualGeneration() {
+        return flowContext.isPresent();
+    }
+
+    /**
+     * Gets the URL generation efficiency score (0.0 to 1.0).
+     * Higher scores indicate better efficiency.
+     * @return efficiency score
+     */
+    public double getEfficiencyScore() {
+        double baseScore = 1.0;
+        
+        // Cache hits are most efficient
+        if (fromCache) {
+            return Math.max(0.95, baseScore - (generationTime.toMillis() / 1000.0));
+        }
+        
+        // Penalize slow generation
+        if (generationTime.toMillis() > 100) {
+            baseScore -= 0.3;
+        } else if (generationTime.toMillis() > 50) {
+            baseScore -= 0.1;
+        }
+        
+        // Reward contextual generation (more valuable)
+        if (isContextualGeneration()) {
+            baseScore += 0.1;
+        }
+        
+        return Math.max(0.0, Math.min(1.0, baseScore));
+    }
+}
+#+end_src
+
+** Design Rationale
+
+The ~DocumentationLinkGenerated~ event embodies several important design principles:
+
+*** Performance Monitoring
+By tracking generation time and efficiency, the system can identify performance bottlenecks and optimize URL generation strategies.
+
+*** Cache Analytics
+The distinction between cached and generated URLs enables intelligent cache management and helps measure cache effectiveness.
+
+*** Strategy Tracking
+Recording which generation strategy was used allows the system to learn which approaches work best in different contexts.
+
+*** Template Parameter Tracking
+For contextual documentation, template parameters provide insight into how URLs are customized for specific flows and contexts.
+
+** Usage in Documentation System
+
+This event plays several critical roles in ByteHot's documentation system:
+
+1. **Performance Optimization**: Generation time data helps identify and optimize slow URL generation paths.
+
+2. **Cache Management**: Cache hit/miss data drives cache replacement policies and size optimization.
+
+3. **Analytics**: Aggregate data helps understand documentation usage patterns and popular content.
+
+4. **Quality Assurance**: Monitoring ensures the documentation system meets performance requirements.
+
+** Event Sourcing and Analytics
+
+As a domain event, ~DocumentationLinkGenerated~ enables sophisticated analytics:
+
+- **Historical Performance Analysis**: Track how URL generation performance changes over time
+- **Strategy Effectiveness**: Compare the success rates of different generation strategies
+- **User Behavior Insights**: Understand which types of documentation are most commonly accessed
+- **System Optimization**: Use performance data to guide system improvements
+
+** Integration with Caching System
+
+The event provides crucial data for the caching system:
+
+- Cache hit rates can be calculated from the ~fromCache~ field
+- Generation time differences between cached and uncached requests guide cache policies
+- Template parameter tracking helps identify cacheable URL patterns
+- Flow context data enables context-aware caching strategies
+
+This comprehensive event design enables ByteHot's documentation system to continuously improve its performance and user experience through data-driven optimization.

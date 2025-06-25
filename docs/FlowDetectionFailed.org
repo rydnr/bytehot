@@ -1,0 +1,147 @@
+#+TITLE: FlowDetectionFailed
+#+DATE: 2025-06-24
+#+AUTHOR: ByteHot Development Team
+
+* FlowDetectionFailed Class
+
+** Overview
+
+=FlowDetectionFailed= is a domain event that represents when Flow context detection fails. It captures failure reasons and diagnostic information to enable improvements of the flow detection system.
+
+** Package Structure
+
+#+begin_src java
+package org.acmsl.bytehot.domain.events;
+#+end_src
+
+** Class Hierarchy
+
+- Extends: =AbstractVersionedDomainEvent=
+- Implements: EventSourcing patterns through base class
+
+** Responsibilities
+
+- Represent when Flow context detection fails
+- Capture failure reasons and diagnostic information
+- Enable flow detection system improvements
+- Provide analytics for flow detection optimization
+
+** Key Attributes
+
+*** Analysis Data
+- =analyzedEvents=: List of =VersionedDomainEvent= objects that were analyzed during the failed attempt
+- =attemptedSources=: List of sources attempted for flow detection
+
+*** Failure Information
+- =failureReason=: Primary reason for the detection failure
+- =diagnosticMessage=: Optional detailed error message or diagnostic information
+- =attemptDuration=: Time spent attempting the detection
+- =maxConfidenceReached=: Maximum confidence level achieved during the attempt (0.0 to 1.0)
+- =failedAt=: Timestamp when the detection failure occurred
+
+** Factory Methods
+
+*** forFailedAttempt
+Creates a basic flow detection failure event:
+
+#+begin_src java
+public static FlowDetectionFailed forFailedAttempt(
+    final List<VersionedDomainEvent> analyzedEvents,
+    final List<String> attemptedSources,
+    final String failureReason,
+    final Duration attemptDuration,
+    final double maxConfidenceReached
+)
+#+end_src
+
+*** forDetailedFailure
+Creates a detailed flow detection failure event with diagnostic information:
+
+#+begin_src java
+public static FlowDetectionFailed forDetailedFailure(
+    final List<VersionedDomainEvent> analyzedEvents,
+    final List<String> attemptedSources,
+    final String failureReason,
+    final String diagnosticMessage,
+    final Duration attemptDuration,
+    final double maxConfidenceReached
+)
+#+end_src
+
+** Failure Analysis Methods
+
+*** isDataInsufficiencyFailure
+Returns =true= if failure reason indicates insufficient data (contains "INSUFFICIENT_DATA" or "NO_EVENTS").
+
+*** hadPartialSuccess
+Returns =true= if max confidence reached is greater than 0.3, indicating some progress was made.
+
+*** getFailureSeverity
+Returns severity level based on confidence achieved and attempt duration:
+- =LOW=: Had partial success AND fast attempt (< 100ms)
+- =MEDIUM=: Had partial success OR fast attempt
+- =HIGH=: No partial success but reasonable duration
+- =CRITICAL=: No partial success AND slow attempt (> 500ms)
+
+*** indicatesSystematicIssue
+Returns =true= if multiple sources were attempted (>= 3) and all failed with very low confidence (< 0.1).
+
+** Usage Patterns
+
+*** Flow Detection Optimization
+Used to identify patterns in flow detection failures and improve detection algorithms.
+
+*** System Health Monitoring
+Provides insights into flow detection system performance and reliability.
+
+*** Diagnostic Analysis
+Captures detailed failure information for troubleshooting and system improvements.
+
+** Integration Points
+
+*** Event Sourcing
+- Part of the event sourcing architecture
+- Provides historical analysis of flow detection failures
+- Enables trend analysis and system improvements
+
+*** Flow Detection System
+- Triggered by failed flow detection attempts
+- Provides feedback for algorithm improvements
+- Supports adaptive flow detection strategies
+
+*** Monitoring and Alerting
+- Enables monitoring of flow detection success rates
+- Supports alerting on systematic issues
+- Provides metrics for system health dashboards
+
+** Design Considerations
+
+*** Comprehensive Diagnostics
+Captures both high-level failure reasons and detailed diagnostic information.
+
+*** Performance Tracking
+Includes attempt duration to identify performance issues.
+
+*** Confidence Scoring
+Tracks maximum confidence reached to identify near-successes.
+
+*** Immutability
+All collections are defensively copied to ensure event immutability.
+
+** Dependencies
+
+- =AbstractVersionedDomainEvent=: Base event sourcing functionality
+- =VersionedDomainEvent=: Events analyzed during detection
+- =EventMetadata=: Event metadata support
+- =Duration=, =Instant=: Time-based metrics
+- =List=, =Optional=: Collection and optional support
+- Lombok annotations for code generation
+
+** Testing Considerations
+
+- Test both factory methods with various failure scenarios
+- Verify failure severity calculation with different combinations
+- Test data insufficiency detection logic
+- Validate systematic issue detection
+- Test boundary conditions for confidence and duration thresholds
+- Verify immutability of collections

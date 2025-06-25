@@ -1,0 +1,174 @@
+#+TITLE: DocumentationCrossReferenceDiscovered
+#+DATE: 2025-06-24
+#+AUTHOR: ByteHot Development Team
+
+* DocumentationCrossReferenceDiscovered Class
+
+** Overview
+
+=DocumentationCrossReferenceDiscovered= is a domain event that represents when relationships between documentation artifacts are discovered. It enables building a rich knowledge graph of documentation relationships and supports enhanced contextual documentation generation.
+
+** Package Structure
+
+#+begin_src java
+package org.acmsl.bytehot.domain.events;
+#+end_src
+
+** Class Hierarchy
+
+- Extends: =AbstractVersionedDomainEvent=
+- Implements: =DomainResponseEvent<DocumentationRequested>=
+
+** Responsibilities
+
+- Represent when relationships between documentation artifacts are found
+- Track cross-reference discovery for documentation analytics
+- Enable enhanced contextual documentation generation
+- Build knowledge graphs of documentation relationships
+
+** Key Attributes
+
+*** Request Correlation
+- =originalRequest=: The original =DocumentationRequested= event that triggered analysis
+- =sourceArtifact=: The source documentation artifact
+
+*** Relationship Data
+- =relatedArtifacts=: List of related documentation artifacts discovered
+- =relationshipType=: Type of relationship (INHERITANCE, COMPOSITION, USAGE, REFERENCE, FLOW_SEQUENCE)
+- =relationshipStrength=: Strength of the relationship (0.0 to 1.0)
+
+*** Discovery Metadata
+- =discoveryContext=: Optional context in which the relationship was discovered
+- =discoveryMethod=: Method or approach used to discover the relationship
+- =relationshipMetadata=: Optional additional metadata about the relationship
+- =discoveredAt=: Timestamp when the cross-reference was discovered
+
+** Factory Methods
+
+*** forBasicDiscovery
+Creates a basic cross-reference discovery event:
+
+#+begin_src java
+public static DocumentationCrossReferenceDiscovered forBasicDiscovery(
+    final DocumentationRequested originalRequest,
+    final String sourceArtifact,
+    final List<String> relatedArtifacts,
+    final String relationshipType,
+    final double relationshipStrength,
+    final String discoveryMethod
+)
+#+end_src
+
+*** forContextualDiscovery
+Creates a contextual cross-reference discovery event with additional context and metadata:
+
+#+begin_src java
+public static DocumentationCrossReferenceDiscovered forContextualDiscovery(
+    final DocumentationRequested originalRequest,
+    final String sourceArtifact,
+    final List<String> relatedArtifacts,
+    final String relationshipType,
+    final double relationshipStrength,
+    final String discoveryContext,
+    final String discoveryMethod,
+    final String relationshipMetadata
+)
+#+end_src
+
+** Relationship Analysis Methods
+
+*** isStrongRelationship
+Returns =true= if relationship strength is >= 0.7.
+
+*** hasMultipleRelations
+Returns =true= if more than one related artifact was found.
+
+*** getRelationshipQuality
+Returns quality category based on relationship strength:
+- =EXCELLENT=: Strength >= 0.9
+- =GOOD=: Strength >= 0.7
+- =FAIR=: Strength >= 0.5
+- =WEAK=: Strength < 0.5
+
+*** enhancesContextualDocumentation
+Returns =true= if discovery has context and strong relationships, indicating high value for documentation enhancement.
+
+** Response Event Pattern
+
+*** getPreceding
+Implements =DomainResponseEvent= interface to provide correlation to the original =DocumentationRequested= event.
+
+** Usage Patterns
+
+*** Knowledge Graph Building
+Used to build relationships between documentation artifacts for enhanced navigation and context.
+
+*** Contextual Documentation
+Enables generation of richer documentation by including related artifacts and their relationships.
+
+*** Documentation Analytics
+Provides data for analyzing documentation coverage and relationship patterns.
+
+** Relationship Types
+
+*** INHERITANCE
+Object-oriented inheritance relationships between classes.
+
+*** COMPOSITION
+Composition relationships where one class contains another.
+
+*** USAGE
+Usage relationships where one class uses services of another.
+
+*** REFERENCE
+Reference relationships in documentation or code comments.
+
+*** FLOW_SEQUENCE
+Sequential relationships in business flows or processes.
+
+** Integration Points
+
+*** Event Sourcing
+- Part of the event sourcing architecture
+- Correlated with original documentation requests
+- Contributes to knowledge graph analytics
+
+*** Documentation Generation
+- Enhances documentation with cross-references
+- Provides context for link generation
+- Supports navigation improvement
+
+*** Knowledge Management
+- Builds documentation knowledge graphs
+- Supports intelligent documentation search
+- Enables recommendation systems
+
+** Design Considerations
+
+*** Strength Scoring
+Uses numerical strength scoring (0.0-1.0) to quantify relationship importance.
+
+*** Optional Context
+Supports both basic and contextual discovery patterns through optional fields.
+
+*** Immutability
+All collections are defensively copied to ensure event immutability.
+
+** Dependencies
+
+- =AbstractVersionedDomainEvent=: Base event sourcing functionality
+- =DomainResponseEvent=: Response correlation pattern
+- =DocumentationRequested=: Original request event
+- =EventMetadata=: Event metadata support
+- =Instant=: Timestamp support
+- =List=, =Optional=: Collection and optional support
+- Lombok annotations for code generation
+
+** Testing Considerations
+
+- Test both factory methods with various relationship scenarios
+- Verify correlation with original request
+- Test relationship quality categorization
+- Validate strength scoring edge cases
+- Test immutability of collections
+- Verify contextual enhancement detection logic

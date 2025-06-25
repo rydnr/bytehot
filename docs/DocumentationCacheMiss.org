@@ -1,0 +1,131 @@
+#+TITLE: DocumentationCacheMiss
+#+DATE: 2025-06-24
+#+AUTHOR: ByteHot Development Team
+
+* DocumentationCacheMiss Class
+
+** Overview
+
+=DocumentationCacheMiss= is a domain event that represents when documentation URL is not found in cache. It triggers fallback documentation generation and helps track cache effectiveness patterns for optimization.
+
+** Package Structure
+
+#+begin_src java
+package org.acmsl.bytehot.domain.events;
+#+end_src
+
+** Class Hierarchy
+
+- Extends: =AbstractVersionedDomainEvent=
+- Implements: =DomainResponseEvent<DocumentationRequested>=
+
+** Responsibilities
+
+- Represent when documentation URL is not found in cache
+- Track cache miss patterns for optimization
+- Trigger fallback documentation generation
+- Provide response correlation to original documentation requests
+
+** Key Attributes
+
+*** Request Correlation
+- =originalRequest=: The original =DocumentationRequested= event
+- =missedCacheKey=: Cache key that was looked up but not found
+
+*** Miss Analysis Data
+- =lookupTime=: Time taken to perform the cache lookup
+- =missReason=: Reason for the cache miss (NOT_FOUND, EXPIRED, INVALID)
+- =isFirstMiss=: Whether this is the first miss for this key
+- =missedAt=: Timestamp when the cache miss occurred
+
+** Factory Methods
+
+*** forKeyNotFound
+Creates a new cache miss event for unsuccessful cache lookup:
+
+#+begin_src java
+public static DocumentationCacheMiss forKeyNotFound(
+    final DocumentationRequested originalRequest,
+    final String missedCacheKey,
+    final Duration lookupTime,
+    final String missReason,
+    final boolean isFirstMiss
+)
+#+end_src
+
+Creates correlated metadata linking to the original request.
+
+** Analysis Methods
+
+*** indicatesOptimizationOpportunity
+Returns =true= if this is a repeated miss for the same key, indicating potential cache optimization opportunities.
+
+*** isFastLookup
+Returns =true= if lookup time was less than 5ms.
+
+*** getMissSeverity
+Returns severity level based on frequency and lookup performance:
+- =LOW=: First miss AND fast lookup
+- =MEDIUM=: First miss OR fast lookup  
+- =HIGH=: Repeated miss AND slow lookup (not both conditions met)
+- =CRITICAL=: Repeated miss AND slow lookup
+
+** Response Event Pattern
+
+*** getPreceding
+Implements =DomainResponseEvent= interface to provide correlation to the original =DocumentationRequested= event.
+
+** Usage Patterns
+
+*** Cache Optimization
+Used to identify patterns in cache misses and optimization opportunities.
+
+*** Fallback Triggering
+Signals the need for fresh documentation generation when cache fails.
+
+*** Performance Monitoring
+Tracks cache lookup performance and miss frequency.
+
+** Integration Points
+
+*** Event Sourcing
+- Part of the event sourcing architecture
+- Correlated with original documentation requests
+- Contributes to cache analytics aggregation
+
+*** Cache Management
+- Triggered by failed cache lookups
+- Provides data for cache warming strategies
+- Supports cache eviction policy optimization
+
+*** Documentation Generation
+- Triggers fallback documentation generation
+- Provides context for generation prioritization
+
+** Design Considerations
+
+*** Miss Reason Tracking
+Captures specific reasons for cache misses to enable targeted optimization.
+
+*** Frequency Analysis
+Tracks whether this is a first or repeated miss to identify problematic patterns.
+
+*** Performance Impact
+Measures lookup time to assess cache infrastructure performance.
+
+** Dependencies
+
+- =AbstractVersionedDomainEvent=: Base event sourcing functionality
+- =DomainResponseEvent=: Response correlation pattern
+- =DocumentationRequested=: Original request event
+- =EventMetadata=: Event metadata support
+- =Duration=, =Instant=: Time-based metrics
+- Lombok annotations for code generation
+
+** Testing Considerations
+
+- Test factory method with various miss scenarios
+- Verify correlation with original request
+- Test severity calculation logic with different combinations
+- Validate optimization opportunity detection
+- Test boundary conditions for lookup time thresholds

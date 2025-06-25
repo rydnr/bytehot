@@ -1,0 +1,373 @@
+#+TITLE: DocumentationGenerationStrategy
+#+AUTHOR: Claude Code
+#+EMAIL: claude@anthropic.com
+#+DATE: 2025-06-24
+
+* DocumentationGenerationStrategy
+
+The ~DocumentationGenerationStrategy~ enumeration defines the different approaches for generating documentation URLs in ByteHot's intelligent documentation system. This strategy pattern enables flexible and optimized URL generation.
+
+** Class Overview
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationGenerationStrategy.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: DocumentationGenerationStrategy.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: DocumentationGenerationStrategy
+ *
+ * Responsibilities:
+ *   - Define URL generation strategies for documentation system
+ *   - Enable performance optimization through strategy selection
+ *   - Support different documentation access patterns
+ *
+ * Collaborators:
+ *   - DocProvider: Uses strategies to generate URLs
+ *   - DocumentationLinkGenerated: Records which strategy was used
+ */
+package org.acmsl.bytehot.domain;
+
+/**
+ * Enumeration of strategies for generating documentation URLs.
+ * Each strategy represents a different approach to creating documentation
+ * links based on the context and requirements.
+ * 
+ * @author Claude Code
+ * @since 2025-06-24
+ */
+public enum DocumentationGenerationStrategy {
+#+end_src
+
+** Strategy Definitions
+
+Each strategy represents a distinct approach to URL generation:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationGenerationStrategy.java
+    /**
+     * Basic class documentation strategy.
+     * Generates standard documentation URLs based on class package and name.
+     * 
+     * Characteristics:
+     * - Fast generation (< 5ms typically)
+     * - No context awareness
+     * - High cache hit potential
+     * - Suitable for general API documentation
+     */
+    BASIC_CLASS("basic-class", "Standard class documentation", 1, true),
+
+    /**
+     * Method-specific documentation strategy.
+     * Generates URLs pointing to specific methods within class documentation.
+     * 
+     * Characteristics:
+     * - Moderate generation time (5-15ms typically)
+     * - Method-level precision
+     * - Medium cache hit potential
+     * - Includes fragment identifiers (#methodName)
+     */
+    METHOD_SPECIFIC("method-specific", "Method-focused documentation", 2, true),
+
+    /**
+     * Contextual flow-aware documentation strategy.
+     * Generates URLs based on detected operational flows and runtime context.
+     * 
+     * Characteristics:
+     * - Slower generation (10-30ms typically)
+     * - Highly context-aware
+     * - Lower cache hit potential
+     * - Provides workflow-specific examples
+     */
+    CONTEXTUAL_FLOW("contextual-flow", "Flow-aware contextual documentation", 3, false),
+
+    /**
+     * Testing-focused documentation strategy.
+     * Generates URLs pointing to testing guides and examples.
+     * 
+     * Characteristics:
+     * - Fast generation (< 10ms typically)
+     * - Testing-specific content
+     * - High cache hit potential
+     * - Includes test patterns and examples
+     */
+    TESTING_FOCUSED("testing-focused", "Testing and example documentation", 2, true),
+
+    /**
+     * Cached URL retrieval strategy.
+     * Returns previously generated URLs from cache without regeneration.
+     * 
+     * Characteristics:
+     * - Fastest access (< 2ms typically)
+     * - No computation required
+     * - 100% cache hit by definition
+     * - Maintains URL consistency
+     */
+    CACHED("cached", "Cached URL retrieval", 0, true),
+
+    /**
+     * Template-based URL generation strategy.
+     * Uses URL templates with parameter substitution for dynamic content.
+     * 
+     * Characteristics:
+     * - Variable generation time (5-20ms typically)
+     * - Flexible parameter substitution
+     * - Medium cache hit potential
+     * - Supports personalized documentation
+     */
+    TEMPLATE_BASED("template-based", "Template-driven URL generation", 2, true),
+
+    /**
+     * Fallback strategy for error conditions.
+     * Generates basic URLs when other strategies fail.
+     * 
+     * Characteristics:
+     * - Fast generation (< 5ms typically)
+     * - Always succeeds
+     * - Low cache hit potential
+     * - Provides minimal but functional documentation
+     */
+    FALLBACK("fallback", "Error fallback documentation", 1, false);
+#+end_src
+
+** Strategy Properties
+
+Each strategy has associated metadata for optimization:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationGenerationStrategy.java
+    /**
+     * Unique identifier for the strategy.
+     */
+    private final String identifier;
+
+    /**
+     * Human-readable description of the strategy.
+     */
+    private final String description;
+
+    /**
+     * Complexity level (0=lowest, 3=highest).
+     * Higher complexity typically means longer generation time.
+     */
+    private final int complexityLevel;
+
+    /**
+     * Whether this strategy benefits from caching.
+     * Strategies that generate consistent URLs for the same inputs
+     * benefit more from caching.
+     */
+    private final boolean cacheable;
+
+    /**
+     * Constructor for strategy enumeration values.
+     * @param identifier unique strategy identifier
+     * @param description human-readable description
+     * @param complexityLevel complexity rating (0-3)
+     * @param cacheable whether strategy benefits from caching
+     */
+    DocumentationGenerationStrategy(
+        final String identifier,
+        final String description,
+        final int complexityLevel,
+        final boolean cacheable
+    ) {
+        this.identifier = identifier;
+        this.description = description;
+        this.complexityLevel = complexityLevel;
+        this.cacheable = cacheable;
+    }
+
+    /**
+     * Gets the strategy identifier.
+     * @return unique identifier string
+     */
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    /**
+     * Gets the strategy description.
+     * @return human-readable description
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Gets the complexity level (0-3).
+     * @return complexity rating
+     */
+    public int getComplexityLevel() {
+        return complexityLevel;
+    }
+
+    /**
+     * Checks if this strategy benefits from caching.
+     * @return true if cacheable
+     */
+    public boolean isCacheable() {
+        return cacheable;
+    }
+#+end_src
+
+** Strategy Selection Logic
+
+The enumeration provides methods for intelligent strategy selection:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationGenerationStrategy.java
+    /**
+     * Checks if this is a fast strategy (complexity <= 1).
+     * @return true if strategy is considered fast
+     */
+    public boolean isFastStrategy() {
+        return complexityLevel <= 1;
+    }
+
+    /**
+     * Checks if this is a context-aware strategy.
+     * @return true if strategy uses runtime context
+     */
+    public boolean isContextAware() {
+        return this == CONTEXTUAL_FLOW || this == TEMPLATE_BASED;
+    }
+
+    /**
+     * Gets the expected generation time category.
+     * @return time category (IMMEDIATE, FAST, NORMAL, SLOW)
+     */
+    public String getExpectedTimeCategory() {
+        switch (complexityLevel) {
+            case 0: return "IMMEDIATE";
+            case 1: return "FAST";
+            case 2: return "NORMAL";
+            case 3: return "SLOW";
+            default: return "UNKNOWN";
+        }
+    }
+
+    /**
+     * Selects the optimal strategy based on context and requirements.
+     * @param hasFlowContext whether flow context is available
+     * @param prioritizeSpeed whether speed is prioritized over context
+     * @param isMethodSpecific whether method-specific documentation is needed
+     * @return recommended strategy
+     */
+    public static DocumentationGenerationStrategy selectOptimalStrategy(
+        final boolean hasFlowContext,
+        final boolean prioritizeSpeed,
+        final boolean isMethodSpecific
+    ) {
+        // If speed is prioritized, use fast strategies
+        if (prioritizeSpeed) {
+            return isMethodSpecific ? METHOD_SPECIFIC : BASIC_CLASS;
+        }
+
+        // If flow context is available and we're not prioritizing speed
+        if (hasFlowContext) {
+            return CONTEXTUAL_FLOW;
+        }
+
+        // Default selection based on specificity
+        if (isMethodSpecific) {
+            return METHOD_SPECIFIC;
+        }
+
+        return BASIC_CLASS;
+    }
+
+    /**
+     * Gets all strategies ordered by performance (fastest first).
+     * @return array of strategies in performance order
+     */
+    public static DocumentationGenerationStrategy[] getByPerformanceOrder() {
+        return new DocumentationGenerationStrategy[] {
+            CACHED,
+            BASIC_CLASS,
+            FALLBACK,
+            METHOD_SPECIFIC,
+            TESTING_FOCUSED,
+            TEMPLATE_BASED,
+            CONTEXTUAL_FLOW
+        };
+    }
+
+    /**
+     * Gets all cacheable strategies.
+     * @return array of strategies that benefit from caching
+     */
+    public static DocumentationGenerationStrategy[] getCacheableStrategies() {
+        return java.util.Arrays.stream(values())
+            .filter(DocumentationGenerationStrategy::isCacheable)
+            .toArray(DocumentationGenerationStrategy[]::new);
+    }
+}
+#+end_src
+
+** Design Rationale
+
+The ~DocumentationGenerationStrategy~ enumeration embodies several key design principles:
+
+*** Performance Optimization
+By categorizing strategies by complexity and expected performance, the system can make intelligent trade-offs between speed and functionality.
+
+*** Caching Awareness
+The ~cacheable~ property enables the documentation system to optimize caching strategies based on URL generation patterns.
+
+*** Context Sensitivity
+Strategies are designed to handle different levels of context awareness, from simple class documentation to sophisticated flow-aware content.
+
+*** Graceful Degradation
+The inclusion of fallback strategies ensures the system can always provide some level of documentation, even when advanced features fail.
+
+** Usage in Documentation System
+
+The strategy enumeration is used throughout ByteHot's documentation system:
+
+1. **Strategy Selection**: The ~DocProvider~ uses strategy selection logic to choose the optimal approach for each request.
+
+2. **Performance Monitoring**: Events like ~DocumentationLinkGenerated~ record which strategy was used for analytics.
+
+3. **Cache Management**: Cacheable strategies receive different treatment in the caching layer.
+
+4. **Load Balancing**: High-complexity strategies can be throttled or queued during high load.
+
+** Integration with Performance Metrics
+
+The strategy system integrates with ByteHot's performance monitoring:
+
+- Expected time categories help set performance SLAs
+- Complexity levels guide resource allocation
+- Cache effectiveness varies by strategy
+- Strategy selection can be optimized based on measured performance
+
+** Extensibility
+
+The enumeration design allows for easy addition of new strategies:
+
+- New enum values can be added without breaking existing code
+- Strategy selection logic can be enhanced to consider new approaches
+- Performance characteristics can be fine-tuned based on real-world usage
+
+This comprehensive strategy system enables ByteHot to provide fast, intelligent documentation that adapts to user needs and system constraints while maintaining optimal performance.

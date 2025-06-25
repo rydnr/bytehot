@@ -1,0 +1,462 @@
+#+TITLE: DocumentationType
+#+AUTHOR: Claude Code
+#+EMAIL: claude@anthropic.com
+#+DATE: 2025-06-24
+
+* DocumentationType
+
+The ~DocumentationType~ enumeration categorizes the different types of documentation that ByteHot's intelligent documentation system can provide. This classification enables targeted content delivery and optimized user experiences.
+
+** Class Overview
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationType.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: DocumentationType.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: DocumentationType
+ *
+ * Responsibilities:
+ *   - Categorize different types of documentation content
+ *   - Enable targeted documentation delivery
+ *   - Support content optimization and caching strategies
+ *
+ * Collaborators:
+ *   - DocumentationRequested: Uses types to specify content needs
+ *   - DocProvider: Routes requests based on documentation type
+ */
+package org.acmsl.bytehot.domain;
+
+/**
+ * Enumeration of documentation types supported by ByteHot's
+ * intelligent documentation system. Each type represents a
+ * different category of content with specific characteristics
+ * and target audiences.
+ * 
+ * @author Claude Code
+ * @since 2025-06-24
+ */
+public enum DocumentationType {
+#+end_src
+
+** Documentation Type Definitions
+
+Each type represents a distinct category of documentation content:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationType.java
+    /**
+     * Basic API documentation for classes and interfaces.
+     * 
+     * Content includes:
+     * - Class overview and purpose
+     * - Constructor documentation
+     * - Method signatures and descriptions
+     * - Usage examples
+     * - Since/deprecated information
+     * 
+     * Characteristics:
+     * - High cache hit rate
+     * - Static content
+     * - Suitable for reference lookup
+     * - Generated from Javadoc
+     */
+    BASIC("basic", "Standard API documentation", true, "javadoc"),
+
+    /**
+     * Method-specific documentation with detailed examples.
+     * 
+     * Content includes:
+     * - Detailed method behavior
+     * - Parameter descriptions and constraints
+     * - Return value specifications
+     * - Exception conditions
+     * - Code examples and use cases
+     * 
+     * Characteristics:
+     * - Medium cache hit rate
+     * - Method-focused content
+     * - Includes practical examples
+     * - Links to related methods
+     */
+    METHOD("method", "Method-focused documentation", true, "javadoc"),
+
+    /**
+     * Contextual documentation based on operational flows.
+     * 
+     * Content includes:
+     * - Workflow-specific guidance
+     * - Context-aware examples
+     * - Integration patterns
+     * - Best practices for current flow
+     * - Troubleshooting for detected context
+     * 
+     * Characteristics:
+     * - Low cache hit rate
+     * - Highly dynamic content
+     * - Context-specific examples
+     * - Adapts to runtime state
+     */
+    CONTEXTUAL("contextual", "Flow-aware contextual documentation", false, "flows"),
+
+    /**
+     * Testing-focused documentation and examples.
+     * 
+     * Content includes:
+     * - Unit test examples
+     * - Integration test patterns
+     * - Mock setup guidance
+     * - Test data creation
+     * - Testing best practices
+     * 
+     * Characteristics:
+     * - High cache hit rate
+     * - Testing-specific content
+     * - Practical test examples
+     * - Framework-agnostic guidance
+     */
+    TESTING("testing", "Testing guides and examples", true, "testing"),
+
+    /**
+     * Tutorial-style documentation for learning.
+     * 
+     * Content includes:
+     * - Step-by-step tutorials
+     * - Progressive examples
+     * - Learning paths
+     * - Conceptual explanations
+     * - Hands-on exercises
+     * 
+     * Characteristics:
+     * - Medium cache hit rate
+     * - Educational content
+     * - Sequential learning structure
+     * - Beginner-friendly approach
+     */
+    TUTORIAL("tutorial", "Tutorial and learning content", true, "tutorials"),
+
+    /**
+     * Troubleshooting and diagnostic documentation.
+     * 
+     * Content includes:
+     * - Common error solutions
+     * - Diagnostic procedures
+     * - Performance optimization
+     * - Configuration troubleshooting
+     * - Debug strategies
+     * 
+     * Characteristics:
+     * - Medium cache hit rate
+     * - Problem-solving focus
+     * - Diagnostic guidance
+     * - Solution-oriented content
+     */
+    TROUBLESHOOTING("troubleshooting", "Problem-solving documentation", true, "troubleshooting"),
+
+    /**
+     * Architecture and design documentation.
+     * 
+     * Content includes:
+     * - Architectural overviews
+     * - Design patterns
+     * - Component relationships
+     * - Decision rationales
+     * - Extension points
+     * 
+     * Characteristics:
+     * - High cache hit rate
+     * - Architectural focus
+     * - Design-oriented content
+     * - System-level perspective
+     */
+    ARCHITECTURE("architecture", "Architectural documentation", true, "architecture"),
+
+    /**
+     * Migration and upgrade documentation.
+     * 
+     * Content includes:
+     * - Migration guides
+     * - Compatibility information
+     * - Breaking changes
+     * - Upgrade procedures
+     * - Version differences
+     * 
+     * Characteristics:
+     * - Medium cache hit rate
+     * - Version-specific content
+     * - Change-focused documentation
+     * - Temporal relevance
+     */
+    MIGRATION("migration", "Migration and upgrade guides", true, "migration");
+#+end_src
+
+** Type Properties and Metadata
+
+Each documentation type has associated metadata for optimization:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationType.java
+    /**
+     * Unique identifier for the documentation type.
+     */
+    private final String identifier;
+
+    /**
+     * Human-readable description of the type.
+     */
+    private final String description;
+
+    /**
+     * Whether this type is suitable for aggressive caching.
+     * Types with stable content benefit more from caching.
+     */
+    private final boolean cacheable;
+
+    /**
+     * URL path segment for this documentation type.
+     * Used in URL generation for organizing content.
+     */
+    private final String urlPath;
+
+    /**
+     * Constructor for documentation type enumeration values.
+     * @param identifier unique type identifier
+     * @param description human-readable description
+     * @param cacheable whether type is suitable for caching
+     * @param urlPath URL path segment for this type
+     */
+    DocumentationType(
+        final String identifier,
+        final String description,
+        final boolean cacheable,
+        final String urlPath
+    ) {
+        this.identifier = identifier;
+        this.description = description;
+        this.cacheable = cacheable;
+        this.urlPath = urlPath;
+    }
+
+    /**
+     * Gets the type identifier.
+     * @return unique identifier string
+     */
+    public String getIdentifier() {
+        return identifier;
+    }
+
+    /**
+     * Gets the type description.
+     * @return human-readable description
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * Checks if this type is suitable for caching.
+     * @return true if cacheable
+     */
+    public boolean isCacheable() {
+        return cacheable;
+    }
+
+    /**
+     * Gets the URL path segment for this type.
+     * @return URL path segment
+     */
+    public String getUrlPath() {
+        return urlPath;
+    }
+#+end_src
+
+** Type Classification and Utility Methods
+
+The enumeration provides methods for classifying and working with documentation types:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/DocumentationType.java
+    /**
+     * Checks if this is a reference-style documentation type.
+     * Reference types provide lookup information rather than guidance.
+     * @return true if this is a reference type
+     */
+    public boolean isReferenceType() {
+        return this == BASIC || this == METHOD || this == ARCHITECTURE;
+    }
+
+    /**
+     * Checks if this is a guidance-style documentation type.
+     * Guidance types provide how-to information and examples.
+     * @return true if this is a guidance type
+     */
+    public boolean isGuidanceType() {
+        return this == TUTORIAL || this == TESTING || this == TROUBLESHOOTING || this == MIGRATION;
+    }
+
+    /**
+     * Checks if this is a context-sensitive documentation type.
+     * Context-sensitive types adapt to runtime conditions.
+     * @return true if this is context-sensitive
+     */
+    public boolean isContextSensitive() {
+        return this == CONTEXTUAL;
+    }
+
+    /**
+     * Checks if this type is suitable for beginner developers.
+     * @return true if beginner-friendly
+     */
+    public boolean isBeginnerFriendly() {
+        return this == TUTORIAL || this == BASIC || this == TESTING;
+    }
+
+    /**
+     * Gets the expected content freshness for this type.
+     * @return freshness category (STATIC, SEMI_STATIC, DYNAMIC)
+     */
+    public String getContentFreshness() {
+        if (this == CONTEXTUAL) {
+            return "DYNAMIC";
+        } else if (this == MIGRATION || this == TROUBLESHOOTING) {
+            return "SEMI_STATIC";
+        } else {
+            return "STATIC";
+        }
+    }
+
+    /**
+     * Selects the most appropriate documentation type based on context.
+     * @param hasMethodContext whether method-specific context is available
+     * @param hasFlowContext whether flow context is available
+     * @param isTestingScenario whether this is a testing scenario
+     * @param isLearningContext whether this is a learning context
+     * @return recommended documentation type
+     */
+    public static DocumentationType selectAppropriateType(
+        final boolean hasMethodContext,
+        final boolean hasFlowContext,
+        final boolean isTestingScenario,
+        final boolean isLearningContext
+    ) {
+        // Context-specific selection
+        if (hasFlowContext) {
+            return CONTEXTUAL;
+        }
+
+        if (isTestingScenario) {
+            return TESTING;
+        }
+
+        if (isLearningContext) {
+            return TUTORIAL;
+        }
+
+        if (hasMethodContext) {
+            return METHOD;
+        }
+
+        // Default to basic documentation
+        return BASIC;
+    }
+
+    /**
+     * Gets all cacheable documentation types.
+     * @return array of types suitable for caching
+     */
+    public static DocumentationType[] getCacheableTypes() {
+        return java.util.Arrays.stream(values())
+            .filter(DocumentationType::isCacheable)
+            .toArray(DocumentationType[]::new);
+    }
+
+    /**
+     * Gets all reference-style documentation types.
+     * @return array of reference types
+     */
+    public static DocumentationType[] getReferenceTypes() {
+        return java.util.Arrays.stream(values())
+            .filter(DocumentationType::isReferenceType)
+            .toArray(DocumentationType[]::new);
+    }
+
+    /**
+     * Gets all guidance-style documentation types.
+     * @return array of guidance types
+     */
+    public static DocumentationType[] getGuidanceTypes() {
+        return java.util.Arrays.stream(values())
+            .filter(DocumentationType::isGuidanceType)
+            .toArray(DocumentationType[]::new);
+    }
+}
+#+end_src
+
+** Design Rationale
+
+The ~DocumentationType~ enumeration embodies several important design principles:
+
+*** Content Organization
+By categorizing documentation into distinct types, ByteHot can organize content logically and provide targeted user experiences.
+
+*** Caching Optimization
+The distinction between cacheable and dynamic content enables efficient caching strategies that balance performance with content freshness.
+
+*** User Experience Personalization
+Different types serve different user needs - from quick API reference to comprehensive learning materials.
+
+*** Context Awareness
+The classification supports ByteHot's revolutionary context-aware documentation by clearly identifying which content adapts to runtime conditions.
+
+** Usage in Documentation System
+
+The documentation type system is central to ByteHot's intelligent documentation:
+
+1. **Content Routing**: The ~DocProvider~ uses types to route requests to appropriate content sources.
+
+2. **URL Generation**: Types contribute to URL structure, making documentation URLs intuitive and SEO-friendly.
+
+3. **Cache Management**: Cacheable types receive different treatment in the caching layer.
+
+4. **User Interface**: Documentation browsers can organize content by type for better navigation.
+
+** Integration with Flow Detection
+
+The type system integrates seamlessly with ByteHot's flow detection:
+
+- ~CONTEXTUAL~ type documentation adapts to detected flows
+- Other types provide stable reference material regardless of context
+- Type selection can be influenced by flow detection confidence
+- Mixed-type responses can provide both stable and contextual information
+
+** Extensibility and Evolution
+
+The enumeration design supports evolution of the documentation system:
+
+- New types can be added without breaking existing functionality
+- Type metadata can be extended to support new optimization strategies
+- Selection logic can be enhanced as the system learns user preferences
+- Integration with external documentation sources can be type-specific
+
+This comprehensive type system enables ByteHot to provide intelligent, well-organized documentation that adapts to user needs and system capabilities while maintaining optimal performance and user experience.

@@ -1,0 +1,492 @@
+#+TITLE: EventDrivenTestSupport
+#+AUTHOR: Claude Code
+#+EMAIL: claude@anthropic.com
+#+DATE: 2025-06-24
+
+* EventDrivenTestSupport
+
+The ~EventDrivenTestSupport~ class provides a comprehensive base class for event-driven testing in ByteHot. It implements a sophisticated Given-When-Then methodology specifically designed for domain-driven development and event sourcing systems.
+
+** Class Overview
+
+#+begin_src java :tangle ../bytehot-infrastructure/src/test/java/org/acmsl/bytehot/testing/EventDrivenTestSupport.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: EventDrivenTestSupport.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: EventDrivenTestSupport
+ *
+ * Responsibilities:
+ *   - Provide base class for event-driven testing
+ *   - Implement Given-When-Then methodology for events
+ *   - Manage test context and state across test phases
+ *   - Enable sophisticated event verification and analysis
+ *
+ * Collaborators:
+ *   - EventTestContext: Maintains test state and captured events
+ *   - GivenStage: Initial test setup phase
+ *   - WhenStage: Action execution phase  
+ *   - ThenStage: Verification phase
+ *   - EventCapturingEmitter: Captures events during test execution
+ */
+package org.acmsl.bytehot.testing;
+
+import org.acmsl.bytehot.testing.stages.GivenStage;
+import org.acmsl.bytehot.testing.stages.ThenStage;
+import org.acmsl.bytehot.testing.stages.WhenStage;
+import org.acmsl.bytehot.testing.support.EventCapturingEmitter;
+import org.acmsl.commons.patterns.DomainEvent;
+import org.acmsl.commons.patterns.DomainResponseEvent;
+import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+/**
+ * Base class for event-driven testing in ByteHot.
+ * Provides a sophisticated Given-When-Then methodology specifically
+ * designed for testing domain events and event sourcing scenarios.
+ * 
+ * @author Claude Code
+ * @since 2025-06-24
+ */
+public abstract class EventDrivenTestSupport {
+#+end_src
+
+** Core Infrastructure
+
+The base class manages the fundamental testing infrastructure:
+
+#+begin_src java :tangle ../bytehot-infrastructure/src/test/java/org/acmsl/bytehot/testing/EventDrivenTestSupport.java
+    /**
+     * Test context that maintains state across Given-When-Then phases.
+     */
+    protected EventTestContext context;
+
+    /**
+     * Event capturing emitter for intercepting events during tests.
+     */
+    protected EventCapturingEmitter eventCapturingEmitter;
+
+    /**
+     * Sets up the test infrastructure before each test.
+     * Initializes the context and event capturing mechanisms.
+     */
+    @BeforeEach
+    protected void setUpEventDrivenTest() {
+        context = new EventTestContext();
+        eventCapturingEmitter = new EventCapturingEmitter();
+        
+        // Configure the emitter to capture events in the context
+        eventCapturingEmitter.setEventCapture(context::addEmittedEvent);
+        
+        // Allow subclasses to perform additional setup
+        setupTestInfrastructure();
+    }
+
+    /**
+     * Cleans up after each test to prevent test interference.
+     */
+    @AfterEach
+    protected void tearDownEventDrivenTest() {
+        if (context != null) {
+            context.reset();
+        }
+        
+        if (eventCapturingEmitter != null) {
+            eventCapturingEmitter.reset();
+        }
+        
+        // Allow subclasses to perform additional cleanup
+        cleanupTestInfrastructure();
+    }
+
+    /**
+     * Template method for subclasses to set up test-specific infrastructure.
+     * Override this method to configure additional test dependencies.
+     */
+    protected void setupTestInfrastructure() {
+        // Default implementation does nothing
+        // Subclasses can override to provide specific setup
+    }
+
+    /**
+     * Template method for subclasses to clean up test-specific infrastructure.
+     * Override this method to clean up additional test dependencies.
+     */
+    protected void cleanupTestInfrastructure() {
+        // Default implementation does nothing
+        // Subclasses can override to provide specific cleanup
+    }
+#+end_src
+
+** Given-When-Then Entry Points
+
+The class provides intuitive entry points for the Given-When-Then methodology:
+
+#+begin_src java :tangle ../bytehot-infrastructure/src/test/java/org/acmsl/bytehot/testing/EventDrivenTestSupport.java
+    /**
+     * Starts a new test scenario with a descriptive name.
+     * This is the primary entry point for Given-When-Then testing.
+     * 
+     * @param scenarioDescription human-readable description of the test scenario
+     * @return GivenStage for setting up initial conditions
+     */
+    protected GivenStage scenario(final String scenarioDescription) {
+        context.setScenarioDescription(scenarioDescription);
+        context.reset(); // Ensure clean state for new scenario
+        return new GivenStage(context);
+    }
+
+    /**
+     * Alternative entry point that starts directly with Given conditions.
+     * 
+     * @return GivenStage for setting up initial conditions
+     */
+    protected GivenStage given() {
+        context.reset();
+        return new GivenStage(context);
+    }
+
+    /**
+     * Entry point for tests that don't need explicit Given setup.
+     * Goes directly to the When phase.
+     * 
+     * @return WhenStage for executing actions
+     */
+    protected WhenStage when() {
+        context.reset();
+        return new WhenStage(context);
+    }
+
+    /**
+     * Entry point for verification-only tests.
+     * Useful for testing existing state without setup or actions.
+     * 
+     * @return ThenStage for verification
+     */
+    protected ThenStage then() {
+        return new ThenStage(context);
+    }
+#+end_src
+
+** Event Waiting and Synchronization
+
+The class provides sophisticated event waiting capabilities for asynchronous testing:
+
+#+begin_src java :tangle ../bytehot-infrastructure/src/test/java/org/acmsl/bytehot/testing/EventDrivenTestSupport.java
+    /**
+     * Waits for a specific number of events to be emitted.
+     * Useful for testing asynchronous event processing.
+     * 
+     * @param expectedCount number of events to wait for
+     * @param timeout maximum time to wait
+     * @return true if expected events were emitted within timeout
+     */
+    protected boolean waitForEvents(final int expectedCount, final Duration timeout) {
+        final Instant deadline = Instant.now().plus(timeout);
+        
+        while (Instant.now().isBefore(deadline)) {
+            if (context.getEmittedEvents().size() >= expectedCount) {
+                return true;
+            }
+            
+            try {
+                Thread.sleep(10); // Small delay to avoid busy waiting
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Waits for events matching a specific predicate.
+     * 
+     * @param predicate condition that events must satisfy
+     * @param timeout maximum time to wait
+     * @return true if matching events were found within timeout
+     */
+    protected boolean waitForEventsMatching(
+        final Predicate<List<DomainEvent>> predicate, 
+        final Duration timeout
+    ) {
+        final Instant deadline = Instant.now().plus(timeout);
+        
+        while (Instant.now().isBefore(deadline)) {
+            if (predicate.test(context.getEmittedEvents())) {
+                return true;
+            }
+            
+            try {
+                Thread.sleep(10);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Waits for a specific event type to be emitted.
+     * 
+     * @param eventType class of the event to wait for
+     * @param timeout maximum time to wait
+     * @return true if event of specified type was emitted
+     */
+    protected boolean waitForEventOfType(
+        final Class<? extends DomainEvent> eventType, 
+        final Duration timeout
+    ) {
+        return waitForEventsMatching(
+            events -> events.stream().anyMatch(eventType::isInstance),
+            timeout
+        );
+    }
+#+end_src
+
+** Event Analysis and Verification Utilities
+
+The class provides utilities for analyzing and verifying captured events:
+
+#+begin_src java :tangle ../bytehot-infrastructure/src/test/java/org/acmsl/bytehot/testing/EventDrivenTestSupport.java
+    /**
+     * Gets all emitted events of a specific type.
+     * 
+     * @param eventType class of events to retrieve
+     * @param <T> type of the events
+     * @return list of events of the specified type
+     */
+    protected <T extends DomainEvent> List<T> getEmittedEventsOfType(final Class<T> eventType) {
+        return context.getEmittedEvents().stream()
+            .filter(eventType::isInstance)
+            .map(eventType::cast)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Gets the count of emitted events of a specific type.
+     * 
+     * @param eventType class of events to count
+     * @return number of events of the specified type
+     */
+    protected long getEmittedEventCountOfType(final Class<? extends DomainEvent> eventType) {
+        return context.getEmittedEvents().stream()
+            .filter(eventType::isInstance)
+            .count();
+    }
+
+    /**
+     * Checks if any events of a specific type were emitted.
+     * 
+     * @param eventType class of events to check for
+     * @return true if at least one event of the type was emitted
+     */
+    protected boolean hasEmittedEventOfType(final Class<? extends DomainEvent> eventType) {
+        return context.getEmittedEvents().stream()
+            .anyMatch(eventType::isInstance);
+    }
+
+    /**
+     * Gets the first emitted event of a specific type.
+     * 
+     * @param eventType class of the event to retrieve
+     * @param <T> type of the event
+     * @return first event of the specified type, or null if none found
+     */
+    protected <T extends DomainEvent> T getFirstEmittedEventOfType(final Class<T> eventType) {
+        return context.getEmittedEvents().stream()
+            .filter(eventType::isInstance)
+            .map(eventType::cast)
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * Gets the last emitted event of a specific type.
+     * 
+     * @param eventType class of the event to retrieve
+     * @param <T> type of the event
+     * @return last event of the specified type, or null if none found
+     */
+    protected <T extends DomainEvent> T getLastEmittedEventOfType(final Class<T> eventType) {
+        final List<T> events = getEmittedEventsOfType(eventType);
+        return events.isEmpty() ? null : events.get(events.size() - 1);
+    }
+#+end_src
+
+** Advanced Testing Capabilities
+
+The class provides advanced features for complex event-driven testing scenarios:
+
+#+begin_src java :tangle ../bytehot-infrastructure/src/test/java/org/acmsl/bytehot/testing/EventDrivenTestSupport.java
+    /**
+     * Simulates event processing by accepting events through the capturing emitter.
+     * 
+     * @param event event to process
+     * @return list of response events
+     */
+    protected List<? extends DomainResponseEvent<?>> simulateEventProcessing(final DomainEvent event) {
+        return eventCapturingEmitter.accept(event);
+    }
+
+    /**
+     * Creates a test artifact that can be stored and retrieved during testing.
+     * Useful for complex test scenarios that need to maintain state.
+     * 
+     * @param key identifier for the artifact
+     * @param artifact the artifact to store
+     */
+    protected void storeTestArtifact(final String key, final Object artifact) {
+        context.storeArtifact(key, artifact);
+    }
+
+    /**
+     * Retrieves a previously stored test artifact.
+     * 
+     * @param key identifier for the artifact
+     * @param type expected type of the artifact
+     * @param <T> type of the artifact
+     * @return the artifact, or null if not found or wrong type
+     */
+    protected <T> T getTestArtifact(final String key, final Class<T> type) {
+        final Object artifact = context.getArtifact(key);
+        return type.isInstance(artifact) ? type.cast(artifact) : null;
+    }
+
+    /**
+     * Executes an action with event capturing enabled.
+     * This is useful for testing code that emits events internally.
+     * 
+     * @param action the action to execute
+     */
+    protected void executeWithEventCapturing(final Runnable action) {
+        try {
+            action.run();
+        } catch (final Exception e) {
+            // Store exception for analysis
+            storeTestArtifact("last_exception", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Gets the current test context for advanced scenarios.
+     * Use sparingly - prefer the Given-When-Then stages for most testing.
+     * 
+     * @return the current event test context
+     */
+    protected EventTestContext getTestContext() {
+        return context;
+    }
+
+    /**
+     * Gets the event capturing emitter for advanced scenarios.
+     * Use sparingly - prefer the Given-When-Then stages for most testing.
+     * 
+     * @return the event capturing emitter
+     */
+    protected EventCapturingEmitter getEventCapturingEmitter() {
+        return eventCapturingEmitter;
+    }
+}
+#+end_src
+
+** Design Rationale
+
+The ~EventDrivenTestSupport~ class embodies several key testing principles:
+
+*** Given-When-Then Methodology
+The class enforces a clear separation between test setup (Given), action execution (When), and verification (Then), making tests more readable and maintainable.
+
+*** Event-Centric Testing
+All testing capabilities are designed around domain events, making it natural to test event-driven systems like ByteHot.
+
+*** Asynchronous Support
+The waiting mechanisms handle asynchronous event processing, which is common in event-driven architectures.
+
+*** Test Isolation
+Proper setup and teardown ensure tests don't interfere with each other, maintaining test reliability.
+
+** Usage Patterns
+
+The class supports several common testing patterns:
+
+*** Basic Event Testing
+#+begin_src java
+scenario("Should emit ClassFileChanged when file is modified")
+    .given()
+        .fileExists("/test/TestClass.class")
+    .when()
+        .fileIsModified("/test/TestClass.class")
+    .then()
+        .eventOfType(ClassFileChanged.class).wasEmitted()
+        .andEvent().hasProperty("className", "TestClass");
+#+end_src
+
+*** Asynchronous Event Testing
+#+begin_src java
+scenario("Should complete hot-swap workflow")
+    .given()
+        .agentIsAttached()
+        .classFileExists("/test/TestClass.class")
+    .when()
+        .classFileIsModified("/test/TestClass.class")
+        .andWaitFor(Duration.ofSeconds(5))
+    .then()
+        .eventsOfType(ClassRedefinitionSucceeded.class).wereEmitted()
+        .andEventCount().equals(1);
+#+end_src
+
+*** Complex State Testing
+#+begin_src java
+scenario("Should handle multiple file changes in sequence")
+    .given()
+        .multipleClassFiles("TestClass1", "TestClass2", "TestClass3")
+    .when()
+        .allFilesAreModifiedSimultaneously()
+    .then()
+        .eventSequence()
+            .startsWithType(ClassFileChanged.class)
+            .followedByType(BytecodeValidated.class)
+            .endsWithType(InstancesUpdated.class);
+#+end_src
+
+This comprehensive testing infrastructure enables ByteHot to maintain high quality through sophisticated event-driven testing that matches the architecture and patterns of the system being tested.

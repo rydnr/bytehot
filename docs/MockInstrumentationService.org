@@ -1,0 +1,164 @@
+#+TITLE: MockInstrumentationService
+#+DATE: 2025-06-24
+#+AUTHOR: ByteHot Development Team
+
+* MockInstrumentationService Class
+
+** Overview
+
+=MockInstrumentationService= is a mock implementation of =InstrumentationService= for testing purposes. It provides configurable behavior for different test scenarios and tracks method calls for verification.
+
+** Package Structure
+
+#+begin_src java
+package org.acmsl.bytehot.domain.testing;
+#+end_src
+
+** Class Hierarchy
+
+- Implements: =InstrumentationService=
+- Used by: Test classes for mocking instrumentation behavior
+
+** Responsibilities
+
+- Mock implementation of =InstrumentationService= for testing
+- Provides configurable behavior for different test scenarios
+- Records method calls for test verification
+- Simulates various instrumentation capabilities and failures
+
+** Key Attributes
+
+*** Capability Configuration
+- =redefineClassesSupported=: Whether redefinition is supported (default: true)
+- =retransformClassesSupported=: Whether retransformation is supported (default: true)
+
+*** Mock Data Storage
+- =loadedClasses=: Map of mock loaded classes (className -> Class)
+- =modifiableClasses=: Map tracking which classes are modifiable (className -> boolean)
+
+*** Call Recording
+- =redefinitionCalls=: List of =ClassDefinition= objects passed to redefinition methods
+- Records all calls for test verification
+
+*** Failure Simulation
+- =shouldFailRedefinition=: Whether to throw exception on redefinition
+- =redefinitionException=: Specific exception to throw on redefinition failure
+
+** Core Methods
+
+*** Capability Queries
+- =isRedefineClassesSupported()=: Returns configured redefinition support
+- =isRetransformClassesSupported()=: Returns configured retransformation support
+- =isModifiableClass(Class<?>)=: Returns configured modifiability for class
+
+*** Class Management
+- =getAllLoadedClasses()=: Returns array of mock loaded classes
+- =findLoadedClass(String)=: Finds mock loaded class by name
+- =getInstrumentation()=: Returns null (mock implementation)
+
+*** Redefinition Operations
+- =redefineClasses(ClassDefinition...)=: Records calls and optionally throws exceptions
+- =redefineClass(Class<?>, byte[])=: Convenience method that delegates to redefineClasses
+
+** Configuration Methods
+
+*** Mock Data Setup
+- =addLoadedClass(String, Class<?>)=: Adds a mock loaded class for testing
+- =setClassModifiable(String, boolean)=: Sets whether a class is modifiable
+
+*** Capability Configuration
+- =setRedefineClassesSupported(boolean)=: Configures redefinition support
+- =setRetransformClassesSupported(boolean)=: Configures retransformation support
+
+*** Failure Simulation
+- =setShouldFailRedefinition(boolean)=: Configures whether redefinition should fail
+- =setRedefinitionException(HotSwapException)=: Sets specific exception to throw
+
+*** State Management
+- =reset()=: Clears all recorded calls and resets to default state
+
+** Testing Patterns
+
+*** Success Scenarios
+Configure mock to simulate successful instrumentation operations:
+
+#+begin_src java
+MockInstrumentationService mock = new MockInstrumentationService();
+mock.addLoadedClass("com.example.MyClass", MyClass.class);
+mock.setClassModifiable("com.example.MyClass", true);
+#+end_src
+
+*** Capability Limitations
+Test behavior when instrumentation capabilities are limited:
+
+#+begin_src java
+mock.setRedefineClassesSupported(false);
+mock.setRetransformClassesSupported(false);
+#+end_src
+
+*** Failure Simulation
+Test error handling when redefinition fails:
+
+#+begin_src java
+mock.setShouldFailRedefinition(true);
+mock.setRedefinitionException(new HotSwapException("Simulated failure"));
+#+end_src
+
+*** Call Verification
+Verify that methods were called with expected parameters:
+
+#+begin_src java
+// Perform operations
+service.redefineClass(MyClass.class, newBytecode);
+
+// Verify calls
+List<ClassDefinition> calls = mock.getRedefinitionCalls();
+assertEquals(1, calls.size());
+assertEquals(MyClass.class, calls.get(0).getDefinitionClass());
+#+end_src
+
+** Usage in Tests
+
+*** Unit Testing
+Used in unit tests to isolate components from actual JVM instrumentation.
+
+*** Integration Testing
+Provides controlled environment for testing instrumentation-dependent features.
+
+*** Error Scenario Testing
+Enables testing of error handling and recovery mechanisms.
+
+*** Performance Testing
+Allows testing without actual instrumentation overhead.
+
+** Design Considerations
+
+*** State Tracking
+Maintains comprehensive state for verification of test expectations.
+
+*** Configurable Behavior
+Supports wide range of test scenarios through configuration options.
+
+*** Call Recording
+Records all method calls for detailed test verification.
+
+*** Reset Capability
+Provides clean slate between tests through reset method.
+
+** Dependencies
+
+- =InstrumentationService=: Interface being mocked
+- =HotSwapException=: Exception type for failure simulation
+- =ClassDefinition=: JVM instrumentation API class
+- =Instrumentation=: JVM instrumentation API interface
+- Lombok annotations for getter/setter generation
+- Java collections for state management
+
+** Testing Considerations
+
+- Test all configuration options and their effects
+- Verify call recording accuracy
+- Test reset functionality thoroughly
+- Validate failure simulation behavior
+- Test boundary conditions for class management
+- Ensure thread safety if used in concurrent tests

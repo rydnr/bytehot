@@ -79,15 +79,18 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - Event serialization and filesystem organization
 - `JsonClassFileChanged` - DTO pattern for domain purity
 
-#### [Milestone 6B: Event-Driven Testing Framework](milestone-6b-event-driven-testing.md) 📋 PLANNED
+#### [Milestone 6B: Event-Driven Testing Framework](milestone-6b-event-driven-testing.md) ✅ COMPLETED
 **Objective:** Revolutionary Given/When/Then testing with events
+**Status:** ✅ Implemented and tested with comprehensive framework integration
 **Walking Skeleton Value:** Transforms testing to be event-centric and enables bug reproduction
 **Key Components:**
-- `EventDrivenTestSupport` - Base class for event-driven tests
-- `GivenStage` - Build system state from events
-- `WhenStage` - Send events under test
-- `ThenStage` - Verify expected resulting events
-- `BugReport` - Automatic bug reproduction from event snapshots
+- `EventDrivenTestSupport` - Base class for event-driven tests ✅
+- `GivenStage` - Build system state from events ✅
+- `WhenStage` - Send events under test ✅
+- `ThenStage` - Verify expected resulting events ✅
+- `BugReport` - Automatic bug reproduction from event snapshots ✅
+- `InMemoryEventStoreAdapter` - Test-specific event storage ✅
+- Complete integration tests demonstrating framework capabilities ✅
 
 #### [Milestone 6C: User Management Domain](milestone-6c-user-management.md) 📋 PLANNED
 **Objective:** User-aware operations with auto-discovery and preferences
@@ -231,11 +234,12 @@ All development follows strict TDD methodology with emoji-based commit conventio
 - **Milestone 6A:** Basic EventSourcing Infrastructure - 10/11 EventStore tests passing
 - **Milestone 6E:** GitHub Actions CI/CD Pipeline Setup - Complete automated workflows
 - **Milestone 6F:** Flow Detection - Complete flow detection with java-commons framework extraction
+- **Milestone 6C:** User Management Domain - ✅ Complete user-aware operations with context propagation
+- **Milestone 7:** Documentation Introspection - ✅ Complete self-documenting runtime system with flow detection
+- **Milestone 6B:** Event-Driven Testing Framework - ✅ Complete Given/When/Then testing with bug reproduction
 - **Milestone 6G:** Java-Commons Refactoring - ✅ Partially complete (major frameworks extracted)
 
 ### 📋 Next Steps (Walking Skeleton Approach)
-- **Milestone 6B:** Event-Driven Testing Framework - Revolutionary testing approach (Framework extracted, integration pending)
-- **Milestone 6C:** User Management Domain - User-aware operations
 - **Milestone 6D:** Event-Driven Bug Reporting - Exception-based reproduction
 - **Milestone 6G:** Complete Java-Commons Refactoring - Remaining architecture components
 

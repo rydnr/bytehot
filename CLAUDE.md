@@ -72,3 +72,6 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 ### CI/CD Workflows
 - CI/CD workflows shouldn't create complete documents on the fly. Instead, they should convert existing files and do certain transformations on them if necessary. Exceptions are headers and footers, css, javascript, or index files.
 - CI/CD pipeline definitions should delegate all logic to scripts. Don't use inline shell snippets.
+
+### Import Guidelines
+- No static imports or wildcard imports are allowed. If possible, group imports by their top-level groups.

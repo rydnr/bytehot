@@ -1,0 +1,362 @@
+#+TITLE: DocumentationRequested - Capturing Documentation Needs with Context
+#+AUTHOR: Claude Code  
+#+DATE: 2025-06-24
+
+* Introduction
+
+The =DocumentationRequested= event represents a fundamental shift in how systems understand their own documentation needs. Rather than treating documentation as a static resource, this event captures the dynamic context of when, why, and how documentation is requested, enabling intelligent, adaptive documentation generation.
+
+* Class Overview
+
+=DocumentationRequested= extends =AbstractVersionedDomainEvent= and serves as the primary entry point for all documentation-related workflows in ByteHot. It captures not just /what/ documentation is needed, but the complete context surrounding that need.
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationRequested.java
+/*
+                        ByteHot
+
+    Copyright (C) 2025-today  rydnr@acm-sl.org
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU General Public
+    License as published by the Free Software Foundation; either
+    version 3 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    General Public License for more details.
+
+    You should have received a copy of the GNU General Public v3
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+    Thanks to ACM S.L. for distributing this library under the GPLv3 license.
+    Contact info: jose.sanleandro@acm-sl.com
+
+ ******************************************************************************
+ *
+ * Filename: DocumentationRequested.java
+ *
+ * Author: Claude Code
+ *
+ * Class name: DocumentationRequested
+ *
+ * Responsibilities:
+ *   - Represent when a component requests its documentation URL
+ *   - Capture context about the documentation request
+ *   - Enable documentation usage tracking and analysis
+ *
+ * Collaborators:
+ *   - AbstractVersionedDomainEvent: Base class providing event metadata
+ *   - DocumentationType: Specifies the type of documentation requested
+ *   - Flow: Optional flow context for contextual documentation
+ */
+package org.acmsl.bytehot.domain.events;
+
+import org.acmsl.bytehot.domain.DocumentationType;
+import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.bytehot.domain.Flow;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
+import java.time.Instant;
+import java.util.Optional;
+
+/**
+ * Event triggered when a component requests its documentation URL.
+ * This event enables tracking of documentation usage patterns and provides
+ * context for generating appropriate documentation links.
+ * @author Claude Code
+ * @since 2025-06-24
+ */
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public final class DocumentationRequested 
+    extends AbstractVersionedDomainEvent {
+#+end_src
+
+* Core Attributes and Context Capture
+
+The class captures multiple dimensions of context to enable intelligent documentation generation:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationRequested.java
+    /**
+     * The class requesting documentation.
+     */
+    @Getter
+    private final Class<?> requestingClass;
+
+    /**
+     * Optional method name for method-specific documentation.
+     */
+    @Getter
+    private final Optional<String> methodName;
+
+    /**
+     * Type of documentation being requested.
+     */
+    @Getter
+    private final DocumentationType documentationType;
+
+    /**
+     * Optional explicit flow context for contextual documentation.
+     */
+    @Getter
+    private final Optional<Flow> explicitFlowContext;
+
+    /**
+     * ID of the user requesting documentation.
+     */
+    @Getter
+    private final String requestingUserId;
+
+    /**
+     * Timestamp when the documentation was requested.
+     */
+    @Getter
+    private final Instant requestedAt;
+#+end_src
+
+** Context Dimensions
+
+*** Class Context
+The =requestingClass= provides the fundamental context - which class needs documentation. This enables class-specific URL generation and allows the system to understand usage patterns at the class level.
+
+*** Method Context  
+When =methodName= is present, the request becomes method-specific. This enables fine-grained documentation that can explain specific method behavior, parameters, and usage patterns.
+
+*** Flow Context
+The =explicitFlowContext= represents the most sophisticated form of context capture. When a =Flow= is provided, the documentation system can generate content that is specifically relevant to the detected runtime pattern, providing contextual examples and explanations.
+
+*** User Context
+The =requestingUserId= enables personalization and analytics. Different users may need different types of documentation, and tracking user patterns enables system optimization.
+
+*** Temporal Context
+The =requestedAt= timestamp enables time-based analytics and cache effectiveness measurement.
+
+* Factory Methods and Creation Patterns
+
+The class provides three primary factory methods, each optimized for different contexts:
+
+#+begin_src java :tangle ../bytehot-domain/src/main/java/org/acmsl/bytehot/domain/events/DocumentationRequested.java
+    /**
+     * Creates a new DocumentationRequested event.
+     * @param metadata event metadata
+     * @param requestingClass the class requesting documentation
+     * @param methodName optional method name for method-specific documentation
+     * @param documentationType type of documentation being requested
+     * @param explicitFlowContext optional explicit flow context
+     * @param requestingUserId ID of the user requesting documentation
+     * @param requestedAt timestamp when the documentation was requested
+     */
+    public DocumentationRequested(
+        final EventMetadata metadata,
+        final Class<?> requestingClass,
+        final Optional<String> methodName,
+        final DocumentationType documentationType,
+        final Optional<Flow> explicitFlowContext,
+        final String requestingUserId,
+        final Instant requestedAt
+    ) {
+        super(metadata);
+        this.requestingClass = requestingClass;
+        this.methodName = methodName;
+        this.documentationType = documentationType;
+        this.explicitFlowContext = explicitFlowContext;
+        this.requestingUserId = requestingUserId;
+        this.requestedAt = requestedAt;
+    }
+
+    /**
+     * Factory method for creating a basic class documentation request.
+     * @param requestingClass the class requesting documentation
+     * @param requestingUserId ID of the user requesting documentation
+     * @return new DocumentationRequested event
+     */
+    public static DocumentationRequested forClass(
+        final Class<?> requestingClass,
+        final String requestingUserId
+    ) {
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "documentation", 
+            requestingClass.getSimpleName()
+        );
+        
+        return new DocumentationRequested(
+            metadata,
+            requestingClass,
+            Optional.empty(),
+            DocumentationType.BASIC,
+            Optional.empty(),
+            requestingUserId,
+            Instant.now()
+        );
+    }
+
+    /**
+     * Factory method for creating a method-specific documentation request.
+     * @param requestingClass the class containing the method
+     * @param methodName name of the method requesting documentation
+     * @param requestingUserId ID of the user requesting documentation
+     * @return new DocumentationRequested event
+     */
+    public static DocumentationRequested forMethod(
+        final Class<?> requestingClass,
+        final String methodName,
+        final String requestingUserId
+    ) {
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "documentation", 
+            requestingClass.getSimpleName() + "." + methodName
+        );
+        
+        return new DocumentationRequested(
+            metadata,
+            requestingClass,
+            Optional.of(methodName),
+            DocumentationType.METHOD,
+            Optional.empty(),
+            requestingUserId,
+            Instant.now()
+        );
+    }
+
+    /**
+     * Factory method for creating a contextual documentation request with flow context.
+     * @param requestingClass the class requesting documentation
+     * @param flowContext the flow context for contextual documentation
+     * @param requestingUserId ID of the user requesting documentation
+     * @return new DocumentationRequested event
+     */
+    public static DocumentationRequested forContextualFlow(
+        final Class<?> requestingClass,
+        final Flow flowContext,
+        final String requestingUserId
+    ) {
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "documentation", 
+            requestingClass.getSimpleName() + "@" + flowContext.getName()
+        );
+        
+        return new DocumentationRequested(
+            metadata,
+            requestingClass,
+            Optional.empty(),
+            DocumentationType.CONTEXTUAL,
+            Optional.of(flowContext),
+            requestingUserId,
+            Instant.now()
+        );
+    }
+}
+#+end_src
+
+** Factory Method Design Philosophy
+
+*** =forClass()= - Basic Documentation Needs
+The simplest factory method for when a class needs its standard documentation. This triggers =DocumentationType.BASIC= and creates an aggregate ID using just the class name.
+
+*** =forMethod()= - Method-Specific Documentation  
+When method-level documentation is needed, this factory creates a more specific aggregate ID by combining class and method names (=ClassName.methodName=). This enables precise tracking and caching at the method level.
+
+*** =forContextualFlow()= - Flow-Aware Documentation
+The most sophisticated factory method that captures runtime flow context. The aggregate ID includes the flow name (=ClassName@FlowName=), enabling the system to generate documentation that is specifically relevant to the detected execution pattern.
+
+* Aggregate and Event Sourcing Design
+
+** Aggregate Identification Strategy
+The class uses sophisticated aggregate ID generation that captures the specificity of the request:
+- Basic requests: =ClassName=
+- Method requests: =ClassName.methodName=  
+- Contextual requests: =ClassName@FlowName=
+
+This strategy enables precise event sourcing reconstruction and efficient caching strategies.
+
+** Event Versioning and Evolution
+As a =AbstractVersionedDomainEvent=, the class participates in the complete EventSourcing infrastructure, enabling:
+- Complete audit trails of documentation requests
+- Temporal analysis of documentation usage patterns
+- Correlation with other system events for comprehensive analytics
+
+* Integration with Documentation Generation Pipeline
+
+This event serves as the trigger for the entire documentation generation pipeline:
+
+#+begin_example
+DocumentationRequested → Flow Detection → Cache Check → URL Generation → Analytics
+#+end_example
+
+** Downstream Event Chain
+1. =FlowContextDetected= - If runtime flow analysis is needed
+2. =DocumentationCacheHit= or =DocumentationCacheMiss= - Cache effectiveness tracking
+3. =DocumentationLinkGenerated= - Final URL generation with performance metrics
+4. =DocumentationAnalyticsEvent= - Aggregated system health and usage analytics
+
+* Usage Patterns and Analytics
+
+The event enables sophisticated analytics through its rich context capture:
+
+** User-Level Analytics
+- Documentation request frequency per user
+- Preferred documentation types by user
+- Context complexity preferences (basic vs. contextual)
+
+** Class-Level Analytics  
+- Most frequently documented classes
+- Documentation type distribution per class
+- Correlation between class complexity and documentation requests
+
+** Flow-Level Analytics
+- Which flows trigger the most documentation requests
+- Effectiveness of contextual documentation in different flows
+- Flow complexity correlation with documentation needs
+
+* Invariants and Design Constraints
+
+** Immutability Guarantee
+All attributes are =final= and collections are defensively copied, ensuring thread safety and preventing accidental mutation after creation.
+
+** Optional Handling Strategy
+The class uses =Optional= consistently for nullable values, making the API explicit about what context may or may not be available.
+
+** Temporal Consistency
+The =requestedAt= timestamp is captured at creation time using =Instant.now()=, ensuring accurate temporal ordering in event sourcing scenarios.
+
+* Performance Considerations
+
+** Memory Efficiency
+The class maintains minimal memory footprint by:
+- Using =Optional= instead of null references to avoid null checks
+- Immutable design preventing defensive copying in most scenarios
+- Efficient aggregate ID generation reducing string concatenation overhead
+
+** Creation Performance
+Factory methods are optimized for common use cases:
+- =forClass()= for the majority of documentation requests
+- =forMethod()= for targeted method documentation  
+- =forContextualFlow()= for sophisticated flow-aware scenarios
+
+* Future Extension Points
+
+The class is designed for future enhancement:
+
+** Additional Context Types
+The =DocumentationType= enum can be extended with new types without breaking existing functionality.
+
+** Enhanced Flow Integration
+The =Flow= integration can be enhanced with more sophisticated pattern detection and contextual analysis.
+
+** Personalization Capabilities
+The user context can be enhanced with preferences, role information, and behavioral patterns.
+
+* Testing Strategy
+
+The class supports comprehensive testing through:
+- Multiple factory methods enabling diverse test scenarios
+- Immutable design simplifying test verification
+- Rich context capture enabling complex integration testing
+- Clear separation of concerns enabling focused unit testing
+
+This design makes =DocumentationRequested= not just an event, but a sophisticated context capture mechanism that enables ByteHot to understand and optimize its own documentation generation capabilities continuously.
