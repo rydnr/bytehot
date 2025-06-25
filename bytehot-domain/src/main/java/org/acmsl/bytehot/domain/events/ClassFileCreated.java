@@ -58,28 +58,28 @@ public class ClassFileCreated implements DomainEvent {
 
     /**
      * The path to the created .class file
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The name of the class (extracted from filename)
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * The size of the newly created file
-     * @return the file size in bytes
+    
      */
     @Getter
     private final long fileSize;
 
     /**
      * The timestamp when the creation was detected
-     * @return the timestamp
+    
      */
     @Getter
     private final Instant timestamp;

@@ -58,35 +58,35 @@ public class BytecodeValidated implements DomainEvent {
 
     /**
      * The path to the validated .class file
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The name of the validated class
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * Whether the bytecode is valid for hot-swap operations
-     * @return true if valid for hot-swap
+    
      */
     @Getter
     private final boolean validForHotSwap;
 
     /**
      * Details about the validation process
-     * @return validation details
+    
      */
     @Getter
     private final String validationDetails;
 
     /**
      * The timestamp when the validation was completed
-     * @return the timestamp
+    
      */
     @Getter
     private final Instant timestamp;

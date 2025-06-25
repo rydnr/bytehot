@@ -59,42 +59,42 @@ public class ClassRedefinitionSucceeded implements DomainEvent {
 
     /**
      * The name of the redefined class
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * The source file that was hot-swapped
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The number of existing instances that were updated
-     * @return the number of affected instances
+    
      */
     @Getter
     private final int affectedInstances;
 
     /**
      * Technical details about the redefinition operation
-     * @return the redefinition details
+    
      */
     @Getter
     private final String redefinitionDetails;
 
     /**
      * The time taken for the redefinition operation
-     * @return the duration
+    
      */
     @Getter
     private final Duration duration;
 
     /**
      * The timestamp when redefinition completed
-     * @return the timestamp
+    
      */
     @Getter
     private final Instant timestamp;

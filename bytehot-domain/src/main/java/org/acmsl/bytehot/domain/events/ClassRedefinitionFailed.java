@@ -58,42 +58,42 @@ public class ClassRedefinitionFailed implements DomainEvent {
 
     /**
      * The name of the class that failed to redefine
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * The source file that failed to hot-swap
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The reason why the JVM rejected the redefinition
-     * @return the failure reason
+    
      */
     @Getter
     private final String failureReason;
 
     /**
      * The original JVM error message
-     * @return the JVM error message
+    
      */
     @Getter
     private final String jvmError;
 
     /**
      * The suggested action for resolution
-     * @return the recovery action
+    
      */
     @Getter
     private final String recoveryAction;
 
     /**
      * The timestamp when redefinition failed
-     * @return the timestamp
+    
      */
     @Getter
     private final Instant timestamp;

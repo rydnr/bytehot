@@ -59,49 +59,49 @@ public class ClassMetadataExtracted implements DomainEvent {
 
     /**
      * The path to the analyzed .class file
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The fully qualified name of the class
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * The fully qualified name of the superclass
-     * @return the superclass name
+    
      */
     @Getter
     private final String superClassName;
 
     /**
      * The list of implemented interfaces
-     * @return the interfaces list
+    
      */
     @Getter
     private final List<String> interfaces;
 
     /**
      * The list of declared fields
-     * @return the fields list
+    
      */
     @Getter
     private final List<String> fields;
 
     /**
      * The list of declared methods
-     * @return the methods list
+    
      */
     @Getter
     private final List<String> methods;
 
     /**
      * The timestamp when the metadata was extracted
-     * @return the timestamp
+    
      */
     @Getter
     private final Instant timestamp;

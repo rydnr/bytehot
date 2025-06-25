@@ -59,49 +59,49 @@ public class HotSwapRequested extends AbstractVersionedDomainEvent implements Do
 
     /**
      * The path to the .class file being hot-swapped
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The fully qualified name of the class being hot-swapped
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * The current bytecode in the JVM
-     * @return the original bytecode
+    
      */
     @Getter
     private final byte[] originalBytecode;
 
     /**
      * The new bytecode to install
-     * @return the new bytecode
+    
      */
     @Getter
     private final byte[] newBytecode;
 
     /**
      * The reason why hot-swap was requested
-     * @return the request reason
+    
      */
     @Getter
     private final String requestReason;
 
     /**
      * The timestamp when hot-swap was requested
-     * @return the timestamp
+    
      */
     @Getter
     private final Instant timestamp;
 
     /**
      * The original event that triggered this hot-swap request
-     * @return the preceding event
+    
      */
     private final ClassFileChanged preceding;
 
@@ -138,7 +138,7 @@ public class HotSwapRequested extends AbstractVersionedDomainEvent implements Do
 
     /**
      * Returns the preceding event that triggered this hot-swap request
-     * @return the preceding ClassFileChanged event
+    
      */
     @Override
     public ClassFileChanged getPreceding() {
@@ -151,7 +151,7 @@ public class HotSwapRequested extends AbstractVersionedDomainEvent implements Do
      * 
      * @param fileChangeEvent the original file change event
      * @param sessionId the monitoring session ID (used as request reason)
-     * @return a new HotSwapRequested event
+    
      */
     public static HotSwapRequested fromFileChange(ClassFileChanged fileChangeEvent, String sessionId) {
         // For the demonstration, create placeholder bytecode

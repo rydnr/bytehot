@@ -56,28 +56,24 @@ public class ClassFileChanged extends AbstractVersionedDomainEvent {
 
     /**
      * The path to the modified .class file
-     * @return the class file path
      */
     @Getter
     private final Path classFile;
 
     /**
      * The name of the class (extracted from filename)
-     * @return the class name
      */
     @Getter
     private final String className;
 
     /**
      * The size of the file after modification
-     * @return the file size in bytes
      */
     @Getter
     private final long fileSize;
 
     /**
      * The timestamp when the change was detected (domain-specific, different from event timestamp)
-     * @return the file change detection timestamp
      */
     @Getter
     private final Instant detectionTimestamp;

@@ -56,41 +56,50 @@ public class BytecodeRejected extends AbstractVersionedDomainEvent {
 
     /**
      * The path to the rejected .class file
-     * @return the class file path
      */
     @Getter
     private final Path classFile;
 
     /**
      * The name of the rejected class
-     * @return the class name
      */
     @Getter
     private final String className;
 
     /**
      * Whether the bytecode is valid for hot-swap operations (always false for rejected bytecode)
-     * @return false for rejected bytecode
      */
     @Getter
     private final boolean validForHotSwap;
 
     /**
      * The reason why the bytecode was rejected
-     * @return rejection reason
      */
     @Getter
     private final String rejectionReason;
 
     /**
      * The timestamp when the rejection occurred
-     * @return the detection timestamp
      */
     @Getter
     private final Instant detectionTimestamp;
 
     /**
      * Constructor with all EventSourcing metadata
+     * @param eventId the unique event identifier
+     * @param aggregateType the type of aggregate this event belongs to
+     * @param aggregateId the unique identifier of the aggregate
+     * @param aggregateVersion the version of the aggregate after this event
+     * @param timestamp the timestamp when this event occurred
+     * @param previousEventId the ID of the previous event in the aggregate stream
+     * @param schemaVersion the version of the event schema
+     * @param userId the identifier of the user who triggered this event
+     * @param correlationId the correlation identifier for tracking related events
+     * @param classFile the path to the rejected .class file
+     * @param className the name of the rejected class
+     * @param validForHotSwap whether the bytecode is valid for hot-swap (always false)
+     * @param rejectionReason the reason why the bytecode was rejected
+     * @param detectionTimestamp the timestamp when the rejection was detected
      */
     public BytecodeRejected(
         String eventId,
@@ -119,6 +128,12 @@ public class BytecodeRejected extends AbstractVersionedDomainEvent {
 
     /**
      * Constructor using EventMetadata
+     * @param metadata the event metadata containing EventSourcing information
+     * @param classFile the path to the rejected .class file
+     * @param className the name of the rejected class
+     * @param validForHotSwap whether the bytecode is valid for hot-swap (always false)
+     * @param rejectionReason the reason why the bytecode was rejected
+     * @param detectionTimestamp the timestamp when the rejection was detected
      */
     public BytecodeRejected(
         EventMetadata metadata,
@@ -138,6 +153,11 @@ public class BytecodeRejected extends AbstractVersionedDomainEvent {
 
     /**
      * Factory method to create a BytecodeRejected event for a new validation session
+     * @param classFile the path to the rejected .class file
+     * @param className the name of the rejected class
+     * @param rejectionReason the reason why the bytecode was rejected
+     * @param detectionTimestamp the timestamp when the rejection was detected
+     * @return a new BytecodeRejected event instance
      */
     public static BytecodeRejected forNewSession(
         Path classFile,

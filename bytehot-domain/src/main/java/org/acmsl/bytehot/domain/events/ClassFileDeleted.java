@@ -56,21 +56,21 @@ public class ClassFileDeleted extends AbstractVersionedDomainEvent {
 
     /**
      * The path to the deleted .class file
-     * @return the class file path
+    
      */
     @Getter
     private final Path classFile;
 
     /**
      * The name of the class (extracted from filename)
-     * @return the class name
+    
      */
     @Getter
     private final String className;
 
     /**
      * When the deletion was detected
-     * @return the detection timestamp
+    
      */
     @Getter
     private final Instant detectionTimestamp;
