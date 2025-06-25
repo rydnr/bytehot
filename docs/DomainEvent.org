@@ -1,0 +1,159 @@
+#+TITLE: DomainEvent Interface - Event-Driven Architecture Foundation
+#+AUTHOR: ByteHot Development Team  
+#+DATE: 2025-06-25
+
+* Overview
+
+The =DomainEvent= interface serves as the fundamental building block of ByteHot's event-driven architecture, providing a clean marker interface that identifies all domain events within the system.
+
+* Design Philosophy
+
+** Marker Interface Pattern
+The =DomainEvent= interface follows the marker interface pattern, containing no methods but serving as a powerful type indicator that:
+
+- Identifies objects as domain events in the type system
+- Enables compile-time type safety for event processing
+- Provides a common ancestor for all domain events
+- Supports generic event handling patterns
+
+** Simplicity by Design
+The interface's intentional simplicity reflects several architectural principles:
+
+#+BEGIN_SRC java
+public interface DomainEvent {
+    // Intentionally empty - marker interface
+}
+#+END_SRC
+
+This minimal design:
+- Avoids imposing structure on concrete implementations
+- Allows maximum flexibility in event design
+- Enables different event patterns (simple POJOs, records, complex objects)
+- Maintains backward compatibility as the system evolves
+
+* Event Architecture
+
+** Type Hierarchy
+=DomainEvent= serves as the root of ByteHot's event type hierarchy:
+
+- =DomainEvent= (base marker)
+  - =VersionedDomainEvent= (EventSourcing events with metadata)
+  - =DomainResponseEvent= (response events from application layer)
+  - Concrete event implementations (ClassFileChanged, BytecodeValidated, etc.)
+
+** Event Processing Flow
+Domain events flow through ByteHot's architecture following this pattern:
+
+1. **Event Generation** - Infrastructure adapters create domain events
+2. **Event Transport** - Events flow to the application layer
+3. **Event Processing** - Application layer processes events and generates responses
+4. **Event Distribution** - Response events trigger further actions
+
+* Implementation Patterns
+
+** Concrete Event Design
+Concrete implementations typically follow these patterns:
+
+#+BEGIN_SRC java
+// Simple event with data
+public record ClassFileChanged(
+    String className,
+    Path filePath,
+    Instant timestamp
+) implements DomainEvent {}
+
+// Complex event with behavior
+public class BytecodeValidationFailed implements DomainEvent {
+    private final String className;
+    private final List<ValidationError> errors;
+    // ... methods and logic
+}
+#+END_SRC
+
+** Event Metadata
+While the base interface is minimal, implementations often include:
+- Timestamp information for ordering and audit trails
+- Correlation IDs for tracing related events
+- User context for security and audit purposes
+- Causal relationships for event sourcing patterns
+
+* ByteHot Event Types
+
+** Core Hot-Swap Events
+- =ClassFileChanged= - File system modification detected
+- =BytecodeValidated= - Bytecode passes validation checks
+- =ClassRedefinitionRequested= - Request to redefine class
+- =ClassRedefinitionSucceeded= - Successful class update
+- =InstancesUpdated= - Existing instances updated
+
+** Framework Integration Events
+- =SpringContextRefreshed= - Spring container updates
+- =CDIContainerNotified= - CDI context coordination
+- =GuiceInjectorUpdated= - Guice binding refresh
+
+** Error and Recovery Events
+- =ValidationFailed= - Bytecode validation errors
+- =RedefinitionFailed= - JVM redefinition rejection
+- =RollbackInitiated= - Recovery process started
+- =SystemRecovered= - Successful recovery completion
+
+* Event Sourcing Integration
+
+** VersionedDomainEvent Extension
+Events implementing =VersionedDomainEvent= gain additional capabilities:
+- Aggregate association and versioning
+- Causal chain tracking
+- Audit trail support
+- Time-travel debugging capabilities
+
+** Event Store Compatibility
+All domain events can be:
+- Persisted to event stores for audit trails
+- Replayed for system recovery
+- Analyzed for bug reproduction
+- Used in time-travel debugging scenarios
+
+* Benefits
+
+** Architectural Clarity
+- Clear separation between events and other objects
+- Type-safe event processing throughout the system
+- Consistent event handling patterns
+
+** Flexibility
+- No constraints on event implementation approach
+- Support for both simple and complex event patterns
+- Evolution compatibility as requirements change
+
+** Integration
+- Works seamlessly with Java's type system
+- Enables generic event processing utilities
+- Supports pattern matching in modern Java versions
+
+* Testing Support
+
+The =DomainEvent= interface enables comprehensive testing patterns:
+
+** Event-Driven Testing
+#+BEGIN_SRC java
+// Given - create test events
+DomainEvent fileChanged = new ClassFileChanged("com.example.Service", path, now);
+
+// When - process through application
+List<DomainResponseEvent<?>> responses = application.accept(fileChanged);
+
+// Then - verify expected responses
+assertThat(responses).containsExactly(expectedValidationEvent);
+#+END_SRC
+
+** Mock and Stub Creation
+The marker interface pattern simplifies test event creation and enables comprehensive scenario testing without complex setup.
+
+* Related Components
+
+- =VersionedDomainEvent= - Extended interface for EventSourcing patterns
+- =DomainResponseEvent= - Response events generated by application processing
+- =Application= - Primary consumer of domain events
+- =EventSnapshotGenerator= - Captures event context for debugging
+
+This interface represents the foundation of ByteHot's event-driven architecture, enabling powerful patterns while maintaining simplicity and flexibility.

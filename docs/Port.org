@@ -1,0 +1,231 @@
+#+TITLE: Port Interface - Hexagonal Architecture Abstraction  
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-25
+
+* Overview
+
+The =Port= interface serves as the fundamental abstraction in ByteHot's hexagonal architecture, marking interfaces that define contracts between the domain layer and external systems without coupling to specific implementations.
+
+* Hexagonal Architecture Role
+
+** Ports and Adapters Pattern
+The =Port= interface embodies the core principle of hexagonal architecture:
+
+- **Ports** (interfaces) define what the domain needs from the outside world
+- **Adapters** (implementations) provide concrete integrations with external systems
+- **Domain** remains pure, depending only on port abstractions
+
+** Abstraction Boundary
+Ports create a clean boundary that enables:
+
+#+BEGIN_SRC java
+// Domain depends on abstraction
+public class HotSwapManager {
+    private final InstrumentationPort instrumentation;
+    private final FileWatcherPort fileWatcher;
+    
+    // Domain logic uses ports, never adapters directly
+}
+#+END_SRC
+
+This pattern ensures the domain layer never depends on infrastructure concerns.
+
+* Design Philosophy
+
+** Marker Interface Pattern
+Like =DomainEvent=, the =Port= interface follows the marker pattern:
+
+#+BEGIN_SRC java
+public interface Port {
+    // Intentionally empty - marker interface
+}
+#+END_SRC
+
+This minimal design:
+- Identifies port interfaces in the type system
+- Enables automatic discovery and registration
+- Provides compile-time verification of architectural purity
+- Supports generic port resolution mechanisms
+
+** Dependency Inversion
+Ports implement the Dependency Inversion Principle by:
+- High-level domain modules depending on abstractions (ports)
+- Low-level infrastructure modules implementing those abstractions (adapters)
+- Abstractions not depending on details
+- Details depending on abstractions
+
+* ByteHot Port Types
+
+** Primary Ports (Domain Entry Points)
+Primary ports represent ways the outside world interacts with the domain:
+
+- =ApplicationPort= - Entry point for external commands
+- =EventHandlerPort= - Processing of external events
+- =QueryPort= - Read-only domain queries
+
+** Secondary Ports (Domain Dependencies)
+Secondary ports represent what the domain needs from external systems:
+
+- =InstrumentationPort= - JVM bytecode manipulation
+- =FileWatcherPort= - File system monitoring
+- =ConfigurationPort= - System configuration access
+- =EventEmitterPort= - Event publication
+- =EventStorePort= - Event persistence
+
+* Port Implementation Patterns
+
+** Interface Definition
+Ports define clear contracts without implementation details:
+
+#+BEGIN_SRC java
+public interface InstrumentationPort extends Port {
+    /**
+     * Redefines a class with new bytecode
+     * @param className the class to redefine
+     * @param bytecode the new bytecode
+     * @return success/failure result
+     */
+    RedefinitionResult redefineClass(String className, byte[] bytecode);
+    
+    /**
+     * Checks if class redefinition is supported
+     * @return true if redefinition is available
+     */
+    boolean isRedefinitionSupported();
+}
+#+END_SRC
+
+** Adapter Implementation
+Infrastructure adapters implement ports with concrete technology:
+
+#+BEGIN_SRC java
+public class JVMInstrumentationAdapter implements InstrumentationPort {
+    private final Instrumentation instrumentation;
+    
+    @Override
+    public RedefinitionResult redefineClass(String className, byte[] bytecode) {
+        // JVM-specific implementation using java.lang.instrument
+    }
+}
+#+END_SRC
+
+* Port Discovery and Resolution
+
+** Dynamic Discovery
+ByteHot uses the =Port= marker interface to enable automatic discovery:
+
+#+BEGIN_SRC java
+// Classpath scanning finds all Port implementations
+List<Class<?>> portClasses = findClassesImplementing(Port.class);
+
+// Automatic registration with PortResolver
+for (Class<?> portClass : portClasses) {
+    registerPort(portClass);
+}
+#+END_SRC
+
+** Port Resolution
+The domain accesses ports through the =PortResolver=:
+
+#+BEGIN_SRC java
+// Domain code requests port by interface
+InstrumentationPort instrumentation = Ports.resolve(InstrumentationPort.class);
+
+// PortResolver provides the appropriate adapter
+RedefinitionResult result = instrumentation.redefineClass(className, bytecode);
+#+END_SRC
+
+* Testing Benefits
+
+** Test Doubles
+Ports enable comprehensive testing through test implementations:
+
+#+BEGIN_SRC java
+public class MockInstrumentationPort implements InstrumentationPort {
+    private final List<RedefinitionRequest> requests = new ArrayList<>();
+    
+    @Override
+    public RedefinitionResult redefineClass(String className, byte[] bytecode) {
+        requests.add(new RedefinitionRequest(className, bytecode));
+        return RedefinitionResult.success();
+    }
+    
+    public List<RedefinitionRequest> getRequests() {
+        return List.copyOf(requests);
+    }
+}
+#+END_SRC
+
+** Isolated Testing
+Domain logic can be tested without external dependencies:
+
+#+BEGIN_SRC java
+@Test
+void testHotSwapWorkflow() {
+    // Given - mock ports
+    MockInstrumentationPort instrumentation = new MockInstrumentationPort();
+    Ports.register(InstrumentationPort.class, instrumentation);
+    
+    // When - execute domain logic
+    HotSwapManager manager = new HotSwapManager();
+    manager.processClassChange("com.example.Service", newBytecode);
+    
+    // Then - verify port interactions
+    assertThat(instrumentation.getRequests()).hasSize(1);
+}
+#+END_SRC
+
+* Configuration Flexibility
+
+** Multiple Implementations
+Different adapters can be used based on context:
+
+- =JVMInstrumentationAdapter= - Standard JVM instrumentation
+- =MockInstrumentationAdapter= - Testing scenarios
+- =LoggingInstrumentationAdapter= - Development debugging
+- =RestrictedInstrumentationAdapter= - Security-constrained environments
+
+** Runtime Selection
+Port implementations can be selected at runtime:
+
+#+BEGIN_SRC java
+// Production
+if (isProductionEnvironment()) {
+    Ports.register(InstrumentationPort.class, new JVMInstrumentationAdapter());
+}
+// Testing  
+else {
+    Ports.register(InstrumentationPort.class, new MockInstrumentationAdapter());
+}
+#+END_SRC
+
+* Architectural Benefits
+
+** Clean Architecture
+- Domain remains focused on business logic
+- Infrastructure concerns isolated to adapters
+- Clear architectural boundaries enforced by type system
+
+** Testability
+- Complete domain testing without external dependencies
+- Easy mock and stub creation for all external interactions
+- Isolated unit testing of individual components
+
+** Flexibility
+- Multiple implementations for different environments
+- Runtime configuration of infrastructure concerns
+- Easy addition of new integration points
+
+** Maintainability
+- Changes to external systems isolated to adapters
+- Domain logic unaffected by infrastructure evolution
+- Clear contracts reduce coupling and increase cohesion
+
+* Related Components
+
+- =PortResolver= - Mechanism for discovering and providing port implementations
+- =CachingPortResolver= - Performance-optimized port resolution
+- =Adapter= - Marker interface for port implementations
+- =Application= - Primary consumer of secondary ports
+
+The =Port= interface represents ByteHot's commitment to clean architecture principles, enabling a flexible, testable, and maintainable system through proper abstraction of external dependencies.

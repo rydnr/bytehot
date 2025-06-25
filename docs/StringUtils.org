@@ -1,0 +1,330 @@
+#+TITLE: StringUtils - Text Processing and Manipulation Foundation
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-25
+
+* Overview
+
+The =StringUtils= class provides comprehensive text processing capabilities that enable ByteHot's configuration parsing, event serialization, logging, and user interface generation throughout the hot-swapping infrastructure.
+
+* Architecture Role
+
+** Text Processing Foundation
+=StringUtils= serves as the fundamental text processing utility across ByteHot's architecture:
+
+- **Configuration Processing** - Parse YAML, properties, and environment variable configurations
+- **Event Serialization** - Convert events to human-readable strings for logging and debugging
+- **Template Generation** - Generate dynamic content for documentation and user interfaces
+- **Class Name Manipulation** - Process Java class names for hot-swap operations
+
+** Cross-Cutting Utility
+The class provides essential string operations used throughout the system:
+
+#+BEGIN_SRC java
+// Class name processing for hot-swap operations
+String simpleName = StringUtils.extractSimpleClassName("com.example.service.UserService");
+String packageName = StringUtils.extractPackageName("com.example.service.UserService");
+
+// Template processing for dynamic documentation generation  
+String documentationUrl = StringUtils.interpolate(
+    "https://docs.company.com/{packagePath}/{className}.html",
+    Map.of("packagePath", packagePath, "className", className)
+);
+
+// Configuration value processing
+String normalizedValue = StringUtils.normalizeConfigurationValue(rawConfigValue);
+#+END_SRC
+
+* Core Capabilities
+
+** String Validation and Safety
+Comprehensive null-safe string operations:
+
+- **Null Safety** - All operations handle null inputs gracefully
+- **Empty String Handling** - Distinguish between null, empty, and blank strings
+- **Whitespace Normalization** - Consistent whitespace handling across operations
+- **Input Sanitization** - Clean user input for security and consistency
+
+#+BEGIN_SRC java
+// Safe string operations
+public static boolean isNotEmpty(String str) {
+    return str != null && !str.trim().isEmpty();
+}
+
+public static String defaultIfEmpty(String str, String defaultValue) {
+    return isNotEmpty(str) ? str : defaultValue;
+}
+#+END_SRC
+
+** Regular Expression Integration
+Advanced pattern matching through pluggable regex engines:
+
+- **Engine Abstraction** - Support multiple regex implementations (JDK, Jakarta ORO, GNU)
+- **Pattern Compilation** - Efficient pattern caching and reuse
+- **Match Result Processing** - Comprehensive match result analysis
+- **Performance Optimization** - Choose optimal regex engine based on pattern complexity
+
+** Text Transformation
+Comprehensive text manipulation capabilities:
+
+- **Case Conversion** - camelCase, snake_case, kebab-case, PascalCase transformations
+- **String Building** - Efficient string construction for complex operations
+- **Templating** - Variable substitution and template processing
+- **Formatting** - Consistent text formatting across the application
+
+* ByteHot Integration Patterns
+
+** Configuration Processing
+=StringUtils= enables flexible configuration handling:
+
+#+BEGIN_SRC java
+public class ConfigurationProcessor {
+    public Map<String, String> processConfigurationFile(String content) {
+        Map<String, String> config = new HashMap<>();
+        
+        String[] lines = StringUtils.split(content, "\n");
+        for (String line : lines) {
+            line = StringUtils.trim(line);
+            
+            // Skip comments and empty lines
+            if (StringUtils.isEmpty(line) || StringUtils.startsWith(line, "#")) {
+                continue;
+            }
+            
+            // Parse key=value pairs
+            String[] parts = StringUtils.split(line, "=", 2);
+            if (parts.length == 2) {
+                String key = StringUtils.trim(parts[0]);
+                String value = StringUtils.interpolateVariables(StringUtils.trim(parts[1]));
+                config.put(key, value);
+            }
+        }
+        
+        return config;
+    }
+}
+#+END_SRC
+
+** Event String Representation
+Convert complex events to readable strings:
+
+#+BEGIN_SRC java
+public class EventFormatter {
+    public String formatEvent(VersionedDomainEvent event) {
+        return StringUtils.format(
+            "[{timestamp}] {eventType} for {aggregateType}:{aggregateId} " +
+            "(version: {version}, user: {user})",
+            
+            Map.of(
+                "timestamp", StringUtils.formatTimestamp(event.getTimestamp()),
+                "eventType", event.getEventType(),
+                "aggregateType", event.getAggregateType(),
+                "aggregateId", event.getAggregateId(),
+                "version", String.valueOf(event.getAggregateVersion()),
+                "user", StringUtils.defaultIfEmpty(event.getUserId(), "system")
+            )
+        );
+    }
+}
+#+END_SRC
+
+** Class Name Processing
+Essential for hot-swap class manipulation:
+
+#+BEGIN_SRC java
+public class ClassNameProcessor {
+    public ClassInfo processClassName(String fullClassName) {
+        String packageName = StringUtils.extractPackageFromClassName(fullClassName);
+        String simpleName = StringUtils.extractSimpleClassName(fullClassName);
+        String resourcePath = StringUtils.classNameToResourcePath(fullClassName);
+        
+        return ClassInfo.builder()
+            .fullName(fullClassName)
+            .packageName(packageName)
+            .simpleName(simpleName)
+            .resourcePath(resourcePath)
+            .build();
+    }
+    
+    public String generateDocumentationPath(String className) {
+        String packagePath = StringUtils.replace(
+            StringUtils.extractPackageFromClassName(className), 
+            ".", "/"
+        );
+        String simpleName = StringUtils.extractSimpleClassName(className);
+        
+        return StringUtils.format("{packagePath}/{className}.html", 
+                                Map.of("packagePath", packagePath, "className", simpleName));
+    }
+}
+#+END_SRC
+
+** Template Processing
+Dynamic content generation for documentation and UIs:
+
+#+BEGIN_SRC java
+public class TemplateProcessor {
+    public String processTemplate(String template, Map<String, Object> variables) {
+        String result = template;
+        
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            String placeholder = StringUtils.format("${{{key}}}", 
+                                                   Map.of("key", entry.getKey()));
+            String value = StringUtils.toString(entry.getValue());
+            result = StringUtils.replace(result, placeholder, value);
+        }
+        
+        return result;
+    }
+}
+#+END_SRC
+
+* Performance Optimization
+
+** String Building Strategy
+Efficient string construction for complex operations:
+
+#+BEGIN_SRC java
+// Optimized string building for event logging
+public String buildEventLogEntry(List<VersionedDomainEvent> events) {
+    StringBuilder builder = StringUtils.createBuilder(events.size() * 100); // Pre-size
+    
+    for (VersionedDomainEvent event : events) {
+        StringUtils.appendFormatted(builder, 
+            "{timestamp} - {eventType} - {aggregateId}\n",
+            Map.of(
+                "timestamp", event.getTimestamp(),
+                "eventType", event.getEventType(),
+                "aggregateId", event.getAggregateId()
+            )
+        );
+    }
+    
+    return builder.toString();
+}
+#+END_SRC
+
+** Caching Strategy
+Cache frequently used string operations:
+
+- **Pattern Cache** - Store compiled regex patterns for reuse
+- **Transformation Cache** - Cache common case conversions and transformations
+- **Template Cache** - Store processed templates for repeated use
+- **Interning Strategy** - Use string interning for frequently repeated strings
+
+* Input Validation and Security
+
+** Safe String Processing
+Prevent security vulnerabilities in string handling:
+
+#+BEGIN_SRC java
+public class SafeStringProcessor {
+    public String sanitizeUserInput(String userInput) {
+        if (StringUtils.isEmpty(userInput)) {
+            return "";
+        }
+        
+        // Remove potential script injection
+        String sanitized = StringUtils.removePattern(userInput, "<script[^>]*>.*?</script>");
+        
+        // Limit length to prevent DOS attacks
+        sanitized = StringUtils.truncate(sanitized, MAX_INPUT_LENGTH);
+        
+        // Normalize whitespace
+        sanitized = StringUtils.normalizeWhitespace(sanitized);
+        
+        return sanitized;
+    }
+    
+    public boolean isValidClassName(String className) {
+        return StringUtils.matches(className, VALID_CLASS_NAME_PATTERN) &&
+               !StringUtils.containsAny(className, FORBIDDEN_CLASS_NAME_CHARS);
+    }
+}
+#+END_SRC
+
+** Configuration Security
+Secure handling of configuration values:
+
+#+BEGIN_SRC java
+public class SecureConfigProcessor {
+    public String processConfigValue(String key, String value) {
+        // Mask sensitive values in logs
+        if (StringUtils.containsAny(key.toLowerCase(), SENSITIVE_KEY_PATTERNS)) {
+            return StringUtils.mask(value);
+        }
+        
+        // Validate configuration values
+        if (!StringUtils.isValidConfigurationValue(value)) {
+            throw new ConfigurationException("Invalid configuration value for key: " + key);
+        }
+        
+        return value;
+    }
+}
+#+END_SRC
+
+* Internationalization Support
+
+** Locale-Aware Processing
+Support for different languages and character sets:
+
+- **Character Encoding** - Proper handling of UTF-8 and other character encodings
+- **Locale-Specific Formatting** - Date, number, and currency formatting based on locale
+- **Case Conversion** - Locale-aware case conversions for Turkish, German, etc.
+- **Collation Support** - Proper string comparison for different languages
+
+#+BEGIN_SRC java
+// Locale-aware string operations
+public String formatMessage(String messageKey, Locale locale, Object... args) {
+    String template = StringUtils.getLocalizedTemplate(messageKey, locale);
+    return StringUtils.formatLocalized(template, locale, args);
+}
+#+END_SRC
+
+* Testing and Development Support
+
+** Debug Utilities
+Comprehensive debugging support for string operations:
+
+#+BEGIN_SRC java
+public class StringDebugUtils {
+    public void analyzeString(String str) {
+        System.out.println("String Analysis:");
+        System.out.println("  Length: " + StringUtils.length(str));
+        System.out.println("  Empty: " + StringUtils.isEmpty(str));
+        System.out.println("  Blank: " + StringUtils.isBlank(str));
+        System.out.println("  Trimmed: '" + StringUtils.trim(str) + "'");
+        System.out.println("  Character breakdown: " + StringUtils.analyzeCharacters(str));
+    }
+}
+#+END_SRC
+
+** Test Data Generation
+Generate test strings for comprehensive testing:
+
+#+BEGIN_SRC java
+// Generate test data for string processing tests
+public static String generateTestClassName(int packageDepth, int nameLength) {
+    StringBuilder className = new StringBuilder();
+    
+    // Generate package name
+    for (int i = 0; i < packageDepth; i++) {
+        if (i > 0) className.append(".");
+        className.append(StringUtils.generateRandomPackageName());
+    }
+    
+    // Add class name
+    className.append(".").append(StringUtils.generateRandomClassName(nameLength));
+    
+    return className.toString();
+}
+#+END_SRC
+
+* Related Components
+
+- =EnglishGrammarUtils= - Grammar-specific string operations for readable output generation
+- =ConversionUtils= - Type conversion utilities that work with string representations
+- =ToStringUtils= - Object-to-string conversion for debugging and logging
+- =CharUtils= - Character-level processing utilities used by string operations
+
+=StringUtils= represents the foundation of text processing throughout ByteHot, enabling clean configuration handling, readable event formatting, secure input processing, and dynamic content generation that supports the entire hot-swapping infrastructure.

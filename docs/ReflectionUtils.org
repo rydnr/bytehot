@@ -1,0 +1,266 @@
+#+TITLE: ReflectionUtils - Runtime Introspection and Dynamic Access
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-25
+
+* Overview
+
+The =ReflectionUtils= class provides essential runtime introspection capabilities that enable ByteHot's dynamic adapter discovery, port resolution, and flexible framework integration without compile-time dependencies.
+
+* Architecture Role
+
+** Dynamic Discovery Foundation
+=ReflectionUtils= serves as the foundation for ByteHot's dynamic capabilities:
+
+- **Adapter Discovery** - Finding port implementations at runtime through classpath scanning
+- **Framework Integration** - Detecting and integrating with Spring, CDI, and Guice without hard dependencies
+- **Port Resolution** - Dynamically instantiating and configuring infrastructure adapters
+- **Hot-Swap Support** - Runtime class analysis and modification support
+
+** Hexagonal Architecture Enabler
+The utility class enables core hexagonal architecture patterns:
+
+#+BEGIN_SRC java
+// Dynamic port discovery without compile-time coupling
+List<Class<?>> portImplementations = ReflectionUtils.findClassesImplementing(
+    Port.class, 
+    "org.acmsl.bytehot.infrastructure"
+);
+
+// Automatic adapter registration
+for (Class<?> adapterClass : portImplementations) {
+    if (ReflectionUtils.implementsInterface(adapterClass, FileWatcherPort.class)) {
+        FileWatcherPort adapter = ReflectionUtils.instantiate(adapterClass);
+        Ports.register(FileWatcherPort.class, adapter);
+    }
+}
+#+END_SRC
+
+* Core Capabilities
+
+** Class Discovery and Analysis
+The utility provides comprehensive class introspection:
+
+- **Interface Detection** - Determine if classes implement specific interfaces
+- **Annotation Scanning** - Find classes and methods with specific annotations  
+- **Hierarchy Analysis** - Navigate class inheritance and interface relationships
+- **Package Scanning** - Discover classes within specific packages or classpath locations
+
+** Dynamic Instantiation
+Safe and flexible object creation:
+
+- **Constructor Selection** - Choose appropriate constructors based on available parameters
+- **Dependency Injection** - Basic dependency resolution for dynamic instantiation
+- **Exception Handling** - Graceful handling of instantiation failures
+- **Type Safety** - Compile-time type checking where possible
+
+** Method and Field Access
+Runtime manipulation of object state and behavior:
+
+- **Method Invocation** - Call methods dynamically with parameter type matching
+- **Field Access** - Read and write field values bypassing visibility restrictions
+- **Generic Type Resolution** - Handle generic types and parameterized interfaces
+- **Security Integration** - Respect Java security policies and access controls
+
+* ByteHot Integration Patterns
+
+** Port Discovery and Registration
+=ReflectionUtils= enables ByteHot's automatic port discovery:
+
+#+BEGIN_SRC java
+public class PortDiscovery {
+    public void discoverAndRegisterPorts() {
+        // Scan for all Port implementations
+        List<Class<?>> portClasses = ReflectionUtils.findClassesImplementing(
+            Port.class
+        );
+        
+        for (Class<?> portClass : portClasses) {
+            // Determine which port interface it implements
+            Class<?> portInterface = ReflectionUtils.findPortInterface(portClass);
+            
+            // Instantiate the adapter
+            Object adapter = ReflectionUtils.instantiateWithDependencies(portClass);
+            
+            // Register with PortResolver
+            Ports.register(portInterface, adapter);
+        }
+    }
+}
+#+END_SRC
+
+** Framework Detection
+Automatic framework detection without compile-time dependencies:
+
+#+BEGIN_SRC java
+public class FrameworkDetector {
+    public FrameworkType detectFramework() {
+        // Check for Spring
+        if (ReflectionUtils.isClassPresent("org.springframework.context.ApplicationContext")) {
+            return FrameworkType.SPRING;
+        }
+        
+        // Check for CDI
+        if (ReflectionUtils.isClassPresent("javax.enterprise.inject.spi.BeanManager")) {
+            return FrameworkType.CDI;
+        }
+        
+        // Check for Guice
+        if (ReflectionUtils.isClassPresent("com.google.inject.Injector")) {
+            return FrameworkType.GUICE;
+        }
+        
+        return FrameworkType.NONE;
+    }
+}
+#+END_SRC
+
+** Hot-Swap Support
+Runtime class analysis for hot-swap validation:
+
+#+BEGIN_SRC java
+public class BytecodeValidator {
+    public ValidationResult validateClassChanges(Class<?> originalClass, byte[] newBytecode) {
+        // Analyze original class structure
+        ClassMetadata originalMetadata = ReflectionUtils.analyzeClass(originalClass);
+        
+        // Parse new bytecode structure
+        ClassMetadata newMetadata = ReflectionUtils.parseBytecode(newBytecode);
+        
+        // Compare structures for compatibility
+        return ReflectionUtils.compareClassStructures(originalMetadata, newMetadata);
+    }
+}
+#+END_SRC
+
+* Performance Optimization
+
+** Caching Strategy
+=ReflectionUtils= implements intelligent caching to minimize reflection overhead:
+
+- **Class Cache** - Cache =Class= objects and metadata to avoid repeated lookups
+- **Method Cache** - Store =Method= objects for frequently invoked operations
+- **Constructor Cache** - Cache constructors and their parameter patterns
+- **Field Cache** - Store =Field= objects for common access patterns
+
+#+BEGIN_SRC java
+// Example caching pattern
+private static final Map<String, Class<?>> CLASS_CACHE = new ConcurrentHashMap<>();
+
+public static Class<?> loadClass(String className) {
+    return CLASS_CACHE.computeIfAbsent(className, name -> {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            return null;
+        }
+    });
+}
+#+END_SRC
+
+** Lazy Loading
+Reflection operations are performed only when needed:
+
+- **Deferred Class Loading** - Load classes only when actually required
+- **On-Demand Analysis** - Analyze class structure only when validation needed
+- **Conditional Discovery** - Scan packages only for requested interface types
+- **Incremental Caching** - Build caches progressively based on usage patterns
+
+* Error Handling and Resilience
+
+** Graceful Degradation
+=ReflectionUtils= handles reflection failures gracefully:
+
+#+BEGIN_SRC java
+public static <T> Optional<T> tryInstantiate(Class<T> clazz) {
+    try {
+        return Optional.of(ReflectionUtils.instantiate(clazz));
+    } catch (ReflectionException e) {
+        logger.debug("Failed to instantiate {}: {}", clazz.getName(), e.getMessage());
+        return Optional.empty();
+    }
+}
+#+END_SRC
+
+** Fallback Mechanisms
+When reflection fails, the utility provides alternatives:
+
+- **Multiple Constructor Strategies** - Try different constructors if preferred one fails
+- **Interface Fallbacks** - Use base interfaces if specific implementations unavailable
+- **Default Implementations** - Provide sensible defaults when dynamic loading fails
+- **Error Reporting** - Clear error messages for debugging reflection issues
+
+* Security Considerations
+
+** Access Control Respect
+=ReflectionUtils= respects Java security policies:
+
+- **SecurityManager Integration** - Check permissions before accessing protected members
+- **Module System Compatibility** - Work within Java 9+ module restrictions
+- **Privilege Escalation Prevention** - Avoid unnecessary privilege escalation
+- **Audit Trail** - Log reflection operations for security monitoring
+
+** Safe Operations
+Provide safe alternatives to raw reflection:
+
+#+BEGIN_SRC java
+// Safe method invocation with type checking
+public static <T> Optional<T> safeInvoke(Object target, String methodName, 
+                                        Class<T> returnType, Object... args) {
+    try {
+        Method method = findMethod(target.getClass(), methodName, getArgTypes(args));
+        Object result = method.invoke(target, args);
+        
+        if (returnType.isInstance(result)) {
+            return Optional.of(returnType.cast(result));
+        }
+        
+        return Optional.empty();
+    } catch (Exception e) {
+        logger.debug("Safe invoke failed for {}.{}: {}", 
+                    target.getClass().getName(), methodName, e.getMessage());
+        return Optional.empty();
+    }
+}
+#+END_SRC
+
+* Testing Support
+
+** Mock and Stub Creation
+=ReflectionUtils= enables comprehensive testing:
+
+#+BEGIN_SRC java
+// Create dynamic test doubles
+public static <T> T createTestDouble(Class<T> interfaceType, 
+                                    Map<String, Object> methodReturnValues) {
+    return ReflectionUtils.createProxy(interfaceType, (proxy, method, args) -> {
+        String methodName = method.getName();
+        return methodReturnValues.getOrDefault(methodName, getDefaultReturn(method));
+    });
+}
+#+END_SRC
+
+** Development-Time Discovery
+Help developers understand available implementations:
+
+#+BEGIN_SRC java
+// Development utility to list available ports
+public void listAvailablePorts() {
+    List<Class<?>> ports = ReflectionUtils.findClassesImplementing(Port.class);
+    
+    System.out.println("Available Port implementations:");
+    for (Class<?> port : ports) {
+        System.out.printf("  %s implements %s%n", 
+                         port.getSimpleName(), 
+                         getImplementedPortInterfaces(port));
+    }
+}
+#+END_SRC
+
+* Related Components
+
+- =ClassLoaderUtils= - Classpath and classloader management utilities
+- =PortResolver= - Uses reflection for dynamic port discovery and instantiation
+- =CachingPortResolver= - Optimized port resolution with reflection result caching
+- =StringUtils= - String processing utilities often used with reflection operations
+
+=ReflectionUtils= represents the foundation of ByteHot's dynamic capabilities, enabling the flexible, plugin-based architecture that makes hot-swapping possible while maintaining clean separation of concerns.

@@ -1,0 +1,259 @@
+#+TITLE: VersionedDomainEvent Interface - EventSourcing Foundation
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-25
+
+* Overview
+
+The =VersionedDomainEvent= interface extends =DomainEvent= to provide comprehensive EventSourcing capabilities, enabling complete audit trails, time-travel debugging, and sophisticated event replay scenarios in ByteHot's architecture.
+
+* EventSourcing Architecture
+
+** Event Store Integration
+=VersionedDomainEvent= serves as the foundation for ByteHot's EventSourcing capabilities:
+
+- **Immutable Event History** - Complete record of all system changes
+- **Aggregate Versioning** - Optimistic concurrency control and ordering
+- **Causal Chain Tracking** - Understanding event relationships and dependencies
+- **Temporal Querying** - Time-based event retrieval and analysis
+
+** Core Metadata Structure
+Every versioned event carries essential metadata for EventSourcing:
+
+#+BEGIN_SRC java
+public interface VersionedDomainEvent extends DomainEvent {
+    String getEventId();           // Unique event identifier
+    String getAggregateType();     // Type of aggregate (e.g., "bytehot", "user")
+    String getAggregateId();       // Specific aggregate instance
+    long getAggregateVersion();    // Event sequence number
+    Instant getTimestamp();        // When the event occurred
+    String getPreviousEventId();   // Causal chain linking
+}
+#+END_SRC
+
+* Aggregate Management
+
+** Versioning Strategy
+Aggregate versioning provides:
+
+- **Optimistic Concurrency Control** - Prevent conflicting concurrent modifications
+- **Event Ordering** - Guarantee deterministic event sequence
+- **Consistency Verification** - Ensure event streams remain valid
+- **Conflict Detection** - Identify and resolve version conflicts
+
+#+BEGIN_SRC java
+// Example: ByteHot aggregate version progression
+// Version 1: ClassFileChanged
+// Version 2: BytecodeValidated  
+// Version 3: ClassRedefinitionSucceeded
+// Version 4: InstancesUpdated
+#+END_SRC
+
+** Aggregate Boundaries
+ByteHot uses aggregate boundaries to organize related events:
+
+- **ByteHot Aggregate** - Core hot-swap operations for a specific class
+- **User Aggregate** - User session and authentication events
+- **Configuration Aggregate** - System configuration changes
+- **Framework Aggregate** - Spring/CDI/Guice integration events
+
+* Causal Chain Tracking
+
+** Event Relationships
+The =getPreviousEventId()= method enables building causal chains:
+
+#+BEGIN_SRC java
+// Causal chain example:
+// ClassFileChanged (id: "evt-001", previous: null)
+//   ↓
+// BytecodeValidated (id: "evt-002", previous: "evt-001")
+//   ↓  
+// ClassRedefinitionSucceeded (id: "evt-003", previous: "evt-002")
+#+END_SRC
+
+** Causality Analysis
+Causal chains enable:
+- **Root Cause Analysis** - Trace problems back to originating events
+- **Impact Assessment** - Understand event consequences and dependencies
+- **Workflow Verification** - Ensure proper event sequencing
+- **Debugging Support** - Reconstruct exact execution paths
+
+* Audit and Compliance
+
+** Complete Auditability
+Every versioned event provides comprehensive audit information:
+
+- **User Context** - Who initiated the change (=getUserId()=)
+- **Temporal Context** - Exactly when changes occurred (=getTimestamp()=)
+- **Causal Context** - Why changes happened (=getPreviousEventId()=, =getCausationId()=)
+- **Correlation Context** - Related operations (=getCorrelationId()=)
+
+** Compliance Support
+The interface supports enterprise compliance requirements:
+
+#+BEGIN_SRC java
+// Audit trail example
+public void generateAuditReport(String aggregateId, Instant fromTime, Instant toTime) {
+    List<VersionedDomainEvent> events = eventStore.getEventsBetween(
+        aggregateId, fromTime, toTime
+    );
+    
+    for (VersionedDomainEvent event : events) {
+        auditLog.record(AuditEntry.builder()
+            .user(event.getUserId())
+            .timestamp(event.getTimestamp())
+            .action(event.getEventType())
+            .aggregate(event.getAggregateId())
+            .causedBy(event.getPreviousEventId())
+            .build());
+    }
+}
+#+END_SRC
+
+* Time-Travel Debugging
+
+** State Reconstruction
+Versioned events enable reconstructing system state at any point in time:
+
+#+BEGIN_SRC java
+// Reconstruct ByteHot state at specific timestamp
+public ByteHotState reconstructStateAt(String aggregateId, Instant targetTime) {
+    List<VersionedDomainEvent> events = eventStore.getEventsUpTo(aggregateId, targetTime);
+    
+    ByteHotState state = new ByteHotState();
+    for (VersionedDomainEvent event : events) {
+        state = state.apply(event);  // Event replay
+    }
+    return state;
+}
+#+END_SRC
+
+** Bug Reproduction
+When bugs occur, the complete event history enables perfect reproduction:
+
+#+BEGIN_SRC java
+// Reproduce bug from event sequence
+public void reproduceBug(BugReport bugReport) {
+    List<VersionedDomainEvent> eventSequence = bugReport.getEventHistory();
+    
+    // Start with clean state
+    ByteHotSystem system = ByteHotSystem.freshInstance();
+    
+    // Replay exact event sequence that caused the bug
+    for (VersionedDomainEvent event : eventSequence) {
+        system.processEvent(event);
+    }
+    
+    // Bug should now be reproduced in controlled environment
+}
+#+END_SRC
+
+* Performance Optimization
+
+** Efficient Querying
+The interface supports optimized event retrieval:
+
+- **Time-based Queries** - =occurredBefore()=, =occurredAfter()= for temporal filtering
+- **Aggregate Filtering** - =belongsToSameAggregate()= for related event grouping
+- **Version Ranges** - Retrieve specific version ranges for efficient processing
+- **Stream Positioning** - =getStreamPosition()= for efficient event store navigation
+
+** Caching Strategy
+Event metadata enables intelligent caching:
+
+#+BEGIN_SRC java
+// Cache recent events for fast access
+public class EventCache {
+    private final Map<String, VersionedDomainEvent> recentEvents = new LRUCache<>(1000);
+    
+    public VersionedDomainEvent getEvent(String eventId) {
+        return recentEvents.computeIfAbsent(eventId, id -> 
+            eventStore.getEvent(id)
+        );
+    }
+}
+#+END_SRC
+
+* Schema Evolution
+
+** Versioning Support
+The =getSchemaVersion()= method enables handling schema evolution:
+
+#+BEGIN_SRC java
+// Handle different event schema versions
+public Object deserializeEvent(String eventData, int schemaVersion) {
+    return switch (schemaVersion) {
+        case 1 -> deserializeV1(eventData);
+        case 2 -> deserializeV2(eventData);
+        case 3 -> deserializeV3(eventData);
+        default -> throw new UnsupportedSchemaVersionException(schemaVersion);
+    };
+}
+#+END_SRC
+
+** Migration Patterns
+Schema versioning enables safe event store migrations and backward compatibility.
+
+* ByteHot Event Examples
+
+** Hot-Swap Event Sequence
+#+BEGIN_SRC java
+// Complete hot-swap workflow as versioned events
+VersionedDomainEvent[] hotSwapSequence = {
+    ClassFileChanged.builder()
+        .eventId("evt-001")
+        .aggregateId("com.example.Service")
+        .aggregateVersion(1)
+        .timestamp(Instant.now())
+        .userId("developer@company.com")
+        .build(),
+        
+    BytecodeValidated.builder()
+        .eventId("evt-002")
+        .aggregateId("com.example.Service")
+        .aggregateVersion(2)
+        .previousEventId("evt-001")
+        .timestamp(Instant.now())
+        .build(),
+        
+    ClassRedefinitionSucceeded.builder()
+        .eventId("evt-003")
+        .aggregateId("com.example.Service")
+        .aggregateVersion(3)
+        .previousEventId("evt-002")
+        .timestamp(Instant.now())
+        .build()
+};
+#+END_SRC
+
+* Testing Integration
+
+** Event-Driven Testing
+Versioned events enable powerful testing patterns:
+
+#+BEGIN_SRC java
+@Test
+void testHotSwapWorkflow() {
+    // Given - known event history
+    List<VersionedDomainEvent> givenEvents = List.of(
+        classFileChangedEvent(),
+        bytecodeValidatedEvent()
+    );
+    
+    // When - new event occurs
+    VersionedDomainEvent newEvent = classRedefinitionRequestedEvent();
+    
+    // Then - verify proper event sequence
+    assertThat(newEvent.getAggregateVersion()).isEqualTo(3);
+    assertThat(newEvent.getPreviousEventId()).isEqualTo(givenEvents.get(1).getEventId());
+}
+#+END_SRC
+
+* Related Components
+
+- =DomainEvent= - Base interface for all events
+- =EventSnapshot= - Captures event context for debugging
+- =EventStorePort= - Persistence abstraction for event streams
+- =CausalChain= - Analysis of event relationships and dependencies
+- =EventMetadata= - Additional metadata associated with events
+
+The =VersionedDomainEvent= interface represents ByteHot's commitment to comprehensive auditability, sophisticated debugging capabilities, and enterprise-grade event sourcing patterns.
