@@ -43,8 +43,6 @@ import org.acmsl.commons.Literals;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing JUnit classes.
@@ -84,7 +82,7 @@ public class ToStringUtilsTest
         /**
          * The fancy name.
          */
-        @Nullable private String fancyName;
+        private String fancyName;
         /**
          * The fancy age.
          */
@@ -96,36 +94,36 @@ public class ToStringUtilsTest
         /**
          * The fancy amount.
          */
-        @Nullable private BigDecimal fancyAmount;
+        private BigDecimal fancyAmount;
         /**
          * The fancy date.
          */
-        @Nullable private Date fancyDate;
+        private Date fancyDate;
         /**
          * The fancy child.
          */
-        @Nullable private Dummy fancyChild;
+        private Dummy fancyChild;
         /**
          * The other names.
          */
-        @Nullable private String[] otherNames;
+        private String[] otherNames;
         /**
          * The other stuff.
          */
-        @Nullable private List<String> otherStuff;
+        private List<String> otherStuff;
         /**
          * The children.
          */
-        @Nullable private List<Dummy> children;
+        private List<Dummy> children;
 
         /**
          * {@inheritDoc}
          */
-        @NotNull
+        
         @Override
         public String toString()
         {
-            @NotNull final Map<String, Object> args = new HashMap<>();
+            final Map<String, Object> args = new HashMap<>();
             if (fancyName != null)
             {
                 args.put("fancyName", fancyName);
@@ -169,16 +167,16 @@ public class ToStringUtilsTest
      */
     public void to_json_works()
     {
-        @NotNull final ToStringUtils t_ToStringUtils = ToStringUtils.getInstance();
+        final ToStringUtils t_ToStringUtils = ToStringUtils.getInstance();
 
         Assert.assertNotNull(t_ToStringUtils);
 
-        @NotNull final Dummy d = new Dummy();
+        final Dummy d = new Dummy();
         d.fancyName = "d1";
         d.fancyAge = 15L;
         d.fancyValue = 38D;
         d.fancyAmount = new BigDecimal("13131");
-        @NotNull final Calendar calendar = Calendar.getInstance();
+        final Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.YEAR, 2000);
         calendar.set(Calendar.MONTH, Calendar.JANUARY);
         calendar.set(Calendar.DAY_OF_MONTH, 1);
@@ -188,7 +186,7 @@ public class ToStringUtilsTest
         calendar.set(Calendar.MINUTE, 55);
         d.fancyDate = calendar.getTime();
 
-        @NotNull final String expected =
+        final String expected =
             normalize(
                 "{ \"class\": \"" + Dummy.class.getName() + '"'
                 + ", \"fancyAmount\": " + d.fancyAmount
@@ -197,11 +195,11 @@ public class ToStringUtilsTest
                 + ", \"fancyName\": \"" + d.fancyName + '"'
                 + ", \"fancyAge\": " + d.fancyAge + " }");
 
-        @NotNull final String actual = normalize(d.toString());
+        final String actual = normalize(d.toString());
 
         Assert.assertEquals("Invalid JSON", expected, actual);
 
-        @NotNull final Dummy otherDummy = new Dummy();
+        final Dummy otherDummy = new Dummy();
         otherDummy.fancyName = "d1_1";
         otherDummy.fancyAge = 155L;
         otherDummy.fancyValue = 39D;
@@ -216,7 +214,7 @@ public class ToStringUtilsTest
         otherDummy.fancyDate = calendar.getTime();
         d.fancyChild = otherDummy;
 
-        @NotNull final String expected2 =
+        final String expected2 =
             normalize(
                   "{ \"class\": \"" + Dummy.class.getName() + '"'
                 + ", \"fancyAmount\": " + d.fancyAmount
@@ -234,15 +232,15 @@ public class ToStringUtilsTest
                 + ", \"fancyAge\": " + d.fancyAge
                 + " }");
 
-        @NotNull final String actual2 = normalize(d.toString());
+        final String actual2 = normalize(d.toString());
 
         Assert.assertEquals("Invalid JSON (2)", expected2, actual2);
 
-        @NotNull final List<Dummy> otherDummies = new ArrayList<Dummy>();
-        @NotNull final StringBuilder otherDummiesToString = new StringBuilder();
+        final List<Dummy> otherDummies = new ArrayList<Dummy>();
+        final StringBuilder otherDummiesToString = new StringBuilder();
         for (int i = 0; i < 3; i++)
         {
-            @NotNull final Dummy dummy1 = new Dummy();
+            final Dummy dummy1 = new Dummy();
             dummy1.fancyName = "d1_1_" + i;
             dummy1.fancyAge = 156L + i;
             dummy1.fancyValue = 40D + i;
@@ -265,11 +263,11 @@ public class ToStringUtilsTest
 
         d.children = otherDummies;
 
-        @NotNull final List<String> otherStuff = new ArrayList<String>(5);
-        @NotNull final StringBuilder otherStuffToString = new StringBuilder("\"otherStuff\": [");
+        final List<String> otherStuff = new ArrayList<String>(5);
+        final StringBuilder otherStuffToString = new StringBuilder("\"otherStuff\": [");
         for (int i = 0; i < 5; i++)
         {
-            @NotNull final String stuff = "stuff_" + i;
+            final String stuff = "stuff_" + i;
             otherStuff.add(stuff);
             if (i > 0)
             {
@@ -283,7 +281,7 @@ public class ToStringUtilsTest
 
         d.otherStuff = otherStuff;
 
-        @NotNull final String aux2 =
+        final String aux2 =
             new ToStringUtils.CollectionDecorator<>(
                 Literals.OTHER_STUFF, otherStuff)
                 .toString();
@@ -293,7 +291,7 @@ public class ToStringUtilsTest
             normalize(otherStuffToString.toString()),
             normalize(aux2));
 
-        @NotNull final String expected3 =
+        final String expected3 =
             normalize(
                   "{ \"class\": \"" + Dummy.class.getName() + '"'
                 + ", \"fancyAge\": 15"
@@ -313,7 +311,7 @@ public class ToStringUtilsTest
                 + ", \"fancyName\": \"" + d.fancyName + '"'
                 + "}");
 
-        @NotNull final String actual3 = normalize(d.toString());
+        final String actual3 = normalize(d.toString());
 
         Assert.assertEquals("Invalid JSON (3)", expected3, actual3);
     }
@@ -323,8 +321,8 @@ public class ToStringUtilsTest
      * @param text the text to normalize.
      * @return the normalized test.
      */
-    @NotNull
-    protected String normalize(@NotNull final String text)
+    
+    protected String normalize(final String text)
     {
         return text.replaceAll("\n", "").replaceAll("\\s*", "");
     }
@@ -335,16 +333,16 @@ public class ToStringUtilsTest
     // @Test -> disabled since the forked vm crashes
     public void auditToString_detects_recursive_calls()
     {
-        @NotNull final ToStringUtils instance = ToStringUtils.getInstance();
+        final ToStringUtils instance = ToStringUtils.getInstance();
 
-        @NotNull final Dummy tested1 =
+        final Dummy tested1 =
             new Dummy()
             {
                 /**
                  * Recursive toString().
                  * @return the text representing the state of the instance.
                  */
-                @NotNull
+                
                 @Override
                 public String toString()
                 {
@@ -362,9 +360,9 @@ public class ToStringUtilsTest
     @Test
     public void stackTraceContainsToString_detects_recursive_calls_to_toString()
     {
-        @NotNull final ToStringUtils instance = ToStringUtils.getInstance();
+        final ToStringUtils instance = ToStringUtils.getInstance();
 
-        @NotNull final StackTraceElement[] stackTrace = new StackTraceElement[6];
+        final StackTraceElement[] stackTrace = new StackTraceElement[6];
 
         stackTrace[0] = new StackTraceElement(String.class.getName(), "toString", "String.java", 33);
         stackTrace[1] = new StackTraceElement(Long.class.getName(), "toString", "Long.java", 37);

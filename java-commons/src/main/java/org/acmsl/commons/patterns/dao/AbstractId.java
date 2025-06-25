@@ -39,8 +39,6 @@
  */
 package org.acmsl.commons.patterns.dao;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -66,7 +64,7 @@ public abstract class AbstractId<T extends AbstractId<T>> implements ValueObject
      * The identifier value.
      */
     @Getter
-    @NonNull
+    
     private final String value;
 
     /**
@@ -75,8 +73,8 @@ public abstract class AbstractId<T extends AbstractId<T>> implements ValueObject
      * @param <T> The concrete identifier type
      * @return A new identifier with a random UUID value
      */
-    @NonNull
-    public static <T extends AbstractId<T>> T random(@NonNull final Function<String, T> constructor) {
+    
+    public static <T extends AbstractId<T>> T random(final Function<String, T> constructor) {
         return constructor.apply(UUID.randomUUID().toString());
     }
 
@@ -88,9 +86,9 @@ public abstract class AbstractId<T extends AbstractId<T>> implements ValueObject
      * @return An identifier with the specified value
      * @throws IllegalArgumentException if value is null or empty
      */
-    @NonNull
-    public static <T extends AbstractId<T>> T of(@Nullable final String value, 
-                                                  @NonNull final Function<String, T> constructor) {
+    
+    public static <T extends AbstractId<T>> T of(final String value, 
+                                                  final Function<String, T> constructor) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier value cannot be null or empty");
         }
@@ -104,9 +102,9 @@ public abstract class AbstractId<T extends AbstractId<T>> implements ValueObject
      * @param <T> The concrete identifier type
      * @return A new identifier with the specified prefix and random suffix
      */
-    @NonNull
-    public static <T extends AbstractId<T>> T withPrefix(@NonNull final String prefix,
-                                                          @NonNull final Function<String, T> constructor) {
+    
+    public static <T extends AbstractId<T>> T withPrefix(final String prefix,
+                                                          final Function<String, T> constructor) {
         return constructor.apply(prefix + "-" + UUID.randomUUID().toString());
     }
 
@@ -116,7 +114,7 @@ public abstract class AbstractId<T extends AbstractId<T>> implements ValueObject
      * @param value The value to validate
      * @return true if the value is valid
      */
-    protected boolean isValidValue(@NonNull final String value) {
+    protected boolean isValidValue(final String value) {
         return !value.trim().isEmpty();
     }
 
@@ -124,7 +122,7 @@ public abstract class AbstractId<T extends AbstractId<T>> implements ValueObject
      * Gets the identifier value as a string.
      * @return The identifier value
      */
-    @NonNull
+    
     public String asString() {
         return value;
     }

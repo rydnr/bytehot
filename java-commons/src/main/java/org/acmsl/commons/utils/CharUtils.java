@@ -44,7 +44,6 @@ import org.acmsl.commons.patterns.Utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides some useful methods when working with characters and buffers.
@@ -63,7 +62,7 @@ public class CharUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final CharUtils SINGLETON = new CharUtils();
+        public static final CharUtils SINGLETON = new CharUtils();
     }
 
     /**
@@ -75,7 +74,7 @@ public class CharUtils
      * Retrieves a CharUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static CharUtils getInstance()
     {
         return CharUtilsSingletonContainer.SINGLETON;
@@ -88,11 +87,11 @@ public class CharUtils
      * @param offset the subcontents length.
      * @return the sub-buffer, or null if any parameter is invalid.
      */
-    @NotNull
+    
     public char[] subbuffer(
-        @NotNull final char[] buffer, final int start, final int offset)
+        final char[] buffer, final int start, final int offset)
     {
-        @NotNull final char[] result;
+        final char[] result;
 
         if  (   (start  > -1)
              && (offset >  0))
@@ -127,8 +126,8 @@ public class CharUtils
      * @return the sub-buffer.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public char[] subbuffer(@NotNull final char[] buffer, final int start)
+    
+    public char[] subbuffer(final char[] buffer, final int start)
     {
         return subbuffer(buffer, start, buffer.length);
     }

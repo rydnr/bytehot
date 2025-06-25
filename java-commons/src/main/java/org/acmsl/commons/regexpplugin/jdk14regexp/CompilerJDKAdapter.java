@@ -44,7 +44,6 @@ import org.acmsl.commons.regexpplugin.MalformedPatternException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JDK1.4 regexp classes.
@@ -78,8 +77,8 @@ public class CompilerJDKAdapter
      * @throws MalformedPatternException if the regexp is not valid.
      */
     @Override
-    @NotNull
-    public org.acmsl.commons.regexpplugin.Pattern compile(@NotNull final String regexp)
+    
+    public org.acmsl.commons.regexpplugin.Pattern compile(final String regexp)
         throws  MalformedPatternException
     {
         return compile(regexp, isCaseSensitive(), isMultiline());
@@ -94,14 +93,14 @@ public class CompilerJDKAdapter
      * @return the Pattern associated to such regular expression.
      * @throws MalformedPatternException if the regexp is not valid.
      */
-    @NotNull
+    
     protected org.acmsl.commons.regexpplugin.Pattern compile(
-        @NotNull final String regexp,
+        final String regexp,
         final boolean caseSensitive,
         final boolean multiline)
       throws  MalformedPatternException
     {
-        @NotNull org.acmsl.commons.regexpplugin.Pattern result;
+        org.acmsl.commons.regexpplugin.Pattern result;
 
         try
         {
@@ -238,7 +237,7 @@ public class CompilerJDKAdapter
     }
 
     @Override
-    @NotNull
+    
     public String toString()
     {
         return "CompilerJDKAdapter{" +

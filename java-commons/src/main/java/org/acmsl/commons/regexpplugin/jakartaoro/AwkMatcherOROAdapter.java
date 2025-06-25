@@ -50,8 +50,6 @@ import org.apache.oro.text.awk.AwkMatcher;
 /*
  * Importing some commons-logging classes.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Jakarta ORO-specific regexp compiler adapter. This class makes possible the
@@ -79,7 +77,7 @@ public class AwkMatcherOROAdapter
      * Specifies the adaptee.
      * @param adaptee the instance to adapt.
      */
-    protected final void immutableSetAwkMatcher(@NotNull final AwkMatcher adaptee)
+    protected final void immutableSetAwkMatcher(final AwkMatcher adaptee)
     {
         m__Instance = adaptee;
     }
@@ -89,7 +87,7 @@ public class AwkMatcherOROAdapter
      * @param adaptee the instance to adapt.
      */
     @SuppressWarnings("unused")
-    protected void setAwkMatcher(@NotNull final AwkMatcher adaptee)
+    protected void setAwkMatcher(final AwkMatcher adaptee)
     {
         immutableSetAwkMatcher(adaptee);
     }
@@ -98,7 +96,7 @@ public class AwkMatcherOROAdapter
      * Retrieves an instance of AwkMatcher class.
      * @return the adapted matcher.
      */
-    @NotNull
+    
     protected AwkMatcher getAwkMatcher()
     {
         return m__Instance;
@@ -111,7 +109,7 @@ public class AwkMatcherOROAdapter
      * @return true if the pattern is found.
      */
     @Override
-    public boolean contains(@NotNull final String text, @NotNull final Pattern pattern)
+    public boolean contains(final String text, final Pattern pattern)
     {
         final boolean result;
 
@@ -138,14 +136,14 @@ public class AwkMatcherOROAdapter
      * @return such match result.
      */
     @Override
-    @Nullable
+    
     public MatchResult getMatch()
     {
-        @Nullable final MatchResult result;
+        final MatchResult result;
 
-        @NotNull final AwkMatcher t_AwkMatcher = getAwkMatcher();
+        final AwkMatcher t_AwkMatcher = getAwkMatcher();
 
-        @Nullable final org.apache.oro.text.regex.MatchResult t_MatchResult = t_AwkMatcher.getMatch();
+        final org.apache.oro.text.regex.MatchResult t_MatchResult = t_AwkMatcher.getMatch();
 
         if (t_MatchResult != null)
         {
@@ -160,7 +158,7 @@ public class AwkMatcherOROAdapter
     }
 
     @Override
-    @NotNull
+    
     public String toString()
     {
         return "AwkMatcherOROAdapter{" +

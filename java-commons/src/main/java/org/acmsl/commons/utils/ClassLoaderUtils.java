@@ -43,8 +43,6 @@ import org.acmsl.commons.patterns.Utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -87,7 +85,7 @@ public class ClassLoaderUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final ClassLoaderUtils SINGLETON =
+        public static final ClassLoaderUtils SINGLETON =
             new ClassLoaderUtils();
     }
 
@@ -100,7 +98,7 @@ public class ClassLoaderUtils
      * Retrieves a <code>ClassLoaderUtils</code> instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static ClassLoaderUtils getInstance()
     {
         return ClassLoaderUtilsSingletonContainer.SINGLETON;
@@ -112,8 +110,8 @@ public class ClassLoaderUtils
      * @param <T> the type.
      * @return the location.
      */
-    @Nullable
-    public <T> String findLocation(@NotNull final Class<T> classInstance)
+    
+    public <T> String findLocation(final Class<T> classInstance)
     {
         return findLocation(classInstance, false);
     }
@@ -126,9 +124,9 @@ public class ClassLoaderUtils
      * @param <T> the type.
      * @return the location.
      */
-    @Nullable
+    
     public <T> String findLocation(
-        @NotNull final Class<T> classInstance, final boolean fullSearch)
+        final Class<T> classInstance, final boolean fullSearch)
     {
         return
             findLocation(
@@ -144,9 +142,9 @@ public class ClassLoaderUtils
      * @return the location.
      */
     @SuppressWarnings("unused")
-    @Nullable
+    
     public String findLocation(
-        @NotNull final String resource, @NotNull final ClassLoader classLoader)
+        final String resource, final ClassLoader classLoader)
     {
         return findLocation(resource, classLoader, false);
     }
@@ -159,10 +157,10 @@ public class ClassLoaderUtils
      * the first match.
      * @return the location.
      */
-    @Nullable
+    
     public String findLocation(
-        @NotNull final String resource,
-        @Nullable final ClassLoader classLoader,
+        final String resource,
+        final ClassLoader classLoader,
         final boolean fullSearch)
     {
         String result = null;
@@ -217,24 +215,24 @@ public class ClassLoaderUtils
      * the first match.
      * @return such location.
      */
-    @Nullable
+    
     protected String findLocation(
-        @NotNull final String resource,
-        @NotNull final String classPath,
+        final String resource,
+        final String classPath,
         final boolean fullSearch)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
 
-        @NotNull final String actualClassPath = trimBrackets(classPath);
+        final String actualClassPath = trimBrackets(classPath);
 
-        @NotNull final StringTokenizer t_Tokenizer =
+        final StringTokenizer t_Tokenizer =
             new StringTokenizer(actualClassPath, ":;,[]", false);
         
         String element;
 
         boolean nonFirstItem = false;
 
-        @NotNull final String resourceName = resource;
+        final String resourceName = resource;
 
         while  (t_Tokenizer.hasMoreTokens())
         {
@@ -271,10 +269,10 @@ public class ClassLoaderUtils
      * @param classLoader the class loader to print.
      * @return such information.
      */
-    @NotNull
-    public String printClassPath(@NotNull final ClassLoader classLoader)
+    
+    public String printClassPath(final ClassLoader classLoader)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
 
         result.append(printAntClassPath(classLoader));
 
@@ -282,7 +280,7 @@ public class ClassLoaderUtils
 
         result.append(printSunClassPath(classLoader));
 
-        @Nullable final ClassLoader parent = classLoader.getParent();
+        final ClassLoader parent = classLoader.getParent();
 
         if  (parent != null)
         {
@@ -299,18 +297,18 @@ public class ClassLoaderUtils
      * @return such information.
      */
     @SuppressWarnings("unchecked")
-    @NotNull
-    protected String printAntClassPath(@NotNull final ClassLoader classLoader)
+    
+    protected String printAntClassPath(final ClassLoader classLoader)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
 
         try
         {
-            @Nullable Class<?> classInstance = classLoader.getClass();
+            Class<?> classInstance = classLoader.getClass();
 
             while  (classInstance != null)
             {
-                @Nullable Method method = null;
+                Method method = null;
 
                 try
                 {
@@ -380,18 +378,18 @@ public class ClassLoaderUtils
      * @return such information.
      */
     @SuppressWarnings("unchecked")
-    @NotNull
-    protected String printURLClassPath(@NotNull final Object instance)
+    
+    protected String printURLClassPath(final Object instance)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
 
         try
         {
-            @Nullable Class<?> classInstance = instance.getClass();
+            Class<?> classInstance = instance.getClass();
 
             while  (classInstance != null)
             {
-                @Nullable Method method = null;
+                Method method = null;
 
                 try
                 {
@@ -458,10 +456,10 @@ public class ClassLoaderUtils
      * @param urls the URLs to print.
      * @return the formatted text containing the URL locations.
      */
-    @NotNull
-    protected String printURLs(@NotNull final URL[] urls)
+    
+    protected String printURLs(final URL[] urls)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
 
         result.append("[");
 
@@ -487,18 +485,18 @@ public class ClassLoaderUtils
      * @return such information.
      */
     @SuppressWarnings("unchecked")
-    @NotNull
-    protected String printSunClassPath(@NotNull final ClassLoader classLoader)
+    
+    protected String printSunClassPath(final ClassLoader classLoader)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
 
         try
         {
-            @Nullable Class<?> classInstance = classLoader.getClass();
+            Class<?> classInstance = classLoader.getClass();
 
             while  (classInstance != null)
             {
-                @Nullable Method method = null;
+                Method method = null;
 
                 try
                 {
@@ -566,7 +564,7 @@ public class ClassLoaderUtils
      * @return <code>true</code> in such case.
      */
     public boolean pathContainsResource(
-        @NotNull final String path, @NotNull final String resource)
+        final String path, final String resource)
     {
         return
             pathContainsResource(
@@ -578,10 +576,10 @@ public class ClassLoaderUtils
      * @param resource the resource.
      * @return such suffix.
      */
-    @NotNull
-    protected String retrieveSuffix(@NotNull final String resource)
+    
+    protected String retrieveSuffix(final String resource)
     {
-        @NotNull final String result;
+        final String result;
 
         final int dotIndex = resource.lastIndexOf(".");
 
@@ -605,7 +603,7 @@ public class ClassLoaderUtils
      * @return <code>true</code> in such case.
      */
     public boolean pathContainsResource(
-        @NotNull final String path, @NotNull final String resource, @NotNull final String suffix)
+        final String path, final String resource, final String suffix)
     {
         // TODO: Add support for URL resources.
         return pathContainsFileResource(path, resource, suffix);
@@ -619,7 +617,7 @@ public class ClassLoaderUtils
      * @return <code>true</code> in such case.
      */
     protected boolean pathContainsFileResource(
-        @NotNull final String path, @NotNull final String resource, @NotNull final String suffix)
+        final String path, final String resource, final String suffix)
     {
         boolean result = false;
 
@@ -656,12 +654,12 @@ public class ClassLoaderUtils
             {
                 try
                 {
-                    @NotNull final InputStream inputStream = new FileInputStream(file);
+                    final InputStream inputStream = new FileInputStream(file);
 
-                    @NotNull final ZipInputStream zipInputStream =
+                    final ZipInputStream zipInputStream =
                         new ZipInputStream(inputStream);
 
-                    @NotNull final String entryName =
+                    final String entryName =
                         replace(resource, "\\.", "/") + suffix;
 
                     ZipEntry entry;
@@ -711,9 +709,9 @@ public class ClassLoaderUtils
      * @param replacement the replacement.
      * @return the modified text.
      */
-    @NotNull
+    
     protected String replace(
-        @NotNull final String text, @NotNull final String original, @NotNull final String replacement)
+        final String text, final String original, final String replacement)
     {
         return text.replaceAll(original, replacement);
     }
@@ -723,8 +721,8 @@ public class ClassLoaderUtils
      * @param text the text.
      * @return the trimmed text.
      */
-    @NotNull
-    protected String trimBrackets(@NotNull final String text)
+    
+    protected String trimBrackets(final String text)
     {
         String result = text;
 
@@ -753,8 +751,8 @@ public class ClassLoaderUtils
      * @param text the text.
      * @return the trimmed text.
      */
-    @NotNull
-    protected String removeTrailingSlash(@NotNull final String text)
+    
+    protected String removeTrailingSlash(final String text)
     {
         String result = text;
 

@@ -36,7 +36,6 @@ package org.acmsl.commons;
 /*
  * Importing some JDK classes.
  */
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.Throwable;
 
@@ -58,7 +57,7 @@ public class ConfigurationException
      * @param params the parameters to build the exception message.
      */
     public ConfigurationException(
-        @NotNull final String messageKey, @NotNull final Object[] params)
+        final String messageKey, final Object[] params)
     {
         super(messageKey, params);
     }
@@ -70,9 +69,9 @@ public class ConfigurationException
      * @param cause the error cause.
      */
     public ConfigurationException(
-        @NotNull final String messageKey,
-        @NotNull final Object[] params,
-        @NotNull final Throwable cause)
+        final String messageKey,
+        final Object[] params,
+        final Throwable cause)
     {
         super(messageKey, params, cause);
     }

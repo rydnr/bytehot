@@ -38,8 +38,6 @@ package org.acmsl.commons.patterns;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -75,7 +73,7 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      * Specifies a new chain.
      * @param list the new list.
      */
-    private void immutableSetCore(@NotNull final List<CH> list)
+    private void immutableSetCore(final List<CH> list)
     {
         m__lCore = list;
     }
@@ -85,7 +83,7 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      * @param list the new list.
      */
     @SuppressWarnings("unused")
-    protected void setCore(@NotNull final List<CH> list)
+    protected void setCore(final List<CH> list)
     {
         immutableSetCore(list);
     }
@@ -103,7 +101,7 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      * Retrieves the core of this chain.
      * @return such collection.
      */
-    @NotNull
+    
     public List<CH> getHandlers()
     {
         return new ArrayList<>(getCore());
@@ -114,9 +112,9 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      * @param commandHandler the commandHandler to be added.
      */
     @Override
-    public void add(@NotNull final CH commandHandler)
+    public void add(final CH commandHandler)
     {
-        @Nullable final List<CH> t_lCore = getCore();
+        final List<CH> t_lCore = getCore();
 
         if  (t_lCore != null)
         {
@@ -130,9 +128,9 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      */
     @Override
     @SuppressWarnings("unused")
-    public void addFirst(@NotNull final CH commandHandler)
+    public void addFirst(final CH commandHandler)
     {
-        @Nullable final List<CH> t_lCore = getCore();
+        final List<CH> t_lCore = getCore();
 
         if  (t_lCore != null)
         {
@@ -147,11 +145,11 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      * this chain.
      */
     @Override
-    public boolean contains(@NotNull final CH commandHandler)
+    public boolean contains(final CH commandHandler)
     {
         boolean result = false;
 
-        @Nullable final List<CH> t_lCore = getCore();
+        final List<CH> t_lCore = getCore();
 
         if  (t_lCore != null)
         {
@@ -169,11 +167,11 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      */
     @Override
     @SuppressWarnings("unused")
-    public int indexOf(@NotNull final CH commandHandler)
+    public int indexOf(final CH commandHandler)
     {
         int result = -1;
 
-        @Nullable final List<CH> t_lCore = getCore();
+        final List<CH> t_lCore = getCore();
 
         if  (t_lCore != null)
         {
@@ -189,14 +187,14 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
      * @return the command handler referred at such position.
      */
     @Override
-    @Nullable
+    
     public CH get(final int commandHandlerIndex)
     {
-        @Nullable final CH result;
+        final CH result;
 
         if  (commandHandlerIndex >= 0)
         {
-            @Nullable final List<CH> t_lCore = getCore();
+            final List<CH> t_lCore = getCore();
 
             if  (t_lCore != null)
             {
@@ -224,7 +222,7 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
     {
         boolean result = false;
 
-        @Nullable final List<CH> t_lCore = getCore();
+        final List<CH> t_lCore = getCore();
 
         if  (t_lCore != null)
         {
@@ -243,7 +241,7 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
     {
         int result = 0;
 
-        @Nullable final List<CH> t_lCore = getCore();
+        final List<CH> t_lCore = getCore();
 
         if  (t_lCore != null)
         {
@@ -256,7 +254,7 @@ public class ArrayListChainAdapter<C extends Command, E extends Exception, CH ex
     /**
      * {@inheritDoc}
      */
-    @NotNull
+    
     @Override
     public String toString()
     {

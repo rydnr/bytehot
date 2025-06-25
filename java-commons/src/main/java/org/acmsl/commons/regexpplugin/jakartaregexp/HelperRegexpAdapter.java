@@ -48,7 +48,6 @@ import org.apache.regexp.RESyntaxException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Jakarta Regexp-specific regexp helper adapter.
@@ -67,16 +66,16 @@ public class HelperRegexpAdapter
      * @throws MalformedPatternException if given regexp is malformed.
      */
     @Override
-    @NotNull
+    
     public String replaceAll(
-        @NotNull final String input, @NotNull final String pattern, @NotNull final String replacement)
+        final String input, final String pattern, final String replacement)
       throws  MalformedPatternException
     {
-        @NotNull final String result;
+        final String result;
 
         try 
         {
-            @NotNull final RE t_RE = new RE(pattern);
+            final RE t_RE = new RE(pattern);
 
             result = t_RE.subst(input, replacement);
         }

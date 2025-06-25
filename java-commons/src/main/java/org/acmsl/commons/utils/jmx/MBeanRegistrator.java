@@ -55,8 +55,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Is able to register MBeans.
@@ -90,7 +88,7 @@ public class MBeanRegistrator
      * Retrieves a <code>MBeanRegistrator</code> instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static MBeanRegistrator getInstance()
     {
         return MBeanRegistratorSingletonContainer.SINGLETON;
@@ -103,7 +101,7 @@ public class MBeanRegistrator
      * @return <code>true</code> if the MBean is registered successfully.
      */
     public boolean register(
-        @NotNull final String mbeanClassName, @NotNull final String objectName)
+        final String mbeanClassName, final String objectName)
     {
         boolean result = false;
 
@@ -131,7 +129,7 @@ public class MBeanRegistrator
      * @param objectName the object name.
      * @return <code>true</code> if the MBean is registered successfully.
      */
-    public boolean register(@NotNull final Object mbean, @NotNull final ObjectName objectName)
+    public boolean register(final Object mbean, final ObjectName objectName)
     {
         return register(mbean, objectName, getMBeanServer());
     }
@@ -144,7 +142,7 @@ public class MBeanRegistrator
      * @return <code>true</code> if the MBean is registered successfully.
      */
     protected boolean register(
-        @NotNull final Object mbean, @NotNull final ObjectName objectName, @Nullable final MBeanServer server)
+        final Object mbean, final ObjectName objectName, final MBeanServer server)
     {
         boolean result = false;
 
@@ -180,7 +178,7 @@ public class MBeanRegistrator
      * @return <code>true</code> if the MBean is registered successfully.
      */
     @SuppressWarnings("unused")
-    public boolean unregister(@NotNull final String objectName)
+    public boolean unregister(final String objectName)
     {
         boolean result = false;
 
@@ -204,7 +202,7 @@ public class MBeanRegistrator
      * @param objectName the object name.
      * @return <code>true</code> if the MBean is unregistered successfully.
      */
-    public boolean unregister(@NotNull final ObjectName objectName)
+    public boolean unregister(final ObjectName objectName)
     {
         return unregister(objectName, getMBeanServer());
     }
@@ -216,7 +214,7 @@ public class MBeanRegistrator
      * @return <code>true</code> if the MBean is unregistered successfully.
      */
     protected boolean unregister(
-        @NotNull final ObjectName objectName, @Nullable final MBeanServer server)
+        final ObjectName objectName, final MBeanServer server)
     {
         boolean result = false;
 
@@ -250,7 +248,7 @@ public class MBeanRegistrator
      * Specifies the MBean server.
      * @param server such server.
      */
-    protected final void immutableSetMBeanServer(@NotNull final MBeanServer server)
+    protected final void immutableSetMBeanServer(final MBeanServer server)
     {
         m__Server = server;
     }
@@ -259,7 +257,7 @@ public class MBeanRegistrator
      * Specifies the MBean server.
      * @param server such server.
      */
-    protected void setMBeanServer(@NotNull final MBeanServer server)
+    protected void setMBeanServer(final MBeanServer server)
     {
         immutableSetMBeanServer(server);
     }
@@ -268,7 +266,7 @@ public class MBeanRegistrator
      * Retrieves the MBean server.
      * @return such server.
      */
-    @NotNull
+    
     protected final MBeanServer immutableGetMBeanServer()
     {
         return m__Server;
@@ -280,7 +278,7 @@ public class MBeanRegistrator
      * server is returned. Otherwise a new instance is created.
      * @return such server.
      */
-    @Nullable
+    
     public MBeanServer getMBeanServer()
     {
         return getMBeanServer(immutableGetMBeanServer());
@@ -293,20 +291,20 @@ public class MBeanRegistrator
      * @param cachedInstance the cached instance, if any.
      * @return such server.
      */
-    @Nullable
-    protected MBeanServer getMBeanServer(@Nullable final MBeanServer cachedInstance)
+    
+    protected MBeanServer getMBeanServer(final MBeanServer cachedInstance)
     {
         MBeanServer result = cachedInstance;
         
         if  (result == null)
         {
-            @NotNull final List<MBeanServer> mbeanServers = MBeanServerFactory.findMBeanServer(null);
+            final List<MBeanServer> mbeanServers = MBeanServerFactory.findMBeanServer(null);
 
-            @NotNull final Iterator<MBeanServer> serverIterator = mbeanServers.iterator();
+            final Iterator<MBeanServer> serverIterator = mbeanServers.iterator();
 
             while  (serverIterator.hasNext())
             {
-                @NotNull final MBeanServer mbeanServer = serverIterator.next();
+                final MBeanServer mbeanServer = serverIterator.next();
 
                 mbeanServer.queryMBeans(null, null);
             }

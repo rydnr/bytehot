@@ -52,7 +52,6 @@ import gnu.regexp.REException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * GNU Regexp 1.1.4-specific compiler adapter. This class makes
@@ -79,12 +78,12 @@ public class CompilerGNUAdapter
      * @return the Pattern associated to such regular expression.
      * @throws MalformedPatternException if given regexp is malformed.
      */
-    @NotNull
+    
     @Override
-    public Pattern compile(@NotNull final String regexp)
+    public Pattern compile(final String regexp)
         throws  MalformedPatternException
     {
-        @NotNull org.acmsl.commons.regexpplugin.Pattern result = null;
+        org.acmsl.commons.regexpplugin.Pattern result = null;
 
         try
         {
@@ -100,7 +99,7 @@ public class CompilerGNUAdapter
                 ?   RE.REG_MULTILINE
                 :   0;
 
-            @NotNull final RE t_RE;
+            final RE t_RE;
 
             if  (t_iOptions == 0)
             {

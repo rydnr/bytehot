@@ -40,7 +40,6 @@ import gnu.regexp.REMatchEnumeration;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -64,8 +63,8 @@ public class MatchResultGNUAdapterTest
     public MatchResultGNUAdapter createInstance()
         throws Exception
     {
-        @NotNull final RE t_RE = new RE("(.*?):(.*)");
-        @NotNull final REMatchEnumeration t_REMatchEnumeration = t_RE.getMatchEnumeration("one:two");
+        final RE t_RE = new RE("(.*?):(.*)");
+        final REMatchEnumeration t_REMatchEnumeration = t_RE.getMatchEnumeration("one:two");
 
         return new MatchResultGNUAdapter(t_REMatchEnumeration.nextMatch(), t_RE.getNumSubs());
     }
@@ -79,7 +78,7 @@ public class MatchResultGNUAdapterTest
     public void group_works()
         throws Exception
     {
-        @NotNull final MatchResultGNUAdapter instance = createInstance();
+        final MatchResultGNUAdapter instance = createInstance();
         Assert.assertEquals(instance.group(1), "one");
         Assert.assertEquals(instance.group(2), "two");
     }

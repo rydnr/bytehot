@@ -49,8 +49,6 @@ import org.acmsl.commons.regexpplugin.RegexpPluginMisconfiguredException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides some stateless helper regexp-related services.
@@ -73,7 +71,7 @@ public class RegexpUtils
         /**
          * The actual singleton.
          */
-        @NotNull
+        
         public static final RegexpUtils SINGLETON = new RegexpUtils();
     }
 
@@ -88,11 +86,11 @@ public class RegexpUtils
      * @throws RegexpEngineNotFoundException if the system is not configured
      * properly in order to provide regexp services.
      */
-    @NotNull
+    
     public static RegexpUtils getInstance()
         throws  RegexpEngineNotFoundException
     {
-        @NotNull final RegexpUtils result = RegexpUtilsSingletonContainer.SINGLETON;
+        final RegexpUtils result = RegexpUtilsSingletonContainer.SINGLETON;
 
         synchronized  (RegexpUtils.class)
         {
@@ -106,7 +104,7 @@ public class RegexpUtils
      * Specifies the regexp compiler.
      * @param compiler the compiler.
      */
-    protected static final void immutableSetRegexpCompiler(@NotNull final Compiler compiler)
+    protected static final void immutableSetRegexpCompiler(final Compiler compiler)
     {
         m__Compiler = compiler;
     }
@@ -116,7 +114,7 @@ public class RegexpUtils
      * @param compiler the compiler.
      */
     @SuppressWarnings("unused")
-    protected static void setRegexpCompiler(@NotNull final Compiler compiler)
+    protected static void setRegexpCompiler(final Compiler compiler)
     {
         immutableSetRegexpCompiler(compiler);
     }
@@ -125,7 +123,7 @@ public class RegexpUtils
      * Retrieves the regexp compiler.
      * @return such compiler.
      */
-    @Nullable
+    
     protected final static Compiler immutableGetRegexpCompiler()
     {
         return m__Compiler;
@@ -135,7 +133,7 @@ public class RegexpUtils
      * Retrieves the regexp compiler.
      * @return such compiler.
      */
-    @NotNull
+    
     public static Compiler getRegexpCompiler()
     {
         initializeRegexpCompiler();
@@ -147,7 +145,7 @@ public class RegexpUtils
      */
     public static void initializeRegexpCompiler()
     {
-        @Nullable Compiler t_Compiler = immutableGetRegexpCompiler();
+        Compiler t_Compiler = immutableGetRegexpCompiler();
 
         if (t_Compiler == null)
         {
@@ -165,8 +163,8 @@ public class RegexpUtils
      * @return the regexp pattern.
      * @throws MalformedPatternException if the pattern is invalid.
      */
-    @NotNull
-    public Pattern buildPattern(@NotNull final String regexp)
+    
+    public Pattern buildPattern(final String regexp)
       throws  MalformedPatternException
     {
         return buildPattern(regexp, getRegexpCompiler());
@@ -179,9 +177,9 @@ public class RegexpUtils
      * @return the regexp pattern.
      * @throws MalformedPatternException if the pattern is invalid.
      */
-    @NotNull
+    
     protected Pattern buildPattern(
-        @NotNull final String regexp, @NotNull final Compiler compiler)
+        final String regexp, final Compiler compiler)
       throws  MalformedPatternException
     {
         return compile(compiler, regexp);
@@ -194,9 +192,9 @@ public class RegexpUtils
      * @return the compiled pattern.
      * @throws MalformedPatternException if the pattern is invalid.
      */
-    @NotNull
+    
     protected static Pattern compile(
-        @NotNull final Compiler compiler, @NotNull final String pattern)
+        final Compiler compiler, final String pattern)
       throws  MalformedPatternException
     {
         return compiler.compile(pattern);
@@ -210,7 +208,7 @@ public class RegexpUtils
      * @throws RegexpPluginMisconfiguredException if RegexpPlugin is
      * misconfigured.
      */
-    @NotNull
+    
     protected static synchronized Compiler createCompiler()
       throws RegexpEngineNotFoundException,
              RegexpPluginMisconfiguredException
@@ -227,9 +225,9 @@ public class RegexpUtils
      * @throws RegexpPluginMisconfiguredException if RegexpPlugin is
      * misconfigured.
      */
-    @NotNull
+    
     protected static synchronized Compiler createCompiler(
-        @NotNull final RegexpManager regexpManager)
+        final RegexpManager regexpManager)
       throws RegexpEngineNotFoundException,
              RegexpPluginMisconfiguredException
     {
@@ -241,9 +239,9 @@ public class RegexpUtils
      * @param regexpEngine the RegexpEngine instance.
      * @return the regexp compiler.
      */
-    @NotNull
+    
     protected static synchronized Compiler createCompiler(
-        @NotNull final RegexpEngine regexpEngine)
+        final RegexpEngine regexpEngine)
     {
         return regexpEngine.createCompiler();
     }

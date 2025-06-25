@@ -36,7 +36,6 @@ package org.acmsl.commons.regexpplugin;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a regexp engine.
@@ -48,7 +47,7 @@ public interface RegexpEngine
      * Creates a compiler instance.
      * @return such instance.
      */
-    @NotNull
+    
     public Compiler createCompiler()
         throws RegexpEngineNotFoundException;
 
@@ -56,7 +55,7 @@ public interface RegexpEngine
      * Creates a matcher instance.
      * @return such instance.
      */
-    @NotNull
+    
     public Matcher createMatcher()
         throws RegexpEngineNotFoundException;
 
@@ -64,7 +63,7 @@ public interface RegexpEngine
      * Creates a helper instance.
      * @return such instance.
      */
-    @NotNull
+    
     public Helper createHelper()
         throws RegexpEngineNotFoundException;
 }

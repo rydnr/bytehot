@@ -40,7 +40,6 @@
  */
 package org.acmsl.commons.patterns;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Enumeration of recovery strategies for error handling.
@@ -113,13 +112,13 @@ public enum RecoveryStrategy {
     /**
      * Short name for the strategy.
      */
-    @NonNull
+    
     private final String name;
 
     /**
      * Detailed description of the strategy.
      */
-    @NonNull
+    
     private final String description;
 
     /**
@@ -127,7 +126,7 @@ public enum RecoveryStrategy {
      * @param name Short name for the strategy
      * @param description Detailed description of the strategy
      */
-    RecoveryStrategy(@NonNull final String name, @NonNull final String description) {
+    RecoveryStrategy(final String name, final String description) {
         this.name = name;
         this.description = description;
     }
@@ -136,7 +135,7 @@ public enum RecoveryStrategy {
      * Gets the short name of the strategy.
      * @return The strategy name
      */
-    @NonNull
+    
     public String getName() {
         return name;
     }
@@ -145,7 +144,7 @@ public enum RecoveryStrategy {
      * Gets the detailed description of the strategy.
      * @return The strategy description
      */
-    @NonNull
+    
     public String getDescription() {
         return description;
     }

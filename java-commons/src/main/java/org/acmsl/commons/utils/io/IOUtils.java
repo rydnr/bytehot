@@ -62,8 +62,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides some commonly used static methods related to java.io classes.
@@ -87,7 +85,7 @@ public class IOUtils
         /**
          * The actual singleton.
          */
-        @NotNull
+        
         public static final IOUtils SINGLETON = new IOUtils();
     }
 
@@ -100,7 +98,7 @@ public class IOUtils
      * Retrieves an IOUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static IOUtils getInstance()
     {
         return IOUtilsSingletonContainer.SINGLETON;
@@ -115,20 +113,20 @@ public class IOUtils
      * fails.
      * @exception IOException if the input stream cannot be read.
      */
-    @NotNull
-    public String read(@NotNull final InputStream inputStream, final int contentLength, @NotNull final Charset charset)
+    
+    public String read(final InputStream inputStream, final int contentLength, final Charset charset)
         throws IOException
     {
-        @NotNull final StringBuilder t_sbResult = new StringBuilder();
+        final StringBuilder t_sbResult = new StringBuilder();
 
-        @NotNull final CharUtils t_CharUtils = CharUtils.getInstance();
+        final CharUtils t_CharUtils = CharUtils.getInstance();
 
         if  (contentLength > 0)
         {
-            @NotNull final InputStreamReader t_isrReader =
+            final InputStreamReader t_isrReader =
                 new InputStreamReader(inputStream, charset);
 
-            @NotNull char[] t_acContents = new char[contentLength];
+            char[] t_acContents = new char[contentLength];
 
             int bytesRead = 0;
             int totalBytesRead = 0;
@@ -143,7 +141,7 @@ public class IOUtils
 
                     if (bytesRead < contentLength)
                     {
-                        @NotNull final char[] aux = new char[bytesRead];
+                        final char[] aux = new char[bytesRead];
                         System.arraycopy(t_acContents, 0, aux, 0, bytesRead);
                         t_sbResult.append(aux);
                         t_acContents = new char[contentLength - bytesRead];
@@ -155,16 +153,16 @@ public class IOUtils
         }
         else
         {
-            @NotNull final InputStreamReader t_isrReader =
+            final InputStreamReader t_isrReader =
                 new InputStreamReader(inputStream, charset);
 
-            @NotNull final char[] t_acContents = new char[BLOCK_SIZE];
+            final char[] t_acContents = new char[BLOCK_SIZE];
 
             while  (t_isrReader.ready())
             {
                 final int t_iCharsRead = t_isrReader.read(t_acContents);
 
-                @NotNull final char[] t_acCharsRead =
+                final char[] t_acCharsRead =
                     (t_iCharsRead == BLOCK_SIZE)
                     ?   t_acContents
                     :   t_CharUtils.subbuffer(
@@ -184,24 +182,24 @@ public class IOUtils
      * @return the contents of the stream.
      * @throws IOException whenever the operation cannot be accomplished.
      */
-    @NotNull
-    public String read(@NotNull final InputStream input, @NotNull final Charset charset)
+    
+    public String read(final InputStream input, final Charset charset)
         throws  IOException
     {
-        @NotNull final StringBuilder t_sbResult = new StringBuilder();
+        final StringBuilder t_sbResult = new StringBuilder();
 
         /*
          * Instantiating an InputStreamReader object to read the contents.
          */
-        @NotNull final InputStreamReader t_isrReader = new InputStreamReader(input, charset);
+        final InputStreamReader t_isrReader = new InputStreamReader(input, charset);
 
         /*
          * It's faster to use BufferedReader class.
          */
-        @NotNull final BufferedReader t_brBufferedReader =
+        final BufferedReader t_brBufferedReader =
             new BufferedReader(t_isrReader);
 
-        @Nullable String t_strLine = t_brBufferedReader.readLine();
+        String t_strLine = t_brBufferedReader.readLine();
 
         while  (t_strLine != null)
         {
@@ -220,9 +218,9 @@ public class IOUtils
      * @param charset the charset.
      * @return the contents of the stream, or empty if reading cannot be accomplished.
      */
-    @NotNull
+    
     @SuppressWarnings("unused")
-    public String readIfPossible(@NotNull final InputStream input, @NotNull final Charset charset)
+    public String readIfPossible(final InputStream input, final Charset charset)
     {
         String result = "";
 
@@ -246,11 +244,11 @@ public class IOUtils
      * @param charset the charset.
      */
     public void write(
-        @NotNull final String content, @NotNull final OutputStream output, @NotNull final Charset charset)
+        final String content, final OutputStream output, final Charset charset)
     {
-        @NotNull final OutputStreamWriter t_osFileWriter = new OutputStreamWriter(output, charset);
+        final OutputStreamWriter t_osFileWriter = new OutputStreamWriter(output, charset);
 
-        @NotNull final PrintWriter t_pwWriter = new PrintWriter(t_osFileWriter);
+        final PrintWriter t_pwWriter = new PrintWriter(t_osFileWriter);
 
         t_pwWriter.println(content);
 

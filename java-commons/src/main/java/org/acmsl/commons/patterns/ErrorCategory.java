@@ -40,7 +40,6 @@
  */
 package org.acmsl.commons.patterns;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Interface for error categorization in application error handling.
@@ -55,28 +54,28 @@ public interface ErrorCategory {
      * Gets the name of this error category.
      * @return The category name
      */
-    @NonNull
+    
     String name();
 
     /**
      * Gets the default severity for errors in this category.
      * @return The default error severity
      */
-    @NonNull
+    
     ErrorSeverity getDefaultSeverity();
 
     /**
      * Gets the recommended recovery strategy for this error category.
      * @return The recommended recovery strategy
      */
-    @NonNull
+    
     RecoveryStrategy getRecommendedStrategy();
 
     /**
      * Gets a human-readable description of this error category.
      * @return The category description
      */
-    @NonNull
+    
     String getDescription();
 
     /**

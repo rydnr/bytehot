@@ -38,7 +38,6 @@ package org.acmsl.commons.utils.io;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -70,11 +69,11 @@ public class FileUtilsTest
     public void retrieve_the_File_from_a_FileInputStream_works()
         throws Exception
     {
-        @NotNull final FileUtils instance = FileUtils.getInstance();
+        final FileUtils instance = FileUtils.getInstance();
 
-        @NotNull final File t_File = File.createTempFile("test", "");
+        final File t_File = File.createTempFile("test", "");
 
-        @NotNull final FileInputStream t_InputStream = new FileInputStream(t_File);
+        final FileInputStream t_InputStream = new FileInputStream(t_File);
 
         Assert.assertEquals(t_File, instance.retrieveFile(t_InputStream));
 
@@ -90,9 +89,9 @@ public class FileUtilsTest
     @Test
     public void getFileName_retrieves_just_the_filename_part()
     {
-        @NotNull final FileUtils instance = FileUtils.getInstance();
+        final FileUtils instance = FileUtils.getInstance();
 
-        @NotNull final String filePath =
+        final String filePath =
             File.separator + "tmp" + File.separator + "a" + File.separator + "b" + File.separator + "c.ext";
 
         Assert.assertEquals("c.ext", instance.getFileName(filePath));
@@ -104,9 +103,9 @@ public class FileUtilsTest
     @Test
     public void stripExtension_removes_the_last_extension()
     {
-        @NotNull final FileUtils instance = FileUtils.getInstance();
+        final FileUtils instance = FileUtils.getInstance();
 
-        @NotNull final String filePath =
+        final String filePath =
             File.separator + "tmp" + File.separator + "a" + File.separator + "b" + File.separator + "c.ext";
 
         Assert.assertEquals(
@@ -121,9 +120,9 @@ public class FileUtilsTest
     @Test
     public void stripExtensions_removes_all_extensions()
     {
-        @NotNull final FileUtils instance = FileUtils.getInstance();
+        final FileUtils instance = FileUtils.getInstance();
 
-        @NotNull final String filePath =
+        final String filePath =
             File.separator + "tmp" + File.separator + "a" + File.separator + "b" + File.separator + "c.ext1.ext2.ext3";
 
         Assert.assertEquals(

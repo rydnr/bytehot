@@ -35,7 +35,6 @@ package org.acmsl.commons.automata;
 /*
  * Importing some JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing some JDK classes.
@@ -55,7 +54,7 @@ public interface Stateful<S extends State, T extends Transition<S, ?>>
      * @return such state.
      */
     @SuppressWarnings("unused")
-    @NotNull
+    
     public S getCurrentState();
 
     /**
@@ -64,6 +63,6 @@ public interface Stateful<S extends State, T extends Transition<S, ?>>
      * @return the new state this stateful instance has just reached.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public S acceptTransition(@NotNull T transition);
+    
+    public S acceptTransition(T transition);
 }

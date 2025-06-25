@@ -34,7 +34,6 @@ package org.acmsl.commons.regexpplugin.jakartaoro;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -55,7 +54,7 @@ public class AwkCompilerOROAdapterTest
      * Creates an instance of the tested class.
      * @return such instance.
      */
-    @NotNull
+    
     public AwkCompilerOROAdapter createInstance()
     {
         return new AwkCompilerOROAdapter();
@@ -67,7 +66,7 @@ public class AwkCompilerOROAdapterTest
     @Test
     public void isCaseSensitive_works()
     {
-        @NotNull final AwkCompilerOROAdapter instance = createInstance();
+        final AwkCompilerOROAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 
@@ -84,7 +83,7 @@ public class AwkCompilerOROAdapterTest
     @Test
     public void isMultiline_works()
     {
-        @NotNull final AwkCompilerOROAdapter instance = createInstance();
+        final AwkCompilerOROAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 

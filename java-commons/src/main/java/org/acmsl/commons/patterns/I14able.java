@@ -36,7 +36,6 @@ package org.acmsl.commons.patterns;
 /*
  * Importing Checker Framework annotations.
  */
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /*
  * Importing JDK classes.
@@ -54,6 +53,6 @@ public interface I14able
      * @param locale the locale.
      * @return such text.
      */
-    @NonNull
-    public String toString(@NonNull final Locale locale);
+    
+    public String toString(final Locale locale);
 }

@@ -36,7 +36,6 @@ package org.acmsl.commons.patterns.dao;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents entities able to format {@link ValueObject} fields.
@@ -49,6 +48,6 @@ public interface ValueObjectFieldFormatter<V, F extends ValueObjectField<V>>
      * @param valueObjectField the field to format.
      * @return the String format.
      */
-    @NotNull
-    public String format(@NotNull final F valueObjectField);
+    
+    public String format(final F valueObjectField);
 }

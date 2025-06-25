@@ -45,7 +45,6 @@ package org.acmsl.commons.version;
 * Importing JUnit classes.
 */
 import junit.framework.TestCase;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Tests VersionUtilsTest class.
@@ -60,12 +59,12 @@ extends TestCase
      * Creates a VersionUtilsTest with given name.
      * @param name such name.
      */
-    public VersionUtilsTest(@NotNull final String name)
+    public VersionUtilsTest(final String name)
     {
         super(name);
     }
 
-    public static void main(@NotNull final String[] args)
+    public static void main(final String[] args)
     {
         junit.textui.TestRunner.run(VersionUtilsTest.class);
     }
@@ -74,7 +73,7 @@ extends TestCase
      * Creates an instance of the tested class.
      * @return such instance.
      */
-    @NotNull
+    
     public VersionUtils createInstance()
     throws Exception
     {
@@ -123,7 +122,7 @@ extends TestCase
     public void testMatches()
     throws Exception
     {
-        @NotNull final VersionUtils t_VersionUtils = VersionUtils.getInstance();
+        final VersionUtils t_VersionUtils = VersionUtils.getInstance();
         assertNotNull("getInstance() is null", t_VersionUtils);
 
         assertTrue(
@@ -148,7 +147,7 @@ extends TestCase
     public void testVersionNumbersMatch()
     throws Exception
     {
-        @NotNull final VersionUtils t_VersionUtils = VersionUtils.getInstance();
+        final VersionUtils t_VersionUtils = VersionUtils.getInstance();
 
         assertNotNull("getInstance() is null", t_VersionUtils);
 

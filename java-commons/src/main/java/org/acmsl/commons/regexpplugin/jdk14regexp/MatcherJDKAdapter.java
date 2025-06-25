@@ -49,7 +49,6 @@ import java.util.regex.Pattern;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * JDK1.4-specific regexp matcher adapter. This class makes possible
@@ -77,15 +76,15 @@ public class MatcherJDKAdapter
      */
     @Override
     public boolean contains(
-        @NotNull final String text,
-        @NotNull final org.acmsl.commons.regexpplugin.Pattern pattern)
+        final String text,
+        final org.acmsl.commons.regexpplugin.Pattern pattern)
     {
         final boolean result;
 
         final Pattern t_Pattern =
             ((PatternJDKAdapter) pattern).getPattern();
 
-        final @NotNull Matcher t_Matcher = t_Pattern.matcher(text);
+        final Matcher t_Matcher = t_Pattern.matcher(text);
 
         result = t_Matcher.find();
 
@@ -143,7 +142,7 @@ public class MatcherJDKAdapter
         return new MatchResultJDKAdapter(matcher);
     }
 
-    @NotNull
+    
     @Override
     public String toString()
     {

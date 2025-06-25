@@ -74,9 +74,14 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 - CI/CD pipeline definitions should delegate all logic to scripts. Don't use inline shell snippets.
 - Github Action workflows should rely each non-trivial step on external scripts (under .github/scripts).
 - Github Action workflows should not be redundant. One should address the Github Pages documentation, another the Continuous Integration, another the Release generation. There must not be variants of any of them. All changes should be focused on improving the existing workflows.
+- **All Github Actions workflows should fail fast, instead of trying to find non-optimal workarounds.**
 
 ### Import Guidelines
 - No static imports or wildcard imports are allowed. If possible, group imports by their top-level groups.
 
 ### Github Pages Requirements
 - All Github Pages content should define the CSS (provided by .github/scripts/css.sh), header (provided by .github/scripts/header.sh), footer (provided by .github/scripts/footer.sh) and the Matrix style (provided by .github/scripts/matrix.sh).
+
+### Code Quality
+- Source code must not use org.jetbrains.annotations classes.
+- All methods should be annotated with checkerframework annotations.

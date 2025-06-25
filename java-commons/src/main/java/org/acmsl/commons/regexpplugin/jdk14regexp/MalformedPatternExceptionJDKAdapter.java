@@ -51,7 +51,6 @@ import org.acmsl.commons.regexpplugin.MalformedPatternException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing some JDK1.4 regexp classes.
@@ -80,7 +79,7 @@ public class MalformedPatternExceptionJDKAdapter
      * @param exception concrete exception instance to adapt.
      */
     public MalformedPatternExceptionJDKAdapter(
-        @NotNull final PatternSyntaxException exception)
+        final PatternSyntaxException exception)
     {
         super(exception.getMessage());
 
@@ -92,7 +91,7 @@ public class MalformedPatternExceptionJDKAdapter
      * @param exception the PatternSyntaxException to adapt.
      */
     protected final void immutableSetPatternSyntaxException(
-        @NotNull final PatternSyntaxException exception)
+        final PatternSyntaxException exception)
     {
         m__Adaptee = exception;
     }
@@ -103,7 +102,7 @@ public class MalformedPatternExceptionJDKAdapter
      */
     @SuppressWarnings("unused")
     protected void setPatternSyntaxException(
-        @NotNull final PatternSyntaxException exception)
+        final PatternSyntaxException exception)
     {
         immutableSetPatternSyntaxException(exception);
     }
@@ -112,7 +111,7 @@ public class MalformedPatternExceptionJDKAdapter
      * Retrieves the adapted exception.
      * @return such exception.
      */
-    @NotNull
+    
     @SuppressWarnings("unused")
     protected PatternSyntaxException getPatternSyntaxException()
     {

@@ -33,8 +33,6 @@ package org.acmsl.commons;
 /*
  * Importing JetBrains annotations..
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -82,10 +80,10 @@ public class CachingBundleI14able
      */
     @SuppressWarnings("unused")
     public CachingBundleI14able(
-        @NotNull final String messageKey,
-        @NotNull final Object[] params,
-        @NotNull final String systemProperty,
-        @NotNull final String bundleName,
+        final String messageKey,
+        final Object[] params,
+        final String systemProperty,
+        final String bundleName,
         final boolean useClassLoader,
         final long ttl)
     {
@@ -104,10 +102,10 @@ public class CachingBundleI14able
      */
     @SuppressWarnings("unused")
     public CachingBundleI14able(
-        @NotNull final String messageKey,
-        @NotNull final Object[] params,
-        @NotNull final String systemProperty,
-        @NotNull final String bundleName,
+        final String messageKey,
+        final Object[] params,
+        final String systemProperty,
+        final String bundleName,
         final long ttl)
     {
         super(messageKey, params, systemProperty, bundleName);
@@ -123,9 +121,9 @@ public class CachingBundleI14able
      */
     @SuppressWarnings("unused")
     public CachingBundleI14able(
-        @NotNull final String messageKey,
-        @NotNull final String systemProperty,
-        @NotNull final String bundleName,
+        final String messageKey,
+        final String systemProperty,
+        final String bundleName,
         final long ttl)
     {
         super(messageKey, systemProperty, bundleName);
@@ -192,9 +190,9 @@ public class CachingBundleI14able
      * Annotates given bundle in the cache.
      * @param resourceBundle the bundle to annotate.
      */
-    protected void cacheBundle(@NotNull final ResourceBundle resourceBundle)
+    protected void cacheBundle(final ResourceBundle resourceBundle)
     {
-        @NotNull final String t_strBundleName = getBundleName();
+        final String t_strBundleName = getBundleName();
 
         cacheBundle(resourceBundle, t_strBundleName, RESOURCE_BUNDLE_CACHE);
     }
@@ -206,9 +204,9 @@ public class CachingBundleI14able
      * @param map the caching mechanism.
      */
     protected void cacheBundle(
-        @NotNull final ResourceBundle resourceBundle,
-        @NotNull final String bundleName,
-        @NotNull final Map<String, TimestampResourceBundle> map)
+        final ResourceBundle resourceBundle,
+        final String bundleName,
+        final Map<String, TimestampResourceBundle> map)
     {
         map.put(bundleName, wrapTimestamp(resourceBundle));
     }
@@ -217,12 +215,12 @@ public class CachingBundleI14able
      * Retrieves the cached <code>ResourceBundle</code>.
      * @return such bundle, or <code>null</code> if any.
      */
-    @Nullable
+    
     protected ResourceBundle getCachedBundle()
     {
-        @Nullable final ResourceBundle result;
+        final ResourceBundle result;
 
-        @NotNull final String t_strBundleName = getBundleName();
+        final String t_strBundleName = getBundleName();
 
         result =
             getCachedBundle(
@@ -239,14 +237,14 @@ public class CachingBundleI14able
      * @param cacheTtl the cache TTL.
      * @return such bundle, or <code>null</code> if any.
      */
-    @Nullable
+    
     protected ResourceBundle getCachedBundle(
-        @NotNull final String bundleName,
-        @NotNull final Map<String, TimestampResourceBundle> map,
+        final String bundleName,
+        final Map<String, TimestampResourceBundle> map,
         final boolean resetCache,
         final long cacheTtl)
     {
-        @Nullable TimestampResourceBundle result = map.get(bundleName);
+        TimestampResourceBundle result = map.get(bundleName);
 
         if  (resetCache)
         {
@@ -267,7 +265,7 @@ public class CachingBundleI14able
      * Empties the cache.
      * @param map the caching mechanism.
      */
-    protected void emptyCache(@NotNull final Map<String, TimestampResourceBundle> map)
+    protected void emptyCache(final Map<String, TimestampResourceBundle> map)
     {
         map.clear();
     }
@@ -279,7 +277,7 @@ public class CachingBundleI14able
      * @return <code>true</code> in such case.
      */
     protected boolean hasExpiredFromCache(
-        @NotNull final TimestampResourceBundle bundle, final long cacheTtl)
+        final TimestampResourceBundle bundle, final long cacheTtl)
     {
         boolean result = true;
 
@@ -300,8 +298,8 @@ public class CachingBundleI14able
      * @param bundle the bundle.
      * @return a <code>TimestampResourceBundle</code> instance.
      */
-    @NotNull
-    protected TimestampResourceBundle wrapTimestamp(@NotNull final ResourceBundle bundle)
+    
+    protected TimestampResourceBundle wrapTimestamp(final ResourceBundle bundle)
     {
         return new TimestampResourceBundle(bundle);
     }
@@ -316,18 +314,18 @@ public class CachingBundleI14able
         /**
          * The wrapped bundle.
          */
-        @NotNull private ResourceBundle m__WrappedBundle;
+        private ResourceBundle m__WrappedBundle;
         
         /**
          * The timestamp.
          */
-        @NotNull private Date m__Timestamp;
+        private Date m__Timestamp;
         
         /**
          * Creates a <code>TimestampResourceBundle</code> to wrap given instance.
          * @param bundle the bundle to wrap.
          */
-        protected TimestampResourceBundle(@NotNull final ResourceBundle bundle)
+        protected TimestampResourceBundle(final ResourceBundle bundle)
         {
             immutableSetWrappedBundle(bundle);
             immutableSetTimestamp(new Date());
@@ -337,7 +335,7 @@ public class CachingBundleI14able
          * Specifies the wrapped bundle.
          * @param bundle such bundle.
          */
-        protected final void immutableSetWrappedBundle(@NotNull final ResourceBundle bundle)
+        protected final void immutableSetWrappedBundle(final ResourceBundle bundle)
         {
             m__WrappedBundle = bundle;
         }
@@ -347,7 +345,7 @@ public class CachingBundleI14able
          * @param bundle such bundle.
          */
         @SuppressWarnings("unused")
-        protected void setWrappedBundle(@NotNull final ResourceBundle bundle)
+        protected void setWrappedBundle(final ResourceBundle bundle)
         {
             immutableSetWrappedBundle(bundle);
         }
@@ -356,7 +354,7 @@ public class CachingBundleI14able
          * Retrieves the wrapped bundle.
          * @return such bundle.
          */
-        @NotNull
+        
         protected ResourceBundle getWrappedBundle()
         {
             return m__WrappedBundle;
@@ -366,7 +364,7 @@ public class CachingBundleI14able
          * Specifies the timestamp.
          * @param date such date.
          */
-        protected final void immutableSetTimestamp(@NotNull final Date date)
+        protected final void immutableSetTimestamp(final Date date)
         {
             m__Timestamp = date;
         }
@@ -376,7 +374,7 @@ public class CachingBundleI14able
          * @param date such date.
          */
         @SuppressWarnings("unused")
-        protected void setTimestamp(@NotNull final Date date)
+        protected void setTimestamp(final Date date)
         {
             immutableSetTimestamp(date);
         }
@@ -385,7 +383,7 @@ public class CachingBundleI14able
          * Retrieves the timestamp.
          * @return such information.
          */
-        @NotNull
+        
         public Date getTimestamp()
         {
             return m__Timestamp;
@@ -395,7 +393,7 @@ public class CachingBundleI14able
          * Retrieves the locale.
          * @return such information.
          */
-        @NotNull
+        
         public Locale getLocale()
         {
             return getLocale(getWrappedBundle());
@@ -406,8 +404,8 @@ public class CachingBundleI14able
          * @param bundle the bundle.
          * @return such information.
          */
-        @NotNull
-        protected Locale getLocale(@NotNull final ResourceBundle bundle)
+        
+        protected Locale getLocale(final ResourceBundle bundle)
         {
             return bundle.getLocale();
         }
@@ -416,7 +414,7 @@ public class CachingBundleI14able
          * Retrieves the bundle keys.
          * @return such keys.
          */
-        @NotNull
+        
         public Enumeration<String> getKeys()
         {
             return getKeys(getWrappedBundle());
@@ -427,8 +425,8 @@ public class CachingBundleI14able
          * @param bundle the bundle.
          * @return such keys.
          */
-        @NotNull
-        protected Enumeration<String> getKeys(@NotNull final ResourceBundle bundle)
+        
+        protected Enumeration<String> getKeys(final ResourceBundle bundle)
         {
             return bundle.getKeys();
         }
@@ -437,8 +435,8 @@ public class CachingBundleI14able
          * Gets an object for the given key from this resource bundle.
          * @param key the key.
          */
-        @Nullable
-        protected Object handleGetObject(@NotNull final String key)
+        
+        protected Object handleGetObject(final String key)
         {
             return handleGetObject(key, getWrappedBundle());
         }
@@ -449,8 +447,8 @@ public class CachingBundleI14able
          * @param bundle the bundle.
          * @return the object.
          */
-        @Nullable
-        protected Object handleGetObject(@NotNull final String key, @NotNull final ResourceBundle bundle)
+        
+        protected Object handleGetObject(final String key, final ResourceBundle bundle)
         {
             return bundle.getObject(key);
         }
@@ -470,7 +468,7 @@ public class CachingBundleI14able
          * @param bundle the bundle.
          * @return such value.
          */
-        protected int hashCode(@NotNull final ResourceBundle bundle)
+        protected int hashCode(final ResourceBundle bundle)
         {
             return bundle.hashCode();
         }
@@ -481,7 +479,7 @@ public class CachingBundleI14able
          * @return <code>true</code> in such case.
          */
         @Override
-        public boolean equals(@Nullable final Object object)
+        public boolean equals(final Object object)
         {
             boolean result = false;
             
@@ -512,8 +510,8 @@ public class CachingBundleI14able
          * @param bundle the {@link ResourceBundle}.
          * @return such text.
          */
-        @NotNull
-        protected String toString(@NotNull final ResourceBundle bundle)
+        
+        protected String toString(final ResourceBundle bundle)
         {
             return bundle.toString();
         }
@@ -525,7 +523,7 @@ public class CachingBundleI14able
      * @return such message.
      */
     @Override
-    @NotNull
+    
     public String toString()
     {
         return "CachingBundleI14able{" +
@@ -541,13 +539,13 @@ public class CachingBundleI14able
      * @param classLoader the class loader.
      * @return the bundle.
      */
-    @Nullable
+    
     protected ResourceBundle retrieveSystemPropertyBundle(
-        @NotNull final String systemProperty,
-        @NotNull final Locale locale,
-        @NotNull final ClassLoader classLoader)
+        final String systemProperty,
+        final Locale locale,
+        final ClassLoader classLoader)
     {
-        @Nullable ResourceBundle result = getCachedBundle();
+        ResourceBundle result = getCachedBundle();
         
         if  (result == null)
         {
@@ -571,13 +569,13 @@ public class CachingBundleI14able
      * @param classLoader the class loader.
      * @return the bundle.
      */
-    @Nullable
+    
     protected ResourceBundle retrieveBundle(
-        @NotNull final String bundleName,
-        @NotNull final Locale locale,
-        @NotNull final ClassLoader classLoader)
+        final String bundleName,
+        final Locale locale,
+        final ClassLoader classLoader)
     {
-        @Nullable ResourceBundle result = getCachedBundle();
+        ResourceBundle result = getCachedBundle();
         
         if  (result == null)
         {

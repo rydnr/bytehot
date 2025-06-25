@@ -37,7 +37,6 @@ package org.acmsl.commons.regexpplugin;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a regexp compiler. Different implementations vary but they all
@@ -53,7 +52,7 @@ public interface Compiler
      * @return the Pattern associated to such regular expression.
      * @throws MalformedPatternException if given regexp is malformed.
      */
-    public Pattern compile(@NotNull final String regexp)
+    public Pattern compile(final String regexp)
         throws  MalformedPatternException;
 
     /**

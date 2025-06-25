@@ -62,8 +62,6 @@ import java.text.MessageFormat;
  * Importing commons-logging classes.
  */
 import org.apache.commons.logging.LogFactory;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides some useful methods when working with {@link Version}
@@ -117,10 +115,10 @@ public class VersionUtils
      * Retrieves a <code>VersionUtils</code> instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static VersionUtils getInstance()
     {
-        @NotNull final VersionUtils result =
+        final VersionUtils result =
             VersionUtilsSingletonContainer.SINGLETON;
 
         synchronized (VersionUtils.class)
@@ -140,7 +138,7 @@ public class VersionUtils
      * Specifies the regexp compiler.
      * @param compiler the compiler.
      */
-    protected final static void immutableSetCompiler(@NotNull final Compiler compiler)
+    protected final static void immutableSetCompiler(final Compiler compiler)
     {
         m__Compiler = compiler;
     }
@@ -150,7 +148,7 @@ public class VersionUtils
      * @param compiler the compiler.
      */
     @SuppressWarnings("unused")
-    protected static void setCompiler(@NotNull final Compiler compiler)
+    protected static void setCompiler(final Compiler compiler)
     {
         immutableSetCompiler(compiler);
     }
@@ -159,7 +157,7 @@ public class VersionUtils
      * Retrieves the regexp compiler.
      * @return such compiler.
      */
-    @Nullable
+    
     protected static final Compiler immutableGetCompiler()
     {
         return m__Compiler;
@@ -169,10 +167,10 @@ public class VersionUtils
      * Retrieves the regexp compiler.
      * @return such compiler.
      */
-    @NotNull
+    
     protected static Compiler getCompiler()
     {
-        @Nullable Compiler result = immutableGetCompiler();
+        Compiler result = immutableGetCompiler();
 
         if (result == null)
         {
@@ -188,9 +186,9 @@ public class VersionUtils
      */
     protected static void initialize()
     {
-        @Nullable RuntimeException t_Exception = null;
+        RuntimeException t_Exception = null;
 
-        @Nullable Compiler t_Compiler = immutableGetCompiler();
+        Compiler t_Compiler = immutableGetCompiler();
 
         if  (t_Compiler == null)
         {
@@ -248,7 +246,7 @@ public class VersionUtils
      * Specifies the version pattern.
      * @param pattern the pattern.
      */
-    private static void immutableSetVersionPattern(@NotNull final Pattern pattern)
+    private static void immutableSetVersionPattern(final Pattern pattern)
     {
         m__VersionPattern = pattern;
     }
@@ -258,7 +256,7 @@ public class VersionUtils
      * @param pattern the pattern.
      */
     @SuppressWarnings("unused")
-    protected static void setVersionPattern(@NotNull final Pattern pattern)
+    protected static void setVersionPattern(final Pattern pattern)
     {
         immutableSetVersionPattern(pattern);
     }
@@ -267,7 +265,7 @@ public class VersionUtils
      * Retrieves the version pattern.
      * @return such pattern.
      */
-    @NotNull
+    
     public static Pattern getVersionPattern()
     {
         return m__VersionPattern;
@@ -278,10 +276,10 @@ public class VersionUtils
      * @param wildcard the identifier used to identify "anything goes".
      * @return such pattern.
      */
-    @NotNull
-    public static Pattern getVersionPattern(@NotNull final String wildcard)
+    
+    public static Pattern getVersionPattern(final String wildcard)
     {
-        @NotNull final Pattern result;
+        final Pattern result;
 
         if  (!DEFAULT_WILDCARD.equalsIgnoreCase(wildcard))
         {
@@ -304,15 +302,15 @@ public class VersionUtils
      * @param stringUtils the <code>StringUtils</code> instance.
      * @return such pattern.
      */
-    @NotNull
+    
     protected static final Pattern immutableCompileVersionPattern(
-        @NotNull final String wildcard,
-        @NotNull final Compiler compiler,
-        @NotNull final StringUtils stringUtils)
+        final String wildcard,
+        final Compiler compiler,
+        final StringUtils stringUtils)
     {
-        @Nullable Pattern result = null;
+        Pattern result = null;
 
-        @NotNull final MessageFormat t_Formatter = new MessageFormat(VERSION_REGEXP);
+        final MessageFormat t_Formatter = new MessageFormat(VERSION_REGEXP);
         
         try 
         {
@@ -324,7 +322,7 @@ public class VersionUtils
                             stringUtils.escapeRegexp(wildcard)
                         }));
         }
-        catch  (@NotNull final MalformedPatternException exception)
+        catch  (final MalformedPatternException exception)
         {
             /*
              * This should never happen. It's a compile-time
@@ -345,7 +343,7 @@ public class VersionUtils
      * @param family the family.
      * @return <code>true</code> if the version is compatible.
      */
-    public boolean matches(@NotNull final String version, @NotNull final String family)
+    public boolean matches(final String version, final String family)
     {
         return matches(version, family, DEFAULT_WILDCARD);
     }
@@ -358,15 +356,15 @@ public class VersionUtils
      * @return <code>true</code> if the version is compatible.
      */
     public boolean matches(
-        @NotNull final String version, @NotNull final String family, @NotNull final String wildcard)
+        final String version, final String family, final String wildcard)
     {
         boolean result = false;
 
-        @NotNull final Pattern t_VersionPattern = getVersionPattern(wildcard);
+        final Pattern t_VersionPattern = getVersionPattern(wildcard);
 
         try
         {
-            @NotNull final Matcher t_Matcher = createMatcher(RegexpManager.getInstance());
+            final Matcher t_Matcher = createMatcher(RegexpManager.getInstance());
 
             result =
                 matches(
@@ -377,12 +375,12 @@ public class VersionUtils
                     t_Matcher,
                     StringValidator.getInstance());
         }
-        catch (@NotNull final RegexpEngineNotFoundException missingEngine)
+        catch (final RegexpEngineNotFoundException missingEngine)
         {
             LogFactory.getLog(VersionUtils.class).fatal(
                 "Cannot find a suitable regex engine", missingEngine);
         }
-        catch (@NotNull final RegexpPluginMisconfiguredException misconfiguredEngine)
+        catch (final RegexpPluginMisconfiguredException misconfiguredEngine)
         {
             LogFactory.getLog(VersionUtils.class).fatal(
                 "Cannot initialize regex plugin", misconfiguredEngine);
@@ -402,26 +400,26 @@ public class VersionUtils
      * @return <code>true</code> if the version is compatible.
      */
     protected boolean matches(
-        @NotNull final String version,
-        @NotNull final String family,
-        @NotNull final String wildcard,
-        @NotNull final Pattern pattern,
-        @NotNull final Matcher matcher,
-        @NotNull final StringValidator stringValidator)
+        final String version,
+        final String family,
+        final String wildcard,
+        final Pattern pattern,
+        final Matcher matcher,
+        final StringValidator stringValidator)
     {
         boolean result = false;
         
-        @NotNull final String[] t_astrVersion =
+        final String[] t_astrVersion =
             parseVersion(version, pattern, matcher, stringValidator);
         
-        @NotNull final String[] t_astrFamily =
+        final String[] t_astrFamily =
             parseVersion(family, pattern, matcher, stringValidator);
         
         if  (   (t_astrVersion.length >= 1)
              && (t_astrFamily.length >= 1))
         {
-            @Nullable final String t_strVersionMajor = t_astrVersion[0];
-            @Nullable final String t_strFamilyMajor = t_astrFamily[0];
+            final String t_strVersionMajor = t_astrVersion[0];
+            final String t_strFamilyMajor = t_astrFamily[0];
             String t_strVersionMinor = "";
             String t_strFamilyMinor = "";
             String t_strVersionSubminor = "";
@@ -466,7 +464,7 @@ public class VersionUtils
      * @param stringValidator the <code>StringValidator</code> instance.
      * @return <code>true</code> if the version is compatible.
      */
-    @NotNull
+    
     protected String[] parseVersion(
         final String version,
         final Pattern pattern,
@@ -477,7 +475,7 @@ public class VersionUtils
 
         try
         {
-            @Nullable final MatchResult t_MatchResult;
+            final MatchResult t_MatchResult;
 
             if  (   (!stringValidator.isEmpty(version))
                  && (matcher.contains(version, pattern)))
@@ -527,12 +525,12 @@ public class VersionUtils
      * @return {@code true} if the versions match.
      */
     public boolean matches(
-        @NotNull final String major,
-        @Nullable final String minor,
-        @Nullable final String subminor,
-        @NotNull final String familyMajor,
-        @Nullable final String familyMinor,
-        @Nullable final String familySubminor)
+        final String major,
+        final String minor,
+        final String subminor,
+        final String familyMajor,
+        final String familyMinor,
+        final String familySubminor)
     {
         return
             matches(
@@ -557,13 +555,13 @@ public class VersionUtils
      * @return {@code true} if the versions match.
      */
     public boolean matches(
-        @NotNull final String major,
-        @Nullable final String minor,
-        @Nullable  final String subminor,
-        @NotNull final String familyMajor,
-        @Nullable final String familyMinor,
-        @Nullable  final String familySubminor,
-        @NotNull  final String wildcard)
+        final String major,
+        final String minor,
+        final String subminor,
+        final String familyMajor,
+        final String familyMinor,
+        final String familySubminor,
+        final String wildcard)
     {
         return
             matches(
@@ -590,14 +588,14 @@ public class VersionUtils
      * @return {@code true} if the versions match.
      */
     protected boolean matches(
-        @NotNull final String major,
-        @Nullable final String minor,
-        @Nullable final String subminor,
-        @NotNull final String familyMajor,
-        @Nullable final String familyMinor,
-        @Nullable final String familySubminor,
-        @NotNull final String wildcard,
-        @NotNull final ConversionUtils conversionUtils)
+        final String major,
+        final String minor,
+        final String subminor,
+        final String familyMajor,
+        final String familyMinor,
+        final String familySubminor,
+        final String wildcard,
+        final ConversionUtils conversionUtils)
     {
         boolean result = false;
 
@@ -639,7 +637,7 @@ public class VersionUtils
      * @return {@code true} if the versions match.
      */
     public boolean versionNumbersMatch(
-        @NotNull final String number, @NotNull final String familyNumber)
+        final String number, final String familyNumber)
     {
         return versionNumbersMatch(number, familyNumber, DEFAULT_WILDCARD);
     }
@@ -652,9 +650,9 @@ public class VersionUtils
      * @return {@code true} if the versions match.
      */
     public boolean versionNumbersMatch(
-        @NotNull final String number,
-        @NotNull final String familyNumber,
-        @NotNull final String wildcard)
+        final String number,
+        final String familyNumber,
+        final String wildcard)
     {
         return
             versionNumbersMatch(
@@ -673,10 +671,10 @@ public class VersionUtils
      * @return {@code true} if the versions match.
      */
     protected boolean versionNumbersMatch(
-        @NotNull final String number,
-        @NotNull final String familyNumber,
-        @NotNull final String wildcard,
-        @NotNull final ConversionUtils conversionUtils)
+        final String number,
+        final String familyNumber,
+        final String wildcard,
+        final ConversionUtils conversionUtils)
     {
         return
             (   (wildcard.equalsIgnoreCase(number))
@@ -694,9 +692,9 @@ public class VersionUtils
      * @throws RegexpPluginMisconfiguredException if RegexpPlugin is
      * misconfigured.
      */
-    @NotNull
+    
     protected static synchronized Compiler createCompiler(
-        @NotNull final RegexpManager regexpManager)
+        final RegexpManager regexpManager)
       throws RegexpEngineNotFoundException,
              RegexpPluginMisconfiguredException
     {
@@ -708,12 +706,12 @@ public class VersionUtils
      * @param regexpEngine the RegexpEngine instance.
      * @return the regexp compiler.
      */
-    @NotNull
+    
     protected static synchronized Compiler createCompiler(
-        @NotNull final RegexpEngine regexpEngine)
+        final RegexpEngine regexpEngine)
         throws RegexpEngineNotFoundException
     {
-        @NotNull final Compiler result = regexpEngine.createCompiler();
+        final Compiler result = regexpEngine.createCompiler();
 
         result.setCaseSensitive(false);
 
@@ -729,9 +727,9 @@ public class VersionUtils
      * @throws RegexpPluginMisconfiguredException if RegexpPlugin is
      * misconfigured.
      */
-    @NotNull
+    
     protected static synchronized Matcher createMatcher(
-        @NotNull final RegexpManager regexpManager)
+        final RegexpManager regexpManager)
       throws RegexpEngineNotFoundException,
              RegexpPluginMisconfiguredException
     {
@@ -743,7 +741,7 @@ public class VersionUtils
      * @param regexpEngine the RegexpEngine instance.
      * @return the regexp matcher.
      */
-    @NotNull
+    
     protected static synchronized Matcher createMatcher(
         final RegexpEngine regexpEngine)
         throws RegexpEngineNotFoundException

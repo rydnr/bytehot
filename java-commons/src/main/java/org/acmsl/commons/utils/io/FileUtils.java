@@ -73,8 +73,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Provides some useful methods when working with files.
@@ -90,20 +88,20 @@ public class FileUtils
      * @param inputStream the input stream.
      * @return the file.
      */
-    @Nullable
-    public File retrieveFile(@NotNull final FileInputStream inputStream)
+    
+    public File retrieveFile(final FileInputStream inputStream)
     {
-        @Nullable final File result;
+        final File result;
 
-        @Nullable String t_strPath = null;
+        String t_strPath = null;
 
         try
         {
-            @Nullable final Field field = inputStream.getClass().getDeclaredField("path");
+            final Field field = inputStream.getClass().getDeclaredField("path");
             field.setAccessible(true);
             t_strPath = (String) field.get(inputStream);
         }
-        catch (@NotNull final Throwable noField)
+        catch (final Throwable noField)
         {
             System.err.println(noField.getMessage());
         }
@@ -125,10 +123,10 @@ public class FileUtils
      * @param filePath the path.
      * @return just the file name (no folder information).
      */
-    @NotNull
-    public String getFileName(@NotNull final String filePath)
+    
+    public String getFileName(final String filePath)
     {
-        @NotNull final String result;
+        final String result;
 
         final int lastSeparatorPosition = filePath.lastIndexOf(File.separator);
 
@@ -156,10 +154,10 @@ public class FileUtils
      * @param filePath the file path.
      * @return the file path, after removing the last extension.
      */
-    @NotNull
-    public String stripExtension(@NotNull final String filePath)
+    
+    public String stripExtension(final String filePath)
     {
-        @NotNull final String result;
+        final String result;
 
         final int lastDotPosition = filePath.lastIndexOf(".");
 
@@ -180,13 +178,13 @@ public class FileUtils
      * @param filePath the path.
      * @return the file path, with no extensions.
      */
-    @NotNull
-    public String stripExtensions(@NotNull final String filePath)
+    
+    public String stripExtensions(final String filePath)
     {
-        @NotNull final String result;
+        final String result;
 
-        @NotNull String aux = filePath;
-        @NotNull String aux2;
+        String aux = filePath;
+        String aux2;
 
         do
         {
@@ -208,7 +206,7 @@ public class FileUtils
         /**
          * The actual singleton.
          */
-        @NotNull
+        
         public static final FileUtils SINGLETON = new FileUtils();
     }
 
@@ -216,7 +214,7 @@ public class FileUtils
      * Retrieves a FileUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static FileUtils getInstance()
     {
         return FileUtilsSingletonContainer.SINGLETON;
@@ -237,8 +235,8 @@ public class FileUtils
      * security manager settings.
      * @throws IOException if some I/O exception occurs.
      */
-    @NotNull
-    public String readFile(@NotNull final String filePath, @NotNull final Charset charset)
+    
+    public String readFile(final String filePath, final Charset charset)
         throws  SecurityException,
                 IOException
     {
@@ -255,21 +253,21 @@ public class FileUtils
      * security manager settings.
      * @throws IOException if some I/O exception occurs.
      */
-    @NotNull
-    public char[] readFileContents(@NotNull final File file, @NotNull final Charset charset)
+    
+    public char[] readFileContents(final File file, final Charset charset)
         throws  SecurityException,
                 IOException
     {
-        @NotNull final char[] result;
+        final char[] result;
 
-        @Nullable FileInputStream t_fisFileStream = null;
+        FileInputStream t_fisFileStream = null;
 
-        @Nullable InputStreamReader t_isFileReader = null;
+        InputStreamReader t_isFileReader = null;
 
             /*
              * To read file's contents it's better to use BufferedReader class.
              */
-        @Nullable BufferedReader t_frPageBufferedReader = null;
+        BufferedReader t_frPageBufferedReader = null;
 
         try
         {
@@ -358,8 +356,8 @@ public class FileUtils
      * security manager settings.
      * @throws IOException if some I/O exception occurs.
      */
-    @NotNull
-    public String readFile(@NotNull final File file, @NotNull final Charset charset)
+    
+    public String readFile(final File file, final Charset charset)
         throws  SecurityException,
                 IOException
     {
@@ -380,8 +378,8 @@ public class FileUtils
      * accomplished.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public String readFileIfPossible(@NotNull final String filePath, @NotNull final Charset charset)
+    
+    public String readFileIfPossible(final String filePath, final Charset charset)
     {
         String result = null;
 
@@ -438,10 +436,10 @@ public class FileUtils
      * accomplished.
      */
     @SuppressWarnings("unused")
-    @Nullable
-    public String readFileIfPossible(@NotNull final File file, @NotNull final Charset charset)
+    
+    public String readFileIfPossible(final File file, final Charset charset)
     {
-        @Nullable String result = null;
+        String result = null;
 
         try
         {
@@ -487,11 +485,11 @@ public class FileUtils
      * @return the contents read.
      * @throws IOException if the input stream could not be read or closed.
      */
-    @NotNull
-    public String read(@NotNull final InputStream inputStream)
+    
+    public String read(final InputStream inputStream)
         throws  IOException
     {
-        @NotNull final BufferedInputStream bufferedInputStream;
+        final BufferedInputStream bufferedInputStream;
 
         if  (inputStream instanceof BufferedInputStream)
         {
@@ -511,13 +509,13 @@ public class FileUtils
      * @return the contents read.
      * @throws IOException if the input stream could not be read or closed.
      */
-    @NotNull
-    public String read(@NotNull final BufferedInputStream bufferedInputStream)
+    
+    public String read(final BufferedInputStream bufferedInputStream)
         throws  IOException
     {
-        @NotNull final StringWriter t_swResult = new StringWriter();
+        final StringWriter t_swResult = new StringWriter();
 
-        @NotNull final PrintWriter t_Writer = new PrintWriter(t_swResult);
+        final PrintWriter t_Writer = new PrintWriter(t_swResult);
 
         int t_iReadChar = bufferedInputStream.read();
 
@@ -544,7 +542,7 @@ public class FileUtils
      */
     @SuppressWarnings("unused")
     public boolean writeFileIfPossible(
-        @NotNull final String filePath, @NotNull final String contents, @NotNull final Charset charset)
+        final String filePath, final String contents, final Charset charset)
     {
         return writeFileIfPossible(new File(filePath), contents, charset);
     }
@@ -557,7 +555,7 @@ public class FileUtils
      * @return <code>true</code> if the process is successfully accomplished.
      */
     public boolean writeFileIfPossible(
-        @NotNull final File file, @NotNull final String contents, @NotNull final Charset charset)
+        final File file, final String contents, final Charset charset)
     {
         boolean result = false;
 
@@ -612,7 +610,7 @@ public class FileUtils
      */
     @SuppressWarnings("unused")
     public void writeFile(
-        @NotNull final String filePath, @NotNull final String contents, @NotNull final Charset charset)
+        final String filePath, final String contents, final Charset charset)
         throws  SecurityException,
                 IOException
     {
@@ -629,15 +627,15 @@ public class FileUtils
      * @throws IOException if any other I/O error occurs.
      */
     public void writeFile(
-        @NotNull final File file, @NotNull final String contents, @NotNull final Charset charset)
+        final File file, final String contents, final Charset charset)
         throws  SecurityException,
                 IOException
     {
-        @Nullable FileOutputStream t_fosFileStream = null;
+        FileOutputStream t_fosFileStream = null;
 
-        @Nullable OutputStreamWriter t_osFileWriter = null;
+        OutputStreamWriter t_osFileWriter = null;
 
-        @Nullable final PrintWriter t_pwWriter;
+        final PrintWriter t_pwWriter;
 
         try
         {
@@ -659,7 +657,7 @@ public class FileUtils
                 {
                     t_fosFileStream.close();
                 }
-                catch (@NotNull final IOException cannotClose)
+                catch (final IOException cannotClose)
                 {
                     LogFactory.getLog(FileUtils.class).error(
                         "Cannot close file", cannotClose);
@@ -671,7 +669,7 @@ public class FileUtils
                 {
                     t_osFileWriter.close();
                 }
-                catch (@NotNull final IOException cannotClose)
+                catch (final IOException cannotClose)
                 {
                     LogFactory.getLog(FileUtils.class).error(
                         "Cannot close file", cannotClose);
@@ -689,7 +687,7 @@ public class FileUtils
      * operation.
      * @throws IOException if any other I/O error occurs.
      */
-    public void copy(@NotNull final File original, @NotNull final File destination, @NotNull final Charset charset)
+    public void copy(final File original, final File destination, final Charset charset)
         throws  SecurityException,
                 IOException
     {
@@ -705,7 +703,7 @@ public class FileUtils
      */
     @SuppressWarnings("unused")
     public boolean copyIfPossible(
-        @NotNull final String originalPath, @NotNull final String destinationPath, @NotNull final Charset charset)
+        final String originalPath, final String destinationPath, final Charset charset)
     {
         return
             copyIfPossible(new File(originalPath), new File(destinationPath), charset);
@@ -719,7 +717,7 @@ public class FileUtils
      * @return <code>true</code> if the operation ends up successfully.
      */
     public boolean copyIfPossible(
-        @NotNull final File original, @NotNull final File destination, @NotNull final Charset charset)
+        final File original, final File destination, final Charset charset)
     {
         boolean result = false;
 
@@ -774,7 +772,7 @@ public class FileUtils
      * @throws IOException if any other I/O error occurs.
      */
     public void move(
-        @NotNull final File originalFile, @NotNull final File destinationFile, @NotNull final Charset charset)
+        final File originalFile, final File destinationFile, final Charset charset)
         throws  SecurityException,
                 IOException
     {
@@ -794,7 +792,7 @@ public class FileUtils
      * @return <code>true</code> if the operation ends up successfully.
      */
     public boolean moveIfPossible(
-        @NotNull final File originalFile, @NotNull final File destinationFile, @NotNull final Charset charset)
+        final File originalFile, final File destinationFile, final Charset charset)
     {
         boolean result = false;
 
@@ -846,7 +844,7 @@ public class FileUtils
      */
     @SuppressWarnings("unused")
     public boolean moveIfPossible(
-        @NotNull final String filePath, @NotNull final String destinationPath, @NotNull final Charset charset)
+        final String filePath, final String destinationPath, final Charset charset)
     {
         return
             moveIfPossible(
@@ -860,14 +858,14 @@ public class FileUtils
      * @param packageName the package name.
      * @return the path.
      */
-    @Nullable
-    public String packageToPath(@NotNull final String packageName)
+    
+    public String packageToPath(final String packageName)
     {
         String result = null;
 
         try
         {
-            @Nullable final Helper t_Helper = createHelper(RegexpManager.getInstance());
+            final Helper t_Helper = createHelper(RegexpManager.getInstance());
 
             if (t_Helper != null)
             {
@@ -919,7 +917,7 @@ public class FileUtils
      * Creates the helper.
      * @return the regexp helper.
      */
-    @Nullable
+    
     protected static synchronized Helper createHelper()
     {
         return createHelper(RegexpManager.getInstance());
@@ -930,9 +928,9 @@ public class FileUtils
      * @param regexpManager the RegexpManager instance.
      * @return the regexp helper.
      */
-    @Nullable
+    
     protected static synchronized Helper createHelper(
-        @NotNull final RegexpManager regexpManager)
+        final RegexpManager regexpManager)
     {
         return createHelper(regexpManager.getEngine());
     }
@@ -942,9 +940,9 @@ public class FileUtils
      * @param regexpEngine the RegexpEngine instance.
      * @return the regexp helper.
      */
-    @Nullable
+    
     protected static synchronized Helper createHelper(
-        @NotNull final RegexpEngine regexpEngine)
+        final RegexpEngine regexpEngine)
     {
         return regexpEngine.createHelper();
     }

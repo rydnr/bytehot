@@ -38,7 +38,6 @@ package org.acmsl.commons.regexpplugin;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents the result of match in a regexp parsing process. Different
@@ -62,7 +61,7 @@ public interface MatchResult
      * returns null. This is not to be confused with a group matching the null
      * string, which will return a String of length 0.
      */
-    @Nullable
+    
     public String group(int group);
 
     /**

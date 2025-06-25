@@ -58,8 +58,6 @@ import org.junit.runners.JUnit4;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Performs some unit tests on StringUtils class.
@@ -79,12 +77,12 @@ public class ClassLoaderUtilsTest
     @Test
     public void findLocation_works()
     {
-        @NotNull final ClassLoaderUtils classLoaderUtils =
+        final ClassLoaderUtils classLoaderUtils =
             ClassLoaderUtils.getInstance();
         
         Assert.assertNotNull("getInstance() failed.", classLoaderUtils);
 
-        @Nullable final String location =
+        final String location =
             classLoaderUtils.findLocation(String.class);
 
         Assert.assertNotNull(
@@ -109,22 +107,22 @@ public class ClassLoaderUtilsTest
     @Test
     public void pathContainsClass_works()
     {
-        @NotNull final ClassLoaderUtils classLoaderUtils = ClassLoaderUtils.getInstance();
+        final ClassLoaderUtils classLoaderUtils = ClassLoaderUtils.getInstance();
         
         Assert.assertNotNull(classLoaderUtils);
 
         try
         {
-            @NotNull final File tempFile =
+            final File tempFile =
                 File.createTempFile(
                     "acmslcommons", "classloaderutilstest.zip");
 
-            @NotNull final OutputStream fileOutputStream = new FileOutputStream(tempFile);
+            final OutputStream fileOutputStream = new FileOutputStream(tempFile);
 
-            @NotNull final ZipOutputStream zipOutputStream =
+            final ZipOutputStream zipOutputStream =
                 new ZipOutputStream(fileOutputStream);
 
-            @NotNull final ZipEntry zipEntry = new ZipEntry("test/package/my.class");
+            final ZipEntry zipEntry = new ZipEntry("test/package/my.class");
 
             zipOutputStream.putNextEntry(zipEntry);
 
@@ -132,7 +130,7 @@ public class ClassLoaderUtilsTest
 
             fileOutputStream.close();
 
-            @NotNull final boolean pathContainsResource =
+            final boolean pathContainsResource =
                 classLoaderUtils.pathContainsResource(
                     tempFile.getAbsolutePath(), "test.package.my", "class");
 

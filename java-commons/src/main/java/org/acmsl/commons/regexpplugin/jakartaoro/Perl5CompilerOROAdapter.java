@@ -49,8 +49,6 @@ import org.apache.oro.text.regex.Perl5Compiler;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Jakarta ORO-specific regexp compiler adapter. This class makes possible the
@@ -122,7 +120,7 @@ public class Perl5CompilerOROAdapter
      * given regexp is malformed.
      */
     @Override
-    public Pattern compile(@NotNull final String regexp)
+    public Pattern compile(final String regexp)
         throws org.acmsl.commons.regexpplugin.MalformedPatternException
     {
         return
@@ -140,15 +138,15 @@ public class Perl5CompilerOROAdapter
      * @throws org.acmsl.commons.regexpplugin.MalformedPatternException if
      * given regexp is malformed.
      */
-    @Nullable
+    
     protected Pattern compile(
-        @NotNull final String regexp,
-        @NotNull final Perl5Compiler compiler,
+        final String regexp,
+        final Perl5Compiler compiler,
         final boolean caseSensitive,
         final boolean multiline)
       throws  org.acmsl.commons.regexpplugin.MalformedPatternException
     {
-        @Nullable Pattern result = null;
+        Pattern result = null;
 
         try
         {

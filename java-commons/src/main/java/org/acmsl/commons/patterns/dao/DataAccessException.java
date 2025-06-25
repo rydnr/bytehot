@@ -36,8 +36,6 @@ package org.acmsl.commons.patterns.dao;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents abnormal situations regarding data accessing.
@@ -55,14 +53,14 @@ public class DataAccessException
     /**
      * Specifies the DAO which throws the error.
      */
-    @NotNull private DAO m__DAO;
+    private DAO m__DAO;
 
     /**
      * Builds a DataAccessException with a certain message.
      * @param message the message.
      * @param dao the DAO entity.
      */
-    public DataAccessException(@NotNull final String message, @NotNull final DAO dao)
+    public DataAccessException(final String message, final DAO dao)
     {
         super(message);
         immutableSetDAO(dao);
@@ -75,7 +73,7 @@ public class DataAccessException
      * @param dao the {@link DAO}.
      */
     public DataAccessException(
-        @NotNull final String message, @NotNull final Throwable cause, @NotNull final DAO dao)
+        final String message, final Throwable cause, final DAO dao)
     {
         super(message, cause);
         immutableSetDAO(dao);
@@ -85,7 +83,7 @@ public class DataAccessException
      * Specifies the DAO entity which throws the error.
      * @param dao the DAO instance.
      */
-    private void immutableSetDAO(@NotNull final DAO dao)
+    private void immutableSetDAO(final DAO dao)
     {
         m__DAO = dao;
     }
@@ -95,7 +93,7 @@ public class DataAccessException
      * @param dao the DAO instance.
      */
     @SuppressWarnings("unused")
-    protected void setDAO(@NotNull final DAO dao)
+    protected void setDAO(final DAO dao)
     {
         immutableSetDAO(dao);
     }
@@ -104,7 +102,7 @@ public class DataAccessException
      * Retrieves the DAO entity with threw this error.
      * @return such instance.
      */
-    @NotNull
+    
     public DAO getDAO()
     {
         return m__DAO;
@@ -115,14 +113,14 @@ public class DataAccessException
      * @return the error description.
      */
     @Override
-    @NotNull
+    
     public String toString()
     {
-        @NotNull final StringBuilder t_sbResult = new StringBuilder();
+        final StringBuilder t_sbResult = new StringBuilder();
 
         t_sbResult.append(getMessage());
 
-        @Nullable final Throwable t_Cause = getCause();
+        final Throwable t_Cause = getCause();
 
         if  (t_Cause != null) 
         {

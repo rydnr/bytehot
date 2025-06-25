@@ -34,7 +34,6 @@
  */
 package org.acmsl.commons.patterns;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Marker interface used to represent all repositories implemented in

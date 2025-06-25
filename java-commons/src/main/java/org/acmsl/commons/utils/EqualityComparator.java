@@ -43,8 +43,6 @@ import org.acmsl.commons.patterns.Singleton;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Responsible of checking the equality of values or objects.
@@ -75,7 +73,7 @@ public class EqualityComparator
      * Retrieves an <code>EqualityComparator</code> instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static EqualityComparator getInstance()
     {
         return EqualityComparatorSingletonContainer.SINGLETON;
@@ -99,7 +97,7 @@ public class EqualityComparator
      * @return <code>true</code> if both values are equal.
      */
     @SuppressWarnings("unused")
-    public boolean areEqual(@Nullable final int[] first, @Nullable final int[] second)
+    public boolean areEqual(final int[] first, final int[] second)
     {
         boolean result = false;
 
@@ -143,7 +141,7 @@ public class EqualityComparator
      * @return <code>true</code> if both values are equal.
      */
     @SuppressWarnings("unused")
-    public boolean areEqual(@Nullable final long[] first, @Nullable final long[] second)
+    public boolean areEqual(final long[] first, final long[] second)
     {
         boolean result = false;
 
@@ -187,7 +185,7 @@ public class EqualityComparator
      * @return <code>true</code> if both values are equal.
      */
     @SuppressWarnings("unused")
-    public boolean areEqual(@Nullable final float[] first, @Nullable final float[] second)
+    public boolean areEqual(final float[] first, final float[] second)
     {
         boolean result = false;
 
@@ -231,7 +229,7 @@ public class EqualityComparator
      * @return <code>true</code> if both values are equal.
      */
     @SuppressWarnings("unused")
-    public boolean areEqual(@Nullable final double[] first, @Nullable final double[] second)
+    public boolean areEqual(final double[] first, final double[] second)
     {
         boolean result = false;
 
@@ -263,7 +261,7 @@ public class EqualityComparator
      * @param second the second value to compare.
      * @return <code>true</code> if both values are equal.
      */
-    public boolean areEqual(@Nullable final Object first, @Nullable final Object second)
+    public boolean areEqual(final Object first, final Object second)
     {
         return
             (   (first == second)
@@ -280,7 +278,7 @@ public class EqualityComparator
      * @return <code>true</code> if both values are equal.
      */
     @SuppressWarnings("unused")
-    public boolean areEqual(@Nullable final Object[] first, @Nullable final Object[] second)
+    public boolean areEqual(final Object[] first, final Object[] second)
     {
         boolean result = false;
 

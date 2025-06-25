@@ -38,7 +38,6 @@ package org.acmsl.commons.utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -76,11 +75,11 @@ public class SaxUtilsTest
     public void retrieves_the_actual_file_in_a_SAXException()
         throws IOException
     {
-        @NotNull final SaxUtils instance = SaxUtils.getInstance();
+        final SaxUtils instance = SaxUtils.getInstance();
 
-        @NotNull final File t_File = File.createTempFile("test", "");
+        final File t_File = File.createTempFile("test", "");
 
-        @NotNull final SAXParseException t_Exception =
+        final SAXParseException t_Exception =
             new SAXParseException("Fake error", "publicId", t_File.getAbsolutePath(), -1, -1);
 
         Assert.assertEquals(t_File, instance.retrieveFailingFile(t_Exception));

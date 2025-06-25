@@ -49,8 +49,6 @@ import org.apache.oro.text.regex.MalformedPatternException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Jakarta ORO-specific Awk compiler adapter. A delegation is used because
@@ -82,15 +80,15 @@ public class AwkCompilerOROAdapter
      * @return the Pattern associated to such regular expression.
      */
     @Override
-    @NotNull
-    public Pattern compile(@NotNull final String regexp)
+    
+    public Pattern compile(final String regexp)
         throws  org.acmsl.commons.regexpplugin.MalformedPatternException
     {
-        @Nullable Pattern result = null;
+        Pattern result = null;
 
         try
         {
-            @NotNull final AwkCompiler t_Compiler = getDelegatedInstance();
+            final AwkCompiler t_Compiler = getDelegatedInstance();
 
             result = new PatternOROAdapter(t_Compiler.compile(regexp));
         }
@@ -137,10 +135,10 @@ public class AwkCompilerOROAdapter
      * Retrieves an instance of AwkCompiler class.
      * @return a new (or already existing) compiler.
      */
-    @NotNull
+    
     AwkCompiler getDelegatedInstance()
     {
-        @NotNull final AwkCompiler result;
+        final AwkCompiler result;
 
         if  (m__Instance == null)
         {

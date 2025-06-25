@@ -57,7 +57,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Provides some useful methods when working with throwable instances.
@@ -76,7 +75,7 @@ public class ThrowableUtils
         /**
          * The actual singleton.
          */
-        @NotNull
+        
         public static final ThrowableUtils SINGLETON = new ThrowableUtils();
     }
 
@@ -89,7 +88,7 @@ public class ThrowableUtils
      * Retrieves a ThrowableUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static ThrowableUtils getInstance()
     {
         return ThrowableUtilsSingletonContainer.SINGLETON;
@@ -101,14 +100,14 @@ public class ThrowableUtils
      * @return its stack trace.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public String getStackTrace(@NotNull final Throwable throwable)
+    
+    public String getStackTrace(final Throwable throwable)
     {
-        @NotNull final String result;
+        final String result;
 
-        @NotNull final StringWriter t_swResult = new StringWriter();
+        final StringWriter t_swResult = new StringWriter();
 
-        @NotNull final PrintWriter t_PrintWriter = new PrintWriter(t_swResult);
+        final PrintWriter t_PrintWriter = new PrintWriter(t_swResult);
 
         throwable.printStackTrace(t_PrintWriter);
 

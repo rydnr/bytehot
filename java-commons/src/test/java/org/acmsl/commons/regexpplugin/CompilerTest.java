@@ -73,8 +73,6 @@ import org.acmsl.commons.regexpplugin.RegexpManager;
  * Importing JUnit classes.
  */
 import junit.framework.TestCase;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,19 +103,19 @@ public class CompilerTest
     {
         try
         {
-            @Nullable final RegexpManager t_RegexpManager = RegexpManager.getInstance();
+            final RegexpManager t_RegexpManager = RegexpManager.getInstance();
 
             Assert.assertNotNull(t_RegexpManager);
 
-            @Nullable final RegexpEngine t_RegexpEngine = t_RegexpManager.getEngine();
+            final RegexpEngine t_RegexpEngine = t_RegexpManager.getEngine();
 
             Assert.assertNotNull(t_RegexpEngine);
 
-            @Nullable final Compiler t_Compiler = t_RegexpEngine.createCompiler();
+            final Compiler t_Compiler = t_RegexpEngine.createCompiler();
 
             Assert.assertNotNull(t_Compiler);
 
-            @Nullable final Pattern t_Pattern = t_Compiler.compile(REGEXP);
+            final Pattern t_Pattern = t_Compiler.compile(REGEXP);
 
             Assert.assertNotNull(t_Pattern);
         }
@@ -136,17 +134,17 @@ public class CompilerTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new ORORegexpEngine();
+            final RegexpEngine t_RegexpEngine = new ORORegexpEngine();
 
-            @NotNull final Compiler t_Compiler = t_RegexpEngine.createCompiler();
+            final Compiler t_Compiler = t_RegexpEngine.createCompiler();
 
             Assert.assertTrue(t_Compiler instanceof Perl5CompilerOROAdapter);
 
-            @NotNull final Pattern t_Pattern = t_Compiler.compile(REGEXP);
+            final Pattern t_Pattern = t_Compiler.compile(REGEXP);
 
             Assert.assertTrue(t_Pattern instanceof PatternOROAdapter);
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -161,17 +159,17 @@ public class CompilerTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new JakartaRegexpEngine();
+            final RegexpEngine t_RegexpEngine = new JakartaRegexpEngine();
 
-            @NotNull final Compiler t_Compiler = t_RegexpEngine.createCompiler();
+            final Compiler t_Compiler = t_RegexpEngine.createCompiler();
 
             Assert.assertTrue(t_Compiler instanceof CompilerRegexpAdapter);
 
-            @NotNull final Pattern t_Pattern = t_Compiler.compile(REGEXP);
+            final Pattern t_Pattern = t_Compiler.compile(REGEXP);
 
             Assert.assertTrue(t_Pattern instanceof PatternRegexpAdapter);
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -186,17 +184,17 @@ public class CompilerTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new JDKRegexpEngine();
+            final RegexpEngine t_RegexpEngine = new JDKRegexpEngine();
 
-            @NotNull final Compiler t_Compiler = t_RegexpEngine.createCompiler();
+            final Compiler t_Compiler = t_RegexpEngine.createCompiler();
 
             Assert.assertTrue(t_Compiler instanceof CompilerJDKAdapter);
 
-            @NotNull final Pattern t_Pattern = t_Compiler.compile(REGEXP);
+            final Pattern t_Pattern = t_Compiler.compile(REGEXP);
 
             Assert.assertTrue(t_Pattern instanceof PatternJDKAdapter);
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -211,17 +209,17 @@ public class CompilerTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new GNURegexpEngine();
+            final RegexpEngine t_RegexpEngine = new GNURegexpEngine();
 
-            @NotNull final Compiler t_Compiler = t_RegexpEngine.createCompiler();
+            final Compiler t_Compiler = t_RegexpEngine.createCompiler();
 
             Assert.assertTrue(t_Compiler instanceof CompilerGNUAdapter);
 
-            @NotNull final Pattern t_Pattern = t_Compiler.compile(REGEXP);
+            final Pattern t_Pattern = t_Compiler.compile(REGEXP);
 
             Assert.assertTrue(t_Pattern instanceof PatternGNUAdapter);
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }

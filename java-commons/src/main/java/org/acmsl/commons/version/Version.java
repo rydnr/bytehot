@@ -34,7 +34,6 @@
  */
 package org.acmsl.commons.version;
 
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Is included in all classes in which version information is
@@ -52,7 +51,7 @@ public class Version
      * Constructs a Version object with given information.
      * @param versionInfo the information about the version.
      */
-    public Version(@NotNull final String versionInfo)
+    public Version(final String versionInfo)
     {
         immutableSetVersionInformation(versionInfo);
     }
@@ -61,7 +60,7 @@ public class Version
      * Specifies the version information.
      * @param versionInfo the new version.
      */
-    private void immutableSetVersionInformation(@NotNull final String versionInfo)
+    private void immutableSetVersionInformation(final String versionInfo)
     {
         m__strVersionInformation = versionInfo;
     }
@@ -71,7 +70,7 @@ public class Version
      * @param versionInfo the new version.
      */
     @SuppressWarnings("unused")
-    protected void setVersionInformation(@NotNull final String versionInfo)
+    protected void setVersionInformation(final String versionInfo)
     {
         immutableSetVersionInformation(versionInfo);
     }
@@ -80,7 +79,7 @@ public class Version
      * Retrieves the version information.
      * @return a detailed description of the version.
      */
-    @NotNull
+    
     public String getVersionInformation()
     {
         return m__strVersionInformation;
@@ -89,7 +88,7 @@ public class Version
     /**
      * {@inheritDoc}
      */
-    @NotNull
+    
     @Override
     public String toString()
     {

@@ -37,7 +37,6 @@ package org.acmsl.commons.utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JDK classes.
@@ -133,7 +132,7 @@ public class Chronometer
      * in MM:ss:ms format.
      * @return such time interval.
      */
-    @NotNull
+    
     public String now()
     {
         return between(getStart(), System.currentTimeMillis());
@@ -146,7 +145,7 @@ public class Chronometer
      * @param end the end.
      * @return such time interval.
      */
-    @NotNull
+    
     public String between(final long start, final long end)
     {
         return between(start, end, EMPTY_STRING_ARRAY);
@@ -167,11 +166,11 @@ public class Chronometer
      * </ol>
      * @return such time interval.
      */
-    @NotNull
+    
     public String between(
-        final long start, final long end, @NotNull final String[] separators)
+        final long start, final long end, final String[] separators)
     {
-        @NotNull final StringBuilder result = new StringBuilder();
+        final StringBuilder result = new StringBuilder();
         
         final long delta = end - start;
 

@@ -50,8 +50,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing StringTemplate classes.
@@ -101,14 +99,14 @@ public class ToStringUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final ToStringUtils SINGLETON = new ToStringUtils();
+        public static final ToStringUtils SINGLETON = new ToStringUtils();
     }
 
     /**
      * Retrieves the singleton instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static ToStringUtils getInstance()
     {
         return ToStringUtilsSingletonContainer.SINGLETON;
@@ -120,18 +118,18 @@ public class ToStringUtils
      * @param <T> the type.
      * @return the JSON-formatted list.
      */
-    @NotNull
-    public <T> String toJson(@Nullable final List<T> list)
+    
+    public <T> String toJson(final List<T> list)
     {
-        @NotNull final String result;
+        final String result;
 
-        @Nullable String aux = null;
+        String aux = null;
 
-        @NotNull final StringBuilder builder = new StringBuilder("[ ");
+        final StringBuilder builder = new StringBuilder("[ ");
 
         if (list != null)
         {
-            for (@Nullable final T item : list)
+            for (final T item : list)
             {
                 if (item != null)
                 {
@@ -170,17 +168,17 @@ public class ToStringUtils
      * @param <T> the type.
      * @return the JSON representation.
      */
-    @NotNull
+    
     public <T> String toJson(
-        @NotNull final T instance,
-        @NotNull final Class<?> fileClass,
-        @NotNull final Map<String, Object> args)
+        final T instance,
+        final Class<?> fileClass,
+        final Map<String, Object> args)
     {
-        @NotNull final STGroup stGroup = new STGroupFile(TO_JSON);
+        final STGroup stGroup = new STGroupFile(TO_JSON);
 
-        @NotNull final ST template = stGroup.getInstanceOf(ST_TEMPLATE);
+        final ST template = stGroup.getInstanceOf(ST_TEMPLATE);
 
-        @NotNull final Map<String, Object> context = new HashMap<>(3);
+        final Map<String, Object> context = new HashMap<>(3);
 
         context.put("obj", instance);
         context.put("fileClass", fileClass);
@@ -188,7 +186,7 @@ public class ToStringUtils
 
         template.add("C", context);
 
-        @NotNull final String result = template.render();
+        final String result = template.render();
 
         return result;
     }
@@ -198,13 +196,13 @@ public class ToStringUtils
      * @param args the arguments.
      * @return the map of decorations.
      */
-    protected Map<String, Object> decorate(@NotNull final Map<String, Object> args)
+    protected Map<String, Object> decorate(final Map<String, Object> args)
     {
-        @NotNull final Map<String, Object> result = new HashMap<>(args.size());
+        final Map<String, Object> result = new HashMap<>(args.size());
 
-        for (@NotNull final Map.Entry<String, Object> arg : args.entrySet())
+        for (final Map.Entry<String, Object> arg : args.entrySet())
         {
-            @Nullable final Object value = arg.getValue();
+            final Object value = arg.getValue();
 
             if (value != null)
             {
@@ -222,9 +220,9 @@ public class ToStringUtils
      * @return the decorated instance.
      */
     @SuppressWarnings("unchecked")
-    protected Decorator<?> decorateElement(@NotNull final String name, @NotNull final Object arg)
+    protected Decorator<?> decorateElement(final String name, final Object arg)
     {
-        @NotNull final Decorator<?> result;
+        final Decorator<?> result;
 
         if (arg instanceof String)
         {
@@ -256,10 +254,10 @@ public class ToStringUtils
         }
         else if (arg instanceof Collection<?>)
         {
-            @NotNull final List<Decorator<?>> aux =
+            final List<Decorator<?>> aux =
                 new ArrayList<>(((Collection<Object>) arg).size());
 
-            for (@NotNull final Object item: (Collection<Object>) arg)
+            for (final Object item: (Collection<Object>) arg)
             {
                 aux.add(decorateElement("", item));
             }
@@ -285,10 +283,10 @@ public class ToStringUtils
      * unless an infinite loop is detected, in which an empty string
      * is returned.
      */
-    @NotNull
-    public <T> String auditToString(@NotNull final T instance)
+    
+    public <T> String auditToString(final T instance)
     {
-        @NotNull final String result;
+        final String result;
 
         if (stackTraceContainsRecursiveToStringCalls(instance.getClass()))
         {
@@ -315,7 +313,7 @@ public class ToStringUtils
      * @param clazz the class.
      * @return {@code true} in such case.
      */
-    public <T> boolean stackTraceContainsRecursiveToStringCalls(@NotNull final Class<T> clazz)
+    public <T> boolean stackTraceContainsRecursiveToStringCalls(final Class<T> clazz)
     {
         return stackTraceContainsRecursiveToStringCalls(new RuntimeException("").getStackTrace(), clazz);
     }
@@ -328,7 +326,7 @@ public class ToStringUtils
      * @return {@code true} in such case.
      */
     protected <T> boolean stackTraceContainsRecursiveToStringCalls(
-        @NotNull final StackTraceElement[] stackTrace, @NotNull final Class<T> clazz)
+        final StackTraceElement[] stackTrace, final Class<T> clazz)
     {
         return stackTraceContainsRecursiveCalls(stackTrace, clazz, "toString");
     }
@@ -342,19 +340,19 @@ public class ToStringUtils
      * @return {@code true} in such case.
      */
     protected <T> boolean stackTraceContainsRecursiveCalls(
-        @NotNull final StackTraceElement[] stackTrace,
-        @NotNull final Class<T> clazz,
-        @NotNull final String methodName)
+        final StackTraceElement[] stackTrace,
+        final Class<T> clazz,
+        final String methodName)
     {
         boolean result = false;
 
         int count = 0;
 
-        for (@Nullable final StackTraceElement stackEntry : stackTrace)
+        for (final StackTraceElement stackEntry : stackTrace)
         {
             if (stackEntry != null)
             {
-                @Nullable final String className = stackEntry.getClassName();
+                final String className = stackEntry.getClassName();
                 if (   (className != null)
                        && (className.equals(clazz.getName()))
                        && (methodName.equals(stackEntry.getMethodName())))
@@ -382,19 +380,19 @@ public class ToStringUtils
         /**
          * The name.
          */
-        @NotNull private final String name;
+        private final String name;
 
         /**
          * The wrapped value.
          */
-        @NotNull private final T arg;
+        private final T arg;
 
         /**
          * Creates a decorator.
          * @param name the name.
          * @param arg the value to wrap.
          */
-        public Decorator(@NotNull final String name, @NotNull final T arg)
+        public Decorator(final String name, final T arg)
         {
             this.name = name;
             this.arg = arg;
@@ -414,7 +412,7 @@ public class ToStringUtils
          * Retrieves the name.
          * @return such information.
          */
-        @NotNull
+        
         public String getName()
         {
             return this.name;
@@ -424,7 +422,7 @@ public class ToStringUtils
          * Retrieves the wrapped value.
          * @return such value.
          */
-        @NotNull
+        
         protected T getArg()
         {
             return this.arg;
@@ -434,7 +432,7 @@ public class ToStringUtils
          * Retrieves the wrapped value.
          * @return such value.
          */
-        @NotNull
+        
         public String getValue()
         {
             return getArg().toString();
@@ -498,14 +496,14 @@ public class ToStringUtils
         @SuppressWarnings("unused")
         protected String toStringSimple()
         {
-            @NotNull final STGroup stGroup = new STGroupFile(TO_JSON);
+            final STGroup stGroup = new STGroupFile(TO_JSON);
 
-            @NotNull final ST template = stGroup.getInstanceOf(Literals.TO_JSON);
+            final ST template = stGroup.getInstanceOf(Literals.TO_JSON);
 
             template.add("name", this.name);
             template.add("attr", this.arg);
 
-            @NotNull final String result = template.render();
+            final String result = template.render();
 
             return result;
         }
@@ -546,7 +544,7 @@ public class ToStringUtils
          * @param name the name.
          * @param arg the string value.
          */
-        public StringDecorator(@NotNull final String name, @NotNull final String arg)
+        public StringDecorator(final String name, final String arg)
         {
             super(name, arg);
         }
@@ -556,18 +554,18 @@ public class ToStringUtils
          * @return such text.
          */
         @Override
-        @NotNull
+        
         public String toString()
         {
-            @NotNull final STGroup stGroup = new STGroupFile(TO_JSON);
+            final STGroup stGroup = new STGroupFile(TO_JSON);
 
-            @NotNull final ST template = stGroup.getInstanceOf("toStringImpl");
+            final ST template = stGroup.getInstanceOf("toStringImpl");
 
             template.add("obj", this);
             template.add("fClass", "");
             template.add(Literals.ATTRS, new HashMap<String, Object>(0));
 
-            @NotNull final String result = template.render();
+            final String result = template.render();
 
             return result;
         }
@@ -594,7 +592,7 @@ public class ToStringUtils
          * @param name the name.
          * @param arg the date value.
          */
-        public DateDecorator(@NotNull final String name, @NotNull final Date arg)
+        public DateDecorator(final String name, final Date arg)
         {
             super(name, arg);
         }
@@ -623,7 +621,7 @@ public class ToStringUtils
          * Retrieves the date, in String format.
          * @return the date.
          */
-        @NotNull
+        
         @Override
         public String getValue()
         {
@@ -643,7 +641,7 @@ public class ToStringUtils
          * @param name the name.
          * @param arg the date value.
          */
-        public CollectionDecorator(@NotNull final String name, @NotNull final Collection<T> arg)
+        public CollectionDecorator(final String name, final Collection<T> arg)
         {
             super(name, arg);
         }
@@ -684,30 +682,30 @@ public class ToStringUtils
         @Override
         public String toString()
         {
-            @NotNull final STGroup stGroup = new STGroupFile(TO_JSON);
+            final STGroup stGroup = new STGroupFile(TO_JSON);
 
-            @NotNull final ST template = stGroup.getInstanceOf(Literals.TO_JSON);
+            final ST template = stGroup.getInstanceOf(Literals.TO_JSON);
 
-            @NotNull final String name = getName();
+            final String name = getName();
 
             if (!name.isEmpty())
             {
                 template.add("name", name);
             }
 
-            @NotNull final Collection<T> value = getArg();
+            final Collection<T> value = getArg();
 
-            @NotNull final List<Decorator<?>> aux =
+            final List<Decorator<?>> aux =
                 new ArrayList<>((value).size());
 
-            for (@NotNull final Object item: value)
+            for (final Object item: value)
             {
                 aux.add(ToStringUtils.getInstance().decorateElement("", item));
             }
 
             template.add("attr", aux.toString());
 
-            @NotNull final String result = template.render();
+            final String result = template.render();
 
             return result;
         }

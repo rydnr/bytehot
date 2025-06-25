@@ -53,8 +53,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing Jetbrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents the result of match in a regexp parsing process using
@@ -74,7 +72,7 @@ public class MatchResultJDKAdapter
      * Regexp-specific instance.
      * @param matcher JDK1.4 matcher object to adapt.
      */
-    public MatchResultJDKAdapter(@NotNull final Matcher matcher)
+    public MatchResultJDKAdapter(final Matcher matcher)
     {
         immutableSetMatcher(matcher);
     }
@@ -83,7 +81,7 @@ public class MatchResultJDKAdapter
      * Specifies the instance to adapt.
      * @param matcher the adaptee.
      */
-    protected final void immutableSetMatcher(@NotNull final Matcher matcher)
+    protected final void immutableSetMatcher(final Matcher matcher)
     {
         m__Adaptee = matcher;
     }
@@ -92,7 +90,7 @@ public class MatchResultJDKAdapter
      * Specifies the instance to adapt.
      * @param matcher the adaptee.
      */
-    protected void setMatcher(@NotNull final Matcher matcher)
+    protected void setMatcher(final Matcher matcher)
     {
         immutableSetMatcher(matcher);
     }
@@ -101,7 +99,7 @@ public class MatchResultJDKAdapter
      * Retrieves the adapted instance.
      * @return such adaptee.
      */
-    @NotNull
+    
     public Matcher getMatcher()
     {
         return m__Adaptee;
@@ -118,7 +116,7 @@ public class MatchResultJDKAdapter
      * part of the input.
      */
     @Override
-    @Nullable
+    
     public String group(final int group)
     {
         return group(group, getMatcher());
@@ -135,8 +133,8 @@ public class MatchResultJDKAdapter
      * during the previous match, or null if the group failed to match
      * part of the input.
      */
-    @Nullable
-    protected String group(final int group, @NotNull final Matcher matcher)
+    
+    protected String group(final int group, final Matcher matcher)
     {
         String result = null;
 
@@ -185,7 +183,7 @@ public class MatchResultJDKAdapter
      * {@inheritDoc}
      */
     @Override
-    @NotNull
+    
     public String toString()
     {
         return

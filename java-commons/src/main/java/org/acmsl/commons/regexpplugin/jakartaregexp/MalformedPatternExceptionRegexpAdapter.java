@@ -47,7 +47,6 @@ import org.apache.regexp.RESyntaxException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Adapts jakarta ORO malformed pattern exceptions to follow this API.
@@ -71,7 +70,7 @@ public class MalformedPatternExceptionRegexpAdapter
      * @param exception concrete exception instance to adapt.
      */
     public MalformedPatternExceptionRegexpAdapter(
-        @NotNull final RESyntaxException exception)
+        final RESyntaxException exception)
     {
         super(exception.getMessage());
 
@@ -83,7 +82,7 @@ public class MalformedPatternExceptionRegexpAdapter
      * @param exception the exception to adapt.
      */
     protected final void immutableSetRESyntaxException(
-        @NotNull final RESyntaxException exception)
+        final RESyntaxException exception)
     {
         m__Adaptee = exception;
     }
@@ -93,7 +92,7 @@ public class MalformedPatternExceptionRegexpAdapter
      * @param exception the exception to adapt.
      */
     @SuppressWarnings("unused")
-    protected void setRESyntaxException(@NotNull final RESyntaxException exception)
+    protected void setRESyntaxException(final RESyntaxException exception)
     {
         immutableSetRESyntaxException(exception);
     }
@@ -103,7 +102,7 @@ public class MalformedPatternExceptionRegexpAdapter
      * @return such exception.
      */
     @SuppressWarnings("unused")
-    @NotNull
+    
     protected RESyntaxException getRESyntaxException()
     {
         return m__Adaptee;

@@ -37,7 +37,6 @@ package org.acmsl.commons.automata;
 /*
  * Importing some JetBrains annotations..
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing some JDK classes.
@@ -59,7 +58,7 @@ public interface Transition<S1 extends State, S2 extends State>
      * @return the origin state.
      */
     @SuppressWarnings("unused")
-    @NotNull
+    
     public S1 getOrigin();
 
     /**
@@ -67,7 +66,7 @@ public interface Transition<S1 extends State, S2 extends State>
      * this transition.
      * @return the destination state.
      */
-    @NotNull
+    
     @SuppressWarnings("unused")
     public S2 getDestination();
 }

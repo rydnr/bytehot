@@ -34,7 +34,6 @@ package org.acmsl.commons.regexpplugin.jakartaoro;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -67,7 +66,7 @@ public class HelperOROAdapterTest
     @Test
     public void replaceAll_works()
     {
-        @NotNull final HelperOROAdapter instance = createInstance();
+        final HelperOROAdapter instance = createInstance();
 
         Assert.assertNotNull(instance);
         Assert.assertEquals(

@@ -56,7 +56,6 @@ import org.apache.regexp.RESyntaxException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Jakarta Regexp-specific regexp compiler adapter. This class makes
@@ -191,8 +190,8 @@ public class CompilerRegexpAdapter
      * @throws MalformedPatternException if given regexp is malformed.
      */
     @Override
-    @NotNull
-    public Pattern compile(@NotNull final String regexp)
+    
+    public Pattern compile(final String regexp)
         throws  MalformedPatternException
     {
         return
@@ -210,15 +209,15 @@ public class CompilerRegexpAdapter
      * @return the Pattern associated to such regular expression.
      * @throws MalformedPatternException if given regexp is malformed.
      */
-    @NotNull
+    
     public Pattern compile(
-        @NotNull final String regexp,
-        @NotNull final RECompiler compiler,
+        final String regexp,
+        final RECompiler compiler,
         final boolean caseSensitive,
         final boolean multiline)
       throws  MalformedPatternException
     {
-        @NotNull Pattern result = null;
+        Pattern result = null;
 
         try
         {
@@ -283,7 +282,7 @@ public class CompilerRegexpAdapter
     }
 
     @Override
-    @NotNull
+    
     public String toString()
     {
         return "CompilerRegexpAdapter{" +

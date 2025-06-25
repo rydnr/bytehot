@@ -46,8 +46,6 @@ import org.apache.regexp.RE;
 /*
  * Importing Jetbrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents the result of match in a regexp parsing process using
@@ -67,7 +65,7 @@ public class MatchResultRegexpAdapter
      * Regexp-specific instance.
      * @param matchResult Jakarta Regexp match result object to adapt.
      */
-    public MatchResultRegexpAdapter(@NotNull final RE matchResult)
+    public MatchResultRegexpAdapter(final RE matchResult)
     {
         immutableSetRE(matchResult);
     }
@@ -76,7 +74,7 @@ public class MatchResultRegexpAdapter
      * Specifies the instance to adapt.
      * @param matchResult the adaptee.
      */
-    protected final void immutableSetRE(@NotNull final RE matchResult)
+    protected final void immutableSetRE(final RE matchResult)
     {
         m__Adaptee = matchResult;
     }
@@ -85,7 +83,7 @@ public class MatchResultRegexpAdapter
      * Specifies the instance to adapt.
      * @param matchResult the adaptee.
      */
-    protected void setRE(@NotNull final RE matchResult)
+    protected void setRE(final RE matchResult)
     {
         immutableSetRE(matchResult);
     }
@@ -94,7 +92,7 @@ public class MatchResultRegexpAdapter
      * Retrieves the adapted instance.
      * @return such instance.
      */
-    @NotNull
+    
     public RE getRE()
     {
         return m__Adaptee;
@@ -107,7 +105,7 @@ public class MatchResultRegexpAdapter
      * @param group Nesting level of subexpression.
      * @return A string containing the indicated pattern subgroup.
      */
-    @Nullable
+    
     public String group(final int group)
     {
         return group(group, getRE());
@@ -121,7 +119,7 @@ public class MatchResultRegexpAdapter
      * @param re the RE instance.
      * @return a string containing the indicated pattern subgroup.
      */
-    protected String group(final int group, @NotNull final RE re)
+    protected String group(final int group, final RE re)
     {
         return re.getParen(group);
     }
@@ -144,7 +142,7 @@ public class MatchResultRegexpAdapter
      * @param re the RE instance.
      * @return such value.
      */
-    protected int groups(@NotNull final RE re)
+    protected int groups(final RE re)
     {
         return re.getParenCount();
     }
@@ -153,7 +151,7 @@ public class MatchResultRegexpAdapter
      * {@inheritDoc}
      */
     @Override
-    @NotNull
+    
     public String toString()
     {
         return

@@ -41,8 +41,6 @@ import org.acmsl.commons.regexpplugin.Compiler;
 import org.acmsl.commons.regexpplugin.Helper;
 import org.acmsl.commons.regexpplugin.Matcher;
 import org.acmsl.commons.regexpplugin.RegexpEngine;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Adapts GNU Regexp package to be used as a RegexpPlugin implementation.
@@ -55,7 +53,7 @@ public class GNURegexpEngine
      * Creates a compiler instance.
      * @return such instance.
      */
-    @NotNull
+    
     @Override
     public Compiler createCompiler()
     {
@@ -66,7 +64,7 @@ public class GNURegexpEngine
      * Creates a matcher instance.
      * @return such instance.
      */
-    @NotNull
+    
     @Override
     public Matcher createMatcher()
     {
@@ -77,7 +75,7 @@ public class GNURegexpEngine
      * Creates a helper instance.
      * @return such instance.
      */
-    @NotNull
+    
     @Override
     public Helper createHelper()
     {

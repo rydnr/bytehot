@@ -41,8 +41,6 @@
  */
 package org.acmsl.commons.patterns.eventsourcing;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -65,21 +63,21 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * Unique identifier for this event instance.
      */
     @Getter
-    @NonNull
+    
     private final String eventId;
 
     /**
      * Type of aggregate this event belongs to.
      */
     @Getter
-    @NonNull
+    
     private final String aggregateType;
 
     /**
      * Unique identifier of the aggregate instance.
      */
     @Getter
-    @NonNull
+    
     private final String aggregateId;
 
     /**
@@ -92,14 +90,14 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * Timestamp when the event occurred.
      */
     @Getter
-    @NonNull
+    
     private final Instant timestamp;
 
     /**
      * ID of the previous event in this aggregate's history.
      */
     @Getter
-    @Nullable
+    
     private final String previousEventId;
 
     /**
@@ -112,35 +110,35 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * User who triggered this event.
      */
     @Getter
-    @Nullable
+    
     private final String userId;
 
     /**
      * Correlation ID for tracing related events.
      */
     @Getter
-    @Nullable
+    
     private final String correlationId;
 
     /**
      * Causation ID linking this event to the command that triggered it.
      */
     @Getter
-    @Nullable
+    
     private final String causationId;
 
     /**
      * Stream position in the event store for this event.
      */
     @Getter
-    @Nullable
+    
     private final Long streamPosition;
 
     /**
      * Constructor that takes EventMetadata for convenient event creation.
      * @param metadata the event metadata containing all necessary information
      */
-    protected AbstractVersionedDomainEvent(@NonNull final EventMetadata metadata) {
+    protected AbstractVersionedDomainEvent(final EventMetadata metadata) {
         this(
             metadata.getEventId(),
             metadata.getAggregateType(),
@@ -171,17 +169,17 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param streamPosition stream position in the event store for this event
      */
     protected AbstractVersionedDomainEvent(
-        @NonNull final String eventId,
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
+        final String eventId,
+        final String aggregateType,
+        final String aggregateId,
         final long aggregateVersion,
-        @NonNull final Instant timestamp,
-        @Nullable final String previousEventId,
+        final Instant timestamp,
+        final String previousEventId,
         final int schemaVersion,
-        @Nullable final String userId,
-        @Nullable final String correlationId,
-        @Nullable final String causationId,
-        @Nullable final Long streamPosition
+        final String userId,
+        final String correlationId,
+        final String causationId,
+        final Long streamPosition
     ) {
         this.eventId = eventId;
         this.aggregateType = aggregateType;
@@ -202,10 +200,10 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param aggregateId the unique identifier of the aggregate
      * @return metadata for the first event
      */
-    @NonNull
+    
     protected static EventMetadata createMetadataForNewAggregate(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId
+        final String aggregateType,
+        final String aggregateId
     ) {
         return EventMetadata.forNewAggregate(aggregateType, aggregateId);
     }
@@ -218,11 +216,11 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param currentVersion the current version of the aggregate
      * @return metadata for the next event
      */
-    @NonNull
+    
     protected static EventMetadata createMetadataForExistingAggregate(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @NonNull final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion
     ) {
         return EventMetadata.forExistingAggregate(
@@ -242,13 +240,13 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param userId the user who triggered this event
      * @return metadata with user context
      */
-    @NonNull
+    
     protected static EventMetadata createMetadataWithUser(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @Nullable final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion,
-        @NonNull final String userId
+        final String userId
     ) {
         return EventMetadata.withUser(
             aggregateType,
@@ -270,15 +268,15 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param causationId the causation ID for command tracing
      * @return metadata with full context
      */
-    @NonNull
+    
     protected static EventMetadata createMetadataWithFullContext(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @Nullable final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion,
-        @Nullable final String userId,
-        @Nullable final String correlationId,
-        @Nullable final String causationId
+        final String userId,
+        final String correlationId,
+        final String causationId
     ) {
         return EventMetadata.withFullContext(
             aggregateType,
@@ -295,7 +293,7 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * Gets the current metadata for this event as an EventMetadata object.
      * @return the event metadata
      */
-    @NonNull
+    
     public EventMetadata getMetadata() {
         return new EventMetadata(
             eventId,
@@ -316,7 +314,7 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * Gets a human-readable description of this event.
      * @return a description of the event
      */
-    @NonNull
+    
     public String getDescription() {
         return String.format(
             "%s[aggregateType=%s, aggregateId=%s, version=%d]",
@@ -331,7 +329,7 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * Gets a detailed string representation of this event including all metadata.
      * @return detailed string representation
      */
-    @NonNull
+    
     public String toDetailedString() {
         final StringBuilder sb = new StringBuilder();
         sb.append(getEventType()).append(" {");
@@ -356,7 +354,7 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param previousEvent the previous event to check against
      * @return true if this event can follow the previous event
      */
-    public boolean canFollowDirectly(@NonNull final VersionedDomainEvent previousEvent) {
+    public boolean canFollowDirectly(final VersionedDomainEvent previousEvent) {
         return belongsToSameAggregate(previousEvent) &&
                getAggregateVersion() == previousEvent.getAggregateVersion() + 1 &&
                previousEvent.getEventId().equals(getPreviousEventId());
@@ -367,7 +365,7 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * in this aggregate's event stream.
      * @return metadata for the next event
      */
-    @NonNull
+    
     public EventMetadata createNextEventMetadata() {
         return EventMetadata.forExistingAggregate(
             aggregateType,
@@ -382,8 +380,8 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param userId the user who will trigger the next event
      * @return metadata for the next event with user context
      */
-    @NonNull
-    public EventMetadata createNextEventMetadata(@NonNull final String userId) {
+    
+    public EventMetadata createNextEventMetadata(final String userId) {
         return EventMetadata.withUser(
             aggregateType,
             aggregateId,
@@ -400,11 +398,11 @@ public abstract class AbstractVersionedDomainEvent implements VersionedDomainEve
      * @param causationId the causation ID for the next event
      * @return metadata for the next event with full context
      */
-    @NonNull
+    
     public EventMetadata createNextEventMetadata(
-        @Nullable final String userId,
-        @Nullable final String correlationId,
-        @Nullable final String causationId
+        final String userId,
+        final String correlationId,
+        final String causationId
     ) {
         return EventMetadata.withFullContext(
             aggregateType,

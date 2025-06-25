@@ -47,8 +47,6 @@ import org.apache.regexp.RE;
 /*
  * Importing Jetbrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Implements a {@link Matcher} in Jakarta Regexp package.
@@ -71,7 +69,7 @@ public class MatcherRegexpAdapter
      * Sets the instance to adapt.
      * @param adaptee the re object to adapt.
      */
-    protected final void immutableSetRE(@NotNull final RE adaptee)
+    protected final void immutableSetRE(final RE adaptee)
     {
         m__RE = adaptee;
     }
@@ -80,7 +78,7 @@ public class MatcherRegexpAdapter
      * Sets the instance to adapt.
      * @param adaptee the re object to adapt.
      */
-    protected void setRE(@NotNull final RE adaptee)
+    protected void setRE(final RE adaptee)
     {
         immutableSetRE(adaptee);
     }
@@ -89,7 +87,7 @@ public class MatcherRegexpAdapter
      * Retrieves the adapted instance.
      * @return the RE object.
      */
-    @NotNull
+    
     public RE getRE()
     {
         return m__RE;
@@ -102,7 +100,7 @@ public class MatcherRegexpAdapter
      * @return <code>true</code> if the pattern is found.
      */
     @Override
-    public boolean contains(@NotNull final String text, @NotNull final Pattern pattern)
+    public boolean contains(final String text, final Pattern pattern)
     {
         final boolean result;
 
@@ -123,7 +121,7 @@ public class MatcherRegexpAdapter
      * @return such match result.
      */
     @Override
-    @Nullable
+    
     public MatchResult getMatch()
     {
         return getMatch(getRE());
@@ -135,7 +133,7 @@ public class MatcherRegexpAdapter
      * @param re the RE instance.
      * @return such match result.
      */
-    protected MatchResult getMatch(@NotNull final RE re)
+    protected MatchResult getMatch(final RE re)
     {
         return new MatchResultRegexpAdapter(re);
     }
@@ -144,7 +142,7 @@ public class MatcherRegexpAdapter
      * {@inheritDoc}
      */
     @Override
-    @NotNull
+    
     public String toString()
     {
         return

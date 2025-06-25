@@ -35,7 +35,6 @@ package org.acmsl.commons.patterns;
 
 import org.acmsl.commons.patterns.DomainEvent;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Marks all domain events ocurred in response to another.
@@ -50,6 +49,6 @@ public interface DomainResponseEvent<E extends DomainEvent>
      * The preceding event.
      * @return such event.
      */
-    @NonNull
+    
     E getPreceding();
 }

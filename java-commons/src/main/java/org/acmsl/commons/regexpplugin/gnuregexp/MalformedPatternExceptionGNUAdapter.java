@@ -46,7 +46,6 @@ import gnu.regexp.REException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Adapts GNU Regexp 1.1.4 malformed pattern exceptions to follow this
@@ -70,7 +69,7 @@ public class MalformedPatternExceptionGNUAdapter
      * Constructs an adapter for given GNU Regexp 1.1.4 exception.
      * @param exception concrete exception instance to adapt.
      */
-    public MalformedPatternExceptionGNUAdapter(@NotNull final REException exception)
+    public MalformedPatternExceptionGNUAdapter(final REException exception)
     {
         super(exception.getMessage());
 
@@ -81,7 +80,7 @@ public class MalformedPatternExceptionGNUAdapter
      * Specifies the exception to adapt.
      * @param adaptee the instance to adapt.
      */
-    protected final void immutableSetREException(@NotNull final REException adaptee)
+    protected final void immutableSetREException(final REException adaptee)
     {
         m__Adaptee = adaptee;
     }
@@ -91,7 +90,7 @@ public class MalformedPatternExceptionGNUAdapter
      * @param adaptee the instance to adapt.
      */
     @SuppressWarnings("unused")
-    protected void setREException(@NotNull final REException adaptee)
+    protected void setREException(final REException adaptee)
     {
         immutableSetREException(adaptee);
     }
@@ -101,7 +100,7 @@ public class MalformedPatternExceptionGNUAdapter
      * @return such exception.
      */
     @SuppressWarnings("unused")
-    @NotNull
+    
     protected REException getREException()
     {    
         return m__Adaptee;

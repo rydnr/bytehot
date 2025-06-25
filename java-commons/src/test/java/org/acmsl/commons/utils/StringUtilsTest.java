@@ -47,7 +47,6 @@ import java.util.Locale;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -74,7 +73,7 @@ public class StringUtilsTest
     @Test
     public void testReplace()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -97,11 +96,11 @@ public class StringUtilsTest
     @Test
     public void testEscapeRegexp()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
-        @NotNull final String t_strInput = "c$om.(foo)*.bar^";
+        final String t_strInput = "c$om.(foo)*.bar^";
 
         Assert.assertEquals(
             "escapeRegexp(\"" + t_strInput + "\") failed.",
@@ -116,7 +115,7 @@ public class StringUtilsTest
     @Test
     public void testPackageToFilePath()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -158,7 +157,7 @@ public class StringUtilsTest
     @Test
     public void testJustify()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -209,7 +208,7 @@ public class StringUtilsTest
     @Test
     public void testUncapitalize()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -251,7 +250,7 @@ public class StringUtilsTest
     @Test
     public void testUncapitalizeStart()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -283,7 +282,7 @@ public class StringUtilsTest
     @Test
     public void testApplyToEachLine()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -343,7 +342,7 @@ public class StringUtilsTest
     @Test
     public void testRetrieveMinimumIndentInAllLines()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -375,7 +374,7 @@ public class StringUtilsTest
     @Test
     public void testRemoveFirstAndLastBlankLines()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -418,13 +417,13 @@ public class StringUtilsTest
     @Test
     public void testEscape()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
-        @NotNull final String t_strInput = "ab ()\" .cde  \" f g ^\\\"";
+        final String t_strInput = "ab ()\" .cde  \" f g ^\\\"";
 
-        @NotNull final String t_strOutput = t_StringUtils.escape(t_strInput, '\"');
+        final String t_strOutput = t_StringUtils.escape(t_strInput, '\"');
 
         Assert.assertEquals(
             "escape(\"" + t_strInput + "\") failed.",
@@ -440,7 +439,7 @@ public class StringUtilsTest
     @Test
     public void testSoftNormalize()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -499,13 +498,13 @@ public class StringUtilsTest
     @Test
     public void testNormalize()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
-        @NotNull final String t_strInput = "multiple.bet.result";
+        final String t_strInput = "multiple.bet.result";
 
-        @NotNull final String t_strOutput = t_StringUtils.normalize(t_strInput, Locale.ENGLISH);
+        final String t_strOutput = t_StringUtils.normalize(t_strInput, Locale.ENGLISH);
 
         Assert.assertEquals(
             "normalize(\"" + t_strInput + "\") failed.",
@@ -520,13 +519,13 @@ public class StringUtilsTest
     @Test
     public void capitalize_works_for_lowercase()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
-        @NotNull final String t_strInput = "ab-cd_ef  gh+ijk;;_|l~~@m  2n=o4p";
+        final String t_strInput = "ab-cd_ef  gh+ijk;;_|l~~@m  2n=o4p";
 
-        @NotNull final String t_strOutput = t_StringUtils.capitalize(t_strInput, Locale.ENGLISH);
+        final String t_strOutput = t_StringUtils.capitalize(t_strInput, Locale.ENGLISH);
 
         Assert.assertEquals(
             "capitalize(\"" + t_strInput + "\") failed.",
@@ -540,7 +539,7 @@ public class StringUtilsTest
     @Test
     public void capitalize_works_for_upper_cased_strings()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -554,7 +553,7 @@ public class StringUtilsTest
     @Test
     public void capitalize_works_for_mixed_cased_strings()
     {
-        @NotNull final StringUtils t_StringUtils = StringUtils.getInstance();
+        final StringUtils t_StringUtils = StringUtils.getInstance();
 
         Assert.assertNotNull(t_StringUtils);
 
@@ -567,7 +566,7 @@ public class StringUtilsTest
     @Test
     public void capitalizeFirst_works()
     {
-        @NotNull final StringUtils instance = StringUtils.getInstance();
+        final StringUtils instance = StringUtils.getInstance();
 
         Assert.assertNotNull(instance);
 
@@ -580,7 +579,7 @@ public class StringUtilsTest
     @Test
     public void isEmpty_works_for_empty_strings()
     {
-        @NotNull final StringUtils instance = StringUtils.getInstance();
+        final StringUtils instance = StringUtils.getInstance();
 
         Assert.assertTrue(instance.isEmpty(""));
     }
@@ -591,7 +590,7 @@ public class StringUtilsTest
     @Test
     public void capitalize_preserves_camelCase()
     {
-        @NotNull final StringUtils instance = StringUtils.getInstance();
+        final StringUtils instance = StringUtils.getInstance();
 
         Assert.assertEquals(
             "TestWithCamelCaseExample", instance.capitalize("test.with.CamelCase.example", Locale.ENGLISH));
@@ -603,7 +602,7 @@ public class StringUtilsTest
     @Test
     public void unquote_removes_quotes()
     {
-        @NotNull final StringUtils instance = StringUtils.getInstance();
+        final StringUtils instance = StringUtils.getInstance();
 
         Assert.assertEquals("abc", instance.unquote("\"abc\"", '"'));
         Assert.assertEquals("abcd", instance.unquote("'abcd'"));

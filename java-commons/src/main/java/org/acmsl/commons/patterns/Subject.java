@@ -36,8 +36,6 @@ package org.acmsl.commons.patterns;
 /*
  * Importing some JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -61,7 +59,7 @@ public class Subject<O extends Observer>
      * Specifies the observer collection.
      * @param observers the observers.
      */
-    protected void setObservers(@NotNull final Collection<O> observers)
+    protected void setObservers(final Collection<O> observers)
     {
         m__cObservers = observers;
     }
@@ -70,7 +68,7 @@ public class Subject<O extends Observer>
      * Retrieves the observer collection.
      * @return the observers.
      */
-    @Nullable
+    
     protected final Collection<O> immutableGetObservers()
     {
         return m__cObservers;
@@ -83,7 +81,7 @@ public class Subject<O extends Observer>
     @SuppressWarnings("unused")
     protected Collection<O> getObservers()
     {
-        @Nullable Collection<O> result = immutableGetObservers();
+        Collection<O> result = immutableGetObservers();
 
         if (result == null)
         {
@@ -102,10 +100,10 @@ public class Subject<O extends Observer>
      * time, so this method never returns a <code>null</code> value.
      * @return a not <code>null</code> collection.
      */
-    @NotNull
+    
     protected final Collection<O> getObserverCollection()
     {
-        @Nullable Collection<O> result = immutableGetObservers();
+        Collection<O> result = immutableGetObservers();
 
         if  (result == null)
         {
@@ -121,7 +119,7 @@ public class Subject<O extends Observer>
      * @param observer the new observer to attach.
      */
     @Override
-    public void attach(@Nullable final O observer)
+    public void attach(final O observer)
     {
         if  (observer != null)
         {
@@ -135,7 +133,7 @@ public class Subject<O extends Observer>
      * @param observerCollection the observer collection.
      */
     protected void attach(
-        @NotNull final O observer, @NotNull final Collection<O> observerCollection)
+        final O observer, final Collection<O> observerCollection)
     {
         observerCollection.add(observer);
     }
@@ -146,7 +144,7 @@ public class Subject<O extends Observer>
      * @param observer the new observer to attach.
      */
     @Override
-    public void detach(@Nullable final O observer)
+    public void detach(final O observer)
     {
         if  (observer != null)
         {
@@ -161,7 +159,7 @@ public class Subject<O extends Observer>
      * @param observerCollection the observer collection.
      */
     protected void detach(
-        @NotNull final O observer, @NotNull final Collection<O> observerCollection)
+        final O observer, final Collection<O> observerCollection)
     {
         observerCollection.remove(observer);
     }
@@ -171,7 +169,7 @@ public class Subject<O extends Observer>
      */
     public void inform()
     {
-        for (@Nullable final O t_Observer : getObserverCollection())
+        for (final O t_Observer : getObserverCollection())
         {
             if (t_Observer != null)
             {

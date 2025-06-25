@@ -41,8 +41,6 @@
 package org.acmsl.commons.patterns.results;
 
 import org.acmsl.commons.patterns.ErrorSeverity;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -68,7 +66,7 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
     /**
      * Unique identifier for this operation.
      */
-    @NonNull
+    
     private final String operationId;
 
     /**
@@ -82,25 +80,25 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
     }
 
     @Override
-    @NonNull
+    
     public String getOperationId() {
         return operationId;
     }
 
     @Override
-    @NonNull
+    
     public Optional<T> getResult() {
         return result;
     }
 
     @Override
-    @NonNull
+    
     public Optional<String> getErrorMessage() {
         return errorMessage;
     }
 
     @Override
-    @NonNull
+    
     public Instant getTimestamp() {
         return timestamp;
     }
@@ -108,61 +106,61 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
     /**
      * The result data if successful.
      */
-    @NonNull
+    
     private final Optional<T> result;
 
     /**
      * Error message if the operation failed.
      */
-    @NonNull
+    
     private final Optional<String> errorMessage;
 
     /**
      * When the operation completed.
      */
-    @NonNull
+    
     private final Instant timestamp;
 
     /**
      * Additional details about the operation.
      */
     @Getter
-    @NonNull
+    
     private final Optional<String> details;
 
     /**
      * Error severity if the operation failed.
      */
     @Getter
-    @NonNull
+    
     private final Optional<ErrorSeverity> errorSeverity;
 
     /**
      * Exception that caused the failure, if any.
      */
     @Getter
-    @NonNull
+    
     private final Optional<Throwable> cause;
 
     /**
      * Context where the operation was performed.
      */
     @Getter
-    @NonNull
+    
     private final Optional<String> context;
 
     /**
      * Constructor for SimpleOperationResult.
      */
-    public SimpleOperationResult(@NonNull final String operationId,
+    public SimpleOperationResult(final String operationId,
                                 final boolean successful,
-                                @NonNull final Optional<T> result,
-                                @NonNull final Optional<String> errorMessage,
-                                @NonNull final Instant timestamp,
-                                @NonNull final Optional<String> details,
-                                @NonNull final Optional<ErrorSeverity> errorSeverity,
-                                @NonNull final Optional<Throwable> cause,
-                                @NonNull final Optional<String> context) {
+                                final Optional<T> result,
+                                final Optional<String> errorMessage,
+                                final Instant timestamp,
+                                final Optional<String> details,
+                                final Optional<ErrorSeverity> errorSeverity,
+                                final Optional<Throwable> cause,
+                                final Optional<String> context) {
         this.operationId = operationId;
         this.successful = successful;
         this.result = result;
@@ -182,11 +180,11 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A successful OperationResult
      */
-    @NonNull
+    
     public static <T> SimpleOperationResult<T> success(
-        @NonNull final String operationId,
-        @Nullable final T result,
-        @NonNull final Instant timestamp
+        final String operationId,
+        final T result,
+        final Instant timestamp
     ) {
         return new SimpleOperationResult<>(
             operationId,
@@ -210,12 +208,12 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A successful OperationResult with details
      */
-    @NonNull
+    
     public static <T> SimpleOperationResult<T> success(
-        @NonNull final String operationId,
-        @Nullable final T result,
-        @NonNull final Instant timestamp,
-        @Nullable final String details
+        final String operationId,
+        final T result,
+        final Instant timestamp,
+        final String details
     ) {
         return new SimpleOperationResult<>(
             operationId,
@@ -240,13 +238,13 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A failed OperationResult
      */
-    @NonNull
+    
     public static <T> SimpleOperationResult<T> failure(
-        @NonNull final String operationId,
-        @Nullable final String errorMessage,
-        @NonNull final Instant timestamp,
-        @NonNull final ErrorSeverity severity,
-        @Nullable final Throwable cause
+        final String operationId,
+        final String errorMessage,
+        final Instant timestamp,
+        final ErrorSeverity severity,
+        final Throwable cause
     ) {
         return new SimpleOperationResult<>(
             operationId,
@@ -272,14 +270,14 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A failed OperationResult with context
      */
-    @NonNull
+    
     public static <T> SimpleOperationResult<T> failure(
-        @NonNull final String operationId,
-        @Nullable final String errorMessage,
-        @NonNull final Instant timestamp,
-        @NonNull final ErrorSeverity severity,
-        @Nullable final Throwable cause,
-        @Nullable final String context
+        final String operationId,
+        final String errorMessage,
+        final Instant timestamp,
+        final ErrorSeverity severity,
+        final Throwable cause,
+        final String context
     ) {
         return new SimpleOperationResult<>(
             operationId,
@@ -300,8 +298,8 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A successful OperationResult
      */
-    @NonNull
-    public static <T> SimpleOperationResult<T> success(@Nullable final T result) {
+    
+    public static <T> SimpleOperationResult<T> success(final T result) {
         return success(UUID.randomUUID().toString(), result, Instant.now());
     }
 
@@ -312,10 +310,10 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A failed OperationResult
      */
-    @NonNull
+    
     public static <T> SimpleOperationResult<T> failure(
-        @Nullable final String errorMessage,
-        @NonNull final ErrorSeverity severity
+        final String errorMessage,
+        final ErrorSeverity severity
     ) {
         return failure(UUID.randomUUID().toString(), errorMessage, Instant.now(), severity, null);
     }
@@ -328,11 +326,11 @@ public final class SimpleOperationResult<T> implements OperationResult<T> {
      * @param <T> The type of the result data
      * @return A failed OperationResult
      */
-    @NonNull
+    
     public static <T> SimpleOperationResult<T> failure(
-        @Nullable final String errorMessage,
-        @NonNull final ErrorSeverity severity,
-        @Nullable final Throwable cause
+        final String errorMessage,
+        final ErrorSeverity severity,
+        final Throwable cause
     ) {
         return failure(UUID.randomUUID().toString(), errorMessage, Instant.now(), severity, cause);
     }

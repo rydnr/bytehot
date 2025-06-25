@@ -37,7 +37,6 @@ package org.acmsl.commons;
 /*
  * Importing JetBrains annotations..
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing some JDK classes.
@@ -69,7 +68,7 @@ public class ContractViolationException
      * Constructs the exception with given message.
      * @param message the error message.
      */
-    public ContractViolationException(@NotNull final String message)
+    public ContractViolationException(final String message)
     {
         super(message);
     }

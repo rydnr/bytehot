@@ -38,7 +38,6 @@ package org.acmsl.commons.utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JDK classes.
@@ -69,7 +68,7 @@ public class EnumUtils
      *
      * @return such instance.
      */
-    @NotNull
+    
     public static EnumUtils getInstance()
     {
         return EnumUtilsSingletonContainer.SINGLETON;
@@ -82,16 +81,16 @@ public class EnumUtils
      * @param <T> the enum class.
      * @return the enum instance.
      */
-    @NotNull
-    public <T extends Enum<T>> T getEnumFromString(@NotNull final Class<T> c, @NotNull final String string)
+    
+    public <T extends Enum<T>> T getEnumFromString(final Class<T> c, final String string)
     {
-        @NotNull final T result;
+        final T result;
 
         try
         {
             result = Enum.valueOf(c, string.trim().toUpperCase(Locale.US).replaceAll("-", "_"));
         }
-        catch (@NotNull final IllegalArgumentException invalidEnumName)
+        catch (final IllegalArgumentException invalidEnumName)
         {
             // TODO
             throw new RuntimeException("Invalid enum: " + string);

@@ -40,7 +40,6 @@ import org.acmsl.commons.patterns.Singleton;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Is able to format {@link ValueObjectField.String} objects.
@@ -57,14 +56,14 @@ public class StringFormatter
         /**
          * The singleton instance.
          */
-        @NotNull public static final StringFormatter SINGLETON = new StringFormatter();
+        public static final StringFormatter SINGLETON = new StringFormatter();
     }
 
     /**
      * Retrieves a StringFormatter instance.
      * @return a string formatter.
      */
-    @NotNull
+    
     public static StringFormatter getInstance()
     {
         return StringFormatterSingletonContainer.SINGLETON;
@@ -76,8 +75,8 @@ public class StringFormatter
      * @return the String format.
      */
     @Override
-    @NotNull
-    public String format(@NotNull final ValueObjectField<String> stringField)
+    
+    public String format(final ValueObjectField<String> stringField)
     {
         return "\"" + stringField.getValue() + "\"";
     }

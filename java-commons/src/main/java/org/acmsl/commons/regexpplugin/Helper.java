@@ -37,7 +37,6 @@ package org.acmsl.commons.regexpplugin;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents a regexp helper. Different implementations vary but they all
@@ -55,8 +54,8 @@ public interface Helper
      * @return the updated input.
      * @throws MalformedPatternException if given regexp is malformed.
      */
-    @NotNull
+    
     public String replaceAll(
-        @NotNull final String input, @NotNull final String pattern, @NotNull final String replacement)
+        final String input, final String pattern, final String replacement)
       throws  MalformedPatternException;
 }

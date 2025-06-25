@@ -34,7 +34,6 @@ package org.acmsl.commons.regexpplugin.gnuregexp;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -55,7 +54,7 @@ public class CompilerGNUAdapterTest
      * Creates an instance of the tested class.
      * @return such instance.
      */
-    @NotNull
+    
     public CompilerGNUAdapter createInstance()
     {
         return new CompilerGNUAdapter();
@@ -67,7 +66,7 @@ public class CompilerGNUAdapterTest
     @Test
     public void isCaseSensitive_works()
     {
-        @NotNull final CompilerGNUAdapter instance = createInstance();
+        final CompilerGNUAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 
@@ -84,7 +83,7 @@ public class CompilerGNUAdapterTest
     @Test
     public void testSetIsMultiline()
     {
-        @NotNull final CompilerGNUAdapter instance = createInstance();
+        final CompilerGNUAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 

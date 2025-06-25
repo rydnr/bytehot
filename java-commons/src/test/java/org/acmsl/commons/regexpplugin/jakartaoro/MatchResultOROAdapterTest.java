@@ -41,7 +41,6 @@ import org.apache.oro.text.regex.Perl5Matcher;
 /*
  * Importing NotNull classes.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -67,11 +66,11 @@ public class MatchResultOROAdapterTest
     {
         MatchResultOROAdapter result = null;
 
-        @NotNull final Perl5Compiler t_Compiler = new Perl5Compiler();
+        final Perl5Compiler t_Compiler = new Perl5Compiler();
 
-        @NotNull final Pattern t_Pattern = t_Compiler.compile("^(.*)?\\:(.*)$");
+        final Pattern t_Pattern = t_Compiler.compile("^(.*)?\\:(.*)$");
 
-        @NotNull final Perl5Matcher t_Perl5Matcher = new Perl5Matcher();
+        final Perl5Matcher t_Perl5Matcher = new Perl5Matcher();
 
         if  (t_Perl5Matcher.contains("one:two", t_Pattern))
         {
@@ -90,7 +89,7 @@ public class MatchResultOROAdapterTest
     public void group_matches_groups()
         throws Exception
     {
-        @NotNull final MatchResultOROAdapter instance = createInstance();
+        final MatchResultOROAdapter instance = createInstance();
 
         Assert.assertEquals(instance.group(1), "one");
         Assert.assertEquals(instance.group(2), "two");
@@ -105,7 +104,7 @@ public class MatchResultOROAdapterTest
     public void groups_matches_groups()
         throws Exception
     {
-        @NotNull final MatchResultOROAdapter instance = createInstance();
+        final MatchResultOROAdapter instance = createInstance();
 
         Assert.assertTrue(
             ((instance.groups() == 2)

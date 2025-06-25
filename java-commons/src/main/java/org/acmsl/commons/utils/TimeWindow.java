@@ -40,8 +40,6 @@
 package org.acmsl.commons.utils;
 
 import org.acmsl.commons.patterns.dao.ValueObject;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -66,14 +64,14 @@ public final class TimeWindow implements ValueObject {
      * Start time of the window.
      */
     @Getter
-    @NonNull
+    
     private final Instant startTime;
 
     /**
      * End time of the window.
      */
     @Getter
-    @NonNull
+    
     private final Instant endTime;
 
     /**
@@ -81,7 +79,7 @@ public final class TimeWindow implements ValueObject {
      * @param startTime the start time of the window
      * @param endTime the end time of the window
      */
-    public TimeWindow(@NonNull final Instant startTime, @NonNull final Instant endTime) {
+    public TimeWindow(final Instant startTime, final Instant endTime) {
         if (endTime.isBefore(startTime)) {
             throw new IllegalArgumentException("End time must be after start time");
         }
@@ -96,8 +94,8 @@ public final class TimeWindow implements ValueObject {
      * @return A TimeWindow spanning the specified duration from start time
      * @throws IllegalArgumentException if startTime is null or duration is null/negative
      */
-    @NonNull
-    public static TimeWindow of(@NonNull final Instant startTime, @NonNull final Duration duration) {
+    
+    public static TimeWindow of(final Instant startTime, final Duration duration) {
         if (duration.isNegative()) {
             throw new IllegalArgumentException("Duration must be positive");
         }
@@ -112,8 +110,8 @@ public final class TimeWindow implements ValueObject {
      * @return A TimeWindow spanning from start to end time
      * @throws IllegalArgumentException if endTime is before startTime
      */
-    @NonNull
-    public static TimeWindow between(@NonNull final Instant startTime, @NonNull final Instant endTime) {
+    
+    public static TimeWindow between(final Instant startTime, final Instant endTime) {
         if (endTime.isBefore(startTime)) {
             throw new IllegalArgumentException("End time must be after start time");
         }
@@ -127,8 +125,8 @@ public final class TimeWindow implements ValueObject {
      * @return A TimeWindow ending at the current time
      * @throws IllegalArgumentException if duration is null or negative
      */
-    @NonNull
-    public static TimeWindow lastDuration(@NonNull final Duration duration) {
+    
+    public static TimeWindow lastDuration(final Duration duration) {
         if (duration.isNegative()) {
             throw new IllegalArgumentException("Duration must be positive");
         }
@@ -141,7 +139,7 @@ public final class TimeWindow implements ValueObject {
      * Gets the duration of this time window.
      * @return The duration between start and end times
      */
-    @NonNull
+    
     public Duration getDuration() {
         return Duration.between(startTime, endTime);
     }
@@ -151,7 +149,7 @@ public final class TimeWindow implements ValueObject {
      * @param instant The instant to check
      * @return true if the instant is within the window (inclusive of boundaries)
      */
-    public boolean contains(@Nullable final Instant instant) {
+    public boolean contains(final Instant instant) {
         if (instant == null) {
             return false;
         }
@@ -164,7 +162,7 @@ public final class TimeWindow implements ValueObject {
      * @param other The other time window
      * @return true if the windows overlap
      */
-    public boolean overlaps(@Nullable final TimeWindow other) {
+    public boolean overlaps(final TimeWindow other) {
         if (other == null) {
             return false;
         }
@@ -177,8 +175,8 @@ public final class TimeWindow implements ValueObject {
      * @param duration The duration to shift (positive for future, negative for past)
      * @return A new TimeWindow shifted by the specified duration
      */
-    @NonNull
-    public TimeWindow shift(@NonNull final Duration duration) {
+    
+    public TimeWindow shift(final Duration duration) {
         return new TimeWindow(startTime.plus(duration), endTime.plus(duration));
     }
 
@@ -188,8 +186,8 @@ public final class TimeWindow implements ValueObject {
      * @return A new TimeWindow extended by the specified duration
      * @throws IllegalArgumentException if duration is negative
      */
-    @NonNull
-    public TimeWindow extend(@NonNull final Duration duration) {
+    
+    public TimeWindow extend(final Duration duration) {
         if (duration.isNegative()) {
             throw new IllegalArgumentException("Extension duration must be positive");
         }
@@ -202,7 +200,7 @@ public final class TimeWindow implements ValueObject {
      * @param other The other time window
      * @return true if this window is entirely before the other
      */
-    public boolean isBefore(@Nullable final TimeWindow other) {
+    public boolean isBefore(final TimeWindow other) {
         return other != null && endTime.isBefore(other.startTime);
     }
 
@@ -211,7 +209,7 @@ public final class TimeWindow implements ValueObject {
      * @param other The other time window
      * @return true if this window is entirely after the other
      */
-    public boolean isAfter(@Nullable final TimeWindow other) {
+    public boolean isAfter(final TimeWindow other) {
         return other != null && startTime.isAfter(other.endTime);
     }
 }

@@ -41,7 +41,6 @@ import org.acmsl.commons.patterns.Singleton;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Is able to format {@link ValueObjectField.Long} objects.
@@ -58,14 +57,14 @@ public class LongFormatter
         /**
          * The singleton instance.
          */
-        @NotNull public static final LongFormatter SINGLETON = new LongFormatter();
+        public static final LongFormatter SINGLETON = new LongFormatter();
     }
 
     /**
      * Retrieves a LongFormatter instance.
      * @return a long formatter.
      */
-    @NotNull
+    
     public static LongFormatter getInstance()
     {
         return LongFormatterSingletonContainer.SINGLETON;
@@ -77,8 +76,8 @@ public class LongFormatter
      * @return the String format.
      */
     @Override
-    @NotNull
-    public String format(@NotNull final ValueObjectField<Long> longField)
+    
+    public String format(final ValueObjectField<Long> longField)
     {
         return longField.getValue() + "";
     }

@@ -39,7 +39,6 @@ package org.acmsl.commons.patterns;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents classes that know about the ordering in which {@link Command} instances are
@@ -55,7 +54,7 @@ public interface ChainOfResponsibility<C extends Command, E extends Exception, C
      * @param commandHandler the handler just before the desired link.
      * @return the next handler in the chain.
      */
-    @Nullable
+    
     @SuppressWarnings("unused")
-    public CH getNextChainLink(@Nullable final CH commandHandler);
+    public CH getNextChainLink(final CH commandHandler);
 }

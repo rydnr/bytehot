@@ -43,7 +43,6 @@ import org.acmsl.commons.CheckedException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Defines the behavior of any class capable to send {@link Command} objects.
@@ -59,6 +58,6 @@ public interface CommandSender<C extends Command, E extends CheckedException>
      * @throws E in case of error.
      */
     @SuppressWarnings("unused")
-    public boolean send(@NotNull final C command)
+    public boolean send(final C command)
         throws E;
 }

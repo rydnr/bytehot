@@ -34,7 +34,6 @@ package org.acmsl.commons.regexpplugin.jakartaregexp;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -65,7 +64,7 @@ public class CompilerRegexpAdapterTest
     @Test
     public void isCaseSensitive_works()
     {
-        @NotNull final CompilerRegexpAdapter instance = createInstance();
+        final CompilerRegexpAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 
@@ -82,7 +81,7 @@ public class CompilerRegexpAdapterTest
     @Test
     public void isMultiline_works()
     {
-        @NotNull final CompilerRegexpAdapter instance = createInstance();
+        final CompilerRegexpAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 

@@ -40,7 +40,6 @@ import java.util.regex.Pattern;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -63,9 +62,9 @@ public class MatchResultJDKAdapterTest
      */
     public MatchResultJDKAdapter createInstance()
     {
-        @NotNull final Pattern t_Pattern = Pattern.compile("(.*?):(.*)");
+        final Pattern t_Pattern = Pattern.compile("(.*?):(.*)");
 
-        @NotNull final Matcher t_Matcher = t_Pattern.matcher("one:two");
+        final Matcher t_Matcher = t_Pattern.matcher("one:two");
 
         t_Matcher.matches();
 
@@ -89,7 +88,7 @@ public class MatchResultJDKAdapterTest
     @Test
     public void group_works()
     {
-        @NotNull final MatchResultJDKAdapter instance = createInstance();
+        final MatchResultJDKAdapter instance = createInstance();
 
         Assert.assertEquals("one", instance.group(1));
         Assert.assertEquals("two", instance.group(2));

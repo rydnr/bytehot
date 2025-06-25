@@ -35,7 +35,6 @@ package org.acmsl.commons.utils;
 /*
  * Importing Jetbrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -59,7 +58,7 @@ public class EnglishGrammarUtilsTest
     @Test
     public void getRegularSingularForm_works()
     {
-        @NotNull final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
+        final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
 
         Assert.assertEquals(
             "Invalid singular for cars",
@@ -110,7 +109,7 @@ public class EnglishGrammarUtilsTest
     @Test
     public void getRegularPluralForm_works()
     {
-        @NotNull final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
+        final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
 
         Assert.assertEquals(
             "Invalid plural for car",
@@ -153,7 +152,7 @@ public class EnglishGrammarUtilsTest
     @Test
     public void getSingular_works()
     {
-        @NotNull final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
+        final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
 
         Assert.assertEquals(
             "Invalid singular for cars",
@@ -204,7 +203,7 @@ public class EnglishGrammarUtilsTest
     @Test
     public void getPlural_works()
     {
-        @NotNull final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
+        final EnglishGrammarUtils t_EnglishGrammarUtils = EnglishGrammarUtils.getInstance();
 
         Assert.assertEquals(
             "Invalid plural for car",

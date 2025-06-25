@@ -38,7 +38,6 @@ package org.acmsl.commons.regexpplugin.jakartaoro;
  * Importing Jakarta-ORO classes.
  */
 import org.apache.oro.text.regex.MalformedPatternException;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Adapts {@link org.acmsl.commons.regexpplugin.MalformedPatternException} to follow this API.
@@ -62,7 +61,7 @@ public class MalformedPatternExceptionOROAdapter
      * @param exception concrete exception instance to adapt.
      */
     public MalformedPatternExceptionOROAdapter(
-        @NotNull final MalformedPatternException exception)
+        final MalformedPatternException exception)
     {
         super(exception.getMessage());
 
@@ -74,7 +73,7 @@ public class MalformedPatternExceptionOROAdapter
      * @param adaptee the exception to adapt.
      */
     protected final void immutableSetMalformedPatternException(
-        @NotNull final MalformedPatternException adaptee)
+        final MalformedPatternException adaptee)
     {
         m__Adaptee = adaptee;
     }
@@ -85,7 +84,7 @@ public class MalformedPatternExceptionOROAdapter
      */
     @SuppressWarnings("unused")
     protected void setMalformedPatternException(
-        @NotNull final MalformedPatternException adaptee)
+        final MalformedPatternException adaptee)
     {
         immutableSetMalformedPatternException(adaptee);
     }
@@ -94,7 +93,7 @@ public class MalformedPatternExceptionOROAdapter
      * Retrieves the adapted exception.
      * @return such exception.
      */
-    @NotNull
+    
     @SuppressWarnings("unused")
     public MalformedPatternException getMalformedPatternException()
     {

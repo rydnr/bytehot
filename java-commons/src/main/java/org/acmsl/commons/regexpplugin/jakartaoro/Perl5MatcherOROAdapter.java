@@ -48,8 +48,6 @@ import org.apache.oro.text.regex.Perl5Matcher;
 /*
  * Importing Jetbrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Jakarta ORO-specific regexp matcher adapter.
@@ -75,7 +73,7 @@ public class Perl5MatcherOROAdapter
      * Specifies the adaptee.
      * @param adaptee the matcher to adapt.
      */
-    protected final void immutableSetMatcher(@NotNull final Perl5Matcher adaptee)
+    protected final void immutableSetMatcher(final Perl5Matcher adaptee)
     {
         m__Instance = adaptee;
     }
@@ -84,7 +82,7 @@ public class Perl5MatcherOROAdapter
      * Specifies the adaptee.
      * @param adaptee the matcher to adapt.
      */
-    protected void setMatcher(@NotNull final Perl5Matcher adaptee)
+    protected void setMatcher(final Perl5Matcher adaptee)
     {
         immutableSetMatcher(adaptee);
     }
@@ -93,7 +91,7 @@ public class Perl5MatcherOROAdapter
      * Retrieves an instance of Perl5Matcher class.
      * @return a the adapted matcher.
      */
-    @NotNull
+    
     protected Perl5Matcher getMatcher()
     {
         return m__Instance;
@@ -106,7 +104,7 @@ public class Perl5MatcherOROAdapter
      * @return <code>true</code> if the pattern is found.
      */
     @Override
-    public boolean contains(@NotNull final String text, @NotNull final Pattern pattern)
+    public boolean contains(final String text, final Pattern pattern)
     {
         return contains(text, pattern, getMatcher());
     }
@@ -119,7 +117,7 @@ public class Perl5MatcherOROAdapter
      * @return <code>true</code> if the pattern is found.
      */
     protected boolean contains(
-        @NotNull final String text, @NotNull final Pattern pattern, @NotNull final Perl5Matcher matcher)
+        final String text, final Pattern pattern, final Perl5Matcher matcher)
     {
         return
             matcher.contains(
@@ -132,7 +130,7 @@ public class Perl5MatcherOROAdapter
      * @return such match result.
      */
     @Override
-    @Nullable
+    
     public MatchResult getMatch()
     {
         return getMatch(getMatcher());
@@ -144,8 +142,8 @@ public class Perl5MatcherOROAdapter
      * @param matcher the matcher.
      * @return such match result.
      */
-    @Nullable
-    protected MatchResult getMatch(@NotNull final Perl5Matcher matcher)
+    
+    protected MatchResult getMatch(final Perl5Matcher matcher)
     {
         return new MatchResultOROAdapter(matcher.getMatch());
     }
@@ -153,7 +151,7 @@ public class Perl5MatcherOROAdapter
     /**
      * {@inheritDoc}
      */
-    @NotNull
+    
     @Override
     public String toString()
     {

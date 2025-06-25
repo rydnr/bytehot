@@ -43,8 +43,6 @@ import org.acmsl.commons.patterns.Utils;
  * Importing Commons-Logging classes.
  */
 import org.apache.commons.logging.LogFactory;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -76,7 +74,7 @@ public class ReflectionUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final ReflectionUtils SINGLETON =
+        public static final ReflectionUtils SINGLETON =
             new ReflectionUtils();
     }
 
@@ -89,7 +87,7 @@ public class ReflectionUtils
      * Retrieves a ReflectionUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static ReflectionUtils getInstance()
     {
         return ReflectionUtilsSingletonContainer.SINGLETON;
@@ -100,8 +98,8 @@ public class ReflectionUtils
      * @param object the object to analyze.
      * @return the ordered collection of superclasses.
      */
-    @NotNull
-    public Class<?>[] retrieveSuperClasses(@NotNull final Object object)
+    
+    public Class<?>[] retrieveSuperClasses(final Object object)
     {
         return retrieveSuperClasses(object.getClass());
     }
@@ -114,12 +112,12 @@ public class ReflectionUtils
      * @return the ordered collection of superclasses.
      */
     @SuppressWarnings("unchecked")
-    @NotNull
-    public <T extends U, U> Class<U>[] retrieveSuperClasses(@NotNull final Class<T> classInstance)
+    
+    public <T extends U, U> Class<U>[] retrieveSuperClasses(final Class<T> classInstance)
     {
-        @NotNull final Class<U>[] result;
+        final Class<U>[] result;
 
-        @NotNull final Collection<Class<U>> t_cSuperClasses = new ArrayList<>();
+        final Collection<Class<U>> t_cSuperClasses = new ArrayList<>();
 
         t_cSuperClasses.add((Class<U>) classInstance);
 
@@ -137,13 +135,13 @@ public class ReflectionUtils
      * @param <U> the parent class type.
      * @return the parent classes.
      */
-    @NotNull
-    protected <T extends U, U> Collection<Class<U>> retrieveParentClasses(@NotNull final Class<T> objectClass)
+    
+    protected <T extends U, U> Collection<Class<U>> retrieveParentClasses(final Class<T> objectClass)
     {
-        @NotNull final Collection<Class<U>> result;
+        final Collection<Class<U>> result;
 
         @SuppressWarnings("unchecked")
-        @Nullable final Class<U> parent = (Class<U>) objectClass.getSuperclass();
+        final Class<U> parent = (Class<U>) objectClass.getSuperclass();
 
         if  (parent != null)
         {
@@ -172,14 +170,14 @@ public class ReflectionUtils
      * @param <C> the class type.
      * @param <T> the type.
      */
-    @NotNull
-    public <C, T> Field[] getMember(@NotNull final Class<C> classInstance, @NotNull final Class<T> type)
+    
+    public <C, T> Field[] getMember(final Class<C> classInstance, final Class<T> type)
     {
-        @NotNull final Collection<Field> t_cResult = new ArrayList<>();
+        final Collection<Field> t_cResult = new ArrayList<>();
 
-        @NotNull final Class<?>[] t_aClasses = retrieveSuperClasses(classInstance);
+        final Class<?>[] t_aClasses = retrieveSuperClasses(classInstance);
         
-        for  (@NotNull final Class<?> t_Class : t_aClasses)
+        for  (final Class<?> t_Class : t_aClasses)
         {
             t_cResult.addAll(getClassMembersAsCollection(t_Class, type));
         }
@@ -198,12 +196,12 @@ public class ReflectionUtils
      * @param <T> the type.
      * @return such member instance.
      */
-    @NotNull
-    public <C, T> Field[] getClassMembers(@NotNull final Class<C> classInstance, @NotNull final Class<T> type)
+    
+    public <C, T> Field[] getClassMembers(final Class<C> classInstance, final Class<T> type)
     {
-        @NotNull final Field[] result;
+        final Field[] result;
         
-        @NotNull final Collection<Field> t_cMembers =
+        final Collection<Field> t_cMembers =
             getClassMembersAsCollection(classInstance, type);
         
         if  (t_cMembers.size() == 0)
@@ -230,19 +228,19 @@ public class ReflectionUtils
      * @return such fields.
      */
     @SuppressWarnings("unchecked")
-    @NotNull
+    
     public <C, T> Collection<Field> getClassMembersAsCollection(
-        @NotNull final Class<C> classInstance, @NotNull final Class<T> type)
+        final Class<C> classInstance, final Class<T> type)
     {
-        @NotNull final Collection<Field> result = new ArrayList<>();
+        final Collection<Field> result = new ArrayList<>();
 
-        @Nullable Field[] t_Aux = null;
+        Field[] t_Aux = null;
         
         try
         {
             t_Aux = classInstance.getDeclaredFields();
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             try
             {
@@ -262,11 +260,11 @@ public class ReflectionUtils
 
         if (t_Aux != null)
         {
-            for (@Nullable final Field t_CurrentField : t_Aux)
+            for (final Field t_CurrentField : t_Aux)
             {
                 if  (t_CurrentField != null)
                 {
-                    @Nullable final Class<?> t_CurrentMemberClass = t_CurrentField.getType();
+                    final Class<?> t_CurrentMemberClass = t_CurrentField.getType();
 
                     if  (   (t_CurrentMemberClass != null)
                          && (   (t_CurrentMemberClass.equals(type)
@@ -289,10 +287,10 @@ public class ReflectionUtils
      * @return the field value, on given instance, or <code>null</code>
      * if such field doesn't exist or is not accessible.
      */
-    @Nullable
-    public Object getFieldValue(@NotNull final Object instance, @NotNull final Field field)
+    
+    public Object getFieldValue(final Object instance, final Field field)
     {
-        @Nullable Object result = null;
+        Object result = null;
         
         try
         {
@@ -333,17 +331,17 @@ public class ReflectionUtils
      * <code>Thread.getContextClassLoader()</code> via reflection, and
      * the target exception is not a <code>SecurityException</code>..
      */
-    @NotNull
+    
     public ClassLoader getContextClassLoader()
         throws IllegalAccessException,
                InvocationTargetException
     {
-        @Nullable ClassLoader result = null;
+        ClassLoader result = null;
         
         try
         {
             // Are we running on a JDK 1.2 or later system?
-            @NotNull final Method t_Method =
+            final Method t_Method =
                 Thread.class.getMethod("getContextClassLoader", (Class<?>) null);
 
             // Get the thread context class loader (if there is one)

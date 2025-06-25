@@ -43,8 +43,6 @@ import org.acmsl.commons.patterns.Validator;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Responsible of checking the validness of strings.
@@ -62,7 +60,7 @@ public class StringValidator
         /**
          * The actual singleton.
          */
-        @NotNull
+        
         public static final StringValidator SINGLETON = new StringValidator();
     }
 
@@ -75,7 +73,7 @@ public class StringValidator
      * Retrieves a StringValidator instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static StringValidator getInstance()
     {
         return StringValidatorSingletonContainer.SINGLETON;
@@ -86,7 +84,7 @@ public class StringValidator
      * @param value the string to be checked.
      * @return true whenever given value is empty or null.
      */
-    public boolean isEmpty(@Nullable final String value)
+    public boolean isEmpty(final String value)
     {
         return
             (   (value == null)

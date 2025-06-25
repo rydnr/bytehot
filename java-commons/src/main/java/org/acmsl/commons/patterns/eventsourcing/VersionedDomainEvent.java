@@ -43,8 +43,6 @@
 package org.acmsl.commons.patterns.eventsourcing;
 
 import org.acmsl.commons.patterns.DomainEvent;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -62,21 +60,21 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Unique identifier for this event instance.
      * @return the event ID (typically a UUID)
      */
-    @NonNull
+    
     String getEventId();
 
     /**
      * Type of aggregate this event belongs to.
      * @return the aggregate type (e.g., "user", "order", "account")
      */
-    @NonNull
+    
     String getAggregateType();
 
     /**
      * Unique identifier of the aggregate instance.
      * @return the aggregate ID (typically a UUID or meaningful identifier)
      */
-    @NonNull
+    
     String getAggregateId();
 
     /**
@@ -90,7 +88,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Timestamp when the event occurred.
      * @return the event timestamp
      */
-    @NonNull
+    
     Instant getTimestamp();
 
     /**
@@ -98,7 +96,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Enables building causal chains and event ordering verification.
      * @return the previous event ID, or null if this is the first event
      */
-    @Nullable
+    
     String getPreviousEventId();
 
     /**
@@ -113,7 +111,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Supports audit trail and user-context tracking.
      * @return the user ID, or null if not user-triggered or system event
      */
-    @Nullable
+    
     String getUserId();
 
     /**
@@ -121,7 +119,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Enables distributed tracing and workflow correlation.
      * @return the correlation ID, or null if not part of a correlation
      */
-    @Nullable
+    
     String getCorrelationId();
 
     /**
@@ -129,7 +127,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Enables command-event traceability and debugging.
      * @return the causation ID, or null if not applicable
      */
-    @Nullable
+    
     default String getCausationId() {
         return null;
     }
@@ -139,7 +137,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Used for efficient event retrieval and ordering.
      * @return the stream position, or null if not yet persisted
      */
-    @Nullable
+    
     default Long getStreamPosition() {
         return null;
     }
@@ -148,7 +146,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Gets the simple class name of this event for type identification.
      * @return the event type name
      */
-    @NonNull
+    
     default String getEventType() {
         return this.getClass().getSimpleName();
     }
@@ -157,7 +155,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Gets the full class name of this event for precise type identification.
      * @return the fully qualified event type name
      */
-    @NonNull
+    
     default String getFullEventType() {
         return this.getClass().getName();
     }
@@ -214,7 +212,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * Gets the age of this event from the current time.
      * @return duration since the event occurred
      */
-    @NonNull
+    
     default Duration getAge() {
         return Duration.between(getTimestamp(), Instant.now());
     }
@@ -224,7 +222,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * @param instant the instant to compare against
      * @return true if this event occurred before the specified instant
      */
-    default boolean occurredBefore(@NonNull final Instant instant) {
+    default boolean occurredBefore(final Instant instant) {
         return getTimestamp().isBefore(instant);
     }
 
@@ -233,7 +231,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * @param instant the instant to compare against
      * @return true if this event occurred after the specified instant
      */
-    default boolean occurredAfter(@NonNull final Instant instant) {
+    default boolean occurredAfter(final Instant instant) {
         return getTimestamp().isAfter(instant);
     }
 
@@ -242,7 +240,7 @@ public interface VersionedDomainEvent extends DomainEvent {
      * @param other the other event to compare
      * @return true if both events belong to the same aggregate instance
      */
-    default boolean belongsToSameAggregate(@NonNull final VersionedDomainEvent other) {
+    default boolean belongsToSameAggregate(final VersionedDomainEvent other) {
         return getAggregateType().equals(other.getAggregateType()) &&
                getAggregateId().equals(other.getAggregateId());
     }

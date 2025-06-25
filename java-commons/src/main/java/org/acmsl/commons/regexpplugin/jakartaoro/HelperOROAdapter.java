@@ -56,8 +56,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Jakarta ORO-specific regexp helper adapter.
@@ -76,12 +74,12 @@ public class HelperOROAdapter
      * @throws org.acmsl.commons.regexpplugin.MalformedPatternException if given regexp is malformed.
      */
     @Override
-    @NotNull
+    
     public String replaceAll(
-        @NotNull final String input, @NotNull final String pattern, @NotNull final String replacement)
+        final String input, final String pattern, final String replacement)
       throws  org.acmsl.commons.regexpplugin.MalformedPatternException
     {
-        @Nullable String result = null;
+        String result = null;
 
         try
         {
@@ -106,7 +104,7 @@ public class HelperOROAdapter
         }
         catch  (final NoSuchMethodError incompatibleVersionError)
         {
-            @Nullable final String location = findLocation(Util.class);
+            final String location = findLocation(Util.class);
 
             // This happens on Oro 2.0.8 if another Oro version
             // is loaded first.
@@ -135,8 +133,8 @@ public class HelperOROAdapter
      * @param <T> the class type.
      * @return such information.
      */
-    @Nullable
-    protected <T> String findLocation(@NotNull final Class<T> classInstance)
+    
+    protected <T> String findLocation(final Class<T> classInstance)
     {
         return findLocation(classInstance, ClassLoaderUtils.getInstance());
     }
@@ -148,9 +146,9 @@ public class HelperOROAdapter
      * @param <T> the class type.
      * @return such information.
      */
-    @Nullable
+    
     protected <T> String findLocation(
-        @NotNull final Class<T> classInstance, @NotNull final ClassLoaderUtils classLoaderUtils)
+        final Class<T> classInstance, final ClassLoaderUtils classLoaderUtils)
     {
         return classLoaderUtils.findLocation(classInstance, true);
     }

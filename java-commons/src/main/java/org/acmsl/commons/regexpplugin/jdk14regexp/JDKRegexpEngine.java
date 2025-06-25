@@ -44,7 +44,6 @@ import org.acmsl.commons.regexpplugin.RegexpEngine;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Adapts JDK 1.4 Regexp package to be used as a RegexpPlugin implementation.
@@ -57,7 +56,7 @@ public class JDKRegexpEngine
      * Creates a compiler instance.
      * @return such instance.
      */
-    @NotNull
+    
     @Override
     public Compiler createCompiler()
     {
@@ -69,7 +68,7 @@ public class JDKRegexpEngine
      * @return such instance.
      */
     @Override
-    @NotNull
+    
     public Matcher createMatcher()
     {
         return new MatcherJDKAdapter();
@@ -80,7 +79,7 @@ public class JDKRegexpEngine
      * @return such instance.
      */
     @Override
-    @NotNull
+    
     public Helper createHelper()
     {
         return new HelperJDKAdapter();

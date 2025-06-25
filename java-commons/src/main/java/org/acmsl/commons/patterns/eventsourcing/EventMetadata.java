@@ -42,8 +42,6 @@
 package org.acmsl.commons.patterns.eventsourcing;
 
 import org.acmsl.commons.patterns.dao.ValueObject;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -68,19 +66,19 @@ public final class EventMetadata implements ValueObject {
     /**
      * Unique identifier for this event instance.
      */
-    @NonNull
+    
     private final String eventId;
 
     /**
      * Type of aggregate this event belongs to.
      */
-    @NonNull
+    
     private final String aggregateType;
 
     /**
      * Unique identifier of the aggregate instance.
      */
-    @NonNull
+    
     private final String aggregateId;
 
     /**
@@ -91,13 +89,13 @@ public final class EventMetadata implements ValueObject {
     /**
      * Timestamp when the event occurred.
      */
-    @NonNull
+    
     private final Instant timestamp;
 
     /**
      * ID of the previous event in this aggregate's history.
      */
-    @Nullable
+    
     private final String previousEventId;
 
     /**
@@ -108,41 +106,41 @@ public final class EventMetadata implements ValueObject {
     /**
      * User who triggered this event.
      */
-    @Nullable
+    
     private final String userId;
 
     /**
      * Correlation ID for tracing related events.
      */
-    @Nullable
+    
     private final String correlationId;
 
     /**
      * Causation ID linking this event to the command that triggered it.
      */
-    @Nullable
+    
     private final String causationId;
 
     /**
      * Stream position in the event store for this event.
      */
-    @Nullable
+    
     private final Long streamPosition;
 
     /**
      * Constructor for creating EventMetadata instances.
      */
-    public EventMetadata(@NonNull final String eventId,
-                        @NonNull final String aggregateType,
-                        @NonNull final String aggregateId,
+    public EventMetadata(final String eventId,
+                        final String aggregateType,
+                        final String aggregateId,
                         final long aggregateVersion,
-                        @NonNull final Instant timestamp,
-                        @Nullable final String previousEventId,
+                        final Instant timestamp,
+                        final String previousEventId,
                         final int schemaVersion,
-                        @Nullable final String userId,
-                        @Nullable final String correlationId,
-                        @Nullable final String causationId,
-                        @Nullable final Long streamPosition) {
+                        final String userId,
+                        final String correlationId,
+                        final String causationId,
+                        final Long streamPosition) {
         this.eventId = eventId;
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
@@ -160,7 +158,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the unique identifier for this event instance.
      * @return the event ID
      */
-    @NonNull
+    
     public String getEventId() {
         return eventId;
     }
@@ -169,7 +167,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the type of aggregate this event belongs to.
      * @return the aggregate type
      */
-    @NonNull
+    
     public String getAggregateType() {
         return aggregateType;
     }
@@ -178,7 +176,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the unique identifier of the aggregate instance.
      * @return the aggregate ID
      */
-    @NonNull
+    
     public String getAggregateId() {
         return aggregateId;
     }
@@ -195,7 +193,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the timestamp when the event occurred.
      * @return the event timestamp
      */
-    @NonNull
+    
     public Instant getTimestamp() {
         return timestamp;
     }
@@ -204,7 +202,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the ID of the previous event in the aggregate's history.
      * @return the previous event ID or null if this is the first event
      */
-    @Nullable
+    
     public String getPreviousEventId() {
         return previousEventId;
     }
@@ -221,7 +219,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the ID of the user who triggered this event.
      * @return the user ID or null if no user context
      */
-    @Nullable
+    
     public String getUserId() {
         return userId;
     }
@@ -230,7 +228,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the correlation ID for tracing related events.
      * @return the correlation ID or null if not correlated
      */
-    @Nullable
+    
     public String getCorrelationId() {
         return correlationId;
     }
@@ -239,7 +237,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the causation ID linking this event to the command that triggered it.
      * @return the causation ID or null if not available
      */
-    @Nullable
+    
     public String getCausationId() {
         return causationId;
     }
@@ -248,7 +246,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the stream position in the event store for this event.
      * @return the stream position or null if not set
      */
-    @Nullable
+    
     public Long getStreamPosition() {
         return streamPosition;
     }
@@ -259,9 +257,9 @@ public final class EventMetadata implements ValueObject {
      * @param aggregateId the unique identifier of the aggregate
      * @return metadata for the first event
      */
-    @NonNull
-    public static EventMetadata forNewAggregate(@NonNull final String aggregateType, 
-                                                @NonNull final String aggregateId) {
+    
+    public static EventMetadata forNewAggregate(final String aggregateType, 
+                                                final String aggregateId) {
         return new EventMetadata(
             UUID.randomUUID().toString(),
             aggregateType,
@@ -285,11 +283,11 @@ public final class EventMetadata implements ValueObject {
      * @param currentVersion the current version of the aggregate
      * @return metadata for the next event
      */
-    @NonNull
+    
     public static EventMetadata forExistingAggregate(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @NonNull final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion
     ) {
         return new EventMetadata(
@@ -316,13 +314,13 @@ public final class EventMetadata implements ValueObject {
      * @param timestamp the timestamp for this event
      * @return metadata for the next event
      */
-    @NonNull
+    
     public static EventMetadata forExistingAggregate(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @NonNull final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion,
-        @NonNull final Instant timestamp
+        final Instant timestamp
     ) {
         return new EventMetadata(
             UUID.randomUUID().toString(),
@@ -348,13 +346,13 @@ public final class EventMetadata implements ValueObject {
      * @param userId the user who triggered this event
      * @return metadata with user context
      */
-    @NonNull
+    
     public static EventMetadata withUser(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @Nullable final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion,
-        @NonNull final String userId
+        final String userId
     ) {
         return new EventMetadata(
             UUID.randomUUID().toString(),
@@ -382,15 +380,15 @@ public final class EventMetadata implements ValueObject {
      * @param causationId the causation ID linking to the command
      * @return metadata with full correlation context
      */
-    @NonNull
+    
     public static EventMetadata withFullContext(
-        @NonNull final String aggregateType,
-        @NonNull final String aggregateId,
-        @Nullable final String previousEventId,
+        final String aggregateType,
+        final String aggregateId,
+        final String previousEventId,
         final long currentVersion,
-        @Nullable final String userId,
-        @Nullable final String correlationId,
-        @Nullable final String causationId
+        final String userId,
+        final String correlationId,
+        final String causationId
     ) {
         return new EventMetadata(
             UUID.randomUUID().toString(),
@@ -412,7 +410,7 @@ public final class EventMetadata implements ValueObject {
      * @param newVersion the new aggregate version
      * @return metadata with updated version
      */
-    @NonNull
+    
     public EventMetadata withVersion(final long newVersion) {
         return new EventMetadata(
             eventId,
@@ -434,8 +432,8 @@ public final class EventMetadata implements ValueObject {
      * @param userId the user ID to set
      * @return metadata with user context
      */
-    @NonNull
-    public EventMetadata withUserId(@Nullable final String userId) {
+    
+    public EventMetadata withUserId(final String userId) {
         return new EventMetadata(
             eventId,
             aggregateType,
@@ -456,8 +454,8 @@ public final class EventMetadata implements ValueObject {
      * @param correlationId the correlation ID to set
      * @return metadata with correlation
      */
-    @NonNull
-    public EventMetadata withCorrelationId(@Nullable final String correlationId) {
+    
+    public EventMetadata withCorrelationId(final String correlationId) {
         return new EventMetadata(
             eventId,
             aggregateType,
@@ -478,8 +476,8 @@ public final class EventMetadata implements ValueObject {
      * @param causationId the causation ID to set
      * @return metadata with causation
      */
-    @NonNull
-    public EventMetadata withCausationId(@Nullable final String causationId) {
+    
+    public EventMetadata withCausationId(final String causationId) {
         return new EventMetadata(
             eventId,
             aggregateType,
@@ -500,8 +498,8 @@ public final class EventMetadata implements ValueObject {
      * @param streamPosition the stream position to set
      * @return metadata with stream position
      */
-    @NonNull
-    public EventMetadata withStreamPosition(@Nullable final Long streamPosition) {
+    
+    public EventMetadata withStreamPosition(final Long streamPosition) {
         return new EventMetadata(
             eventId,
             aggregateType,
@@ -522,8 +520,8 @@ public final class EventMetadata implements ValueObject {
      * @param timestamp the new timestamp
      * @return metadata with updated timestamp
      */
-    @NonNull
-    public EventMetadata withTimestamp(@NonNull final Instant timestamp) {
+    
+    public EventMetadata withTimestamp(final Instant timestamp) {
         return new EventMetadata(
             eventId,
             aggregateType,
@@ -591,7 +589,7 @@ public final class EventMetadata implements ValueObject {
      * Gets the age of this event from the current time.
      * @return duration since the event occurred
      */
-    @NonNull
+    
     public Duration getAge() {
         return Duration.between(timestamp, Instant.now());
     }

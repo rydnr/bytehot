@@ -41,8 +41,6 @@
 package org.acmsl.commons.patterns.results;
 
 import org.acmsl.commons.patterns.ErrorSeverity;
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -75,35 +73,35 @@ public interface OperationResult<T> {
      * Gets the result data if the operation was successful.
      * @return The operation result, empty if the operation failed
      */
-    @NonNull
+    
     Optional<T> getResult();
 
     /**
      * Gets the error message if the operation failed.
      * @return The error message, empty if the operation was successful
      */
-    @NonNull
+    
     Optional<String> getErrorMessage();
 
     /**
      * Gets the timestamp when the operation completed.
      * @return The completion timestamp
      */
-    @NonNull
+    
     Instant getTimestamp();
 
     /**
      * Gets the unique identifier for this operation.
      * @return The operation identifier
      */
-    @NonNull
+    
     String getOperationId();
 
     /**
      * Gets additional details about the operation.
      * @return Optional details, empty if no additional information is available
      */
-    @NonNull
+    
     default Optional<String> getDetails() {
         return Optional.empty();
     }
@@ -112,7 +110,7 @@ public interface OperationResult<T> {
      * Gets the error severity if the operation failed.
      * @return The error severity, empty if the operation was successful
      */
-    @NonNull
+    
     default Optional<ErrorSeverity> getErrorSeverity() {
         return Optional.empty();
     }
@@ -121,7 +119,7 @@ public interface OperationResult<T> {
      * Gets the exception that caused the failure, if any.
      * @return The causing exception, empty if no exception or operation was successful
      */
-    @NonNull
+    
     default Optional<Throwable> getCause() {
         return Optional.empty();
     }
@@ -130,7 +128,7 @@ public interface OperationResult<T> {
      * Gets the context where the operation was performed.
      * @return Optional context information
      */
-    @NonNull
+    
     default Optional<String> getContext() {
         return Optional.empty();
     }
@@ -149,7 +147,7 @@ public interface OperationResult<T> {
      * Gets the error message or a default message if successful.
      * @return The error message or empty string if successful
      */
-    @NonNull
+    
     default String getErrorMessageOrEmpty() {
         return getErrorMessage().orElse("");
     }
@@ -158,7 +156,7 @@ public interface OperationResult<T> {
      * Gets the details or a default message if not available.
      * @return The details or empty string if not available
      */
-    @NonNull
+    
     default String getDetailsOrEmpty() {
         return getDetails().orElse("");
     }
@@ -169,8 +167,8 @@ public interface OperationResult<T> {
      * @param <U> The target type
      * @return A new OperationResult with the mapped result
      */
-    @NonNull
-    default <U> OperationResult<U> map(@NonNull final Function<T, U> mapper) {
+    
+    default <U> OperationResult<U> map(final Function<T, U> mapper) {
         if (isSuccessful() && getResult().isPresent()) {
             U mappedResult = mapper.apply(getResult().get());
             return SimpleOperationResult.success(getOperationId(), mappedResult, getTimestamp());

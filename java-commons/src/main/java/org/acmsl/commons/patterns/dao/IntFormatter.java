@@ -41,7 +41,6 @@ import org.acmsl.commons.patterns.Singleton;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Is able to format {@link ValueObjectField.Int} objects.
@@ -58,14 +57,14 @@ public class IntFormatter
         /**
          * The singleton instance.
          */
-        @NotNull public static final IntFormatter SINGLETON = new IntFormatter();
+        public static final IntFormatter SINGLETON = new IntFormatter();
     }
 
     /**
      * Retrieves an IntFormatter instance.
      * @return a int formatter.
      */
-    @NotNull
+    
     public static IntFormatter getInstance()
     {
         return IntFormatterSingletonContainer.SINGLETON;
@@ -77,8 +76,8 @@ public class IntFormatter
      * @return the String format.
      */
     @Override
-    @NotNull
-    public String format(@NotNull final ValueObjectField<Integer> intField)
+    
+    public String format(final ValueObjectField<Integer> intField)
     {
         return intField.getValue() + "";
     }

@@ -37,8 +37,6 @@ package org.acmsl.commons.patterns;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -53,20 +51,20 @@ public interface Chain<C extends Command, E extends Exception, CH extends Comman
      * Adds a new commandHandler to the chain.
      * @param commandHandler the commandHandler to be added.
      */
-    public void add(@NotNull final CH commandHandler);
+    public void add(final CH commandHandler);
 
     /**
      * Adds a new commandHandler to the first position of the chain.
      * @param commandHandler the commandHandler to be added.
      */
-    public void addFirst(@NotNull final CH commandHandler);
+    public void addFirst(final CH commandHandler);
 
     /**
      * Checks whether or not this chain contains given command handler.
      * @param commandHandler the handler to look for inside this chain.
      * @return true if such handler is already included in this chain.
      */
-    public boolean contains(@NotNull final CH commandHandler);
+    public boolean contains(final CH commandHandler);
 
     /**
      * Retrieves the position given handler occupies in this chain.
@@ -74,21 +72,21 @@ public interface Chain<C extends Command, E extends Exception, CH extends Comman
      * @return the first position in which given handler is found, or
      * -1 if doesn't participate in this chain.
      */
-    public int indexOf(@NotNull final CH commandHandler);
+    public int indexOf(final CH commandHandler);
 
     /**
      * Retrieves the command handler that is located at given position.
      * @param commandHandlerIndex the position of the chain.
      * @return the command handler referred at such position.
      */
-    @Nullable
+    
     public CH get(final int commandHandlerIndex);
 
     /**
      * Retrieves the list of handlers.
      * @return such list.
      */
-    @NotNull
+    
     public List<CH> getHandlers();
 
     /**

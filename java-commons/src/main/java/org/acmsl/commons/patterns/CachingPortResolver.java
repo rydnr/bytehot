@@ -37,8 +37,6 @@ import org.acmsl.commons.patterns.Adapter;
 import org.acmsl.commons.patterns.Port;
 import org.acmsl.commons.patterns.PortResolver;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -57,14 +55,14 @@ public class CachingPortResolver {
     /**
      * The mapping.
      */
-    @NonNull
+    
     private final Map<Class<? extends Port>, List<Adapter<? extends Port>>> implementations = new HashMap<>();
 
     /**
      * Retrieves the implementations.
      * @return such map.
      */
-    @NonNull
+    
     protected Map<Class<? extends Port>, List<Adapter<? extends Port>>> getImplementations() {
         return this.implementations;
     }
@@ -75,8 +73,8 @@ public class CachingPortResolver {
      * @return A list of implementations.
      */
     @SuppressWarnings({"unused", "unchecked"})
-    @NonNull
-    protected <P extends Port> List<Adapter<P>> _resolveAll(@NonNull final Class<P> port) {
+    
+    protected <P extends Port> List<Adapter<P>> _resolveAll(final Class<P> port) {
         return (List<Adapter<P>>) (List<?>) this.implementations.getOrDefault(port, List.of());
     }
 
@@ -85,11 +83,11 @@ public class CachingPortResolver {
      * @param port such port.
      * @return The port implementation, if any.
      */
-    @NonNull
-    protected <P extends Port> Optional<Adapter<P>> _resolve(@NonNull final Class<P> port) {
-        @Nullable Adapter<P> result = null;
+    
+    protected <P extends Port> Optional<Adapter<P>> _resolve(final Class<P> port) {
+        Adapter<P> result = null;
 
-        @NonNull final List<Adapter<P>> candidates = this._resolveAll(port);
+        final List<Adapter<P>> candidates = this._resolveAll(port);
 
         if ((candidates != null) && (!candidates.isEmpty())) {
             result = candidates.get(0);

@@ -49,8 +49,6 @@ import org.apache.commons.beanutils.ConvertUtils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -74,7 +72,7 @@ public class ConversionUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final ConversionUtils SINGLETON = new ConversionUtils();
+        public static final ConversionUtils SINGLETON = new ConversionUtils();
     }
 
     /**
@@ -86,7 +84,7 @@ public class ConversionUtils
      * Retrieves a ConversionUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static ConversionUtils getInstance()
     {
         return ConversionUtilsSingletonContainer.SINGLETON;
@@ -98,8 +96,8 @@ public class ConversionUtils
      * @param value the value.
      * @return given value.
      */
-    @NotNull
-    public String toString(@NotNull final String value)
+    
+    public String toString(final String value)
     {
         return toStringIfNotNull(value);
     }
@@ -110,8 +108,8 @@ public class ConversionUtils
      * @param value the value.
      * @return given value.
      */
-    @NotNull
-    public String toStringIfNotNull(@Nullable final String value)
+    
+    public String toStringIfNotNull(final String value)
     {
         return (value != null) ? value : "";
     }
@@ -121,11 +119,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public boolean toBoolean(@Nullable final String value)
+    public boolean toBoolean(final String value)
     {
         boolean result = false;
 
-        @Nullable final Boolean t_Result = toBooleanIfNotNull(value);
+        final Boolean t_Result = toBooleanIfNotNull(value);
 
         if  (t_Result != null) 
         {
@@ -140,16 +138,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Boolean toBooleanIfNotNull(@Nullable final String value)
+    
+    public Boolean toBooleanIfNotNull(final String value)
     {
         Boolean result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Boolean.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Boolean.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Boolean.TYPE, value);
+            final Object t_Result = t_Converter.convert(Boolean.TYPE, value);
 
             if  (t_Result instanceof Boolean)
             {
@@ -165,11 +163,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public int toInt(@Nullable final String value)
+    public int toInt(final String value)
     {
         int result = 0;
 
-        @Nullable final Integer t_Result = toIntIfNotNull(value);
+        final Integer t_Result = toIntIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -184,16 +182,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Integer toIntIfNotNull(@Nullable final String value)
+    
+    public Integer toIntIfNotNull(final String value)
     {
         Integer result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Integer.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Integer.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Integer.TYPE, value);
+            final Object t_Result = t_Converter.convert(Integer.TYPE, value);
 
             if  (t_Result instanceof Integer)
             {
@@ -209,11 +207,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public long toLong(@Nullable final String value)
+    public long toLong(final String value)
     {
         long result = 0L;
 
-        @Nullable final Long t_Result = toLongIfNotNull(value);
+        final Long t_Result = toLongIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -228,16 +226,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Long toLongIfNotNull(@Nullable final String value)
+    
+    public Long toLongIfNotNull(final String value)
     {
         Long result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Long.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Long.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Long.TYPE, value);
+            final Object t_Result = t_Converter.convert(Long.TYPE, value);
 
             if  (t_Result instanceof Long)
             {
@@ -253,11 +251,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public float toFloat(@Nullable final String value)
+    public float toFloat(final String value)
     {
         float result = 0.0f;
 
-        @Nullable final Float t_Result = toFloatIfNotNull(value);
+        final Float t_Result = toFloatIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -272,16 +270,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Float toFloatIfNotNull(@Nullable final String value)
+    
+    public Float toFloatIfNotNull(final String value)
     {
         Float result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Float.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Float.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Float.TYPE, value);
+            final Object t_Result = t_Converter.convert(Float.TYPE, value);
 
             if  (t_Result instanceof Float)
             {
@@ -297,11 +295,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public double toDouble(@Nullable final String value)
+    public double toDouble(final String value)
     {
         double result = 0.0d;
 
-        @Nullable final Double t_Result = toDoubleIfNotNull(value);
+        final Double t_Result = toDoubleIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -316,16 +314,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Double toDoubleIfNotNull(@Nullable final String value)
+    
+    public Double toDoubleIfNotNull(final String value)
     {
         Double result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Double.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Double.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Double.TYPE, value);
+            final Object t_Result = t_Converter.convert(Double.TYPE, value);
 
             if  (t_Result instanceof Double)
             {
@@ -341,11 +339,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public char toChar(@Nullable final String value)
+    public char toChar(final String value)
     {
         char result = (char) -1;
 
-        @Nullable final Character t_Result = toCharIfNotNull(value);
+        final Character t_Result = toCharIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -366,16 +364,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Character toCharIfNotNull(@Nullable final String value)
+    
+    public Character toCharIfNotNull(final String value)
     {
         Character result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Character.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Character.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Character.TYPE, value);
+            final Object t_Result = t_Converter.convert(Character.TYPE, value);
 
             if  (t_Result instanceof Character)
             {
@@ -391,11 +389,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public short toShort(@Nullable final String value)
+    public short toShort(final String value)
     {
         short result = 0;
 
-        @Nullable final Short t_Result = toShortIfNotNull(value);
+        final Short t_Result = toShortIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -410,16 +408,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Short toShortIfNotNull(@Nullable final String value)
+    
+    public Short toShortIfNotNull(final String value)
     {
         Short result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Short.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Short.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Short.TYPE, value);
+            final Object t_Result = t_Converter.convert(Short.TYPE, value);
 
             if  (t_Result instanceof Short)
             {
@@ -435,11 +433,11 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    public byte toByte(@Nullable final String value)
+    public byte toByte(final String value)
     {
         byte result = 0;
 
-        @Nullable final Byte t_Result = toByteIfNotNull(value);
+        final Byte t_Result = toByteIfNotNull(value);
 
         if  (t_Result != null)
         {
@@ -454,16 +452,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Byte toByteIfNotNull(@Nullable final String value)
+    
+    public Byte toByteIfNotNull(final String value)
     {
         Byte result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Byte.TYPE);
+        final Converter t_Converter = ConvertUtils.lookup(Byte.TYPE);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Byte.TYPE, value);
+            final Object t_Result = t_Converter.convert(Byte.TYPE, value);
 
             if  (t_Result instanceof Byte)
             {
@@ -479,8 +477,8 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public BigDecimal toBigDecimal(@Nullable final String value)
+    
+    public BigDecimal toBigDecimal(final String value)
     {
         return toBigDecimalIfNotNull(value);
     }
@@ -490,16 +488,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public BigDecimal toBigDecimalIfNotNull(@Nullable final String value)
+    
+    public BigDecimal toBigDecimalIfNotNull(final String value)
     {
         BigDecimal result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(BigDecimal.class);
+        final Converter t_Converter = ConvertUtils.lookup(BigDecimal.class);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(BigDecimal.class, value);
+            final Object t_Result = t_Converter.convert(BigDecimal.class, value);
 
             if  (t_Result instanceof BigDecimal)
             {
@@ -515,8 +513,8 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Date toDate(@Nullable final String value)
+    
+    public Date toDate(final String value)
     {
         return toDateIfNotNull(value);
     }
@@ -526,16 +524,16 @@ public class ConversionUtils
      * @param value the value to convert.
      * @return the converted value.
      */
-    @Nullable
-    public Date toDateIfNotNull(@Nullable final String value)
+    
+    public Date toDateIfNotNull(final String value)
     {
         Date result = null;
 
-        @Nullable final Converter t_Converter = ConvertUtils.lookup(Date.class);
+        final Converter t_Converter = ConvertUtils.lookup(Date.class);
 
         if  (t_Converter != null)
         {
-            @Nullable final Object t_Result = t_Converter.convert(Date.class, value);
+            final Object t_Result = t_Converter.convert(Date.class, value);
 
             if  (t_Result instanceof Date)
             {

@@ -37,8 +37,6 @@ package org.acmsl.commons.regexpplugin;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a regexp pattern matcher. Different implementations vary but they
@@ -53,13 +51,13 @@ public interface Matcher
      * @param pattern the regular expression to apply.
      * @return true if the pattern is found.
      */
-    public boolean contains(@NotNull final String text, @NotNull final Pattern pattern);
+    public boolean contains(final String text, final Pattern pattern);
 
     /**
      * Retrieves the last match found due to a previous call to
      * <i>contains</i> method.
      * @return such match result.
      */
-    @Nullable
+    
     public MatchResult getMatch();
 }

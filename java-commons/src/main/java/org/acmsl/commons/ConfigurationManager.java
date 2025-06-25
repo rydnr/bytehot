@@ -41,8 +41,6 @@ import org.acmsl.commons.patterns.Manager;
 /*
  * Importing JetBrains annotations..
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -70,7 +68,7 @@ public abstract class ConfigurationManager
     /**
      * In-memory configuration settings.
      */
-    @Nullable private Properties m__Properties = null;
+    private Properties m__Properties = null;
 
     /**
      * Default protected constructor to avoid accidental instantiation.
@@ -81,14 +79,14 @@ public abstract class ConfigurationManager
      * Retrieves the properties file name.
      * @return such name.
      */
-    @NotNull
+    
     protected abstract String getPropertiesFileName();
 
     /**
      * Specifies the configuration settings.
      * @param properties the properties.
      */
-    protected final void immutableSetProperties(@NotNull final Properties properties)
+    protected final void immutableSetProperties(final Properties properties)
     {
         m__Properties = properties;
     }
@@ -97,7 +95,7 @@ public abstract class ConfigurationManager
      * Retrieves the configuration settings.
      * @return the properties.
      */
-    @Nullable
+    
     protected final Properties immutableGetProperties()
     {
         return m__Properties;
@@ -107,7 +105,7 @@ public abstract class ConfigurationManager
      * Retrieves the configuration settings.
      * @return the properties.
      */
-    @NotNull
+    
     public Properties getProperties()
     {
         return getProperties(getPropertiesFileName());
@@ -118,9 +116,9 @@ public abstract class ConfigurationManager
      * @param propertiesFileName the properties' file name.
      * @return the properties.
      */
-    @NotNull
+    
     public synchronized final Properties getProperties(
-        @NotNull final String propertiesFileName)
+        final String propertiesFileName)
     {
         return
             getProperties(
@@ -134,12 +132,12 @@ public abstract class ConfigurationManager
      * @param properties the properties.
      * @return the properties.
      */
-    @NotNull
+    
     protected final Properties getProperties(
-        @NotNull final String propertiesFileName,
-        @Nullable final Properties properties)
+        final String propertiesFileName,
+        final Properties properties)
     {
-        @NotNull final Properties result;
+        final Properties result;
         
         if  (properties == null)
         {
@@ -164,8 +162,8 @@ public abstract class ConfigurationManager
      * @param key the setting name.
      * @return the configuration value associated to such setting.
      */
-    @Nullable
-    public String getProperty(@NotNull final String key)
+    
+    public String getProperty(final String key)
     {
         return getProperty(key, getProperties());
     }
@@ -176,8 +174,8 @@ public abstract class ConfigurationManager
      * @param properties the property collection.
      * @return the configuration value associated to such setting.
      */
-    @Nullable
-    protected String getProperty(@NotNull final String key, @NotNull final Properties properties)
+    
+    protected String getProperty(final String key, final Properties properties)
     {
         return properties.getProperty(key);
     }
@@ -187,13 +185,13 @@ public abstract class ConfigurationManager
      * @param name the name.
      * @return the array of values.
      */
-    @NotNull
+    
     @SuppressWarnings("unused")
-    public String[] getStringArray(@NotNull final String name)
+    public String[] getStringArray(final String name)
     {
-        @NotNull final String[] result;
+        final String[] result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -212,8 +210,8 @@ public abstract class ConfigurationManager
      * @param value the value.
      * @return the array of values.
      */
-    @NotNull
-    protected String[] getStringArrayValue(@NotNull final String value)
+    
+    protected String[] getStringArrayValue(final String value)
     {
         return value.split(",");
     }
@@ -224,9 +222,9 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setStringArray(@SuppressWarnings("unused") @NotNull final String name, @NotNull final String[] value)
+    public void setStringArray(@SuppressWarnings("unused") final String name, final String[] value)
     {
-        @NotNull final StringBuilder propertyValue = new StringBuilder();
+        final StringBuilder propertyValue = new StringBuilder();
 
         for  (int index = 0; index < value.length; index++)
         {
@@ -244,7 +242,7 @@ public abstract class ConfigurationManager
      * @param key the setting name.
      * @param value the value.
      */
-    public void setProperty(@NotNull final String key, @NotNull final String value)
+    public void setProperty(final String key, final String value)
     {
         setProperty(key, value, getProperties());
     }
@@ -256,7 +254,7 @@ public abstract class ConfigurationManager
      * @param properties the property collection.
      */
     protected void setProperty(
-        @NotNull final String key, @NotNull final String value, @NotNull final Properties properties)
+        final String key, final String value, final Properties properties)
     {
         properties.setProperty(key, value);
     }
@@ -267,11 +265,11 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     @SuppressWarnings("unused")
-    public int getIntProperty(@NotNull final String name)
+    public int getIntProperty(final String name)
     {
         final int result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -292,7 +290,7 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     protected int getIntProperty(
-        @NotNull final String name, @NotNull final String value)
+        final String name, final String value)
     {
         int result = -1;
 
@@ -316,7 +314,7 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setIntProperty(@NotNull final String name, final int value)
+    public void setIntProperty(final String name, final int value)
     {
         setProperty(name, String.valueOf(value));
     }
@@ -327,12 +325,12 @@ public abstract class ConfigurationManager
      * @return such value.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public int[] getIntArray(@NotNull final String name)
+    
+    public int[] getIntArray(final String name)
     {
-        @NotNull final int[] result;
+        final int[] result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -352,12 +350,12 @@ public abstract class ConfigurationManager
      * @param value the property value.
      * @return such parsed value.
      */
-    @NotNull
-    protected int[] getIntArray(@NotNull final String name, @NotNull final String value)
+    
+    protected int[] getIntArray(final String name, final String value)
     {
-        @NotNull final int[] result;
+        final int[] result;
 
-        @NotNull final String[] splitValue = value.split(",");
+        final String[] splitValue = value.split(",");
 
         result = new int[splitValue.length];
 
@@ -384,9 +382,9 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setIntArray(@NotNull final String name, @NotNull final int[] value)
+    public void setIntArray(final String name, final int[] value)
     {
-        @NotNull final StringBuilder propertyValue = new StringBuilder();
+        final StringBuilder propertyValue = new StringBuilder();
 
         for  (int index = 0; index < value.length; index++)
         {
@@ -407,7 +405,7 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     @SuppressWarnings("unused")
-    public long getLongProperty(@NotNull final String name)
+    public long getLongProperty(final String name)
     {
         final long result;
 
@@ -432,7 +430,7 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     protected long getLongProperty(
-        @NotNull final String name, @NotNull final String value)
+        final String name, final String value)
     {
         long result = -1;
 
@@ -456,7 +454,7 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setLongProperty(@NotNull final String name, final long value)
+    public void setLongProperty(final String name, final long value)
     {
         setProperty(name, String.valueOf(value));
     }
@@ -466,13 +464,13 @@ public abstract class ConfigurationManager
      * @param name the name.
      * @return such value.
      */
-    @NotNull
+    
     @SuppressWarnings("unused")
-    public long[] getLongArray(@NotNull final String name)
+    public long[] getLongArray(final String name)
     {
-        @NotNull final long[] result;
+        final long[] result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -492,12 +490,12 @@ public abstract class ConfigurationManager
      * @param value the property value.
      * @return such parsed value.
      */
-    @NotNull
-    protected long[] getLongArray(@NotNull final String name, @NotNull final String value)
+    
+    protected long[] getLongArray(final String name, final String value)
     {
-        @NotNull final long[] result;
+        final long[] result;
 
-        @NotNull final String[] splitValue = value.split(",");
+        final String[] splitValue = value.split(",");
 
         result = new long[splitValue.length];
 
@@ -524,9 +522,9 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setLongArray(@NotNull final String name, @NotNull final long[] value)
+    public void setLongArray(final String name, final long[] value)
     {
-        @NotNull final StringBuilder propertyValue = new StringBuilder();
+        final StringBuilder propertyValue = new StringBuilder();
 
         for  (int index = 0; index < value.length; index++)
         {
@@ -547,11 +545,11 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     @SuppressWarnings("unused")
-    public double getDoubleProperty(@NotNull final String name)
+    public double getDoubleProperty(final String name)
     {
         final double result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -572,7 +570,7 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     protected double getDoubleProperty(
-        @NotNull final String name, @NotNull final String value)
+        final String name, final String value)
     {
         double result = -1.0d;
 
@@ -596,7 +594,7 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setDoubleProperty(@NotNull final String name, final double value)
+    public void setDoubleProperty(final String name, final double value)
     {
         setProperty(name, String.valueOf(value));
     }
@@ -607,12 +605,12 @@ public abstract class ConfigurationManager
      * @return such value.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public double[] getDoubleArray(@NotNull final String name)
+    
+    public double[] getDoubleArray(final String name)
     {
-        @NotNull final double[] result;
+        final double[] result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -632,12 +630,12 @@ public abstract class ConfigurationManager
      * @param value the property value.
      * @return such parsed value.
      */
-    @NotNull
-    protected double[] getDoubleArray(@NotNull final String name, @NotNull final String value)
+    
+    protected double[] getDoubleArray(final String name, final String value)
     {
-        @NotNull final double[] result;
+        final double[] result;
 
-        @NotNull final String[] splitValue = value.split(",");
+        final String[] splitValue = value.split(",");
 
         result = new double[splitValue.length];
 
@@ -664,9 +662,9 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setDoubleArray(@NotNull final String name, @NotNull final double[] value)
+    public void setDoubleArray(final String name, final double[] value)
     {
-        @NotNull final StringBuilder propertyValue = new StringBuilder();
+        final StringBuilder propertyValue = new StringBuilder();
 
         for  (int index = 0; index < value.length; index++)
         {
@@ -687,11 +685,11 @@ public abstract class ConfigurationManager
      * @return such parameter.
      */
     @SuppressWarnings("unused")
-    public boolean getBooleanProperty(@NotNull final String name)
+    public boolean getBooleanProperty(final String name)
     {
         final boolean result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -710,7 +708,7 @@ public abstract class ConfigurationManager
      * @param value the value.
      * @return such parameter.
      */
-    protected boolean getBooleanPropertyValue(@NotNull final String value)
+    protected boolean getBooleanPropertyValue(final String value)
     {
         return Boolean.valueOf(value).booleanValue();
     }
@@ -721,7 +719,7 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setBooleanProperty(@NotNull final String name, final boolean value)
+    public void setBooleanProperty(final String name, final boolean value)
     {
         setProperty(name, String.valueOf(value));
     }
@@ -732,12 +730,12 @@ public abstract class ConfigurationManager
      * @return such value.
      */
     @SuppressWarnings("unused")
-    @NotNull
-    public boolean[] getBooleanArray(@NotNull final String name)
+    
+    public boolean[] getBooleanArray(final String name)
     {
-        @NotNull final boolean[] result;
+        final boolean[] result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -756,12 +754,12 @@ public abstract class ConfigurationManager
      * @param value the property value.
      * @return such parsed value.
      */
-    @NotNull
-    protected boolean[] getBooleanArrayValue(@NotNull final String value)
+    
+    protected boolean[] getBooleanArrayValue(final String value)
     {
-        @NotNull final boolean[] result;
+        final boolean[] result;
 
-        @NotNull final String[] splitValue = value.split(",");
+        final String[] splitValue = value.split(",");
 
         result = new boolean[splitValue.length];
 
@@ -779,9 +777,9 @@ public abstract class ConfigurationManager
      * @param value the value.
      */
     @SuppressWarnings("unused")
-    public void setBooleanArray(@NotNull final String name, @NotNull final boolean[] value)
+    public void setBooleanArray(final String name, final boolean[] value)
     {
-        @NotNull final StringBuilder propertyValue = new StringBuilder();
+        final StringBuilder propertyValue = new StringBuilder();
 
         for  (int index = 0; index < value.length; index++)
         {
@@ -803,12 +801,12 @@ public abstract class ConfigurationManager
      * @return the property.
      */
     @SuppressWarnings("unused")
-    @Nullable
-    public Date getDateProperty(@NotNull final String name, @NotNull final String format)
+    
+    public Date getDateProperty(final String name, final String format)
     {
-        @Nullable final Date result;
+        final Date result;
 
-        @Nullable final String t_strValue = getProperty(name);
+        final String t_strValue = getProperty(name);
 
         if (t_strValue != null)
         {
@@ -829,11 +827,11 @@ public abstract class ConfigurationManager
      * @param value the value.
      * @return the property.
      */
-    @Nullable
+    
     protected Date getDateProperty(
-        @NotNull final String name, @NotNull final String format, @NotNull final String value)
+        final String name, final String format, final String value)
     {
-        @Nullable Date result = null;
+        Date result = null;
 
         try
         {
@@ -857,7 +855,7 @@ public abstract class ConfigurationManager
      */
     @SuppressWarnings("unused")
     public void setDateProperty(
-        @NotNull final String name, @NotNull final Date value, @NotNull final String format)
+        final String name, final Date value, final String format)
     {
         setProperty(name, new SimpleDateFormat(format).format(value));
         setProperty(name + ".format", format);
@@ -869,7 +867,7 @@ public abstract class ConfigurationManager
      * @param propertiesFileName the properties file.
      */
     public final void loadProperties(
-        @NotNull final Properties properties, @NotNull final String propertiesFileName)
+        final Properties properties, final String propertiesFileName)
     {
         loadProperties(properties, propertiesFileName, true);
     }
@@ -882,15 +880,15 @@ public abstract class ConfigurationManager
      * at the beginning of the file name or not.
      */
     public synchronized void loadProperties(
-        @NotNull final Properties properties,
-        @NotNull final String propertiesFileName,
+        final Properties properties,
+        final String propertiesFileName,
         final boolean retry)
     {
-        @Nullable InputStream propertiesFile = null;
+        InputStream propertiesFile = null;
 
         final boolean startsWithSlash = propertiesFileName.startsWith("/");
 
-        @NotNull final String alternatePropertiesFileName;
+        final String alternatePropertiesFileName;
 
         if  (startsWithSlash)
         {
@@ -959,7 +957,7 @@ public abstract class ConfigurationManager
                 {
                     propertiesFile.close();
                 }
-                catch (@NotNull final IOException cannotClose)
+                catch (final IOException cannotClose)
                 {
                     LogFactory.getLog(ConfigurationManager.class + "." + getClass()).warn(
                         "Could not close file: "
@@ -970,7 +968,7 @@ public abstract class ConfigurationManager
     }
 
     @Override
-    @NotNull
+    
     public String toString()
     {
         return "ConfigurationManager{ properties=" + m__Properties + " }";

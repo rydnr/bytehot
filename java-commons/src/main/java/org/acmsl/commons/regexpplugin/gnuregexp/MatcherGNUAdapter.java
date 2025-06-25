@@ -47,8 +47,6 @@ import org.acmsl.commons.regexpplugin.Pattern;
  */
 import gnu.regexp.RE;
 import gnu.regexp.REMatchEnumeration;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * GNU Regexp 1.1.4 matcher adapter. This class makes possible
@@ -80,13 +78,13 @@ public class MatcherGNUAdapter
      * @return true if the pattern is found.
      */
     @Override
-    public boolean contains(@NotNull final String text, @NotNull final Pattern pattern)
+    public boolean contains(final String text, final Pattern pattern)
     {
         boolean result = false;
 
         if  (pattern instanceof PatternGNUAdapter)
         {
-            @NotNull final RE t_RE = ((PatternGNUAdapter) pattern).getDelegatedInstance();
+            final RE t_RE = ((PatternGNUAdapter) pattern).getDelegatedInstance();
 
             setREMatchEnumeration(t_RE.getMatchEnumeration(text));
 
@@ -104,7 +102,7 @@ public class MatcherGNUAdapter
      * Sets the match enumeration.
      * @param reMatchEnumeration such instance.
      */
-    protected void setREMatchEnumeration(@NotNull final REMatchEnumeration reMatchEnumeration)
+    protected void setREMatchEnumeration(final REMatchEnumeration reMatchEnumeration)
     {
         m__REMatchEnumeration = reMatchEnumeration;
     }
@@ -113,7 +111,7 @@ public class MatcherGNUAdapter
      * Retrieves the match enumeration.
      * @return such instance.
      */
-    @NotNull
+    
     protected REMatchEnumeration getREMatchEnumeration()
     {
         return m__REMatchEnumeration;
@@ -143,7 +141,7 @@ public class MatcherGNUAdapter
      * @return such match result.
      */
     @Override
-    @Nullable
+    
     public MatchResult getMatch()
     {
         return
@@ -153,7 +151,7 @@ public class MatcherGNUAdapter
     }
 
     @Override
-    @NotNull
+    
     public String toString()
     {
         return "MatcherGNUAdapter{" +

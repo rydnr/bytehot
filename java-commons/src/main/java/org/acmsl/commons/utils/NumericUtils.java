@@ -42,8 +42,6 @@ import org.acmsl.commons.patterns.Utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -67,7 +65,7 @@ public class NumericUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final NumericUtils SINGLETON = new NumericUtils();
+        public static final NumericUtils SINGLETON = new NumericUtils();
     }
 
     /**
@@ -79,7 +77,7 @@ public class NumericUtils
      * Retrieves a NumericUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static NumericUtils getInstance()
     {
         return NumericUtilsSingletonContainer.SINGLETON;
@@ -91,15 +89,15 @@ public class NumericUtils
      * @return true if such object actually is a number.
      */
     @SuppressWarnings("unused")
-    public boolean isNumeric(@Nullable final Object object)
+    public boolean isNumeric(final Object object)
     {
         boolean result = false;
 
         if  (object != null)
         {
-            @NotNull final String t_strValue = object.toString();
+            final String t_strValue = object.toString();
 
-            @NotNull final StringTokenizer t_strtokFigures =
+            final StringTokenizer t_strtokFigures =
                 new StringTokenizer(t_strValue, "0123456789.,", false);
 
             result = !t_strtokFigures.hasMoreTokens();
@@ -114,7 +112,7 @@ public class NumericUtils
      * @return the maximum number,
      */
     @SuppressWarnings("unused")
-    public int getMax(@NotNull final int[] numbers)
+    public int getMax(final int[] numbers)
     {
         int result = 0;
 
@@ -132,7 +130,7 @@ public class NumericUtils
      * @return the maximum number,
      */
     @SuppressWarnings("unused")
-    public double getMax(@NotNull final double[] numbers)
+    public double getMax(final double[] numbers)
     {
         double result = 0.0;
 

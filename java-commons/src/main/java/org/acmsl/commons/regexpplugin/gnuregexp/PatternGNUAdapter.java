@@ -47,7 +47,6 @@ import gnu.regexp.RE;
 /*
  * Importing JetBrains annotations,
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Adapts GNU Regexp 1.1.4 RE objects to follow the generic
@@ -66,7 +65,7 @@ public class PatternGNUAdapter
      * Constructs a PatternGNUAdapter for given object.
      * @param adaptee the instance to be adapted.
      */
-    public PatternGNUAdapter(@NotNull final RE adaptee)
+    public PatternGNUAdapter(final RE adaptee)
     {
         immutableSetRE(adaptee);
     }
@@ -75,7 +74,7 @@ public class PatternGNUAdapter
      * Specifies the adaptee.
      * @param adaptee the instance to adapt.
      */
-    protected final void immutableSetRE(@NotNull final RE adaptee)
+    protected final void immutableSetRE(final RE adaptee)
     {
         m__Instance = adaptee;
     }
@@ -85,7 +84,7 @@ public class PatternGNUAdapter
      * @param adaptee the instance to adapt.
      */
     @SuppressWarnings("unused")
-    protected void setRE(@NotNull final RE adaptee)
+    protected void setRE(final RE adaptee)
     {
         immutableSetRE(adaptee);
     }
@@ -94,7 +93,7 @@ public class PatternGNUAdapter
      * Retrieves the adaptee.
      * @return such adapted instance.
      */
-    @NotNull
+    
     protected RE getRE()
     {
         return m__Instance;
@@ -105,7 +104,7 @@ public class PatternGNUAdapter
      * Note: This method has package private access rights.
      * @return such instance.
      */
-    @NotNull
+    
     RE getDelegatedInstance()
     {
         return getRE();

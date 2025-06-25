@@ -66,8 +66,6 @@ import org.apache.commons.logging.LogFactory;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents instances able to display messages in different languages.
@@ -84,22 +82,22 @@ public class BundleI14able
     /**
      * The message key.
      */
-    @NotNull private String m__strMessageKey;
+    private String m__strMessageKey;
 
     /**
      * The message params.
      */
-    @NotNull private Object[] m__aParams;
+    private Object[] m__aParams;
 
     /**
      * The System property.
      */
-    @NotNull private String m__strSystemProperty;
+    private String m__strSystemProperty;
 
     /**
      * The bundle name.
      */
-    @NotNull private String m__strBundleName;
+    private String m__strBundleName;
 
     /**
      * Configures whether to use class loaders or not.
@@ -109,12 +107,12 @@ public class BundleI14able
     /**
      * The first bundle to consider.
      */
-    @Nullable private ResourceBundle m__FirstBundle;
+    private ResourceBundle m__FirstBundle;
     
     /**
      * The second bundle to consider.
      */
-    @Nullable private ResourceBundle m__SecondBundle;
+    private ResourceBundle m__SecondBundle;
 
     /**
      * Whether to retry bundles.
@@ -131,10 +129,10 @@ public class BundleI14able
      * @param useClassLoader whether to use class loaders explicitly.
      */
     protected BundleI14able(
-        @NotNull final String messageKey,
-        @NotNull final Object[] params,
-        @NotNull final String systemProperty,
-        @NotNull final String bundleName,
+        final String messageKey,
+        final Object[] params,
+        final String systemProperty,
+        final String bundleName,
         final boolean useClassLoader)
     {
         immutableSetMessageKey(messageKey);
@@ -153,10 +151,10 @@ public class BundleI14able
      * @param bundleName the name of the bundle.
      */
     protected BundleI14able(
-        @NotNull final String messageKey,
-        @NotNull final Object[] params,
-        @NotNull final String systemProperty,
-        @NotNull final String bundleName)
+        final String messageKey,
+        final Object[] params,
+        final String systemProperty,
+        final String bundleName)
     {
         this(messageKey, params, systemProperty, bundleName, false);
     }
@@ -168,9 +166,9 @@ public class BundleI14able
      * @param bundleName the bundle name.
      */
     protected BundleI14able(
-        @NotNull final String messageKey,
-        @NotNull final String systemProperty,
-        @NotNull final String bundleName)
+        final String messageKey,
+        final String systemProperty,
+        final String bundleName)
     {
         this(messageKey, EMPTY_OBJECT_ARRAY, systemProperty, bundleName);
     }
@@ -179,7 +177,7 @@ public class BundleI14able
      * Specifies the message key.
      * @param key the message key.
      */
-    protected final void immutableSetMessageKey(@NotNull final String key)
+    protected final void immutableSetMessageKey(final String key)
     {
         m__strMessageKey = key;
     }
@@ -189,7 +187,7 @@ public class BundleI14able
      * @param key the message key.
      */
     @SuppressWarnings("unused")
-    protected void setMessageKey(@NotNull final String key)
+    protected void setMessageKey(final String key)
     {
         immutableSetMessageKey(key);
     }
@@ -198,7 +196,7 @@ public class BundleI14able
      * Retrieves the message key.
      * @return such key.
      */
-    @NotNull
+    
     public String getMessageKey()
     {
         return m__strMessageKey;
@@ -208,7 +206,7 @@ public class BundleI14able
      * Specifies the parameters to build the internationalized message.
      * @param params the parameters.
      */
-     protected final void immutableSetParams(@NotNull final Object[] params)
+     protected final void immutableSetParams(final Object[] params)
      {
          m__aParams = params;
      }
@@ -218,7 +216,7 @@ public class BundleI14able
      * @param params the parameters.
      */
     @SuppressWarnings("unused")
-     protected void setParams(@NotNull final Object[] params)
+     protected void setParams(final Object[] params)
      {
          immutableSetParams(params);
      }
@@ -227,7 +225,7 @@ public class BundleI14able
      * Retrieves the parameters needed to build the internationalized message.
      * @return such parameters.
      */
-    @NotNull
+    
     public Object[] getParams()
     {
         return m__aParams;
@@ -237,7 +235,7 @@ public class BundleI14able
      * Specifies the system property name.
      * @param name the property.
      */
-    protected void immutableSetSystemProperty(@NotNull final String name)
+    protected void immutableSetSystemProperty(final String name)
     {
         m__strSystemProperty = name;
     }
@@ -247,7 +245,7 @@ public class BundleI14able
      * @param name the property.
      */
     @SuppressWarnings("unused")
-    protected void setSystemProperty(@NotNull final String name)
+    protected void setSystemProperty(final String name)
     {
         immutableSetSystemProperty(name);
     }
@@ -256,7 +254,7 @@ public class BundleI14able
      * Retrieves the system property name.
      * @return such property.
      */
-    @NotNull
+    
     public String getSystemProperty()
     {
         return m__strSystemProperty;
@@ -266,7 +264,7 @@ public class BundleI14able
      * Specifies the bundle name.
      * @param name the bundle name.
      */
-    protected final void immutableSetBundleName(@NotNull final String name)
+    protected final void immutableSetBundleName(final String name)
     {
         m__strBundleName = name;
     }
@@ -276,7 +274,7 @@ public class BundleI14able
      * @param name the bundle name.
      */
     @SuppressWarnings("unused")
-    protected void setBundleName(@NotNull final String name)
+    protected void setBundleName(final String name)
     {
         immutableSetBundleName(name);
     }
@@ -285,7 +283,7 @@ public class BundleI14able
      * Retrieves the bundle name.
      * @return such name.
      */
-    @NotNull
+    
     public String getBundleName()
     {
         return m__strBundleName;
@@ -322,7 +320,7 @@ public class BundleI14able
      * Specifies the first bundle to consider.
      * @param bundle such bundle.
      */
-    protected final void immutableSetFirstBundle(@NotNull final ResourceBundle bundle)
+    protected final void immutableSetFirstBundle(final ResourceBundle bundle)
     {
         m__FirstBundle = bundle;
     }
@@ -331,7 +329,7 @@ public class BundleI14able
      * Specifies the first bundle to consider.
      * @param bundle such bundle.
      */
-    protected void setFirstBundle(@NotNull final ResourceBundle bundle)
+    protected void setFirstBundle(final ResourceBundle bundle)
     {
         immutableSetFirstBundle(bundle);
     }
@@ -340,7 +338,7 @@ public class BundleI14able
      * Retrieves the first bundle to consider.
      * @return such bundle.
      */
-    @Nullable
+    
     protected ResourceBundle getFirstBundle()
     {
         return m__FirstBundle;
@@ -350,7 +348,7 @@ public class BundleI14able
      * Specifies the second bundle to consider.
      * @param bundle such bundle.
      */
-    protected final void immutableSetSecondBundle(@NotNull final ResourceBundle bundle)
+    protected final void immutableSetSecondBundle(final ResourceBundle bundle)
     {
         m__SecondBundle = bundle;
     }
@@ -359,7 +357,7 @@ public class BundleI14able
      * Specifies the second bundle to consider.
      * @param bundle such bundle.
      */
-    protected void setSecondBundle(@NotNull final ResourceBundle bundle)
+    protected void setSecondBundle(final ResourceBundle bundle)
     {
         immutableSetSecondBundle(bundle);
     }
@@ -368,7 +366,7 @@ public class BundleI14able
      * Retrieves the second bundle to consider.
      * @return such bundle.
      */
-    @Nullable
+    
     protected ResourceBundle getSecondBundle()
     {
         return m__SecondBundle;
@@ -406,7 +404,7 @@ public class BundleI14able
      * @return such message.
      */
     @Override
-    @NotNull
+    
     public String toString()
     {
         return toString(Locale.getDefault());
@@ -417,8 +415,8 @@ public class BundleI14able
      * @param locale the desired locale.
      * @return such message.
      */
-    @NotNull
-    public String toString(@NotNull final Locale locale)
+    
+    public String toString(final Locale locale)
     {
         return
             buildMessage(
@@ -448,14 +446,14 @@ public class BundleI14able
      * @return the customized message.
      */
     protected String buildMessage(
-        @NotNull final String key,
-        @NotNull final Object[] params,
-        @NotNull final Locale locale,
-        @NotNull final String bundleName,
-        @NotNull final String systemProperty,
+        final String key,
+        final Object[] params,
+        final Locale locale,
+        final String bundleName,
+        final String systemProperty,
         final boolean useClassLoader,
-        @Nullable final ResourceBundle firstBundle,
-        @Nullable final ResourceBundle secondBundle,
+        final ResourceBundle firstBundle,
+        final ResourceBundle secondBundle,
         final boolean retryBundles)
     {
         ResourceBundle t_FirstBundle = firstBundle;
@@ -542,11 +540,11 @@ public class BundleI14able
      * @param classLoader the class loader.
      * @return the bundle.
      */
-    @Nullable
+    
     protected ResourceBundle retrieveSystemPropertyBundle(
-        @NotNull final String systemProperty,
-        @NotNull final Locale locale,
-        @NotNull final ClassLoader classLoader)
+        final String systemProperty,
+        final Locale locale,
+        final ClassLoader classLoader)
     {
         ResourceBundle result = null;
 
@@ -578,14 +576,14 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
+    
     protected ResourceBundle retrieveBundle(
-        @NotNull final String bundleName,
-        @NotNull final Locale locale,
-        @NotNull final ClassLoader classLoader)
+        final String bundleName,
+        final Locale locale,
+        final ClassLoader classLoader)
       throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
         
         MissingResourceException exceptionThrown = null;
 
@@ -634,14 +632,14 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
+    
     protected final ResourceBundle secondTry(
-        @NotNull final String bundleName,
-        @NotNull final Locale locale,
-        @NotNull final ClassLoader classLoader)
+        final String bundleName,
+        final Locale locale,
+        final ClassLoader classLoader)
         throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
 
         MissingResourceException exceptionToThrow = null;
 
@@ -678,13 +676,13 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
+    
     protected final ResourceBundle thirdTry(
-        @NotNull final String bundleName,
-        @NotNull final Locale locale)
+        final String bundleName,
+        final Locale locale)
         throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
 
         Throwable exceptionThrown = null;
 
@@ -740,13 +738,13 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
+    
     protected final ResourceBundle fourthTry(
-        @NotNull final String bundleName,
-        @NotNull final Locale locale)
+        final String bundleName,
+        final Locale locale)
         throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
 
         Throwable exceptionThrown = null;
 
@@ -800,13 +798,13 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
+    
     protected final ResourceBundle fifthTry(
-        @NotNull final String bundleName,
-        @NotNull final Locale locale)
+        final String bundleName,
+        final Locale locale)
       throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
 
         Throwable exceptionThrown = null;
 
@@ -858,11 +856,11 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
-    protected final ResourceBundle sixthTry(@NotNull final String bundleName)
+    
+    protected final ResourceBundle sixthTry(final String bundleName)
         throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
 
         Throwable exceptionThrown = null;
 
@@ -913,11 +911,11 @@ public class BundleI14able
      * @return the bundle.
      * @throws MissingResourceException if the resource is missing.
      */
-    @Nullable
-    protected final ResourceBundle seventhTry(@NotNull final String bundleName)
+    
+    protected final ResourceBundle seventhTry(final String bundleName)
         throws MissingResourceException
     {
-        @Nullable ResourceBundle result = null;
+        ResourceBundle result = null;
 
         Throwable exceptionThrown = null;
 
@@ -966,14 +964,14 @@ public class BundleI14able
      * @param secondBundle the second resource bundle.
      * @return the customized message.
      */
-    @Nullable
+    
     protected String buildMessage(
-        @NotNull final String key,
-        @NotNull final Object[] params,
-        @Nullable final ResourceBundle firstBundle,
-        @Nullable final ResourceBundle secondBundle)
+        final String key,
+        final Object[] params,
+        final ResourceBundle firstBundle,
+        final ResourceBundle secondBundle)
     {
-        @Nullable final String result;
+        final String result;
 
         ResourceBundle t_ActualBundle = firstBundle;
 
@@ -995,7 +993,7 @@ public class BundleI14able
             }
         }
         
-        @NotNull final Object[] t_aParams;
+        final Object[] t_aParams;
 
         if  (t_ActualBundle != null)
         {
@@ -1030,17 +1028,17 @@ public class BundleI14able
      * @param stringValidator the StringValidator instance.
      * @return the translated parameters.
      */
-    @NotNull
+    
     protected Object[] translateParams(
-        @NotNull final Object[] params,
-        @NotNull final ResourceBundle bundle,
-        @NotNull final StringValidator stringValidator)
+        final Object[] params,
+        final ResourceBundle bundle,
+        final StringValidator stringValidator)
     {
-        @NotNull final Collection<Object> t_cResult = new ArrayList<Object>();
+        final Collection<Object> t_cResult = new ArrayList<Object>();
 
         for  (int t_iIndex = 0; t_iIndex < params.length; t_iIndex++)
         {
-            @Nullable String t_strTranslation = null;
+            String t_strTranslation = null;
 
             try
             {
@@ -1072,8 +1070,8 @@ public class BundleI14able
      * @param params the message parameters.
      * @return the customized message.
      */
-    @NotNull
-    protected String buildMessage(@NotNull final String message, @NotNull final Object[] params)
+    
+    protected String buildMessage(final String message, final Object[] params)
     {
         return new MessageFormat(message).format(params);
     }
@@ -1090,7 +1088,7 @@ public class BundleI14able
      * <code>Thread.getContextClassLoader()</code> via reflection, and
      * the target exception is not a <code>SecurityException</code>..
      */
-    @NotNull
+    
     protected ClassLoader getContextClassLoader()
         throws IllegalAccessException,
                InvocationTargetException
@@ -1111,9 +1109,9 @@ public class BundleI14able
      * <code>Thread.getContextClassLoader()</code> via reflection, and
      * the target exception is not a <code>SecurityException</code>..
      */
-    @NotNull
+    
     protected ClassLoader getContextClassLoader(
-        @NotNull final ReflectionUtils reflectionUtils)
+        final ReflectionUtils reflectionUtils)
       throws IllegalAccessException,
              InvocationTargetException
     {

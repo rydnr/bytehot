@@ -37,7 +37,6 @@ package org.acmsl.commons.patterns.dao;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Data Access Object able to access and retrieve {@link ValueObject} instances.
@@ -54,7 +53,7 @@ public interface ValueObjectDAO<VO extends ValueObject>
      * @return the information associated to such id in the underlying
      * persistence layer.
      */
-    public VO find(@NotNull final ValueObjectPrimaryKey<String> pk);
+    public VO find(final ValueObjectPrimaryKey<String> pk);
 
     /**
      * Stores the value object into the persistent layer.
@@ -63,14 +62,14 @@ public interface ValueObjectDAO<VO extends ValueObject>
      * @return true if the operation ends up successfully.
      */
     public VO insert(
-        @NotNull final VO valueObject, final boolean reload);
+        final VO valueObject, final boolean reload);
 
     /**
      * Removes a value object in the persistence layer.
      * @param valueObject the value object to be removed.
      * @return true if the operation ends up successfully.
      */
-    public boolean delete(@NotNull final VO valueObject);
+    public boolean delete(final VO valueObject);
 
     /**
      * Removes a value object in the persistence layer.
@@ -79,5 +78,5 @@ public interface ValueObjectDAO<VO extends ValueObject>
      * @return true if the operation ends up successfully.
      */
     public VO update(
-       @NotNull final VO valueObject, final boolean reload);
+       final VO valueObject, final boolean reload);
 }

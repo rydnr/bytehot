@@ -34,7 +34,6 @@ package org.acmsl.commons.regexpplugin.jdk14regexp;
 /*
  * Importing NotNull annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JUnit classes.
@@ -55,7 +54,7 @@ public class CompilerJDKAdapterTest
      * Creates an instance of the tested class.
      * @return such instance.
      */
-    @NotNull
+    
     public CompilerJDKAdapter createInstance()
     {
         return new CompilerJDKAdapter();
@@ -67,7 +66,7 @@ public class CompilerJDKAdapterTest
     @Test
     public void isCaseSensitive_works()
     {
-        @NotNull final CompilerJDKAdapter instance = createInstance();
+        final CompilerJDKAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 
@@ -84,7 +83,7 @@ public class CompilerJDKAdapterTest
     @Test
     public void testSetIsMultiline()
     {
-        @NotNull final CompilerJDKAdapter instance = createInstance();
+        final CompilerJDKAdapter instance = createInstance();
 
         final boolean[] t_aTests = {true, false};
 

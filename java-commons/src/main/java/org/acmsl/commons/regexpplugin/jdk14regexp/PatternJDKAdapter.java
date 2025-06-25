@@ -37,7 +37,6 @@ package org.acmsl.commons.regexpplugin.jdk14regexp;
 /*
  * Importing some Jetbrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing some JDK1.4 classes.
@@ -61,7 +60,7 @@ public class PatternJDKAdapter
      * Constructs a PatternJDKAdapter for given object.
      * @param adaptee the instance to be adapted.
      */
-    public PatternJDKAdapter(@NotNull final Pattern adaptee)
+    public PatternJDKAdapter(final Pattern adaptee)
     {
         immutableSetPattern(adaptee);
     }
@@ -71,7 +70,7 @@ public class PatternJDKAdapter
      * Note: This method has package private access rights.
      * @param adaptee the adaptee.
      */
-    protected final void immutableSetPattern(@NotNull final Pattern adaptee)
+    protected final void immutableSetPattern(final Pattern adaptee)
     {
         m__Instance = adaptee;
     }
@@ -82,7 +81,7 @@ public class PatternJDKAdapter
      * @param adaptee the adaptee.
      */
     @SuppressWarnings("unused")
-    void setPattern(@NotNull final Pattern adaptee)
+    void setPattern(final Pattern adaptee)
     {
         immutableSetPattern(adaptee);
     }
@@ -92,13 +91,13 @@ public class PatternJDKAdapter
      * Note: This method has package private access rights.
      * @return such instance.
      */
-    @NotNull
+    
     Pattern getPattern()
     {
         return m__Instance;
     }
 
-    @NotNull
+    
     @Override
     public String toString()
     {

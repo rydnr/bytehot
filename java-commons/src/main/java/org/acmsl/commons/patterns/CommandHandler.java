@@ -38,7 +38,6 @@ package org.acmsl.commons.patterns;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents objects responsible of receiving {@link Command} instances, and
@@ -58,6 +57,6 @@ public interface CommandHandler<C extends Command, E extends Exception>
      * or maybe because it's not desirable to continue the chain.
      * @throws E in case of error.
      */
-    public boolean handle(@NotNull final C command)
+    public boolean handle(final C command)
         throws E;
 }

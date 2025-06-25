@@ -42,7 +42,6 @@ import org.acmsl.commons.ConfigurationException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Designed to be thrown at runtime when RegexpPlugin is not
@@ -67,7 +66,7 @@ public class RegexpPluginMisconfiguredException
      * Builds a misconfiguration exception with given information.
      * @param detail the detail.
      */
-    public RegexpPluginMisconfiguredException(@NotNull final String detail)
+    public RegexpPluginMisconfiguredException(final String detail)
     {
         super(
             MESSAGE_KEY,
@@ -83,7 +82,7 @@ public class RegexpPluginMisconfiguredException
      * @param throwable the cause.
      */
     public RegexpPluginMisconfiguredException(
-        @NotNull final String detail, @NotNull final Throwable throwable)
+        final String detail, final Throwable throwable)
     {
         super(
             MESSAGE_KEY,

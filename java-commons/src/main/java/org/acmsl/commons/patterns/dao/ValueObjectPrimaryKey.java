@@ -37,7 +37,6 @@ package org.acmsl.commons.patterns.dao;
 /**
  * Importing some JDK classes.
  */
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -59,7 +58,7 @@ public class ValueObjectPrimaryKey<V>
      * Adds a field to this primary key.
      * @param field the field to add.
      */
-    protected void add(@NotNull final ValueObjectField<V> field)
+    protected void add(final ValueObjectField<V> field)
     {
         m__alFields.add(field);
     }
@@ -68,7 +67,7 @@ public class ValueObjectPrimaryKey<V>
      * Retrieves a list of all the fields included in the PK.
      * @return the iterator to browse the list.
      */
-    @NotNull
+    
     public Iterator<ValueObjectField<V>> iterator()
     {
         return m__alFields.iterator();

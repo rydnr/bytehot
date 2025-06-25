@@ -42,8 +42,6 @@ import org.acmsl.commons.patterns.I14able;
 /*
  * Importing Checker Framework annotations.
  */
-import org.checkerframework.checker.nullness.qual.NonNull;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 /*
  * Importing some JDK classes.
@@ -68,7 +66,7 @@ public abstract class NonCheckedException
     /**
      * The wrapped object.
      */
-    @NonNull private BundleI14able m__BundleI14able;
+    private BundleI14able m__BundleI14able;
 
     /**
      * Creates a NonCheckedException with given message.
@@ -76,7 +74,7 @@ public abstract class NonCheckedException
      * @param params the parameters to build the exception message.
      */
     protected NonCheckedException(
-        @NonNull final String messageKey, @NonNull final Object[] params)
+        final String messageKey, final Object[] params)
     {
         super(messageKey);
 
@@ -95,9 +93,9 @@ public abstract class NonCheckedException
      * @param cause the error cause.
      */
     protected NonCheckedException(
-        @NonNull final String messageKey,
-        @NonNull final Object[] params,
-        @NonNull final Throwable cause)
+        final String messageKey,
+        final Object[] params,
+        final Throwable cause)
     {
         super(messageKey, cause);
 
@@ -114,7 +112,7 @@ public abstract class NonCheckedException
      * @param bundleI14able the instance to wrap.
      */
      protected final void immutableSetBundleI14able(
-         @NonNull final BundleI14able bundleI14able)
+         final BundleI14able bundleI14able)
      {
          m__BundleI14able = bundleI14able;
      }
@@ -125,7 +123,7 @@ public abstract class NonCheckedException
      */
     @SuppressWarnings("unused")
      protected void setBundleI14able(
-         @NonNull final BundleI14able bundleI14able)
+         final BundleI14able bundleI14able)
      {
          immutableSetBundleI14able(bundleI14able);
      }
@@ -134,7 +132,7 @@ public abstract class NonCheckedException
      * Retrieves the wrapped throwable instance.
      * @return such instance.
      */
-    @NonNull
+    
     protected BundleI14able getBundleI14able()
     {
         return m__BundleI14able;
@@ -145,7 +143,7 @@ public abstract class NonCheckedException
      * @return such parameters.
      */
     @SuppressWarnings("unused")
-    @NonNull
+    
     public Object[] getParams()
     {
         return getParams(getBundleI14able());
@@ -156,8 +154,8 @@ public abstract class NonCheckedException
      * @param bundleI14able the localized throwable.
      * @return such parameters.
      */
-    @NonNull
-    protected Object[] getParams(@NonNull final BundleI14able bundleI14able)
+    
+    protected Object[] getParams(final BundleI14able bundleI14able)
     {
         return bundleI14able.getParams();
     }
@@ -167,7 +165,7 @@ public abstract class NonCheckedException
      * @return such name.
      */
     @SuppressWarnings("unused")
-    @Nullable
+    
     public String getBundleName()
     {
         return getBundleName(getBundleI14able());
@@ -178,8 +176,8 @@ public abstract class NonCheckedException
      * @param bundleI14able the localized throwable.
      * @return such name.
      */
-    @Nullable
-    protected String getBundleName(@NonNull final BundleI14able bundleI14able)
+    
+    protected String getBundleName(final BundleI14able bundleI14able)
     {
         return bundleI14able.getBundleName();
     }
@@ -188,7 +186,7 @@ public abstract class NonCheckedException
      * Retrieves the internationalized message.
      * @return such message.
      */
-    @NonNull
+    
     public String getMessage()
     {
         return getMessage(getBundleI14able());
@@ -199,8 +197,8 @@ public abstract class NonCheckedException
      * @param bundleI14able the localized throwable.
      * @return such message.
      */
-    @NonNull
-    protected String getMessage(@NonNull final BundleI14able bundleI14able)
+    
+    protected String getMessage(final BundleI14able bundleI14able)
     {
         return bundleI14able.toString();
     }
@@ -210,8 +208,8 @@ public abstract class NonCheckedException
      * @param locale the desired locale.
      * @return such message.
      */
-    @NonNull
-    public String getMessage(@NonNull final Locale locale)
+    
+    public String getMessage(final Locale locale)
     {
         return getMessage(locale, getBundleI14able());
     }
@@ -222,9 +220,9 @@ public abstract class NonCheckedException
      * @param bundleI14able the localized throwable.
      * @return such message.
      */
-    @NonNull
+    
     protected String getMessage(
-        @NonNull final Locale locale, @NonNull final BundleI14able bundleI14able)
+        final Locale locale, final BundleI14able bundleI14able)
     {
         return bundleI14able.toString(locale);
     }
@@ -233,7 +231,7 @@ public abstract class NonCheckedException
      * Retrieves the exceptions system property.
      * @return such bundle name.
      */
-    @NonNull
+    
     protected String retrieveExceptionsBundleProperty()
     {
         return
@@ -246,9 +244,9 @@ public abstract class NonCheckedException
      * @param bundleRepository the bundle repository.
      * @return such property.
      */
-    @NonNull
+    
     protected String retrieveExceptionsBundleProperty(
-        @NonNull final CommonsBundleRepository bundleRepository)
+        final CommonsBundleRepository bundleRepository)
     {
         return bundleRepository.getExceptionsBundleProperty();
     }
@@ -257,7 +255,7 @@ public abstract class NonCheckedException
      * Retrieves the exceptions bundle.
      * @return such bundle name.
      */
-    @NonNull
+    
     protected String retrieveExceptionsBundleName()
     {
         return
@@ -270,9 +268,9 @@ public abstract class NonCheckedException
      * @param bundleRepository the bundle repository.
      * @return such bundle name.
      */
-    @NonNull
+    
     protected String retrieveExceptionsBundleName(
-        @NonNull final CommonsBundleRepository bundleRepository)
+        final CommonsBundleRepository bundleRepository)
     {
         return bundleRepository.getExceptionsBundleName();
     }
@@ -282,9 +280,9 @@ public abstract class NonCheckedException
      * @param locale the locale.
      * @return such text, using given locale.
      */
-    @NonNull
+    
     @Override
-    public String toString(@NonNull final Locale locale)
+    public String toString(final Locale locale)
     {
         return getMessage(locale);
     }
@@ -293,7 +291,7 @@ public abstract class NonCheckedException
      * Retrieves the text defined for the exception.
      * @return such text, using the default locale.
      */
-    @NonNull
+    
     @Override
     public String toString()
     {
@@ -317,10 +315,10 @@ public abstract class NonCheckedException
          * @param bundleName the name of the bundle.
          */
         protected _BundleI14able(
-            @NonNull final String messageKey,
-            @NonNull final Object[] params,
-            @NonNull final String systemProperty,
-            @NonNull final String bundleName)
+            final String messageKey,
+            final Object[] params,
+            final String systemProperty,
+            final String bundleName)
         {
             super(messageKey, params, systemProperty, bundleName);
         }

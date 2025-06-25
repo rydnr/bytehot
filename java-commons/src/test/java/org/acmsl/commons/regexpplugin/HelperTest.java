@@ -54,7 +54,6 @@ import org.acmsl.commons.regexpplugin.jdk14regexp.JDKRegexpEngine;
 /**
  * Importing JUnit classes.
  */
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,20 +98,20 @@ public class HelperTest
     {
         try
         {
-            @NotNull final RegexpManager t_RegexpManager = RegexpManager.getInstance();
+            final RegexpManager t_RegexpManager = RegexpManager.getInstance();
 
-            @NotNull final RegexpEngine t_RegexpEngine = t_RegexpManager.getEngine();
+            final RegexpEngine t_RegexpEngine = t_RegexpManager.getEngine();
 
-            @NotNull final Helper t_Helper = t_RegexpEngine.createHelper();
+            final Helper t_Helper = t_RegexpEngine.createHelper();
 
-            @NotNull final String t_strResult =
+            final String t_strResult =
                 t_Helper.replaceAll(INPUT, TEXT_TO_REPLACE, REPLACEMENT_TEXT);
 
             Assert.assertNotNull(t_strResult);
 
             Assert.assertTrue(t_strResult.equals(SUCCESS));
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -127,18 +126,18 @@ public class HelperTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new ORORegexpEngine();
+            final RegexpEngine t_RegexpEngine = new ORORegexpEngine();
 
-            @NotNull final Helper t_Helper = t_RegexpEngine.createHelper();
+            final Helper t_Helper = t_RegexpEngine.createHelper();
 
             Assert.assertTrue(t_Helper instanceof HelperOROAdapter);
 
-            @NotNull final String t_strResult =
+            final String t_strResult =
                 t_Helper.replaceAll(INPUT, TEXT_TO_REPLACE, REPLACEMENT_TEXT);
 
             Assert.assertTrue(t_strResult.equals(SUCCESS));
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -153,18 +152,18 @@ public class HelperTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new JakartaRegexpEngine();
+            final RegexpEngine t_RegexpEngine = new JakartaRegexpEngine();
 
-            @NotNull final Helper t_Helper = t_RegexpEngine.createHelper();
+            final Helper t_Helper = t_RegexpEngine.createHelper();
 
             Assert.assertTrue(t_Helper instanceof HelperRegexpAdapter);
 
-            @NotNull final String t_strResult =
+            final String t_strResult =
                 t_Helper.replaceAll(INPUT, TEXT_TO_REPLACE, REPLACEMENT_TEXT);
 
             Assert.assertTrue(t_strResult.equals(SUCCESS));
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -179,18 +178,18 @@ public class HelperTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new JDKRegexpEngine();
+            final RegexpEngine t_RegexpEngine = new JDKRegexpEngine();
 
-            @NotNull final Helper t_Helper = t_RegexpEngine.createHelper();
+            final Helper t_Helper = t_RegexpEngine.createHelper();
 
             Assert.assertTrue(t_Helper instanceof HelperJDKAdapter);
 
-            @NotNull final String t_strResult =
+            final String t_strResult =
                 t_Helper.replaceAll(INPUT, TEXT_TO_REPLACE, REPLACEMENT_TEXT);
 
             Assert.assertTrue(t_strResult.equals(SUCCESS));
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }
@@ -205,18 +204,18 @@ public class HelperTest
     {
         try
         {
-            @NotNull final RegexpEngine t_RegexpEngine = new GNURegexpEngine();
+            final RegexpEngine t_RegexpEngine = new GNURegexpEngine();
 
-            @NotNull final Helper t_Helper = t_RegexpEngine.createHelper();
+            final Helper t_Helper = t_RegexpEngine.createHelper();
 
             Assert.assertTrue(t_Helper instanceof HelperGNUAdapter);
 
-            @NotNull final String t_strResult =
+            final String t_strResult =
                 t_Helper.replaceAll(INPUT, TEXT_TO_REPLACE, REPLACEMENT_TEXT);
 
             Assert.assertTrue(t_strResult.equals(SUCCESS));
         }
-        catch  (@NotNull final Throwable throwable)
+        catch  (final Throwable throwable)
         {
             Assert.fail("" + throwable);
         }

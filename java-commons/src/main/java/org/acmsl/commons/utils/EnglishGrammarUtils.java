@@ -42,7 +42,6 @@ import org.acmsl.commons.patterns.Singleton;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing some JDK classes.
@@ -65,7 +64,7 @@ public class EnglishGrammarUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final EnglishGrammarUtils SINGLETON =
+        public static final EnglishGrammarUtils SINGLETON =
             new EnglishGrammarUtils();
     }
 
@@ -81,7 +80,7 @@ public class EnglishGrammarUtils
      * Retrieves a EnglishGrammarUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static EnglishGrammarUtils getInstance()
     {
         return EnglishGrammarUtilsSingletonContainer.SINGLETON;
@@ -93,10 +92,10 @@ public class EnglishGrammarUtils
      * @return the regular plural form.
      */
     @Override
-    @NotNull
-    protected String getRegularPluralForm(@NotNull final String word)
+    
+    protected String getRegularPluralForm(final String word)
     {
-        @NotNull String result = word.trim().toLowerCase();
+        String result = word.trim().toLowerCase();
 
         if (   (result.endsWith("y"))
             && (!result.endsWith("ey")))
@@ -127,10 +126,10 @@ public class EnglishGrammarUtils
      * @param word the word.
      * @return the regular plural form.
      */
-    @NotNull
-    protected String getRegularSingularForm(@NotNull final String word)
+    
+    protected String getRegularSingularForm(final String word)
     {
-        @NotNull String result = word.trim().toLowerCase();
+        String result = word.trim().toLowerCase();
 
         if  (result.endsWith("ies"))
         {

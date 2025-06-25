@@ -42,7 +42,6 @@ import org.acmsl.commons.patterns.Subject;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Represents an information model, so it can be displayed and modified
@@ -64,7 +63,7 @@ public abstract class AbstractModel<C extends Controller>
      * Builds a Model object managed by given controller.
      * @param controller the controller entity.
      */
-    protected AbstractModel(@NotNull final C controller)
+    protected AbstractModel(final C controller)
     {
         attach(controller);
     }

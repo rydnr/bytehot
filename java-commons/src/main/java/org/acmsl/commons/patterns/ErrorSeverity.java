@@ -40,7 +40,6 @@
  */
 package org.acmsl.commons.patterns;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Enumeration of error severity levels for application error handling.
@@ -88,7 +87,7 @@ public enum ErrorSeverity {
     /**
      * Human-readable description of the severity.
      */
-    @NonNull
+    
     private final String description;
 
     /**
@@ -96,7 +95,7 @@ public enum ErrorSeverity {
      * @param level The numeric severity level
      * @param description The human-readable description
      */
-    ErrorSeverity(final int level, @NonNull final String description) {
+    ErrorSeverity(final int level, final String description) {
         this.level = level;
         this.description = description;
     }
@@ -113,7 +112,7 @@ public enum ErrorSeverity {
      * Gets the human-readable description.
      * @return The severity description
      */
-    @NonNull
+    
     public String getDescription() {
         return description;
     }
@@ -123,7 +122,7 @@ public enum ErrorSeverity {
      * @param other The other severity to compare against
      * @return true if this severity is more severe
      */
-    public boolean isMoreSevereThan(@NonNull final ErrorSeverity other) {
+    public boolean isMoreSevereThan(final ErrorSeverity other) {
         return this.level > other.level;
     }
 
@@ -132,7 +131,7 @@ public enum ErrorSeverity {
      * @param other The other severity to compare against
      * @return true if this severity is at least as severe
      */
-    public boolean isAtLeastAsSevereAs(@NonNull final ErrorSeverity other) {
+    public boolean isAtLeastAsSevereAs(final ErrorSeverity other) {
         return this.level >= other.level;
     }
 }

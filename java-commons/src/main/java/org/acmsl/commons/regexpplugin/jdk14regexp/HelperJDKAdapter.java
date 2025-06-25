@@ -42,7 +42,6 @@ import org.acmsl.commons.regexpplugin.MalformedPatternException;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
 
 /*
  * Importing JDK1.4 classes.
@@ -66,12 +65,12 @@ public class HelperJDKAdapter
      * @throws MalformedPatternException if given regexp is malformed.
      */
     @Override
-    @NotNull
+    
     public String replaceAll(
-        @NotNull final String input, @NotNull final String pattern, @NotNull final String replacement)
+        final String input, final String pattern, final String replacement)
       throws  MalformedPatternException
     {
-        @NotNull final String result;
+        final String result;
 
         try 
         {

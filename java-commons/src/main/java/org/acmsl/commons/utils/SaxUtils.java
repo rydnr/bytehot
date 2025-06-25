@@ -38,8 +38,6 @@ package org.acmsl.commons.utils;
 /*
  * Importing JetBrains annotations.
  */
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /*
  * Importing SAX classes.
@@ -69,7 +67,7 @@ public class SaxUtils
         /**
          * The actual singleton.
          */
-        @NotNull public static final SaxUtils SINGLETON = new SaxUtils();
+        public static final SaxUtils SINGLETON = new SaxUtils();
     }
 
     /**
@@ -81,7 +79,7 @@ public class SaxUtils
      * Retrieves a ReflectionUtils instance.
      * @return such instance.
      */
-    @NotNull
+    
     public static SaxUtils getInstance()
     {
         return SaxUtilsSingletonContainer.SINGLETON;
@@ -92,16 +90,16 @@ public class SaxUtils
      * @param exception the {@link SAXException} to process.
      * @return the {@link File}, or {@code null}.
      */
-    @Nullable
-    public File retrieveFailingFile(@NotNull final SAXParseException exception)
+    
+    public File retrieveFailingFile(final SAXParseException exception)
     {
-        @Nullable final File result;
+        final File result;
 
-        @Nullable String systemId = null;
+        String systemId = null;
 
         try
         {
-            @Nullable final Field t_Field = exception.getClass().getDeclaredField("systemId");
+            final Field t_Field = exception.getClass().getDeclaredField("systemId");
             t_Field.setAccessible(true);
             systemId = (String) t_Field.get(exception);
 
@@ -111,7 +109,7 @@ public class SaxUtils
                 systemId = systemId.substring("file:".length());
             }
         }
-        catch (@NotNull final NoSuchFieldException | IllegalAccessException cannotAccessField)
+        catch (final NoSuchFieldException | IllegalAccessException cannotAccessField)
         {
         }
 
