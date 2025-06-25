@@ -17,7 +17,7 @@ if [ -d "docs" ]; then
     # Copy the main index.html from docs/ as the primary index
     cp docs/index.html bytehot/index.html
     echo "✅ Copied new-style index.html as main page"
-    
+
     # Copy all other docs files and preserve structure
     cp -r docs/* bytehot/ 2>/dev/null || true
     echo "✅ Copied all documentation files"
@@ -27,23 +27,23 @@ fi
 
 # Step 2: Generate story page from story.org (will be linked in nav)
 echo "📖 Generating story page from story.org..."
-bash ./.github/scripts/generate-story-page.sh
+bash ./.github/scripts/generate-html-from-org.sh "story.org" "📖 ByteHot Story" "The Revolutionary Journey of JVM Hot-Swapping Development"
 
 # Step 3: Generate journal page from journal.org
 echo "📔 Generating journal page..."
-bash ./.github/scripts/generate-journal.sh
+bash ./.github/scripts/generate-html-from-org.sh "journal.org" "📔 ByteHot Development Journal"
 
-# Step 4: Fix broken links in the copied files
+# Step 3: Generate getting-started page from GETTING_STARTED.org
+echo "📔 Generating getting-started page..."
+bash ./.github/scripts/generate-html-from-org.sh "GETTING_STARTED.org" "🚀 Getting Started Guide"
+
+# Step 5: Fix broken links in the copied files
 echo "🔧 Fixing broken links..."
 bash ./.github/scripts/fix-links.sh
 
-# Step 5: Fix event links to point to HTML files instead of org files
+# Step 6: Fix event links to point to HTML files instead of org files
 echo "🔗 Fixing event links..."
 bash ./.github/scripts/fix-event-links.sh
-
-# Step 6: Apply new style to all documentation pages FIRST
-echo "🎨 Applying new matrix style to all pages..."
-bash ./.github/scripts/apply-new-style.sh
 
 # Step 7: Create missing HTML files for broken links (with proper styling)
 echo "🔧 Creating missing HTML files..."

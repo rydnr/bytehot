@@ -45,15 +45,57 @@ jobs:
       - name: Install Pandoc
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc
+          sudo apt-get install -y pandoc emacs-nox
 
-      - name: Verify Pandoc installation
-        run: pandoc --version
+          echo "📋 Installed tools versions:"
+          pandoc --version | head -2
+          emacs --version | head -1
+
+      - name: Verify Enhanced Pandoc installation
+        run: |
+          pandoc --version
+          echo "📋 Pandoc filters available:"
+          pandoc --list-highlight-languages | head -10
+
+          echo "📋 Pandoc writers available:"
+          pandoc --list-output-formats | grep -E 'html|org' || echo "HTML and org formats available"
 
       - name: Build project and install dependencies
         run: |
           # Build and install the multi-module project from root
           mvn clean install -DskipTests -q
+
+      - name: Pre-process org files to fix code blocks
+        run: |
+          echo "🔧 Pre-processing org files to ensure proper code block formatting..."
+
+          # Create a simple Python script to fix org-mode code blocks using echo
+          echo "import re" > fix_org.py
+          echo "import os" >> fix_org.py
+          echo "from pathlib import Path" >> fix_org.py
+          echo "" >> fix_org.py
+          echo "def fix_org_code_blocks(content):" >> fix_org.py
+          echo "    content = re.sub(r'^```(\w+)?\s*$', lambda m: f'#+begin_src {m.group(1) or \"\"}', content, flags=re.MULTILINE)" >> fix_org.py
+          echo "    content = re.sub(r'^```\s*$', '#+end_src', content, flags=re.MULTILINE)" >> fix_org.py
+          echo "    return content" >> fix_org.py
+          echo "" >> fix_org.py
+          echo "processed_count = 0" >> fix_org.py
+          echo "for org_file in Path('.').rglob('*.org'):" >> fix_org.py
+          echo "    try:" >> fix_org.py
+          echo "        with open(org_file, 'r', encoding='utf-8') as f:" >> fix_org.py
+          echo "            content = f.read()" >> fix_org.py
+          echo "        fixed_content = fix_org_code_blocks(content)" >> fix_org.py
+          echo "        if fixed_content != content:" >> fix_org.py
+          echo "            with open(org_file, 'w', encoding='utf-8') as f:" >> fix_org.py
+          echo "                f.write(fixed_content)" >> fix_org.py
+          echo "            print(f'Fixed: {org_file}')" >> fix_org.py
+          echo "            processed_count += 1" >> fix_org.py
+          echo "    except Exception as e:" >> fix_org.py
+          echo "        print(f'Error: {org_file}: {e}')" >> fix_org.py
+          echo "print(f'Processed {processed_count} files')" >> fix_org.py
+
+          # Run the Python script
+          python3 fix_org.py
 
       - name: Generate Javadocs
         run: |
@@ -70,87 +112,14 @@ jobs:
             -Dadditionalparam="-Xdoclint:none" \
             -Dmaven.javadoc.skip=false \
             -Dquiet=false || echo "Maven aggregate javadoc failed"
-          
-          # Strategy 2: Try individual module javadocs
-          if [ ! -d "target/site/apidocs" ] || [ -z "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
-            echo "📋 Strategy 2: Individual module javadocs..."
-            mkdir -p target/site/apidocs
-            
-            for module in bytehot-domain bytehot-application bytehot-infrastructure; do
-              echo "Generating javadoc for $module..."
-              mvn javadoc:javadoc -pl $module \
-                -DfailOnError=false \
-                -Dadditionalparam="-Xdoclint:none" \
-                -Dquiet=true || echo "Javadoc failed for $module"
-              
-              # Copy individual module docs if they exist
-              if [ -d "$module/target/site/apidocs" ]; then
-                echo "Copying javadocs from $module..."
-                cp -r "$module/target/site/apidocs/"* target/site/apidocs/ 2>/dev/null || true
-                echo "✅ Copied javadocs from $module"
-              fi
-            done
-            
-            # Check if we got any content
-            if [ -n "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
-              echo "✅ Individual module javadocs successful"
-            fi
-          fi
-          
-          # Strategy 3: Direct javadoc command
-          if [ ! -d "target/site/apidocs" ] || [ -z "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
-            echo "📋 Strategy 3: Direct javadoc command for all modules..."
-            
-            # Build comprehensive classpath from all modules
-            echo "Building classpath from all modules..."
-            CLASSPATH=""
-            
-            # Add Maven dependencies for all modules
-            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure; do
-              if [ -d "$module" ]; then
-                module_cp=$(mvn -pl $module dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q 2>/dev/null || echo "")
-                if [ -n "$module_cp" ]; then
-                  CLASSPATH="$CLASSPATH:$module_cp"
-                fi
-                
-                # Add module's target/classes if it exists
-                if [ -d "$module/target/classes" ]; then
-                  CLASSPATH="$CLASSPATH:$module/target/classes"
-                fi
-              fi
-            done
-            
-            # Find all Java source files across modules
-            SOURCE_FILES=""
-            for module in java-commons bytehot-domain bytehot-application bytehot-infrastructure; do
-              if [ -d "$module/src/main/java" ]; then
-                module_sources=$(find "$module/src/main/java" -name "*.java" 2>/dev/null || echo "")
-                if [ -n "$module_sources" ]; then
-                  SOURCE_FILES="$SOURCE_FILES $module_sources"
-                fi
-              fi
-            done
-            
-            if [ -n "$SOURCE_FILES" ]; then
-              echo "Found source files, generating javadocs..."
-              mkdir -p target/site/apidocs
-              javadoc -d target/site/apidocs \
-                -sourcepath "java-commons/src/main/java:bytehot-domain/src/main/java:bytehot-application/src/main/java:bytehot-infrastructure/src/main/java" \
-                -classpath "$CLASSPATH" \
-                -Xdoclint:none \
-                $SOURCE_FILES || echo "Direct javadoc command failed"
-            else
-              echo "No source files found for javadoc generation"
-            fi
-          fi
-          
+
           # Verify javadocs were generated
           if [ -d "target/site/apidocs" ] && [ -n "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
             echo "✅ Javadocs generated successfully"
             ls -la target/site/apidocs/
           else
-            echo "⚠️ Javadocs generation failed, creating placeholder via script"
-            bash ./.github/scripts/create-javadoc-placeholder.sh
+            echo "⚠️ Javadocs generation failed"
+            exit 1
           fi
 
       - name: Generate Documentation
