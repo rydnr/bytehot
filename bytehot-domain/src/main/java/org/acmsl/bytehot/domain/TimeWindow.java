@@ -44,7 +44,8 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Represents a time window for flow analysis.
+ * Time window domain object for analysis periods and temporal queries.
+ * Encapsulates time-based business logic and temporal operations.
  * @author Claude (Anthropic AI)
  * @since 2025-06-19
  */
@@ -58,13 +59,13 @@ public final class TimeWindow implements ValueObject {
      * Start time of the window.
      */
     @Getter
-    private final Instant startTime;
+    protected final Instant startTime;
 
     /**
      * End time of the window.
      */
     @Getter
-    private final Instant endTime;
+    protected final Instant endTime;
 
     /**
      * Creates a time window from start time and duration.
@@ -146,5 +147,169 @@ public final class TimeWindow implements ValueObject {
         }
         
         return !endTime.isBefore(other.startTime) && !startTime.isAfter(other.endTime);
+    }
+
+    /**
+     * Creates a new time window extending this one by the specified duration.
+     * @param additionalDuration The duration to extend by
+     * @return A new TimeWindow extended by the duration
+     */
+    public TimeWindow extendBy(final Duration additionalDuration) {
+        if (additionalDuration == null || additionalDuration.isNegative()) {
+            throw new IllegalArgumentException("Extension duration must be positive");
+        }
+        return new TimeWindow(startTime, endTime.plus(additionalDuration));
+    }
+
+    /**
+     * Creates a new time window that starts earlier by the specified duration.
+     * @param prependDuration The duration to prepend
+     * @return A new TimeWindow starting earlier by the duration
+     */
+    public TimeWindow prependBy(final Duration prependDuration) {
+        if (prependDuration == null || prependDuration.isNegative()) {
+            throw new IllegalArgumentException("Prepend duration must be positive");
+        }
+        return new TimeWindow(startTime.minus(prependDuration), endTime);
+    }
+
+    /**
+     * Calculates the intersection of this time window with another.
+     * @param other The other time window
+     * @return The intersection time window, or null if no overlap
+     */
+    public TimeWindow intersectionWith(final TimeWindow other) {
+        if (other == null || !overlaps(other)) {
+            return null;
+        }
+        
+        Instant intersectionStart = startTime.isAfter(other.startTime) ? startTime : other.startTime;
+        Instant intersectionEnd = endTime.isBefore(other.endTime) ? endTime : other.endTime;
+        
+        return new TimeWindow(intersectionStart, intersectionEnd);
+    }
+
+    /**
+     * Creates the union of this time window with another (spanning both).
+     * @param other The other time window
+     * @return A new TimeWindow spanning both windows
+     */
+    public TimeWindow unionWith(final TimeWindow other) {
+        if (other == null) {
+            return this;
+        }
+        
+        Instant unionStart = startTime.isBefore(other.startTime) ? startTime : other.startTime;
+        Instant unionEnd = endTime.isAfter(other.endTime) ? endTime : other.endTime;
+        
+        return new TimeWindow(unionStart, unionEnd);
+    }
+
+    /**
+     * Splits this time window into smaller windows of the specified duration.
+     * @param segmentDuration The duration of each segment
+     * @return List of TimeWindow segments
+     */
+    public java.util.List<TimeWindow> splitInto(final Duration segmentDuration) {
+        if (segmentDuration == null || segmentDuration.isNegative() || segmentDuration.isZero()) {
+            throw new IllegalArgumentException("Segment duration must be positive");
+        }
+        
+        java.util.List<TimeWindow> segments = new java.util.ArrayList<>();
+        Instant current = startTime;
+        
+        while (current.isBefore(endTime)) {
+            Instant segmentEnd = current.plus(segmentDuration);
+            if (segmentEnd.isAfter(endTime)) {
+                segmentEnd = endTime;
+            }
+            segments.add(new TimeWindow(current, segmentEnd));
+            current = segmentEnd;
+        }
+        
+        return segments;
+    }
+
+    /**
+     * Checks if this time window is in the past relative to now.
+     * @return true if the entire window is in the past
+     */
+    public boolean isInPast() {
+        return endTime.isBefore(Instant.now());
+    }
+
+    /**
+     * Checks if this time window is in the future relative to now.
+     * @return true if the entire window is in the future
+     */
+    public boolean isInFuture() {
+        return startTime.isAfter(Instant.now());
+    }
+
+    /**
+     * Checks if this time window includes the current moment.
+     * @return true if now is within this window
+     */
+    public boolean includesNow() {
+        return contains(Instant.now());
+    }
+
+    /**
+     * Gets the percentage of this window that has elapsed relative to now.
+     * @return percentage (0.0 to 1.0) of window elapsed, or 1.0 if window is past
+     */
+    public double getElapsedPercentage() {
+        Instant now = Instant.now();
+        if (now.isBefore(startTime)) {
+            return 0.0;
+        }
+        if (now.isAfter(endTime)) {
+            return 1.0;
+        }
+        
+        Duration totalDuration = Duration.between(startTime, endTime);
+        Duration elapsedDuration = Duration.between(startTime, now);
+        
+        return (double) elapsedDuration.toMillis() / totalDuration.toMillis();
+    }
+
+    /**
+     * Gets a human-readable description of this time window.
+     * @return description suitable for logging or user display
+     */
+    public String getDescription() {
+        Duration duration = getDuration();
+        long hours = duration.toHours();
+        long minutes = duration.toMinutes() % 60;
+        
+        String durationStr;
+        if (hours > 0) {
+            durationStr = String.format("%d hours %d minutes", hours, minutes);
+        } else if (minutes > 0) {
+            durationStr = String.format("%d minutes", minutes);
+        } else {
+            durationStr = String.format("%d seconds", duration.getSeconds());
+        }
+        
+        if (isInPast()) {
+            return String.format("Past window of %s", durationStr);
+        } else if (isInFuture()) {
+            return String.format("Future window of %s", durationStr);
+        } else if (includesNow()) {
+            return String.format("Current window of %s (%.1f%% elapsed)", 
+                durationStr, getElapsedPercentage() * 100);
+        } else {
+            return String.format("Window of %s", durationStr);
+        }
+    }
+
+    /**
+     * Determines if this time window is suitable for real-time analysis.
+     * @return true if window is recent enough for real-time processing
+     */
+    public boolean isSuitableForRealTimeAnalysis() {
+        // Consider windows that end within the last 5 minutes as real-time
+        Duration timeSinceEnd = Duration.between(endTime, Instant.now());
+        return timeSinceEnd.compareTo(Duration.ofMinutes(5)) <= 0;
     }
 }

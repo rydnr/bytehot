@@ -51,16 +51,6 @@ import java.time.Instant;
 @Getter
 public class RollbackAuditEntry {
 
-    /**
-     * Type of audit entry
-     */
-    public enum EntryType {
-        SNAPSHOT_CREATED,
-        BYTECODE_SNAPSHOT_CREATED,
-        ROLLBACK_PERFORMED,
-        ROLLBACK_FAILED,
-        CLEANUP_PERFORMED
-    }
 
     /**
      * Type of this audit entry
