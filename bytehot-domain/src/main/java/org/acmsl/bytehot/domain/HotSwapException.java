@@ -55,7 +55,6 @@ public class HotSwapException extends Exception
 
     /**
      * The failure event containing details about why hot-swap failed
-     * @return the failure event
      */
     @Getter
     private final ClassRedefinitionFailed failureEvent;

@@ -543,6 +543,10 @@ public class ByteHotApplication
 
     /**
      * Scans JAR file for adapter classes
+     * @param jarUrl the URL of the JAR file to scan
+     * @param packagePath the package path to search within
+     * @param classLoader the class loader to use for loading classes
+     * @return list of adapter classes found in the JAR
      */
     protected static List<Class<?>> scanJarForAdapters(final URL jarUrl, final String packagePath, final ClassLoader classLoader) {
         final List<Class<?>> adapterClasses = new ArrayList<>();
@@ -576,6 +580,9 @@ public class ByteHotApplication
 
     /**
      * Safely loads a class
+     * @param className the name of the class to load
+     * @param classLoader the class loader to use
+     * @return the loaded class, or null if loading failed
      */
     protected static Class<?> loadClass(final String className, final ClassLoader classLoader) {
         try {
@@ -587,6 +594,8 @@ public class ByteHotApplication
 
     /**
      * Checks if a class is a valid adapter
+     * @param clazz the class to check
+     * @return true if the class is a valid adapter, false otherwise
      */
     protected static boolean isValidAdapter(final Class<?> clazz) {
         if (clazz == null 
@@ -602,6 +611,8 @@ public class ByteHotApplication
 
     /**
      * Gets the port interface from an adapter class
+     * @param adapterClass the adapter class to analyze
+     * @return the port interface implemented by the adapter, or null if not found
      */
     @SuppressWarnings("unchecked")
     protected static Class<? extends Port> getPortInterface(final Class<?> adapterClass) {

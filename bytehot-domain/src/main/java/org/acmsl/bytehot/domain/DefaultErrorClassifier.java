@@ -67,46 +67,91 @@ public class DefaultErrorClassifier implements ErrorClassifier {
         // Singleton
     }
 
+    /**
+     * Classifies bytecode validation exceptions.
+     * @param exception the bytecode validation exception to classify
+     * @return the error type for validation errors
+     */
     @Override
     public ErrorType classifyBytecodeValidationException(final BytecodeValidationException exception) {
         return ErrorType.VALIDATION_ERROR;
     }
 
+    /**
+     * Classifies instance update exceptions.
+     * @param exception the instance update exception to classify
+     * @return the error type for instance update errors
+     */
     @Override
     public ErrorType classifyInstanceUpdateException(final InstanceUpdateException exception) {
         return ErrorType.INSTANCE_UPDATE_ERROR;
     }
 
+    /**
+     * Classifies hot-swap exceptions.
+     * @param exception the hot-swap exception to classify
+     * @return the error type for redefinition failures
+     */
     @Override
     public ErrorType classifyHotSwapException(final HotSwapException exception) {
         return ErrorType.REDEFINITION_FAILURE;
     }
 
+    /**
+     * Classifies security exceptions.
+     * @param exception the security exception to classify
+     * @return the error type for security errors
+     */
     @Override
     public ErrorType classifySecurityException(final SecurityException exception) {
         return ErrorType.SECURITY_ERROR;
     }
 
+    /**
+     * Classifies out of memory errors.
+     * @param error the out of memory error to classify
+     * @return the error type for critical system errors
+     */
     @Override
     public ErrorType classifyOutOfMemoryError(final OutOfMemoryError error) {
         return ErrorType.CRITICAL_SYSTEM_ERROR;
     }
 
+    /**
+     * Classifies stack overflow errors.
+     * @param error the stack overflow error to classify
+     * @return the error type for critical system errors
+     */
     @Override
     public ErrorType classifyStackOverflowError(final StackOverflowError error) {
         return ErrorType.CRITICAL_SYSTEM_ERROR;
     }
 
+    /**
+     * Classifies no such file exceptions.
+     * @param exception the no such file exception to classify
+     * @return the error type for file system errors
+     */
     @Override
     public ErrorType classifyNoSuchFileException(final java.nio.file.NoSuchFileException exception) {
         return ErrorType.FILE_SYSTEM_ERROR;
     }
 
+    /**
+     * Classifies access denied exceptions.
+     * @param exception the access denied exception to classify
+     * @return the error type for file system errors
+     */
     @Override
     public ErrorType classifyAccessDeniedException(final java.nio.file.AccessDeniedException exception) {
         return ErrorType.FILE_SYSTEM_ERROR;
     }
 
+    /**
+     * Classifies event snapshot exceptions.
+     * @param exception the event snapshot exception to classify
+     * @return the error type based on the original cause, or unknown error if no cause
+     */
     @Override
     public ErrorType classifyEventSnapshotException(final EventSnapshotException exception) {
         // Delegate to the original exception if available
@@ -117,6 +162,11 @@ public class DefaultErrorClassifier implements ErrorClassifier {
         return ErrorType.UNKNOWN_ERROR;
     }
 
+    /**
+     * Classifies generic throwables.
+     * @param throwable the throwable to classify
+     * @return the error type for unknown errors
+     */
     @Override
     public ErrorType classifyGenericThrowable(final Throwable throwable) {
         return ErrorType.UNKNOWN_ERROR;

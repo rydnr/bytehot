@@ -55,7 +55,6 @@ public class BytecodeValidationException extends Exception
 
     /**
      * The rejection event containing details about why validation failed
-     * @return the rejection event
      */
     @Getter
     private final BytecodeRejected rejectionEvent;

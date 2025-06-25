@@ -188,6 +188,12 @@ public final class Flow implements ValueObject {
             .build();
     }
 
+    /**
+     * Checks if the given events list contains the specified pattern.
+     * @param events the list of event classes to search in
+     * @param pattern the pattern of event classes to search for
+     * @return true if the pattern is found within the events list
+     */
     private boolean containsPattern(
         @NonNull final List<Class<? extends DomainEvent>> events,
         @NonNull final List<Class<? extends DomainEvent>> pattern
@@ -231,6 +237,12 @@ public final class Flow implements ValueObject {
         return containsPatternByName(eventTypeNames, patternNames);
     }
 
+    /**
+     * Checks if the given event type names contain the specified pattern names.
+     * @param eventTypeNames the list of event type names to search in
+     * @param patternNames the pattern of event type names to search for
+     * @return true if the pattern is found within the event type names
+     */
     private boolean containsPatternByName(
         @NonNull final List<String> eventTypeNames,
         @NonNull final List<String> patternNames
