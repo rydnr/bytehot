@@ -85,3 +85,13 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 ### Code Quality
 - Source code must not use org.jetbrains.annotations classes.
 - All methods should be annotated with checkerframework annotations.
+
+### Enum Definitions
+- All Enums must be defined in a class of their own. Each enum value must be documented.
+
+### Class Modeling
+- No data/record classes are allowed. Classes should model behavior, not only data. Events or Exceptions might be corner cases to this general rule, which is a guide, not an obligation.
+- Also, classes should not be stateless. They should encapsulate state and behavior.
+
+### Development Principles
+- No private methods or constants are allowed. `protected` to preserve encapsulation. `private` methods or constants violate the Open-Closed Principle in SOLID.
