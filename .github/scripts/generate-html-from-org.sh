@@ -3,8 +3,8 @@ set -euo pipefail
 
 FILE="$1"
 TITLE="$2"
-SUBTITLE="$3"
-NAME="$(basename "${FILE}")"
+SUBTITLE="${3:-}"
+NAME="$(basename "${FILE}" .org)"
 # Generate ${NAME}.html from ${FILE}
 
 echo "📔 Creating ${NAME} page from ${FILE}..."
@@ -28,7 +28,7 @@ if [ -f "${FILE}" ]; then
             SUBTITLE="<p style=\"text-align: center; color: #00cccc; font-size: 1.2rem; margin-bottom: 3rem;\">${SUBTITLE}</p>"
         fi
         # Create complete HTML structure with new matrix style
-        cat >bytehot/"${NAME}.html" <<'HTML_EOF'
+        cat >bytehot/"${NAME}.html" <<HTML_EOF
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,7 +45,7 @@ ${CSS}
 ${NAV}
     </nav>
     <div class="content">
-        <div class="journal-container">
+        <div class="doc-container">
             <h1>${TITLE}</h1>${SUBTITLE}
 HTML_EOF
 
@@ -53,7 +53,7 @@ HTML_EOF
         cat "$temp_content" >>bytehot/${NAME}.html
 
         # Close HTML structure
-        cat >>bytehot/${NAME}.html <<'HTML_EOF'
+        cat >>bytehot/${NAME}.html <<HTML_EOF
         </div>
     </div>
 ${FOOTER}
@@ -63,7 +63,15 @@ ${MATRIX}
 </body>
 </html>
 HTML_EOF
-        echo "✅ ${NAME} page created from ${FILE}"
+        # Verify the title was actually written
+        if grep -q "${TITLE}" bytehot/${NAME}.html; then
+            echo "✅ ${NAME} page created from ${FILE} with title"
+        else
+            echo "⚠️ ${NAME} page created but title missing!"
+            echo "Expected title: ${TITLE}"
+            echo "File structure around doc-container:"
+            grep -A 3 -B 1 "doc-container" bytehot/${NAME}.html | tail -5
+        fi
 
         # Clean up temp file
         rm "$temp_content"

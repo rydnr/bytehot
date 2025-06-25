@@ -10,71 +10,14 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check GitHub Pages Status
-        run: |
-          # Get the repository info
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-          PAGES_URL="https://${REPO_OWNER}.github.io/${REPO_NAME}/"
-          
-          echo "Checking Pages URL: $PAGES_URL"
-          
-          # Check if the pages site is accessible
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PAGES_URL" || echo "000")
-          
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "✅ GitHub Pages site is healthy (HTTP $HTTP_STATUS)"
-          else
-            echo "❌ GitHub Pages site returned HTTP $HTTP_STATUS"
-            exit 1
-          fi
-          
-          # Check if Javadocs are accessible
-          JAVADOC_URL="${PAGES_URL}javadocs/"
-          JAVADOC_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$JAVADOC_URL" || echo "000")
-          
-          if [ "$JAVADOC_STATUS" = "200" ]; then
-            echo "✅ Javadocs are accessible (HTTP $JAVADOC_STATUS)"
-          else
-            echo "⚠️ Javadocs returned HTTP $JAVADOC_STATUS"
-          fi
-
-      - name: Validate Documentation Links
-        run: |
-          REPO_OWNER="${{ github.repository_owner }}"
-          REPO_NAME="${{ github.event.repository.name }}"
-          PAGES_URL="https://${REPO_OWNER}.github.io/${REPO_NAME}/"
-          
-          # Check key documentation pages
-          PAGES_TO_CHECK=(
-            ""                                    # Main page
-            "journal.html"                        # Development journal
-            "docs/configuration.html"             # Configuration guide
-            "javadocs/index.html"                 # API documentation
-          )
-          
-          FAILED_PAGES=()
-          
-          for page in "${PAGES_TO_CHECK[@]}"; do
-            URL="${PAGES_URL}${page}"
-            echo "Checking: $URL"
-            
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
-            
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "✅ $page - OK"
-            else
-              echo "❌ $page - HTTP $HTTP_STATUS"
-              FAILED_PAGES+=("$page")
-            fi
-          done
-          
-          if [ ${#FAILED_PAGES[@]} -gt 0 ]; then
-            echo ""
-            echo "❌ Failed pages:"
-            printf '%s\n' "${FAILED_PAGES[@]}"
-            exit 1
-          else
-            echo ""
-            echo "✅ All documentation pages are accessible"
-          fi
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Make scripts executable
+        run: chmod +x .github/scripts/*.sh
+        
+      - name: Execute pages health check
+        run: .github/scripts/pages-health-check.sh
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPOSITORY: ${{ github.repository }}

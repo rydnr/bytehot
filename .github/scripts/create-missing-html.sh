@@ -13,8 +13,8 @@ CSS="$(source ./.github/scripts/css.sh)"
 NAV_CHILD="$(source ./.github/scripts/nav-child.sh)"
 FOOTER="$(source ./.github/scripts/footer.sh)"
 MATRIX="$(source ./.github/scripts/matrix.sh)"
-# Convert GETTING_STARTED.org to simple HTML content
-if [ -f "GETTING_STARTED.org" ]; then
+# Convert GETTING_STARTED.org to simple HTML content (only if not already exists)
+if [ -f "GETTING_STARTED.org" ] && [ ! -f "bytehot/GETTING_STARTED.html" ]; then
     echo "📖 Converting GETTING_STARTED.org to simple content..."
 
     # Convert to simple HTML without full styling (styling will be added later)
@@ -22,6 +22,8 @@ if [ -f "GETTING_STARTED.org" ]; then
         --metadata title="Getting Started" || echo "⚠️ Failed to convert GETTING_STARTED.org"
 
     echo "✅ Created GETTING_STARTED.html content"
+elif [ -f "bytehot/GETTING_STARTED.html" ]; then
+    echo "✅ GETTING_STARTED.html already exists, skipping conversion"
 fi
 
 # Convert key org files to simple HTML content

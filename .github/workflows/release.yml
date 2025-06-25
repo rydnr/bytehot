@@ -1,10 +1,15 @@
-name: Release
+name: Unified Release
 
 on:
   push:
     tags:
-      - 'milestone-*'
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'  # Semver without v prefix (1.0.0)
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Semver with v prefix (v1.0.0)
+      - 'milestone-*'           # Milestone releases
+      - 'test-*'               # Test releases
+
+env:
+  JAVA_VERSION: '17'
 
 jobs:
   release:
@@ -14,15 +19,15 @@ jobs:
       contents: write
       
     steps:
-    - name: Checkout code
+    - name: Checkout code with full history
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch all history for release notes
+        fetch-depth: 0
         
-    - name: Set up JDK 17
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
         
     - name: Cache Maven dependencies
@@ -33,143 +38,14 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
           
-    - name: Extract version from tag
-      id: version
+    - name: Make scripts executable
+      run: chmod +x .github/scripts/*.sh
+      
+    - name: Execute release workflow
       run: |
         TAG=${GITHUB_REF#refs/tags/}
-        VERSION=${TAG#v}
-        echo "tag=$TAG" >> $GITHUB_OUTPUT
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "milestone=${TAG}" >> $GITHUB_OUTPUT
-        
-        # Create Maven-compatible version (remove 'v' prefix if present)
-        if [[ $VERSION == v* ]]; then
-          MAVEN_VERSION=${VERSION#v}
-        else
-          MAVEN_VERSION=$VERSION
-        fi
-        echo "maven_version=$MAVEN_VERSION" >> $GITHUB_OUTPUT
-        
-    - name: Update Maven version
-      run: |
-        echo "Setting Maven version to: ${{ steps.version.outputs.maven_version }}"
-        mvn versions:set -DnewVersion=${{ steps.version.outputs.maven_version }} -DgenerateBackupPoms=false -B
-        
-    - name: Build and test project
-      run: |
-        echo "Building release for tag: ${{ steps.version.outputs.tag }}"
-        mvn clean compile test -B
-        
-    - name: Package application
-      run: |
-        mvn package -DskipTests -B
-        
-    - name: Create release artifacts directory and rename files
-      run: |
-        mkdir -p release-artifacts
-        
-        # Find and rename JAR files to use proper version
-        VERSION="${{ steps.version.outputs.maven_version }}"
-        
-        # Copy and rename main artifacts
-        if [ -f "bytehot/target/bytehot-${VERSION}-shaded.jar" ]; then
-          cp "bytehot/target/bytehot-${VERSION}-shaded.jar" "release-artifacts/bytehot-${VERSION}.jar"
-          echo "✅ Created bytehot-${VERSION}.jar"
-        fi
-        
-        if [ -f "java-commons/target/java-commons-${VERSION}.jar" ]; then
-          cp "java-commons/target/java-commons-${VERSION}.jar" "release-artifacts/java-commons-${VERSION}.jar"
-          echo "✅ Created java-commons-${VERSION}.jar"
-        fi
-        
-        # Copy any additional artifacts with version replacement
-        find . -name "*-${VERSION}.jar" -path "*/target/*" | while read -r file; do
-          basename_file=$(basename "$file")
-          if [[ ! "$basename_file" =~ (shaded|original) ]]; then
-            cp "$file" "release-artifacts/"
-            echo "✅ Copied $basename_file"
-          fi
-        done
-        
-        echo "📦 Release artifacts created:"
-        ls -la release-artifacts/
-        
-    - name: Generate release notes
-      id: release_notes
-      run: |
-        # Get commits since last tag
-        LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-        if [ -z "$LAST_TAG" ]; then
-          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
-        else
-          COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
-        fi
-        
-        # Create release notes
-        cat > release_notes.md << EOF
-        # ${{ steps.version.outputs.milestone }}
-        
-        ## What's Changed
-        
-        $COMMITS
-        
-        ## Technical Details
-        
-        **Java Version:** 17
-        **Build Tool:** Maven
-        **Architecture:** Domain-Driven Design + Hexagonal Architecture
-        **Test Coverage:** Comprehensive test suite included
-        
-        ## Artifacts
-        
-        - \`bytehot-${{ steps.version.outputs.maven_version }}.jar\`: Main ByteHot JVM agent
-        - \`java-commons-${{ steps.version.outputs.maven_version }}.jar\`: Shared utilities library
-        
-        ## Installation
-        
-        1. Download the appropriate JAR file
-        2. Add as JVM agent: \`-javaagent:bytehot-${{ steps.version.outputs.maven_version }}.jar\`
-        3. Configure monitoring paths via system properties or configuration file
-        
-        ## Documentation
-        
-        - [Project README](https://github.com/rydnr/bytehot/blob/main/README.md)
-        - [Development Journal](https://github.com/rydnr/bytehot/blob/main/journal.org)
-        - [Specifications](https://github.com/rydnr/bytehot/tree/main/specs)
-        
-        ---
-        
-        🤖 **Automated Release**: This release was created automatically by GitHub Actions.
-        
-        📊 **Build Information**:
-        - Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        - Commit: ${GITHUB_SHA:0:8}
-        - Workflow: ${{ github.workflow }}
-        EOF
-        
-        echo "Release notes generated:"
-        cat release_notes.md
-        
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ steps.version.outputs.tag }}
-        name: ${{ steps.version.outputs.milestone }}
-        body_path: release_notes.md
-        files: |
-          release-artifacts/*.jar
-        draft: false
-        prerelease: ${{ contains(steps.version.outputs.tag, 'milestone') }}
-        generate_release_notes: true
-        
-    - name: Update latest release pointer
-      if: ${{ !contains(steps.version.outputs.tag, 'milestone') }}
-      run: |
-        echo "This is a stable release, updating latest pointer"
-        
-    - name: Notify release completion
-      run: |
-        echo "✅ Release ${{ steps.version.outputs.tag }} completed successfully!"
-        echo "📦 Artifacts uploaded:"
-        ls -la release-artifacts/
-        echo "🔗 Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }}"
+        .github/scripts/release-workflow.sh "$TAG" "${{ env.JAVA_VERSION }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_SHA: ${{ github.sha }}

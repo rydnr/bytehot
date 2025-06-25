@@ -65,99 +65,23 @@ jobs:
           # Build and install the multi-module project from root
           mvn clean install -DskipTests -q
 
+      - name: Make scripts executable
+        run: chmod +x .github/scripts/*.sh
+
       - name: Pre-process org files to fix code blocks
-        run: |
-          echo "🔧 Pre-processing org files to ensure proper code block formatting..."
-
-          # Create a simple Python script to fix org-mode code blocks using echo
-          echo "import re" > fix_org.py
-          echo "import os" >> fix_org.py
-          echo "from pathlib import Path" >> fix_org.py
-          echo "" >> fix_org.py
-          echo "def fix_org_code_blocks(content):" >> fix_org.py
-          echo "    content = re.sub(r'^```(\w+)?\s*$', lambda m: f'#+begin_src {m.group(1) or \"\"}', content, flags=re.MULTILINE)" >> fix_org.py
-          echo "    content = re.sub(r'^```\s*$', '#+end_src', content, flags=re.MULTILINE)" >> fix_org.py
-          echo "    return content" >> fix_org.py
-          echo "" >> fix_org.py
-          echo "processed_count = 0" >> fix_org.py
-          echo "for org_file in Path('.').rglob('*.org'):" >> fix_org.py
-          echo "    try:" >> fix_org.py
-          echo "        with open(org_file, 'r', encoding='utf-8') as f:" >> fix_org.py
-          echo "            content = f.read()" >> fix_org.py
-          echo "        fixed_content = fix_org_code_blocks(content)" >> fix_org.py
-          echo "        if fixed_content != content:" >> fix_org.py
-          echo "            with open(org_file, 'w', encoding='utf-8') as f:" >> fix_org.py
-          echo "                f.write(fixed_content)" >> fix_org.py
-          echo "            print(f'Fixed: {org_file}')" >> fix_org.py
-          echo "            processed_count += 1" >> fix_org.py
-          echo "    except Exception as e:" >> fix_org.py
-          echo "        print(f'Error: {org_file}: {e}')" >> fix_org.py
-          echo "print(f'Processed {processed_count} files')" >> fix_org.py
-
-          # Run the Python script
-          python3 fix_org.py
+        run: .github/scripts/preprocess-org-files.sh
 
       - name: Generate Javadocs
-        run: |
-          # Generate Javadocs using multiple approaches
-          echo "🔧 Attempting to generate Javadocs..."
-          
-          # Create javadocs directories for all modules
-          mkdir -p target/site/apidocs
-          
-          # Strategy 1: Try Maven aggregate javadoc for all modules
-          echo "📋 Strategy 1: Maven aggregate javadoc for all modules..."
-          mvn javadoc:aggregate \
-            -DfailOnError=false \
-            -Dadditionalparam="-Xdoclint:none" \
-            -Dmaven.javadoc.skip=false \
-            -Dquiet=false || echo "Maven aggregate javadoc failed"
-
-          # Verify javadocs were generated
-          if [ -d "target/site/apidocs" ] && [ -n "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
-            echo "✅ Javadocs generated successfully"
-            ls -la target/site/apidocs/
-          else
-            echo "⚠️ Javadocs generation failed"
-            exit 1
-          fi
+        run: .github/scripts/generate-javadocs.sh
 
       - name: Generate Documentation
-        run: |
-          echo "🚀 Starting documentation generation with shell scripts..."
-          chmod +x .github/scripts/*.sh
-          bash ./.github/scripts/generate-docs.sh
+        run: .github/scripts/generate-docs.sh
 
       - name: Debug generated files and structure
-        run: |
-          echo "🔍 Debugging generated documentation structure..."
-          echo "Root files:"
-          ls -la bytehot/ 2>/dev/null || echo "No bytehot directory"
-          echo "Sample file content (first 20 lines):"
-          if [ -f "bytehot/index.html" ]; then
-            echo "=== bytehot/index.html ==="
-            head -20 bytehot/index.html
-          fi
-          if [ -f "bytehot/implementation.html" ]; then
-            echo "=== bytehot/implementation.html ==="
-            head -10 bytehot/implementation.html
-          fi
+        run: .github/scripts/debug-docs-structure.sh
 
       - name: Copy Javadocs to documentation
-        run: |
-          echo "📖 Copying Javadocs to documentation site..."
-          if [ -d "target/site/apidocs" ]; then
-            cp -r target/site/apidocs/* bytehot/javadocs/ 2>/dev/null || true
-            echo "✅ Javadocs copied to documentation site"
-          else
-            echo "⚠️ No Javadocs found to copy"
-          fi
-
-      - name: List generated files
-        run: |
-          echo "📋 Generated documentation files:"
-          find bytehot -name "*.html" -type f 2>/dev/null | head -20 || echo "No HTML files found"
-          echo "📊 Total HTML files: $(find bytehot -name "*.html" -type f 2>/dev/null | wc -l)"
+        run: .github/scripts/copy-javadocs.sh
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
