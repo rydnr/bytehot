@@ -79,7 +79,7 @@ public class ByteHotAgent {
             
             // Load the actual configuration instead of using default
             final WatchConfiguration config = WatchConfiguration.load();
-            final ByteHotAttachRequested attachRequest = new ByteHotAttachRequested(config, inst);
+            final ByteHotAttachRequested attachRequest = ByteHotAttachRequested.withUserContext(config, inst);
             final List<? extends DomainResponseEvent<?>> responses = application.accept(attachRequest);
             
             // Print the response events to stdout for testing verification

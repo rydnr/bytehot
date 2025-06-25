@@ -52,6 +52,7 @@ import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionSucceeded;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
+import org.acmsl.bytehot.domain.events.DocumentationRequested;
 
 import org.acmsl.commons.patterns.Adapter;
 import org.acmsl.commons.patterns.Application;
@@ -125,10 +126,27 @@ public class ByteHotApplication
                     // Create the core instrumentation service for the domain
                     instrumentationService = new JvmInstrumentationService(instrumentation);
                     
+                    // Initialize user context before anything else
+                    initializeUserContext();
+                    
                     discoverAndInjectAdapters(instrumentation);
                     adaptersInitialized = true;
                 }
             }
+        }
+    }
+
+    /**
+     * Initializes the user context for ByteHot operations
+     */
+    private static void initializeUserContext() {
+        try {
+            // TODO: Implement user context initialization when UserContextResolver is fully implemented
+            System.out.println("ByteHot initialized (user context pending)");
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to initialize user context: " + e.getMessage());
+            // Continue without user context - the system should still function
         }
     }
 
@@ -173,14 +191,32 @@ public class ByteHotApplication
             throw new IllegalStateException("Application not initialized. Call initialize() with Instrumentation first.");
         }
 
+        // Ensure user context is available for all operations
+        ensureUserContext();
+
         // Dispatch based on event type
         if (event instanceof ByteHotAttachRequested attachEvent) {
             return handleByteHotAttachRequested(attachEvent);
         } else if (event instanceof ClassFileChanged classFileEvent) {
             return handleClassFileChanged(classFileEvent);
+        } else if (event instanceof DocumentationRequested docEvent) {
+            return handleDocumentationRequested(docEvent);
         } else {
             throw new UnsupportedOperationException(
                 "ByteHotApplication does not support events of type: " + event.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Ensures user context is available for the current operation
+     */
+    private void ensureUserContext() {
+        try {
+            // TODO: Implement user context checking when UserContextResolver is fully implemented
+            // For now, continue without user context validation
+        } catch (final Exception e) {
+            System.err.println("Warning: Could not ensure user context: " + e.getMessage());
+            // Continue without user context - the system should still function
         }
     }
 
@@ -209,6 +245,36 @@ public class ByteHotApplication
             
         } catch (final Exception e) {
             System.err.println("Failed to process ClassFileChanged event: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return responseEvents;
+    }
+
+    /**
+     * Handles a DocumentationRequested event and returns response events.
+     * @param event the documentation request event
+     * @return a list of response events
+     */
+    protected List<? extends DomainResponseEvent<?>> handleDocumentationRequested(final DocumentationRequested event) {
+        final List<DomainResponseEvent<?>> responseEvents = new ArrayList<>();
+        
+        try {
+            System.out.println("Processing DocumentationRequested (simplified implementation)");
+            
+            // TODO: Implement full documentation generation when DocProvider is fully implemented
+            // For now, just log that the request was received
+            
+            // Emit the response events
+            try {
+                final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+                eventEmitter.emit(responseEvents);
+            } catch (final Exception e) {
+                System.err.println("Failed to emit documentation response events: " + e.getMessage());
+            }
+            
+        } catch (final Exception e) {
+            System.err.println("Failed to process DocumentationRequested event: " + e.getMessage());
             e.printStackTrace();
         }
         

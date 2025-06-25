@@ -35,6 +35,7 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.WatchConfiguration;
 import org.acmsl.commons.patterns.DomainEvent;
 
@@ -42,7 +43,6 @@ import java.lang.instrument.Instrumentation;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -50,11 +50,10 @@ import lombok.ToString;
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-07
  */
-@RequiredArgsConstructor
-@EqualsAndHashCode
-@ToString
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class ByteHotAttachRequested
-    implements DomainEvent {
+    extends AbstractVersionedDomainEvent {
 
     /**
      * The configuration for ByteHot.
@@ -69,4 +68,39 @@ public class ByteHotAttachRequested
      */
     @Getter
     private final Instrumentation instrumentation;
+
+    /**
+     * Creates a new ByteHotAttachRequested event.
+     * 
+     * @param metadata the event metadata including user context
+     * @param configuration the configuration for ByteHot
+     * @param instrumentation the instrumentation instance for the JVM
+     */
+    public ByteHotAttachRequested(
+            EventMetadata metadata,
+            WatchConfiguration configuration,
+            Instrumentation instrumentation) {
+        super(metadata);
+        this.configuration = configuration;
+        this.instrumentation = instrumentation;
+    }
+
+    /**
+     * Factory method to create a ByteHotAttachRequested event with user context.
+     * 
+     * @param configuration the configuration for ByteHot
+     * @param instrumentation the instrumentation instance for the JVM
+     * @return a new ByteHotAttachRequested event
+     */
+    public static ByteHotAttachRequested withUserContext(
+            WatchConfiguration configuration,
+            Instrumentation instrumentation) {
+        
+        final EventMetadata metadata = createMetadataForNewAggregate(
+            "bytehot-agent",
+            "attach-" + System.currentTimeMillis()
+        );
+        
+        return new ByteHotAttachRequested(metadata, configuration, instrumentation);
+    }
 }

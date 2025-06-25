@@ -36,6 +36,7 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
@@ -52,9 +53,9 @@ import lombok.ToString;
  * @author Claude Code
  * @since 2025-06-17
  */
-@EqualsAndHashCode
-@ToString
-public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class HotSwapRequested extends AbstractVersionedDomainEvent implements DomainResponseEvent<ClassFileChanged> {
 
     /**
      * The path to the .class file being hot-swapped
@@ -107,6 +108,7 @@ public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
     /**
      * Creates a new HotSwapRequested event.
      * 
+     * @param metadata the event metadata including user context
      * @param classFile the path to the class file
      * @param className the class name
      * @param originalBytecode the original bytecode
@@ -116,6 +118,7 @@ public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
      * @param preceding the original event that triggered this
      */
     public HotSwapRequested(
+            EventMetadata metadata,
             Path classFile,
             String className,
             byte[] originalBytecode,
@@ -123,6 +126,7 @@ public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
             String requestReason,
             Instant timestamp,
             ClassFileChanged preceding) {
+        super(metadata);
         this.classFile = classFile;
         this.className = className;
         this.originalBytecode = originalBytecode;
@@ -155,7 +159,18 @@ public class HotSwapRequested implements DomainResponseEvent<ClassFileChanged> {
         byte[] placeholderBytecode = new byte[]{0x01, 0x02, 0x03, 0x04};
         byte[] newBytecode = new byte[]{0x05, 0x06, 0x07, 0x08};
         
+        // Create metadata with correlation to the original event and preserve user context
+        final EventMetadata metadata = createMetadataWithCorrelation(
+            "hotswap",
+            fileChangeEvent.getClassName() + "-request",
+            null,
+            0L,
+            fileChangeEvent.getMetadata() != null ? fileChangeEvent.getMetadata().getUserId() : "system",
+            fileChangeEvent.getEventId()
+        );
+        
         return new HotSwapRequested(
+            metadata,
             fileChangeEvent.getClassFile(),
             fileChangeEvent.getClassName(),
             placeholderBytecode,

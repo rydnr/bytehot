@@ -77,7 +77,7 @@ public class ByteHotCLI {
             WatchConfiguration config = WatchConfiguration.load();
             
             // Process the attach request
-            application.accept(new ByteHotAttachRequested(config, inst));
+            application.accept(ByteHotAttachRequested.withUserContext(config, inst));
             
         } catch (final Exception e) {
             throw new IllegalStateException("Failed to initialize ByteHot CLI", e);
