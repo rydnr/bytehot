@@ -43,6 +43,7 @@ package org.acmsl.bytehot.domain.events;
 import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.UserId;
 import org.acmsl.bytehot.domain.UserProfile;
+import org.acmsl.bytehot.domain.UserRegistrationSource;
 
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
@@ -65,17 +66,17 @@ public class UserRegistered implements DomainResponseEvent<UserRegistrationReque
     /**
      * The original registration request event
      */
-    private final UserRegistrationRequested preceding;
+    protected final UserRegistrationRequested preceding;
 
     /**
      * The registered user's profile
      */
-    private final UserProfile userProfile;
+    protected final UserProfile userProfile;
 
     /**
      * Source of the user registration
      */
-    private final UserRegistrationSource source;
+    protected final UserRegistrationSource source;
 
     /**
      * Factory method for new user registration
@@ -101,28 +102,4 @@ public class UserRegistered implements DomainResponseEvent<UserRegistrationReque
         return of(precedingEvent, userProfile, UserRegistrationSource.AUTOMATIC);
     }
 
-    /**
-     * User registration source enumeration
-     */
-    public enum UserRegistrationSource {
-        /**
-         * User automatically discovered and registered
-         */
-        AUTOMATIC,
-
-        /**
-         * User explicitly registered
-         */
-        EXPLICIT,
-
-        /**
-         * User registered from Git configuration
-         */
-        GIT_CONFIG,
-
-        /**
-         * User registered from environment variables
-         */
-        ENVIRONMENT
-    }
 }

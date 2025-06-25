@@ -41,6 +41,7 @@
 package org.acmsl.bytehot.testing.support;
 
 import org.acmsl.bytehot.domain.BugReportGenerator;
+import org.acmsl.bytehot.testing.support.TestFailureSeverity;
 import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
 import org.acmsl.bytehot.domain.EventSnapshot;
 import org.acmsl.bytehot.domain.ErrorContext;
@@ -125,23 +126,6 @@ public class BugReport implements Test {
     // @Nullable annotation moved to field type
     private final BugReportGenerator.BugReport domainBugReport;
 
-    /**
-     * Test failure severity levels
-     */
-    public enum TestFailureSeverity {
-        BLOCKING("Blocking - Test infrastructure failure"),
-        CRITICAL("Critical - Core functionality broken"),
-        MAJOR("Major - Important feature broken"),
-        MINOR("Minor - Edge case or non-critical feature"),
-        FLAKY("Flaky - Intermittent or timing-related failure");
-
-        @Getter
-        private final String description;
-
-        TestFailureSeverity(String description) {
-            this.description = description;
-        }
-    }
 
     /**
      * Creates a bug report from a test failure in event-driven testing

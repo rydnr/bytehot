@@ -39,6 +39,7 @@
  */
 package org.acmsl.bytehot.domain.events;
 
+import org.acmsl.bytehot.domain.ProcessingResult;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import java.nio.file.Path;
@@ -156,13 +157,4 @@ public class ClassFileProcessed implements DomainResponseEvent<ClassFileChanged>
         );
     }
 
-    /**
-     * Enumeration of possible processing results.
-     */
-    public enum ProcessingResult {
-        SUCCESS,
-        IGNORED,
-        FAILED,
-        DEFERRED
-    }
 }

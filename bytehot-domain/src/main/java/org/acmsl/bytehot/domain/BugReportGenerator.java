@@ -46,6 +46,7 @@ import org.acmsl.bytehot.domain.EventSnapshot;
 import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
 import org.acmsl.bytehot.domain.ErrorContext;
 import org.acmsl.bytehot.domain.CausalChain;
+import org.acmsl.bytehot.domain.ErrorClassification;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -150,46 +151,6 @@ public class BugReportGenerator {
         private final List<String> relatedIssues;
     }
 
-    /**
-     * Bug severity levels
-     */
-    public enum BugSeverity {
-        CRITICAL("Critical - System failure or data loss"),
-        HIGH("High - Major functionality affected"),
-        MEDIUM("Medium - Partial functionality affected"),
-        LOW("Low - Minor issue or cosmetic"),
-        INFO("Informational - Not a bug but notable behavior");
-
-        @Getter
-        private final String description;
-
-        BugSeverity(String description) {
-            this.description = description;
-        }
-    }
-
-    /**
-     * Bug category classifications
-     */
-    public enum BugCategory {
-        MEMORY_LEAK("Memory Management - Leaks or excessive usage"),
-        CONCURRENT_ACCESS("Concurrency - Race conditions or deadlocks"),
-        VALIDATION_ERROR("Validation - Input or state validation failure"),
-        CONFIGURATION_ERROR("Configuration - Setup or config issues"),
-        DEPENDENCY_ERROR("Dependencies - Missing or incompatible dependencies"),
-        PERFORMANCE_ISSUE("Performance - Slow execution or timeouts"),
-        SECURITY_VULNERABILITY("Security - Potential security issues"),
-        DATA_CORRUPTION("Data Integrity - Corruption or inconsistency"),
-        NETWORK_ERROR("Network - Connectivity or communication issues"),
-        UNKNOWN("Unknown - Unable to categorize automatically");
-
-        @Getter
-        private final String description;
-
-        BugCategory(String description) {
-            this.description = description;
-        }
-    }
 
     /**
      * Generates a comprehensive bug report from an EventSnapshotException
@@ -469,7 +430,7 @@ public class BugReportGenerator {
         
         // Determine if error is likely reproducible based on event count and classification
         boolean isReproducible = exception.getEventSnapshot().getEventCount() > 0 && 
-                                 !exception.getClassification().equals(EventSnapshotException.ErrorClassification.UNKNOWN);
+                                 !exception.getClassification().equals(ErrorClassification.UNKNOWN);
         if (isReproducible) {
             analysis.append("This error appears to be reproducible based on the event context captured.");
         } else {

@@ -43,6 +43,7 @@ package org.acmsl.bytehot.infrastructure.eventsourcing;
 
 import org.acmsl.bytehot.domain.EventStoreException;
 import org.acmsl.bytehot.domain.EventStorePort;
+import org.acmsl.bytehot.domain.OperationType;
 import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
 import org.acmsl.commons.patterns.Adapter;
@@ -260,7 +261,7 @@ public class FilesystemEventStoreAdapter
             throw new EventStoreException(
                 "Failed to save event: " + e.getMessage(),
                 e,
-                EventStoreException.OperationType.SAVE,
+                OperationType.SAVE,
                 event.getAggregateType(),
                 event.getAggregateId()
             );
@@ -291,7 +292,7 @@ public class FilesystemEventStoreAdapter
             throw new EventStoreException(
                 "Failed to retrieve events: " + e.getMessage(),
                 e,
-                EventStoreException.OperationType.RETRIEVE,
+                OperationType.RETRIEVE,
                 aggregateType,
                 aggregateId
             );
@@ -336,7 +337,7 @@ public class FilesystemEventStoreAdapter
             throw new EventStoreException(
                 "Failed to retrieve events by type: " + e.getMessage(),
                 e,
-                EventStoreException.OperationType.RETRIEVE
+                OperationType.RETRIEVE
             );
         }
     }
@@ -372,7 +373,7 @@ public class FilesystemEventStoreAdapter
             throw new EventStoreException(
                 "Failed to retrieve events by time range: " + e.getMessage(),
                 e,
-                EventStoreException.OperationType.RETRIEVE
+                OperationType.RETRIEVE
             );
         }
     }
@@ -413,7 +414,7 @@ public class FilesystemEventStoreAdapter
             throw new EventStoreException(
                 "Failed to get total event count: " + e.getMessage(),
                 e,
-                EventStoreException.OperationType.COUNT
+                OperationType.COUNT
             );
         }
     }
@@ -436,7 +437,7 @@ public class FilesystemEventStoreAdapter
             throw new EventStoreException(
                 "Failed to count events: " + e.getMessage(),
                 e,
-                EventStoreException.OperationType.COUNT,
+                OperationType.COUNT,
                 aggregateType,
                 aggregateId
             );

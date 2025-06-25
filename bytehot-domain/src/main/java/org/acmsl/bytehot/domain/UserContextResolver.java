@@ -223,7 +223,7 @@ public final class UserContextResolver {
             // Trigger user registration through the domain
             User.accept(new org.acmsl.bytehot.domain.events.UserRegistrationRequested(
                 userId, 
-                org.acmsl.bytehot.domain.events.UserRegistered.UserRegistrationSource.AUTOMATIC
+                org.acmsl.bytehot.domain.UserRegistrationSource.AUTOMATIC
             ));
         }
         

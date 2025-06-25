@@ -38,6 +38,8 @@
 package org.acmsl.bytehot.domain.exceptions;
 
 import org.acmsl.bytehot.domain.EventSnapshot;
+import org.acmsl.bytehot.domain.ErrorClassification;
+import org.acmsl.bytehot.domain.BugPriority;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -96,43 +98,43 @@ public class EventSnapshotException extends RuntimeException {
     /**
      * Serial version UID for serialization compatibility
      */
-    private static final long serialVersionUID = 1L;
+    protected static final long serialVersionUID = 1L;
 
     /**
      * Unique identifier for this error occurrence
      */
     @Getter
-    private final String errorId;
+    protected final String errorId;
 
     /**
      * Complete event snapshot capturing the system state at error time
      */
     @Getter
-    private final EventSnapshot eventSnapshot;
+    protected final EventSnapshot eventSnapshot;
 
     /**
      * Original exception that triggered this enhanced error capture
      */
     @Getter
-    private final Throwable originalCause;
+    protected final Throwable originalCause;
 
     /**
      * Error classification for automatic categorization and routing
      */
     @Getter
-    private final ErrorClassification classification;
+    protected final ErrorClassification classification;
 
     /**
      * Additional metadata for debugging and analysis
      */
     @Getter
-    private final Map<String, Object> debugMetadata;
+    protected final Map<String, Object> debugMetadata;
 
     /**
      * Timestamp when this error was captured
      */
     @Getter
-    private final Instant capturedAt;
+    protected final Instant capturedAt;
 
     /**
      * Constructs a new EventSnapshotException with complete error context.
@@ -143,7 +145,7 @@ public class EventSnapshotException extends RuntimeException {
      * @param classification error classification for categorization
      * @param debugMetadata additional debug information
      */
-    private EventSnapshotException(
+    protected EventSnapshotException(
         final String message,
         final Throwable originalCause,
         final EventSnapshot eventSnapshot,
@@ -313,7 +315,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return Map of environment context information
      */
-    private static Map<String, String> captureEnvironmentContext() {
+    protected static Map<String, String> captureEnvironmentContext() {
         return Map.of(
             "working_directory", System.getProperty("user.dir"),
             "java_version", System.getProperty("java.version"),
@@ -329,7 +331,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return Map of relevant system properties
      */
-    private static Map<String, String> captureSystemProperties() {
+    protected static Map<String, String> captureSystemProperties() {
         return Map.of(
             "java.version", System.getProperty("java.version", "unknown"),
             "java.vendor", System.getProperty("java.vendor", "unknown"),
@@ -346,7 +348,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return Map of performance metrics
      */
-    private static Map<String, Object> capturePerformanceMetrics() {
+    protected static Map<String, Object> capturePerformanceMetrics() {
         final Runtime runtime = Runtime.getRuntime();
         return Map.of(
             "free_memory", runtime.freeMemory(),
@@ -366,7 +368,7 @@ public class EventSnapshotException extends RuntimeException {
      * @param events recent events that may have contributed to the error
      * @return ErrorClassification for this error type
      */
-    private static ErrorClassification classifyError(final Throwable cause, final List<DomainEvent> events) {
+    protected static ErrorClassification classifyError(final Throwable cause, final List<DomainEvent> events) {
         // Classify based on exception type and event patterns
         // Check message content first for hot-swap specific errors
         if (cause.getMessage() != null && cause.getMessage().toLowerCase().contains("hot-swap")) {
@@ -391,7 +393,7 @@ public class EventSnapshotException extends RuntimeException {
      * @param cause original exception
      * @return enriched metadata map
      */
-    private static Map<String, Object> enrichMetadata(
+    protected static Map<String, Object> enrichMetadata(
         final Map<String, Object> userMetadata,
         final Throwable cause) {
         
@@ -412,7 +414,7 @@ public class EventSnapshotException extends RuntimeException {
      * @param captureException exception that occurred during capture
      * @return simplified EventSnapshotException
      */
-    private static EventSnapshotException createFallbackException(
+    protected static EventSnapshotException createFallbackException(
         final Throwable originalCause,
         final String message,
         final Exception captureException) {
@@ -442,7 +444,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return bug title for issue tracking
      */
-    private String generateBugTitle() {
+    protected String generateBugTitle() {
         return String.format("[Bug] %s: %s", 
             classification.getDisplayName(),
             Optional.ofNullable(originalCause.getMessage())
@@ -455,7 +457,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return bug description with reproduction information
      */
-    private String generateBugDescription() {
+    protected String generateBugDescription() {
         return String.format(
             "## Error Summary\n" +
             "- **Error ID**: %s\n" +
@@ -483,7 +485,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return list of reproduction steps
      */
-    private List<String> generateReproductionSteps() {
+    protected List<String> generateReproductionSteps() {
         return List.of(
             "1. Load the captured system state snapshot",
             "2. Execute the captured event sequence in order", 
@@ -497,7 +499,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return formatted stack trace
      */
-    private String getStackTraceAsString() {
+    protected String getStackTraceAsString() {
         final StringBuilder sb = new StringBuilder();
         for (final StackTraceElement element : originalCause.getStackTrace()) {
             sb.append(element.toString()).append("\n");
@@ -510,7 +512,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return bug priority level
      */
-    private BugPriority determinePriority() {
+    protected BugPriority determinePriority() {
         return switch (classification) {
             case HOT_SWAP_FAILURE -> BugPriority.HIGH;
             case NULL_REFERENCE, TYPE_MISMATCH -> BugPriority.MEDIUM;
@@ -525,7 +527,7 @@ public class EventSnapshotException extends RuntimeException {
      * 
      * @return list of labels for this bug
      */
-    private List<String> generateLabels() {
+    protected List<String> generateLabels() {
         return List.of(
             "bug",
             "auto-generated",
@@ -534,39 +536,4 @@ public class EventSnapshotException extends RuntimeException {
         );
     }
 
-    /**
-     * Error classification enumeration for automatic categorization.
-     */
-    public enum ErrorClassification {
-        HOT_SWAP_FAILURE("Hot-Swap Failure", "hotswap"),
-        NULL_REFERENCE("Null Reference", "null-pointer"),
-        TYPE_MISMATCH("Type Mismatch", "type-error"),
-        INVALID_STATE("Invalid State", "state-error"),
-        FILE_MONITORING_ERROR("File Monitoring Error", "file-monitoring"),
-        CAPTURE_FAILURE("Error Capture Failure", "capture-error"),
-        UNKNOWN("Unknown Error", "unknown");
-
-        private final String displayName;
-        private final String label;
-
-        ErrorClassification(final String displayName, final String label) {
-            this.displayName = displayName;
-            this.label = label;
-        }
-
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-    }
-
-    /**
-     * Bug priority enumeration for issue tracking.
-     */
-    public enum BugPriority {
-        LOW, MEDIUM, HIGH, CRITICAL
-    }
 }

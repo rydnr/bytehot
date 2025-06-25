@@ -38,6 +38,7 @@
 package org.acmsl.bytehot.domain.events;
 
 import org.acmsl.bytehot.domain.UserId;
+import org.acmsl.bytehot.domain.UserRegistrationSource;
 
 import org.acmsl.commons.patterns.DomainEvent;
 
@@ -60,10 +61,10 @@ public class UserRegistrationRequested implements DomainEvent {
     /**
      * User identifier to register
      */
-    private final UserId userId;
+    protected final UserId userId;
 
     /**
      * Registration source
      */
-    private final UserRegistered.UserRegistrationSource source;
+    protected final UserRegistrationSource source;
 }

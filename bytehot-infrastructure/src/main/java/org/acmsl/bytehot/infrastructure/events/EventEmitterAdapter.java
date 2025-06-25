@@ -40,6 +40,7 @@
 package org.acmsl.bytehot.infrastructure.events;
 
 import org.acmsl.bytehot.domain.EventEmitterPort;
+import org.acmsl.bytehot.infrastructure.EmissionTarget;
 
 import org.acmsl.commons.patterns.Adapter;
 import org.acmsl.commons.patterns.DomainResponseEvent;
@@ -291,25 +292,6 @@ public class EventEmitterAdapter
         }
     }
 
-    /**
-     * Enumeration of emission targets
-     */
-    public enum EmissionTarget {
-        /**
-         * Emit to console only
-         */
-        CONSOLE,
-        
-        /**
-         * Emit to file only
-         */
-        FILE,
-        
-        /**
-         * Emit to both console and file
-         */
-        BOTH
-    }
 
     /**
      * Returns the current emission target

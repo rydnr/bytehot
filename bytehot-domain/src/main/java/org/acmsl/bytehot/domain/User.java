@@ -48,6 +48,7 @@ package org.acmsl.bytehot.domain;
 import org.acmsl.bytehot.domain.events.UserAuthenticationRequested;
 import org.acmsl.bytehot.domain.events.UserAuthenticated;
 import org.acmsl.bytehot.domain.events.UserRegistrationRequested;
+import org.acmsl.bytehot.domain.UserRegistrationSource;
 import org.acmsl.bytehot.domain.events.UserRegistered;
 import org.acmsl.bytehot.domain.events.UserSessionStartRequested;
 import org.acmsl.bytehot.domain.events.UserSessionStarted;
@@ -124,7 +125,7 @@ public class User {
         final User user = new User(
             event.getUserId(),
             profile,
-            UserPreferences.defaults(),
+            UserPreferences.defaultPreferences(),
             UserStatistics.empty(),
             Instant.now(),
             Instant.now(),
@@ -147,7 +148,7 @@ public class User {
             // User doesn't exist, auto-register first
             final UserRegistrationRequested registrationEvent = new UserRegistrationRequested(
                 event.getUserId(), 
-                UserRegistered.UserRegistrationSource.AUTOMATIC
+                UserRegistrationSource.AUTOMATIC
             );
             accept(registrationEvent);
         }
@@ -218,7 +219,7 @@ public class User {
             return new User(
                 registeredEvent.getUserProfile().getUserId(),
                 registeredEvent.getUserProfile(),
-                UserPreferences.defaults(),
+                UserPreferences.defaultPreferences(),
                 UserStatistics.empty(),
                 Instant.now(),
                 Instant.now(),
