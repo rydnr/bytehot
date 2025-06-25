@@ -21,6 +21,7 @@ package org.acmsl.bytehot.domain.exceptions;
 import org.acmsl.bytehot.domain.EventMetadata;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
+import org.acmsl.bytehot.domain.ErrorClassification;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -79,7 +80,7 @@ class EventSnapshotExceptionTest {
         assertNotNull(snapshotException.getErrorId(), "Error ID should be generated");
         assertNotNull(snapshotException.getEventSnapshot(), "Event snapshot should be captured");
         assertEquals(originalError, snapshotException.getOriginalCause(), "Original cause should be preserved");
-        assertEquals(EventSnapshotException.ErrorClassification.HOT_SWAP_FAILURE, 
+        assertEquals(ErrorClassification.HOT_SWAP_FAILURE, 
             snapshotException.getClassification(), "Should classify as hot-swap failure");
         assertNotNull(snapshotException.getCapturedAt(), "Capture timestamp should be set");
         
@@ -188,7 +189,7 @@ class EventSnapshotExceptionTest {
             "Null pointer error",
             List.of()
         );
-        assertEquals(EventSnapshotException.ErrorClassification.NULL_REFERENCE, 
+        assertEquals(ErrorClassification.NULL_REFERENCE, 
             nullException.getClassification());
         
         // Type mismatch error
@@ -197,7 +198,7 @@ class EventSnapshotExceptionTest {
             "Type casting error", 
             List.of()
         );
-        assertEquals(EventSnapshotException.ErrorClassification.TYPE_MISMATCH, 
+        assertEquals(ErrorClassification.TYPE_MISMATCH, 
             typeException.getClassification());
         
         // Invalid state error
@@ -206,7 +207,7 @@ class EventSnapshotExceptionTest {
             "State validation error",
             List.of()
         );
-        assertEquals(EventSnapshotException.ErrorClassification.INVALID_STATE, 
+        assertEquals(ErrorClassification.INVALID_STATE, 
             stateException.getClassification());
         
         // Hot-swap specific error
@@ -215,7 +216,7 @@ class EventSnapshotExceptionTest {
             "Hot-swap error",
             List.of()
         );
-        assertEquals(EventSnapshotException.ErrorClassification.HOT_SWAP_FAILURE, 
+        assertEquals(ErrorClassification.HOT_SWAP_FAILURE, 
             hotswapException.getClassification());
     }
 }

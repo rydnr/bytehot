@@ -45,6 +45,7 @@ package org.acmsl.bytehot.domain;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.bytehot.domain.exceptions.EventSnapshotException;
+import org.acmsl.bytehot.domain.ErrorClassification;
 import org.acmsl.commons.patterns.DomainEvent;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -144,7 +145,7 @@ public class EventDrivenBugReportingIntegrationTest {
         assertNotNull(snapshotException);
         assertNotNull(snapshotException.getErrorId());
         assertEquals(originalError, snapshotException.getOriginalCause());
-        assertEquals(EventSnapshotException.ErrorClassification.HOT_SWAP_FAILURE, 
+        assertEquals(ErrorClassification.HOT_SWAP_FAILURE, 
                      snapshotException.getClassification());
         
         // And: Event snapshot should contain captured history
@@ -241,28 +242,28 @@ public class EventDrivenBugReportingIntegrationTest {
         RuntimeException hotSwapError = new RuntimeException("Hot-swap operation failed due to JVM constraints");
         EventSnapshotException hotSwapException = EventSnapshotException.captureAndThrow(
             hotSwapError, "Hot-swap failure", sampleEventHistory);
-        assertEquals(EventSnapshotException.ErrorClassification.HOT_SWAP_FAILURE, 
+        assertEquals(ErrorClassification.HOT_SWAP_FAILURE, 
                      hotSwapException.getClassification());
 
         // Type mismatch error
         ClassCastException typeError = new ClassCastException("Type conversion failed");
         EventSnapshotException typeException = EventSnapshotException.captureAndThrow(
             typeError, "Type error", sampleEventHistory);
-        assertEquals(EventSnapshotException.ErrorClassification.TYPE_MISMATCH, 
+        assertEquals(ErrorClassification.TYPE_MISMATCH, 
                      typeException.getClassification());
 
         // Null reference error
         NullPointerException nullError = new NullPointerException("Null reference accessed");
         EventSnapshotException nullException = EventSnapshotException.captureAndThrow(
             nullError, "Null error", sampleEventHistory);
-        assertEquals(EventSnapshotException.ErrorClassification.NULL_REFERENCE, 
+        assertEquals(ErrorClassification.NULL_REFERENCE, 
                      nullException.getClassification());
 
         // Invalid state error
         IllegalStateException stateError = new IllegalStateException("Invalid system state");
         EventSnapshotException stateException = EventSnapshotException.captureAndThrow(
             stateError, "State error", sampleEventHistory);
-        assertEquals(EventSnapshotException.ErrorClassification.INVALID_STATE, 
+        assertEquals(ErrorClassification.INVALID_STATE, 
                      stateException.getClassification());
     }
 

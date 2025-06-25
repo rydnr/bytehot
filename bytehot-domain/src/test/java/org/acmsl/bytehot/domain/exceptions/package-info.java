@@ -104,7 +104,7 @@
  *     assertThat(snapshotException.getEventSnapshot()).isNotNull();
  *     assertThat(snapshotException.getOriginalCause()).isEqualTo(originalError);
  *     assertThat(snapshotException.getClassification())
- *         .isEqualTo(EventSnapshotException.ErrorClassification.HOT_SWAP_FAILURE);
+ *         .isEqualTo(ErrorClassification.HOT_SWAP_FAILURE);
  *     assertThat(snapshotException.getCapturedAt()).isNotNull();
  * }
  * }</pre>
@@ -186,7 +186,7 @@
  *         List.of()
  *     );
  *     assertThat(nullException.getClassification())
- *         .isEqualTo(EventSnapshotException.ErrorClassification.NULL_REFERENCE);
+ *         .isEqualTo(ErrorClassification.NULL_REFERENCE);
  *     
  *     // Test type mismatch error classification
  *     EventSnapshotException typeException = EventSnapshotException.captureAndThrow(
@@ -195,7 +195,7 @@
  *         List.of()
  *     );
  *     assertThat(typeException.getClassification())
- *         .isEqualTo(EventSnapshotException.ErrorClassification.TYPE_MISMATCH);
+ *         .isEqualTo(ErrorClassification.TYPE_MISMATCH);
  *     
  *     // Test invalid state error classification
  *     EventSnapshotException stateException = EventSnapshotException.captureAndThrow(
@@ -204,7 +204,7 @@
  *         List.of()
  *     );
  *     assertThat(stateException.getClassification())
- *         .isEqualTo(EventSnapshotException.ErrorClassification.INVALID_STATE);
+ *         .isEqualTo(ErrorClassification.INVALID_STATE);
  *     
  *     // Test hot-swap specific error classification
  *     EventSnapshotException hotswapException = EventSnapshotException.captureAndThrow(
@@ -213,7 +213,7 @@
  *         List.of()
  *     );
  *     assertThat(hotswapException.getClassification())
- *         .isEqualTo(EventSnapshotException.ErrorClassification.HOT_SWAP_FAILURE);
+ *         .isEqualTo(ErrorClassification.HOT_SWAP_FAILURE);
  * }
  * }</pre>
  * 

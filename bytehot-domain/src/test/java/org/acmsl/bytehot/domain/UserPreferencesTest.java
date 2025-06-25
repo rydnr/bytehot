@@ -56,7 +56,7 @@ public class UserPreferencesTest {
     @Test
     public void shouldCreateDefaultPreferences() {
         // Given & When
-        final UserPreferences preferences = UserPreferences.defaults();
+        final UserPreferences preferences = UserPreferences.defaultPreferences();
         
         // Then
         assertNotNull(preferences);
@@ -69,7 +69,7 @@ public class UserPreferencesTest {
     @Test
     public void shouldUpdatePreferences() {
         // Given
-        final UserPreferences originalPreferences = UserPreferences.defaults();
+        final UserPreferences originalPreferences = UserPreferences.defaultPreferences();
         
         // When
         final UserPreferences updatedPreferences = originalPreferences.update("notification.enabled", false);
@@ -83,7 +83,7 @@ public class UserPreferencesTest {
     @Test
     public void shouldGetTypedValues() {
         // Given
-        final UserPreferences preferences = UserPreferences.defaults()
+        final UserPreferences preferences = UserPreferences.defaultPreferences()
             .update("timeout.seconds", 30)
             .update("debug.enabled", true)
             .update("theme.name", "dark");
@@ -97,7 +97,7 @@ public class UserPreferencesTest {
     @Test
     public void shouldHandleMultipleUpdates() {
         // Given
-        final UserPreferences preferences = UserPreferences.defaults();
+        final UserPreferences preferences = UserPreferences.defaultPreferences();
         
         // When
         final UserPreferences updated = preferences
@@ -115,8 +115,8 @@ public class UserPreferencesTest {
     @Test
     public void shouldHaveValueEquality() {
         // Given
-        final UserPreferences preferences1 = UserPreferences.defaults();
-        final UserPreferences preferences2 = UserPreferences.defaults();
+        final UserPreferences preferences1 = UserPreferences.defaultPreferences();
+        final UserPreferences preferences2 = UserPreferences.defaultPreferences();
         final UserPreferences preferences3 = preferences1.update("test", "value");
         
         // When & Then
@@ -128,7 +128,7 @@ public class UserPreferencesTest {
     @Test
     public void shouldBeImmutable() {
         // Given
-        final UserPreferences originalPreferences = UserPreferences.defaults();
+        final UserPreferences originalPreferences = UserPreferences.defaultPreferences();
         
         // When
         final UserPreferences modifiedPreferences = originalPreferences.update("new.setting", "value");
@@ -142,7 +142,7 @@ public class UserPreferencesTest {
     @Test
     public void shouldSupportGenericGet() {
         // Given
-        final UserPreferences preferences = UserPreferences.defaults()
+        final UserPreferences preferences = UserPreferences.defaultPreferences()
             .update("custom.timeout", 5000L)
             .update("custom.enabled", true);
         
