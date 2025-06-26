@@ -35,6 +35,7 @@ package org.acmsl.commons.patterns;
 
 /**
  * Represents generic Observable objects.
+ * @param <O> the observer type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface Observable<O extends Observer>

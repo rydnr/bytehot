@@ -38,11 +38,16 @@ import org.acmsl.commons.patterns.Port;
 
 /**
  * Marks all classes acting as Adapters.
+ * @param <P> the port type parameter
  * @author <a href="mailto:rydnr@acm-sl.org">rydnr</a>
  * @since 2025-06-08
  */
 @SuppressWarnings("unused")
 public interface Adapter<P extends Port> {
     
+    /**
+     * Returns the port class this adapter adapts.
+     * @return the port class
+     */
     Class<P> adapts();
 }

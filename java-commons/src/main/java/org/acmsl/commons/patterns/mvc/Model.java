@@ -44,6 +44,7 @@ import org.acmsl.commons.patterns.Observable;
 /**
  * Represents an information model, so it can be displayed and modified
  * following the Model-View-Controller architecture.
+ * @param <C> the controller type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  * @since 2013/05/30
  */

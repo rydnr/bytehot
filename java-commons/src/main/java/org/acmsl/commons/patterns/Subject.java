@@ -45,6 +45,7 @@ import java.util.Collection;
 
 /**
  * Generic implementation of the Observable pattern.
+ * @param <O> the observer type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public class Subject<O extends Observer>

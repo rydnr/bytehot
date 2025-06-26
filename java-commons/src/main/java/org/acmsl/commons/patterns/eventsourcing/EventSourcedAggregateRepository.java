@@ -86,6 +86,7 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
 
     /**
      * Factory interface for creating aggregate instances
+     * @param <T> the aggregate type parameter
      */
     public interface AggregateFactory<T extends AggregateRoot> {
         T createEmpty(final String aggregateId);
