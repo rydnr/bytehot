@@ -69,6 +69,7 @@ public class CachingPortResolver {
 
     /**
      * Resolves all implementations of a given port.
+     * @param <P> the port type parameter
      * @param port such port.
      * @return A list of implementations.
      */
@@ -80,6 +81,7 @@ public class CachingPortResolver {
 
     /**
      * Resolves the main implementation of a given port.
+     * @param <P> the port type parameter
      * @param port such port.
      * @return The port implementation, if any.
      */

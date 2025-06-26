@@ -56,14 +56,12 @@ public class ByteHotNotStarted
 
     /**
      * The original event.
-     * @return such event.
      */
     @Getter
     private final ByteHotAttachRequested preceding;
 
     /**
      * The error cause.
-     * @return such cause.
      */
     @Getter
     private final Throwable errorCause;

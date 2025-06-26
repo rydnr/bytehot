@@ -69,15 +69,13 @@ import lombok.ToString;
 public class ByteHot {
 
     /**
-     * Retrieves the ByteHot configuration.
-     * @return the configuration.
+     * The ByteHot configuration.
      */
     @Getter
     private final WatchConfiguration configuration;
 
     /**
      * The Instrumentation instance used for bytecode manipulation.
-     * @return the Instrumentation instance.
      */
     @Getter
     private final Instrumentation instrumentation;

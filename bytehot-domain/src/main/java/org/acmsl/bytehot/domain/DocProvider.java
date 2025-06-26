@@ -76,16 +76,16 @@ import java.time.Duration;
  * 4. File System Operations: File monitoring activity detection
  * 
  * Supported Flows with Confidence Thresholds:
- * - ConfigurationManagementFlow (>80% confidence during config operations)
- * - FileChangeDetectionFlow (>85% confidence during file operations)
- * - HotSwapCompleteFlow (>90% confidence during class redefinition)
- * - AgentStartupFlow (>75% confidence during initialization)
+ * - ConfigurationManagementFlow (&gt;80% confidence during config operations)
+ * - FileChangeDetectionFlow (&gt;85% confidence during file operations)
+ * - HotSwapCompleteFlow (&gt;90% confidence during class redefinition)
+ * - AgentStartupFlow (&gt;75% confidence during initialization)
  * 
  * Performance Requirements:
- * - Documentation URL generation: < 10ms (95th percentile)
- * - Flow detection accuracy: > 80% for common scenarios
- * - System overhead: < 1% additional CPU, < 5MB memory
- * - Cache hit rate: > 70% for frequently accessed documentation
+ * - Documentation URL generation: &lt; 10ms (95th percentile)
+ * - Flow detection accuracy: &gt; 80% for common scenarios
+ * - System overhead: &lt; 1% additional CPU, &lt; 5MB memory
+ * - Cache hit rate: &gt; 70% for frequently accessed documentation
  * 
  * @author Claude Code
  * @since 2025-06-22

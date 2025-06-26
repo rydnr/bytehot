@@ -58,14 +58,12 @@ public class ByteHotAgentAttached
 
     /**
      * The original event.
-     * @return such event.
      */
     @Getter
     private final ByteHotAttachRequested preceding;
 
     /**
      * The configuration for ByteHot.
-     * @return the configuration object.
      */
     @Getter
     private final WatchConfiguration configuration;

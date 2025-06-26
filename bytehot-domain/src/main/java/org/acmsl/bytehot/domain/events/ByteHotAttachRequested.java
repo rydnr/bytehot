@@ -58,14 +58,12 @@ public class ByteHotAttachRequested
 
     /**
      * The configuration for ByteHot.
-     * @return the configuration object.
      */
     @Getter
     private final WatchConfiguration configuration;
 
     /**
      * The instrumentation instance for the JVM.
-     * @return the instrumentation instance.
      */
     @Getter
     private final Instrumentation instrumentation;

@@ -297,6 +297,7 @@ public class ErrorContext {
 
     /**
      * Helper method to filter system properties for relevance and security
+     * @return filtered map of relevant system properties
      */
     @NonNull
     private static Map<String, String> filterRelevantSystemProperties() {
@@ -311,6 +312,7 @@ public class ErrorContext {
 
     /**
      * Helper method to filter environment variables for relevance and security
+     * @return filtered map of relevant environment variables
      */
     @NonNull
     private static Map<String, String> filterRelevantEnvironmentVariables() {
@@ -324,6 +326,8 @@ public class ErrorContext {
 
     /**
      * Checks if a system property is relevant for error context
+     * @param key the system property key to check
+     * @return true if the property is relevant for error context
      */
     private static boolean isRelevantSystemProperty(@NonNull final String key) {
         return key.startsWith("java.") || 
@@ -336,6 +340,8 @@ public class ErrorContext {
 
     /**
      * Checks if an environment variable is relevant and safe to capture
+     * @param key the environment variable key to check
+     * @return true if the variable is relevant and safe to capture
      */
     private static boolean isRelevantEnvironmentVariable(@NonNull final String key) {
         String lowerKey = key.toLowerCase();
