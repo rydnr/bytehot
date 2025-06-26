@@ -1,0 +1,38 @@
+#!/bin/bash
+# ByteHot Pre-commit Hook
+# Validates javadoc before allowing commits
+
+set -euo pipefail
+
+echo "🔍 Running pre-commit javadoc validation..."
+
+# Check if the javadoc validation script exists
+SCRIPT_PATH=".github/scripts/validate-all-javadoc.sh"
+
+if [[ ! -f "$SCRIPT_PATH" ]]; then
+    echo "⚠️  Javadoc validation script not found at $SCRIPT_PATH"
+    echo "   Skipping javadoc validation"
+    exit 0
+fi
+
+# Make sure the script is executable
+chmod +x "$SCRIPT_PATH"
+
+# Run the comprehensive javadoc validation
+echo "📋 Checking javadoc compliance..."
+
+if bash "$SCRIPT_PATH"; then
+    echo "✅ Javadoc validation passed - commit allowed"
+    exit 0
+else
+    echo ""
+    echo "❌ Javadoc validation failed!"
+    echo ""
+    echo "🔧 Please fix the javadoc issues above before committing."
+    echo "   This prevents GitHub Actions documentation build failures."
+    echo ""
+    echo "💡 To skip this check (not recommended):"
+    echo "   git commit --no-verify"
+    echo ""
+    exit 1
+fi
