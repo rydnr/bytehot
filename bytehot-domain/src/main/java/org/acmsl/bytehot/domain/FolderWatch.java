@@ -54,16 +54,14 @@ public class FolderWatch {
 
     /**
      * The folder to watch.
-     * @return such folder.
      */
     @Getter
     private final Path folder;
 
     /**
-     * The interval between checks.
-     * @return such value, in milliseconds.
+     * The interval between checks, in milliseconds.
      */
-@Getter
+    @Getter
     private final int interval;
 
     /**

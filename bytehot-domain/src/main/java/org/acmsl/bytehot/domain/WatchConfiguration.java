@@ -55,14 +55,12 @@ public class WatchConfiguration {
 
     /**
      * The port on which ByteHot will listen for requests.
-     * @return the port number.
      */
     @Getter
     private final int port;
 
     /**
      * The list of folders to watch for changes.
-     * @return the list of FolderWatch objects.
      */
     @Getter
     private List<FolderWatch> folders;

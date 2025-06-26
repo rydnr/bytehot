@@ -516,6 +516,8 @@ public class BugReportGenerator {
 
     /**
      * Generates reproduction steps based on the event snapshot
+     * @param exception the exception to generate reproduction steps for
+     * @return list of reproduction steps
      */
     protected List<String> generateReproductionSteps(@NonNull final EventSnapshotException exception) {
         List<String> steps = new java.util.ArrayList<>();
@@ -544,6 +546,8 @@ public class BugReportGenerator {
 
     /**
      * Generates a reproduction test case
+     * @param exception the exception to generate test case for
+     * @return reproduction test case string
      */
     protected String generateReproductionTestCase(@NonNull final EventSnapshotException exception) {
         StringBuilder testCase = new StringBuilder();
@@ -574,6 +578,8 @@ public class BugReportGenerator {
 
     /**
      * Extracts reproduction environment from error context
+     * @param exception the exception to extract environment from
+     * @return reproduction environment map
      */
     protected Map<String, String> extractReproductionEnvironment(@NonNull final EventSnapshotException exception) {
         Map<String, String> environment = new java.util.HashMap<>();
@@ -605,6 +611,8 @@ public class BugReportGenerator {
 
     /**
      * Calculates reproducibility score based on available context
+     * @param exception the exception to calculate score for
+     * @return reproducibility score between 0.0 and 1.0
      */
     protected double calculateReproducibilityScore(@NonNull final EventSnapshotException exception) {
         double score = 0.0;
@@ -637,6 +645,8 @@ public class BugReportGenerator {
 
     /**
      * Finds related issues or patterns
+     * @param exception the exception to find related issues for
+     * @return list of related issues
      */
     protected List<String> findRelatedIssues(@NonNull final EventSnapshotException exception) {
         List<String> relatedIssues = new java.util.ArrayList<>();
