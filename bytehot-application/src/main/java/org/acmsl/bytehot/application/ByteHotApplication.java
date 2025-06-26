@@ -118,6 +118,7 @@ public class ByteHotApplication
 
     /**
      * Initializes the application with the given instrumentation
+     * @param instrumentation the JVM instrumentation interface
      */
     public static void initialize(final Instrumentation instrumentation) {
         if (!adaptersInitialized) {
@@ -408,6 +409,7 @@ public class ByteHotApplication
 
     /**
      * Discovers and injects all available adapters into the Ports registry
+     * @param instrumentation the JVM instrumentation interface
      */
     @SuppressWarnings("unchecked")
     protected static void discoverAndInjectAdapters(final Instrumentation instrumentation) {
@@ -422,6 +424,8 @@ public class ByteHotApplication
 
     /**
      * Injects the built-in infrastructure adapters
+     * @param ports the ports registry for dependency injection
+     * @param instrumentation the JVM instrumentation interface
      */
     @SuppressWarnings("unchecked")
     protected static void injectBuiltInAdapters(final Ports ports, final Instrumentation instrumentation) {
@@ -439,6 +443,7 @@ public class ByteHotApplication
 
     /**
      * Discovers additional adapters from the classpath
+     * @param ports the ports registry for dependency injection
      */
     protected static void discoverAdaptersFromClasspath(final Ports ports) {
         try {
@@ -461,6 +466,7 @@ public class ByteHotApplication
 
     /**
      * Finds all classes implementing the Adapter interface
+     * @return list of classes that implement the Adapter interface
      */
     protected static List<Class<?>> findAdapterClasses() {
         final List<Class<?>> adapterClasses = new ArrayList<>();
@@ -488,6 +494,9 @@ public class ByteHotApplication
 
     /**
      * Scans a package for adapter classes
+     * @param packageName the name of the package to scan
+     * @param classLoader the class loader to use for loading classes
+     * @return list of adapter classes found in the package
      */
     protected static List<Class<?>> scanPackageForAdapters(final String packageName, final ClassLoader classLoader) {
         final List<Class<?>> adapterClasses = new ArrayList<>();
@@ -515,6 +524,10 @@ public class ByteHotApplication
 
     /**
      * Scans file system directory for adapter classes
+     * @param directory the directory to scan for class files
+     * @param packageName the package name corresponding to the directory
+     * @param classLoader the class loader to use for loading classes
+     * @return list of adapter classes found in the directory
      */
     protected static List<Class<?>> scanFileSystemForAdapters(final File directory, final String packageName, final ClassLoader classLoader) {
         final List<Class<?>> adapterClasses = new ArrayList<>();
@@ -634,6 +647,8 @@ public class ByteHotApplication
 
     /**
      * Instantiates and injects an adapter
+     * @param ports the ports registry for dependency injection
+     * @param adapterClass the adapter class to instantiate and inject
      */
     @SuppressWarnings("unchecked")
     protected static void instantiateAndInjectAdapter(final Ports ports, final Class<?> adapterClass) {
