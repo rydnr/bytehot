@@ -45,12 +45,26 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class FileWatcherAdapterTest {
 
+    /**
+     * A temporary folder
+     */
     @TempDir
     Path tempDir;
 
+    /**
+     * The file watcher
+     */
     private FileWatcherAdapter watcher;
+
+    /**
+     * A mock {@code Application}
+     */
     private Application mockApplication;
 
+    /**
+     * Common logic before each test
+     * @throws Exception if the logic fails unexpectedly
+     */
     @BeforeEach
     void setUp() throws Exception {
         // Create a simple mock application that just returns empty response lists
@@ -71,6 +85,10 @@ public class FileWatcherAdapterTest {
         assertTrue(watcher.isWatcherAvailable());
     }
 
+    /**
+     * Should start watching valid directory
+     * @throws Exception if the test fails unexpectedly
+     */
     @Test
     @DisplayName("Should start watching valid directory")
     public void shouldStartWatchingValidDirectory() throws Exception {
@@ -86,6 +104,9 @@ public class FileWatcherAdapterTest {
         assertTrue(watcher.getWatchedPaths().contains(tempDir));
     }
 
+    /**
+     * Should handle non-existent directory gracefully
+     */
     @Test
     @DisplayName("Should handle non-existent directory gracefully")
     public void shouldHandleNonExistentDirectoryGracefully() {
@@ -99,6 +120,10 @@ public class FileWatcherAdapterTest {
         });
     }
 
+    /**
+     * Should stop watching gracefully
+     * @throws Exception if the test fails unexpectedly
+     */
     @Test
     @DisplayName("Should stop watching gracefully")
     public void shouldStopWatchingGracefully() throws Exception {
@@ -111,6 +136,10 @@ public class FileWatcherAdapterTest {
         assertFalse(watcher.isWatching(tempDir));
     }
 
+    /**
+     * Should handle multiple watch paths
+     * @throws Exception if the test fails unexpectedly
+     */
     @Test
     @DisplayName("Should handle multiple watch paths")
     public void shouldHandleMultipleWatchPaths() throws Exception {
@@ -131,6 +160,10 @@ public class FileWatcherAdapterTest {
         assertEquals(2, watcher.getWatchedPaths().size());
     }
 
+    /**
+     * Should be able to restart watching
+     * @throws Exception if the test fails unexpectedly
+     */
     @Test
     @DisplayName("Should be able to restart watching")
     public void shouldBeAbleToRestartWatching() throws Exception {
@@ -146,6 +179,10 @@ public class FileWatcherAdapterTest {
         });
     }
 
+    /**
+     * Should  check if currently watching
+     * @throws Exception if the test fails unexpectedly
+     */
     @Test
     @DisplayName("Should check if currently watching")
     public void shouldCheckIfCurrentlyWatching() throws Exception {
@@ -160,6 +197,10 @@ public class FileWatcherAdapterTest {
         assertFalse(watcher.isWatching(tempDir));
     }
 
+    /**
+     * Should support recursive watching
+     * @throws Exception if the test fails unexpectedly
+     */
     @Test
     @DisplayName("Should support recursive watching")
     public void shouldSupportRecursiveWatching() throws Exception {
@@ -176,6 +217,9 @@ public class FileWatcherAdapterTest {
         assertTrue(watcher.isWatching(subDir));
     }
 
+    /**
+     * Should be operational after initialization
+     */
     @Test
     @DisplayName("Should be operational after initialization")
     public void shouldBeOperationalAfterInitialization() {
