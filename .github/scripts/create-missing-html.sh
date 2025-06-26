@@ -9,7 +9,7 @@ echo "🔧 Creating missing HTML content files..."
 # Create bytehot directory if not exists
 mkdir -p bytehot
 
-CSS="$(source ./.github/scripts/css.sh)"
+CSS="$(source ./.github/scripts/unified-style.sh)"
 NAV_CHILD="$(source ./.github/scripts/nav-child.sh)"
 FOOTER="$(source ./.github/scripts/footer.sh)"
 MATRIX="$(source ./.github/scripts/matrix.sh)"

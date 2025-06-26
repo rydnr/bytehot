@@ -37,6 +37,15 @@ bash ./.github/scripts/generate-html-from-org.sh "journal.org" "📔 ByteHot Dev
 echo "📔 Generating getting-started page..."
 bash ./.github/scripts/generate-html-from-org.sh "GETTING_STARTED.org" "🚀 Getting Started Guide"
 
+# Step 4: Apply the new unified style to all HTML files
+echo "🎨 Applying unified style to all HTML files..."
+for file in bytehot/*.html; do
+    if [ -f "$file" ]; then
+        # Add the unified stylesheet
+        sed -i 's|<style>.*</style>|<style>'"$(< .github/scripts/unified-style.sh)"'</style>|' "$file"
+    fi
+done
+
 # Step 5: Fix broken links in the copied files
 echo "🔧 Fixing broken links..."
 bash ./.github/scripts/fix-links.sh

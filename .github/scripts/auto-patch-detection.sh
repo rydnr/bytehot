@@ -10,7 +10,7 @@ JAVA_VERSION="${1:-17}"
 detect_patch_changes() {
     # Get the last commit message (first line only to avoid multiline issues)
     COMMIT_MSG=$(git log -1 --pretty=%s)
-    echo "commit_msg=$COMMIT_MSG"
+    echo "commit_msg=$COMMIT_MSG" >&2
     
     # Check if this is a patch-worthy commit or manual dispatch
     PATCH_WORTHY=false
@@ -20,7 +20,7 @@ detect_patch_changes() {
     if [ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ]; then
         PATCH_WORTHY=true
         CATEGORY="manual"
-        echo "🎯 Manual patch release triggered"
+        echo "🎯 Manual patch release triggered" >&2
     fi
     
     # Bug fix patterns
@@ -58,9 +58,9 @@ detect_patch_changes() {
     echo "category=$CATEGORY"
     
     if [ "$PATCH_WORTHY" = "true" ]; then
-        echo "🎯 Patch-level change detected: $COMMIT_MSG"
+        echo "🎯 Patch-level change detected: $COMMIT_MSG" >&2
     else
-        echo "ℹ️ No patch-level change detected"
+        echo "ℹ️ No patch-level change detected" >&2
     fi
 }
 
@@ -111,38 +111,13 @@ test_build() {
     echo "📦 Building project without tests..."
     mvn clean install -DskipTests -q
     
-    # Run tests gracefully
-    run_tests_gracefully() {
-        local module=$1
-        local tests=$2
-        echo "🧪 Testing $module with pattern: $tests"
-        
-        # Run tests with failIfNoSpecifiedTests=false to handle missing tests gracefully
-        mvn test -pl "$module" -Dtest="$tests" -Dsurefire.failIfNoSpecifiedTests=false -q
-        local exit_code=$?
-        
-        if [ $exit_code -eq 0 ]; then
-            echo "✅ Tests passed for $module"
-            return 0
-        else
-            echo "⚠️ Tests failed or not found for $module (exit code: $exit_code)"
-            return $exit_code
-        fi
-    }
-    
-    # Test infrastructure module - key adapter tests
-    run_tests_gracefully "bytehot-infrastructure" "ConfigurationAdapterTest,ConfigurationLoadingIntegrationTest,EventEmitterAdapterTest,FilesystemEventStoreAdapterTest" || echo "⚠️ Infrastructure tests had issues"
-    
-    # Test domain module - core configuration tests
-    run_tests_gracefully "bytehot-domain" "WatchConfigurationTest" || echo "⚠️ Domain tests had issues"
-    
-    # Run a broader test to ensure basic functionality
-    echo "🧪 Running broader test suite to verify basic functionality..."
+    # Run tests
+    echo "🧪 Running test suite to verify basic functionality..."
     mvn test -Dsurefire.failIfNoSpecifiedTests=false -q
     BROAD_TEST_EXIT=$?
     
     if [ $BROAD_TEST_EXIT -eq 0 ]; then
-        echo "✅ Broader test suite passed, proceeding with patch release"
+        echo "✅ Test suite passed, proceeding with patch release"
     else
         echo "❌ Critical test failures detected, aborting auto patch release"
         exit 1

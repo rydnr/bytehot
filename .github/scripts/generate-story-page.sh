@@ -8,7 +8,7 @@ echo "📖 Creating story page from story.org..."
 # Ensure bytehot directory exists
 mkdir -p bytehot
 
-CSS="$(source ./.github/scripts/css.sh)"
+CSS="$(source ./.github/scripts/unified-style.sh)"
 NAV="$(source ./.github/scripts/nav.sh)"
 FOOTER="$(source ./.github/scripts/footer.sh)"
 MATRIX="$(source ./.github/scripts/matrix.sh)"

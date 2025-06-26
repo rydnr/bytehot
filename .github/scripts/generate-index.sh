@@ -5,7 +5,7 @@ set -euo pipefail
 
 echo "📄 Creating index page from story.org..."
 
-CSS="$(source ./.github/scripts/css.sh)"
+CSS="$(source ./.github/scripts/unified-style.sh)"
 NAV="$(source ./.github/scripts/nav.sh)"
 FOOTER="$(source ./.github/scripts/footer.sh)"
 MATRIX="$(source ./.github/scripts/matrix.sh)"
