@@ -141,6 +141,11 @@ public interface AggregateRoot {
      * Exception thrown when aggregate operations fail.
      */
     class AggregateException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public AggregateException(final String message) {
             super(message);
         }

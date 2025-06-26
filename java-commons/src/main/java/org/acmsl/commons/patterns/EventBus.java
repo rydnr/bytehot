@@ -135,6 +135,11 @@ public interface EventBus {
      * Exception thrown when EventBus operations fail.
      */
     class EventBusException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public EventBusException(final String message) {
             super(message);
         }

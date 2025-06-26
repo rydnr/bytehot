@@ -297,6 +297,11 @@ public interface PortResolver<P extends Port> {
      * Exception thrown when plugin discovery fails.
      */
     class PluginDiscoveryException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public PluginDiscoveryException(final String message) {
             super(message);
         }
@@ -310,6 +315,11 @@ public interface PortResolver<P extends Port> {
      * Exception thrown when plugin registration fails.
      */
     class PluginRegistrationException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public PluginRegistrationException(final String message) {
             super(message);
         }
@@ -323,6 +333,11 @@ public interface PortResolver<P extends Port> {
      * Exception thrown when plugin operations fail.
      */
     class PluginException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public PluginException(final String message) {
             super(message);
         }

@@ -70,6 +70,11 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         List<String> getAggregateIds(final String aggregateType) throws EventStoreException;
         
         class EventStoreException extends RuntimeException {
+            /**
+             * Serial version UID for serialization compatibility.
+             */
+            private static final long serialVersionUID = 1L;
+
             public EventStoreException(final String message) {
                 super(message);
             }

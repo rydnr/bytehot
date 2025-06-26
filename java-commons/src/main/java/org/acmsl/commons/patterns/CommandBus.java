@@ -130,6 +130,11 @@ public interface CommandBus {
      * Exception thrown when CommandBus operations fail.
      */
     class CommandBusException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public CommandBusException(final String message) {
             super(message);
         }

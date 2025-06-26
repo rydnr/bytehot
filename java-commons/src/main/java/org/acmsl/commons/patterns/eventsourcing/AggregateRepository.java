@@ -161,6 +161,11 @@ public interface AggregateRepository<T extends AggregateRoot> extends Repository
      * Exception thrown when repository operations fail.
      */
     class AggregateRepositoryException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         public AggregateRepositoryException(final String message) {
             super(message);
         }
@@ -174,6 +179,11 @@ public interface AggregateRepository<T extends AggregateRoot> extends Repository
      * Exception thrown when optimistic concurrency control detects version conflicts.
      */
     class ConcurrencyException extends RuntimeException {
+        /**
+         * Serial version UID for serialization compatibility.
+         */
+        private static final long serialVersionUID = 1L;
+
         protected final String aggregateId;
         protected final long expectedVersion;
         protected final long actualVersion;
