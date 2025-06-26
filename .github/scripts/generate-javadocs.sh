@@ -52,8 +52,11 @@ fi
 if [ -d "target/site/apidocs" ] && [ -n "$(ls -A target/site/apidocs 2>/dev/null)" ]; then
     echo "✅ Javadocs generated successfully"
     echo "📊 Generated files:"
-    find target/site/apidocs -name "*.html" | head -10
-    echo "📊 Total HTML files: $(find target/site/apidocs -name "*.html" | wc -l)"
+    find target/site/apidocs -name "*.html" 2>/dev/null | head -10 || echo "No HTML files found to list"
+    
+    # Count files more safely to avoid broken pipe
+    html_count=$(find target/site/apidocs -name "*.html" 2>/dev/null | wc -l || echo "0")
+    echo "📊 Total HTML files: $html_count"
 else
     echo "❌ Javadocs generation failed completely"
     echo "All generation strategies failed:"

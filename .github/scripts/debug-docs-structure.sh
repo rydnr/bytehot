@@ -28,7 +28,9 @@ fi
 echo "📋 Generated documentation files:"
 find bytehot -name "*.html" -type f 2>/dev/null | head -20 || echo "No HTML files found"
 
-echo "📊 Total HTML files: $(find bytehot -name "*.html" -type f 2>/dev/null | wc -l)"
+# Count files more safely to avoid broken pipe
+html_count=$(find bytehot -name "*.html" -type f 2>/dev/null | wc -l || echo "0")
+echo "📊 Total HTML files: $html_count"
 
 # Check for required styling components per CLAUDE.md
 echo "🎨 Checking styling compliance..."
