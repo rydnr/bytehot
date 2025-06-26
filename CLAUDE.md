@@ -69,6 +69,9 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 - `bytehot-infrastructure`: Depends on `bytehot-domain` and `java-commons` (runtime dependency on application for agent JAR only).
 - `bytehot-application`: Depends on `bytehot-domain` and `bytehot-infrastructure` (and `java-commons` if needed).
 
+### Dependency Management
+- Use maven-enforcer-plugin to ensure bytehot-domain can only depend on java-commons and not on other libraries that serialize to xml or json, for example.
+
 ### CI/CD Workflows
 - CI/CD workflows shouldn't create complete documents on the fly. Instead, they should convert existing files and do certain transformations on them if necessary. Exceptions are headers and footers, css, javascript, or index files.
 - CI/CD pipeline definitions should delegate all logic to scripts. Don't use inline shell snippets.
