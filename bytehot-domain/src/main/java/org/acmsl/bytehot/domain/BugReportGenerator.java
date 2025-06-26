@@ -335,6 +335,8 @@ public class BugReportGenerator {
 
     /**
      * Analyzes the severity of a bug based on the exception context
+     * @param exception the event snapshot exception to analyze
+     * @return the determined bug severity level
      */
     protected BugSeverity analyzeSeverity(@NonNull final EventSnapshotException exception) {
         Throwable originalException = exception.getOriginalException();
@@ -362,6 +364,8 @@ public class BugReportGenerator {
 
     /**
      * Analyzes the category of a bug based on the exception context
+     * @param exception the event snapshot exception to analyze
+     * @return the determined bug category
      */
     protected BugCategory analyzeCategory(@NonNull final EventSnapshotException exception) {
         Throwable originalException = exception.getOriginalException();
@@ -401,6 +405,8 @@ public class BugReportGenerator {
 
     /**
      * Generates detailed analysis of the bug
+     * @param exception the event snapshot exception to analyze
+     * @return detailed analysis text of the bug
      */
     protected String generateAnalysis(@NonNull final EventSnapshotException exception) {
         StringBuilder analysis = new StringBuilder();
@@ -442,6 +448,10 @@ public class BugReportGenerator {
 
     /**
      * Generates actionable recommendations for fixing the bug
+     * @param exception the event snapshot exception to analyze
+     * @param category the category of the bug
+     * @param severity the severity level of the bug
+     * @return list of actionable recommendations for fixing the bug
      */
     protected List<String> generateRecommendations(@NonNull final EventSnapshotException exception, 
                                                  @NonNull final BugCategory category, 

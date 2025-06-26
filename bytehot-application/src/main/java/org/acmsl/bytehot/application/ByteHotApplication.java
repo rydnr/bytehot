@@ -113,6 +113,9 @@ public class ByteHotApplication
      * Holder class for the singleton instance of ByteHotApplication.
      */
     protected static class Holder {
+        /**
+         * The singleton instance of ByteHotApplication.
+         */
         private static final ByteHotApplication INSTANCE = new ByteHotApplication();
     }
 

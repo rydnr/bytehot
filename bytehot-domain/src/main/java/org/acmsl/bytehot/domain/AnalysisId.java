@@ -46,7 +46,6 @@ import java.util.UUID;
  * @author Claude (Anthropic AI)
  * @since 2025-06-19
  */
-@RequiredArgsConstructor
 @EqualsAndHashCode
 @ToString
 public final class AnalysisId implements ValueObject {
@@ -56,6 +55,14 @@ public final class AnalysisId implements ValueObject {
      */
     @Getter
     private final String value;
+
+    /**
+     * Creates a new AnalysisId with the specified value.
+     * @param value the unique identifier value
+     */
+    protected AnalysisId(final String value) {
+        this.value = value;
+    }
 
     /**
      * Creates a new random AnalysisId.
