@@ -91,6 +91,8 @@ public interface EventHandler<T extends DomainEvent> {
      * Exception thrown when event handling fails.
      */
     class EventHandlerException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         public EventHandlerException(final String message) {
             super(message);
         }
