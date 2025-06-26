@@ -126,6 +126,11 @@ public class ClassFileChanged extends AbstractVersionedDomainEvent {
 
     /**
      * Factory method to create a ClassFileChanged event for a new file monitoring session
+     * @param classFile the path to the modified .class file
+     * @param className the name of the class (extracted from filename)
+     * @param fileSize the size of the file after modification
+     * @param detectionTimestamp the timestamp when the change was detected
+     * @return new ClassFileChanged event for new session
      */
     public static ClassFileChanged forNewSession(
         Path classFile,
@@ -149,6 +154,13 @@ public class ClassFileChanged extends AbstractVersionedDomainEvent {
 
     /**
      * Factory method to create a ClassFileChanged event for an existing file monitoring session
+     * @param classFile the path to the modified .class file
+     * @param className the name of the class (extracted from filename)
+     * @param fileSize the size of the file after modification
+     * @param detectionTimestamp the timestamp when the change was detected
+     * @param previousEventId the ID of the previous event in the stream
+     * @param currentVersion the current version of the aggregate
+     * @return new ClassFileChanged event for existing session
      */
     public static ClassFileChanged forExistingSession(
         Path classFile,
@@ -177,6 +189,14 @@ public class ClassFileChanged extends AbstractVersionedDomainEvent {
 
     /**
      * Factory method to create a ClassFileChanged event with user context
+     * @param classFile the path to the modified .class file
+     * @param className the name of the class (extracted from filename)
+     * @param fileSize the size of the file after modification
+     * @param detectionTimestamp the timestamp when the change was detected
+     * @param userId the ID of the user associated with this event
+     * @param previousEventId the ID of the previous event in the stream
+     * @param currentVersion the current version of the aggregate
+     * @return new ClassFileChanged event with user context
      */
     public static ClassFileChanged withUser(
         Path classFile,

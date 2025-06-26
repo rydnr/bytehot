@@ -152,7 +152,7 @@ public class HotSwapRequested extends AbstractVersionedDomainEvent implements Do
      * 
      * @param fileChangeEvent the original file change event
      * @param sessionId the monitoring session ID (used as request reason)
-    
+     * @return new HotSwapRequested event based on file change
      */
     public static HotSwapRequested fromFileChange(ClassFileChanged fileChangeEvent, String sessionId) {
         // For the demonstration, create placeholder bytecode

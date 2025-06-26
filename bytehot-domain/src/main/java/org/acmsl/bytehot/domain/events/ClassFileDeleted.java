@@ -119,6 +119,10 @@ public class ClassFileDeleted extends AbstractVersionedDomainEvent {
 
     /**
      * Factory method to create a ClassFileDeleted event for a new file monitoring session
+     * @param classFile the path to the deleted .class file
+     * @param className the name of the class (extracted from filename)
+     * @param detectionTimestamp the timestamp when the deletion was detected
+     * @return new ClassFileDeleted event for new session
      */
     public static ClassFileDeleted forNewSession(
         Path classFile,
