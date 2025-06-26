@@ -40,6 +40,7 @@ package org.acmsl.commons.patterns.dao;
 
 /**
  * Data Access Object able to access and retrieve {@link ValueObject} instances.
+ * @param <VO> the value object type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 @SuppressWarnings("unused")

@@ -39,6 +39,8 @@ package org.acmsl.commons.patterns.dao;
 
 /**
  * Represents entities able to format {@link ValueObject} fields.
+ * @param <V> the value type parameter
+ * @param <F> the field type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface ValueObjectFieldFormatter<V, F extends ValueObjectField<V>>
