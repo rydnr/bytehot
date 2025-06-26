@@ -198,6 +198,9 @@ public class ByteHotApplicationIntegrationTest {
 
     /**
      * Tests the complete startup flow: agent attach → config load → capability check
+     * @param tempDir the temporary folder
+     * @throws IOException if files cannot be read or written
+     * @throws Exception if the test fails for other reasons
      */
     @Test
     public void complete_startup_flow_produces_expected_events_and_output(@TempDir Path tempDir) throws IOException, Exception {
@@ -265,6 +268,9 @@ public class ByteHotApplicationIntegrationTest {
 
     /**
      * Tests startup flow when JVM doesn't support hot-swap capabilities
+     * @param tempDir a temporary folder
+     * @throws IOException if files cannot be read or written
+     * @throws Exception if the test fails for other reasons
      */
     @Test
     public void startup_flow_without_hotswap_support_skips_capability_message(@TempDir Path tempDir) throws IOException, Exception {
