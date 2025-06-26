@@ -52,4 +52,16 @@ public interface Defaults {
      * Used by DocProvider for generating documentation URLs.
      */
     String DOCUMENTATION_BASE_URL = "https://rydnr.github.io/bytehot";
+
+    /**
+     * Base URL for ByteHot flow documentation.
+     * Used by DocProvider for generating flow-specific documentation URLs.
+     */
+    String FLOWS_BASE_URL = "https://rydnr.github.io/bytehot/flows";
+
+    /**
+     * Base URL for ByteHot class documentation.
+     * Used by DocProvider for generating class-specific documentation URLs.
+     */
+    String CLASSES_BASE_URL = "https://rydnr.github.io/bytehot/classes";
 }
