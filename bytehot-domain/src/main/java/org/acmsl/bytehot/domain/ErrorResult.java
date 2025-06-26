@@ -119,6 +119,15 @@ public class ErrorResult {
 
     /**
      * Creates an ErrorResult with generated error ID and current timestamp
+     * @param errorType the error type
+     * @param severity the severity
+     * @param recoveryStrategy the recovery strategy
+     * @param recoverable whether it's recoverable
+     * @param errorMessage the error message
+     * @param className the name of the class
+     * @param operation the operation
+     * @param cause the underlying cause
+     * @return the {@code ErrorResult}
      */
     public static ErrorResult create(
             final ErrorType errorType,
@@ -146,6 +155,11 @@ public class ErrorResult {
 
     /**
      * Creates an ErrorResult with simplified parameters
+     * @param errorType the error type
+     * @param recoveryStrategy the recovery strategy
+     * @param recoverable whether it's recoverable
+     * @param errorMessage the error message
+     * @return the {@code ErrorResult}
      */
     public static ErrorResult create(
             final ErrorType errorType,

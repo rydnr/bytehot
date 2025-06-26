@@ -93,7 +93,14 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         String getAggregateType();
     }
 
+    /**
+     * The event store
+     */
     protected final EventStore eventStore;
+
+    /**
+     * The aggregate factory
+     */
     protected final AggregateFactory<T> aggregateFactory;
 
     /**
@@ -114,6 +121,12 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         this.aggregateFactory = aggregateFactory;
     }
 
+    /**
+     * Finds an aggregate by id
+     * @param aggregateId the id to look for
+     * @return the aggregate, if any
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public Optional<T> findById(final String aggregateId) throws AggregateRepositoryException {
         if (aggregateId == null || aggregateId.trim().isEmpty()) {
@@ -135,6 +148,13 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Finds an aggregate by id and version
+     * @param aggregateId the id to look for
+     * @param version the version
+     * @return the aggregate, if any
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public Optional<T> findByIdAndVersion(final String aggregateId, final long version) throws AggregateRepositoryException {
         if (aggregateId == null || aggregateId.trim().isEmpty() || version < 0) {
@@ -165,6 +185,12 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Saves an aggregate
+     * @param aggregate the aggregate
+     * @throws AggregateRepositoryException if the repository is not available
+     * @throws ConcurrencyException if the operation failed
+     */
     @Override
     public void save(final T aggregate) throws AggregateRepositoryException, ConcurrencyException {
         if (aggregate == null) {
@@ -194,6 +220,12 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Checks whether an aggregate exists
+     * @param aggregateId the id of the aggregate
+     * @return true in such case
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public boolean exists(final String aggregateId) throws AggregateRepositoryException {
         if (aggregateId == null || aggregateId.trim().isEmpty()) {
@@ -208,6 +240,12 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Retrieves the event history
+     * @param aggregateId the id of the aggregate
+     * @return the past events
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public List<VersionedDomainEvent> getEventHistory(final String aggregateId) throws AggregateRepositoryException {
         if (aggregateId == null || aggregateId.trim().isEmpty()) {
@@ -222,6 +260,13 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Retrieves the event history from a point in time
+     * @param aggregateId the id of the aggregate
+     * @param sinceVersion the initial version
+     * @return the past events
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public List<VersionedDomainEvent> getEventHistorySince(final String aggregateId, final long sinceVersion) 
             throws AggregateRepositoryException {
@@ -238,6 +283,12 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Retrieves the current version of an aggregate
+     * @param aggregateId the id of the aggregate
+     * @return the current version
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public long getCurrentVersion(final String aggregateId) throws AggregateRepositoryException {
         if (aggregateId == null || aggregateId.trim().isEmpty()) {
@@ -252,12 +303,22 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Deletes an aggregate
+     * @param aggregateId the id of the aggregate
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public void delete(final String aggregateId) throws AggregateRepositoryException {
         throw new AggregateRepositoryException("Delete operation not supported for EventSourcing aggregates. " +
                                              "Consider using a 'deleted' event instead to maintain audit trail.");
     }
 
+    /**
+     * Retrieves all aggregate ids
+     * @return such ids
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public List<String> getAllAggregateIds() throws AggregateRepositoryException {
         try {
@@ -269,6 +330,12 @@ public abstract class EventSourcedAggregateRepository<T extends AggregateRoot> i
         }
     }
 
+    /**
+     * Reconstructs an aggregate from its events
+     * @param aggregateId the id of the aggregate
+     * @param events the events
+     * @throws AggregateRepositoryException if the repository is not available
+     */
     @Override
     public T reconstructFromEvents(final String aggregateId, final List<VersionedDomainEvent> events) 
             throws AggregateRepositoryException {

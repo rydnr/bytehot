@@ -166,10 +166,19 @@ public interface AggregateRepository<T extends AggregateRoot> extends Repository
          */
         private static final long serialVersionUID = 1L;
 
+        /**
+         * Creates a new instance.
+         * @param message the exception message.
+         */
         public AggregateRepositoryException(final String message) {
             super(message);
         }
 
+        /**
+         * Creates a new instance.
+         * @param message the exception message.
+         * @param cause the underlying cause.
+         */
         public AggregateRepositoryException(final String message, final Throwable cause) {
             super(message, cause);
         }
@@ -184,10 +193,25 @@ public interface AggregateRepository<T extends AggregateRoot> extends Repository
          */
         private static final long serialVersionUID = 1L;
 
+        /**
+         * The aggregate id.
+         */
         protected final String aggregateId;
+        /**
+         * The expected version.
+         */
         protected final long expectedVersion;
+        /**
+         * The actual version.
+         */
         protected final long actualVersion;
 
+        /**
+         * Creates a new instance.
+         * @param aggregateId the id of the aggregate.
+         * @param expectedVersion the expected version.
+         * @param actualVersion the actual version.
+         */
         public ConcurrencyException(final String aggregateId, final long expectedVersion, final long actualVersion) {
             super(String.format("Concurrency conflict for aggregate %s: expected version %d, actual version %d", 
                                aggregateId, expectedVersion, actualVersion));
@@ -196,14 +220,26 @@ public interface AggregateRepository<T extends AggregateRoot> extends Repository
             this.actualVersion = actualVersion;
         }
 
+        /**
+         * Retrieves the aggregate id.
+         * @return such id.
+         */
         public String getAggregateId() {
             return aggregateId;
         }
 
+        /**
+         * Retrieves the expected version.
+         * @return such version.
+         */
         public long getExpectedVersion() {
             return expectedVersion;
         }
 
+        /**
+         * Retrieves the actual version.
+         * @return such version.
+         */
         public long getActualVersion() {
             return actualVersion;
         }

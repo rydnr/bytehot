@@ -187,20 +187,39 @@ public final class DocProvider {
      * Represents a detected Flow context with confidence scoring.
      */
     protected static class FlowContext {
+        /**
+         * The name of the flow.
+         */
         @NonNull
         private final String flowName;
+        /**
+         * The confidence.
+         */
         private final double confidence;
 
+        /**
+         * Creates a new instance.
+         * @param flowName the name of the flow.
+         * @param confidence the confidence.
+         */
         protected FlowContext(@NonNull final String flowName, final double confidence) {
             this.flowName = flowName;
             this.confidence = Math.max(0.0, Math.min(1.0, confidence)); // Clamp to [0,1]
         }
 
+        /**
+         * Retrieves the name of the flow.
+         * @return such name.
+         */
         @NonNull
         protected String getFlowName() {
             return flowName;
         }
 
+        /**
+         * Retrieves the confidence.
+         * @return such value.
+         */
         protected double getConfidence() {
             return confidence;
         }

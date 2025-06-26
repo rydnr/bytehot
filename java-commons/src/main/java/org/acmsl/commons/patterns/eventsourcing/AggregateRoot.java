@@ -146,10 +146,19 @@ public interface AggregateRoot {
          */
         private static final long serialVersionUID = 1L;
 
+        /**
+         * Creates a new instance.
+         * @param message the message.
+         */
         public AggregateException(final String message) {
             super(message);
         }
 
+        /**
+         * Creates a new instance.
+         * @param message the message.
+         * @param cause the underlying cause.
+         */
         public AggregateException(final String message, final Throwable cause) {
             super(message, cause);
         }

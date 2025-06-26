@@ -200,18 +200,37 @@ public class FileMonitoringSession {
     @EqualsAndHashCode
     @ToString
     public static class SessionStatistics {
+        /**
+         * The session id
+         */
         @Getter
         private final String sessionId;
-        
+
+        /**
+         * The creation timestamp
+         */
         @Getter
         private final Instant createdAt;
-        
+
+        /**
+         * The count of monitored files
+         */
         @Getter
         private final int monitoredFileCount;
-        
+
+        /**
+         * The count of processed changes
+         */
         @Getter
         private final int processedChangeCount;
 
+        /**
+         * Creates a new instance
+         * @param sessionId the id of the session
+         * @param createdAt the creation timestamp
+         * @param monitoredFileCount the number of monitored files
+         * @param processedChangeCount the number of processed changes
+         */
         public SessionStatistics(String sessionId, Instant createdAt, int monitoredFileCount, int processedChangeCount) {
             this.sessionId = sessionId;
             this.createdAt = createdAt;

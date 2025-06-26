@@ -129,6 +129,16 @@ public final class EventMetadata implements ValueObject {
 
     /**
      * Constructor for creating EventMetadata instances.
+     * @param eventId the id of the event
+     * @param aggregateType the type of aggregate
+     * @param aggregateVersion the version of the aggregate
+     * @param timestamp the timestamp
+     * @param previousEventId the id of the previous event
+     * @param schemaVersion the version of the schema
+     * @param userId the id of the user
+     * @param correlationId the correlation id
+     * @param causationId the causation id
+     * @param streamPosition the stream position
      */
     public EventMetadata(final String eventId,
                         final String aggregateType,

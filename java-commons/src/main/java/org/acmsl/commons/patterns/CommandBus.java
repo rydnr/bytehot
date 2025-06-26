@@ -135,10 +135,19 @@ public interface CommandBus {
          */
         private static final long serialVersionUID = 1L;
 
+        /**
+         * Creates a new instance.
+         * @param message the message.
+         */
         public CommandBusException(final String message) {
             super(message);
         }
 
+        /**
+         * Creates a new instance.
+         * @param message the message.
+         * @param cause the underlying cause.
+         */
         public CommandBusException(final String message, final Throwable cause) {
             super(message, cause);
         }

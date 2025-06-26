@@ -593,6 +593,7 @@ public class BugReproductionTestGenerator {
 
     /**
      * Generates required imports list
+     * @return such imports
      */
     @NonNull
     protected List<String> generateRequiredImports() {

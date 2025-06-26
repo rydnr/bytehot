@@ -114,6 +114,8 @@ public class EventEmitterAdapter
 
     /**
      * Emits a single domain event
+     * @param event the event
+     * @throws Exception if the event cannot be emitted
      */
     @Override
     public void emit(final DomainResponseEvent<?> event) throws Exception {
@@ -141,6 +143,8 @@ public class EventEmitterAdapter
 
     /**
      * Emits multiple domain events
+     * @param events the events
+     * @throws Exception if the event cannot be emitted
      */
     @Override
     public void emit(final List<DomainResponseEvent<?>> events) throws Exception {
@@ -155,6 +159,7 @@ public class EventEmitterAdapter
 
     /**
      * Checks if event emission is available
+     * @return true in that case
      */
     @Override
     public boolean isEmissionAvailable() {
@@ -171,6 +176,7 @@ public class EventEmitterAdapter
 
     /**
      * Returns the emission target description
+     * @return such target
      */
     @Override
     public String getEmissionTarget() {
@@ -188,6 +194,7 @@ public class EventEmitterAdapter
 
     /**
      * Returns the number of events emitted
+     * @return such count
      */
     @Override
     public long getEmittedEventCount() {
@@ -196,6 +203,7 @@ public class EventEmitterAdapter
 
     /**
      * Returns the port interface this adapter implements
+     * @return the port
      */
     @Override
     public Class<EventEmitterPort> adapts() {
@@ -204,6 +212,8 @@ public class EventEmitterAdapter
 
     /**
      * Formats an event for emission
+     * @param event the event to format
+     * @return the formatted event
      */
     protected String formatEvent(final DomainResponseEvent<?> event) {
         final StringBuilder sb = new StringBuilder();
@@ -235,6 +245,8 @@ public class EventEmitterAdapter
 
     /**
      * Writes a message to the log file
+     * @param message the message to write
+     * @throws Exception if the operation fails
      */
     protected void writeToFile(final String message) throws Exception {
         try {
@@ -254,6 +266,7 @@ public class EventEmitterAdapter
 
     /**
      * Checks if the log file is writable
+     * @return true in such case
      */
     protected boolean isFileWritable() {
         try {
@@ -271,6 +284,8 @@ public class EventEmitterAdapter
 
     /**
      * Determines if an event represents an error condition
+     * @param event the event to check
+     * @return true in such case
      */
     protected boolean isErrorEvent(final DomainResponseEvent<?> event) {
         final String eventName = event.getClass().getSimpleName().toLowerCase();
@@ -279,6 +294,7 @@ public class EventEmitterAdapter
 
     /**
      * Gets the current stack trace as a string
+     * @return the stack trace
      */
     protected String getStackTrace() {
         try (final StringWriter sw = new StringWriter();
@@ -295,6 +311,7 @@ public class EventEmitterAdapter
 
     /**
      * Returns the current emission target
+     * @return such instance
      */
     public EmissionTarget getTarget() {
         return target;
@@ -302,6 +319,7 @@ public class EventEmitterAdapter
 
     /**
      * Returns the log file path
+     * @return such path
      */
     public Path getLogFile() {
         return logFile;
@@ -309,6 +327,7 @@ public class EventEmitterAdapter
 
     /**
      * Returns whether stack traces are included
+     * @return true in such case
      */
     public boolean isIncludeStackTraces() {
         return includeStackTraces;

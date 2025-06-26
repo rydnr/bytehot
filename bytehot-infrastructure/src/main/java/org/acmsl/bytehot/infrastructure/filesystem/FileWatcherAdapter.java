@@ -127,6 +127,7 @@ public class FileWatcherAdapter
     /**
      * Creates a new FileWatcherAdapter instance
      * @param application the application instance for processing events
+     * @throws IOException if the adapter cannot be created
      */
     public FileWatcherAdapter(final Application application) throws IOException {
         this.application = application;
@@ -145,6 +146,10 @@ public class FileWatcherAdapter
 
     /**
      * Starts watching a directory for file changes
+     * @param path the path
+     * @param patterns the patterns
+     * @param recursive whether to recurse folders
+     * @throws Exception if the operation fails
      */
     @Override
     public String startWatching(final Path path, final List<String> patterns, final boolean recursive) throws Exception {
@@ -173,6 +178,8 @@ public class FileWatcherAdapter
 
     /**
      * Stops watching a previously registered directory
+     * @param watchId the id
+     * @throws Exception if the operation fails
      */
     @Override
     public void stopWatching(final String watchId) throws Exception {
@@ -188,6 +195,7 @@ public class FileWatcherAdapter
 
     /**
      * Checks if a directory is currently being watched
+     * @param path the path
      */
     @Override
     public boolean isWatching(final Path path) {
@@ -196,6 +204,7 @@ public class FileWatcherAdapter
 
     /**
      * Returns all currently watched paths
+     * @return such paths
      */
     @Override
     public List<Path> getWatchedPaths() {
@@ -204,6 +213,7 @@ public class FileWatcherAdapter
 
     /**
      * Checks if the file watcher is operational
+     * @return true in such case
      */
     @Override
     public boolean isWatcherAvailable() {
@@ -213,6 +223,7 @@ public class FileWatcherAdapter
     /**
      * Properly initializes this adapter with full functionality
      * @param application the application instance for processing events
+     * @throws IOException if the adapter cannot be initialized
      */
     public void initialize(final Application application) throws IOException {
         if (this.watchService != null) {
@@ -250,6 +261,8 @@ public class FileWatcherAdapter
 
     /**
      * Registers a single directory for watching
+     * @param path the path to watch
+     * @throws IOException if the operation fails
      */
     protected void registerSingle(final Path path) throws IOException {
         final WatchKey watchKey = path.register(
@@ -265,6 +278,8 @@ public class FileWatcherAdapter
 
     /**
      * Registers a directory and all subdirectories for watching
+     * @param start the starting path
+     * @throws IOException if the operation fails
      */
     protected void registerRecursive(final Path start) throws IOException {
         Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
@@ -323,6 +338,8 @@ public class FileWatcherAdapter
 
     /**
      * Processes a file system event
+     * @param kind the event kind
+     * @param path the path
      */
     protected void processFileEvent(final WatchEvent.Kind<?> kind, final Path path) {
         // Check if any watch configuration matches this file
@@ -338,6 +355,7 @@ public class FileWatcherAdapter
 
     /**
      * Checks if a path represents a .class file
+     * @return true in such case
      */
     protected boolean isClassFile(final Path path) {
         return path.toString().endsWith(".class");
@@ -345,6 +363,7 @@ public class FileWatcherAdapter
 
     /**
      * Emits a ClassFileChanged domain event
+     * @param classFile the class file
      */
     protected void emitClassFileChangedEvent(final Path classFile) {
         try {
@@ -387,6 +406,8 @@ public class FileWatcherAdapter
 
     /**
      * Extracts the class name from a .class file path
+     * @param classFile the class file
+     * @return the class name
      */
     protected String extractClassName(final Path classFile) {
         final String fileName = classFile.getFileName().toString();
@@ -398,6 +419,9 @@ public class FileWatcherAdapter
 
     /**
      * Checks if a file matches any of the given patterns
+     * @param path the path
+     * @param patterns the patterns to check
+     * @return true in such case
      */
     protected boolean matchesPatterns(final Path path, final List<Pattern> patterns) {
         final String filename = path.getFileName().toString();
@@ -446,6 +470,9 @@ public class FileWatcherAdapter
 
         /**
          * Creates a new watch configuration
+         * @param path the path
+         * @param patterns the patterns
+         * @param recursive whether it's recursive
          */
         public WatchConfiguration(final Path path, final List<Pattern> patterns, final boolean recursive) {
             this.path = path;
@@ -455,6 +482,7 @@ public class FileWatcherAdapter
 
         /**
          * Returns the path being watched
+         * @return the path
          */
         public Path getPath() {
             return path;
@@ -462,6 +490,7 @@ public class FileWatcherAdapter
 
         /**
          * Returns the file patterns
+         * @return the patterns
          */
         public List<Pattern> getPatterns() {
             return patterns;
@@ -469,6 +498,7 @@ public class FileWatcherAdapter
 
         /**
          * Returns whether watching is recursive
+         * @return whether it's recursive
          */
         public boolean isRecursive() {
             return recursive;

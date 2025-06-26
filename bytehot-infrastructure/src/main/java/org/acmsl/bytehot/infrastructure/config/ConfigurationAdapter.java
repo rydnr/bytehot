@@ -179,6 +179,7 @@ public class ConfigurationAdapter
 
     /**
      * Loads configuration from system properties
+     * @return a {@code WatchConfiguration} instance.
      */
     protected WatchConfiguration loadFromSystemProperties() {
         final String watchPaths = System.getProperty(PROP_PREFIX + "watch.paths");
@@ -220,6 +221,7 @@ public class ConfigurationAdapter
 
     /**
      * Loads configuration from environment variables
+     * @return a {@code WatchConfiguration} instance.
      */
     protected WatchConfiguration loadFromEnvironment() {
         final String watchPaths = System.getenv(ENV_PREFIX + "WATCH_PATHS");
@@ -253,6 +255,8 @@ public class ConfigurationAdapter
 
     /**
      * Loads configuration from a YAML file
+     * @param filename the name of the file
+     * @return a {@code WatchConfiguration} instance.
      */
     @SuppressWarnings("unchecked")
     protected WatchConfiguration loadFromFile(final String filename) {
@@ -305,6 +309,8 @@ public class ConfigurationAdapter
 
     /**
      * Loads configuration from a file path (for bhconfig parameter)
+     * @param filePath the path of the file
+     * @return a {@code WatchConfiguration} instance.
      */
     @SuppressWarnings("unchecked")
     protected WatchConfiguration loadFromFilePath(final String filePath) {
@@ -355,6 +361,7 @@ public class ConfigurationAdapter
 
     /**
      * Creates default configuration when no explicit configuration is found
+     * @return a {@code WatchConfiguration} instance.
      */
     protected WatchConfiguration createDefaultConfiguration() {
         final List<FolderWatch> folders = new ArrayList<>();

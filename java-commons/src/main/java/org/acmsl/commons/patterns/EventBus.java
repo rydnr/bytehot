@@ -140,10 +140,19 @@ public interface EventBus {
          */
         private static final long serialVersionUID = 1L;
 
+        /**
+         * Creates a new instance.
+         * @param message the message
+         */
         public EventBusException(final String message) {
             super(message);
         }
 
+        /**
+         * Creates a new instance.
+         * @param message the message
+         * @param cause the underlying cause
+         */
         public EventBusException(final String message, final Throwable cause) {
             super(message, cause);
         }
