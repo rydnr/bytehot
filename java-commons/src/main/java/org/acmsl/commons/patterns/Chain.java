@@ -43,6 +43,9 @@ import java.util.List;
 /**
  * Represents chain objects, as they are modelled by GoF's Chain Of
  * Responsibility design pattern.
+ * @param <C> the command type parameter
+ * @param <E> the exception type parameter  
+ * @param <CH> the command handler type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface Chain<C extends Command, E extends Exception, CH extends CommandHandler<C, E>>

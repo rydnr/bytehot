@@ -43,6 +43,8 @@ import java.io.Serializable;
 
 /**
  * Models stateful entities.
+ * @param <S> the state type parameter
+ * @param <T> the transition type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 @SuppressWarnings("unused")

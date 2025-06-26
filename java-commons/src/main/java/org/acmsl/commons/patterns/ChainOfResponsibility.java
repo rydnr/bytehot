@@ -44,6 +44,9 @@ package org.acmsl.commons.patterns;
  * Represents classes that know about the ordering in which {@link Command} instances are
  * handled by {@link CommandHandler} objects, under the model defined in GoF's Chain Of
  * Responsibility design pattern.
+ * @param <C> the command type parameter
+ * @param <E> the exception type parameter
+ * @param <CH> the command handler type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface ChainOfResponsibility<C extends Command, E extends Exception, CH extends CommandHandler<C, E>>

@@ -47,6 +47,8 @@ import java.io.Serializable;
  * Represents transitions in automatons or state diagrams, that is, changes
  * in the behavior of entities that follow a deterministic finite-state
  * automata (DFSA).
+ * @param <S1> the source state type parameter
+ * @param <S2> the target state type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface Transition<S1 extends State, S2 extends State>
