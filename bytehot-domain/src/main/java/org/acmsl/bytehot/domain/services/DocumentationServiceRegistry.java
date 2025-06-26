@@ -122,7 +122,7 @@ public final class DocumentationServiceRegistry {
             final String packagePath = clazz.getPackage() != null ? 
                 clazz.getPackage().getName().replace('.', '/') + "/" : "";
             
-            return CLASSES_BASE_URL + packagePath + className + ".html";
+            return DOCUMENTATION_BASE_URL + packagePath + className + ".html";
         }
 
         @Override
