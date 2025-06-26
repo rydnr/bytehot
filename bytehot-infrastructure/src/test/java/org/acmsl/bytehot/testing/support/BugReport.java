@@ -145,7 +145,6 @@ public class BugReport implements Test {
         
         // Extract captured events from test context
         List<DomainEvent> capturedEvents = testContext.getEmittedEvents().stream()
-            .map(event -> (DomainEvent) event)
             .collect(Collectors.toList());
 
         // Analyze test failure severity
