@@ -78,6 +78,20 @@ public class ClassFileDeleted extends AbstractVersionedDomainEvent {
 
     /**
      * Constructor with all EventSourcing metadata
+     * @param eventId unique identifier for this event
+     * @param aggregateType type of the aggregate
+     * @param aggregateId unique identifier of the aggregate
+     * @param aggregateVersion version of the aggregate
+     * @param timestamp when the event occurred
+     * @param previousEventId ID of the previous event in the stream
+     * @param schemaVersion version of the event schema
+     * @param userId ID of the user associated with this event
+     * @param correlationId correlation identifier
+     * @param causationId causation identifier
+     * @param streamPosition position in the event stream
+     * @param classFile the path to the deleted .class file
+     * @param className the name of the class (extracted from filename)
+     * @param detectionTimestamp the timestamp when the deletion was detected
      */
     public ClassFileDeleted(
         String eventId,
@@ -104,6 +118,10 @@ public class ClassFileDeleted extends AbstractVersionedDomainEvent {
 
     /**
      * Constructor using EventMetadata
+     * @param metadata event metadata containing versioning and context information
+     * @param classFile the path to the deleted .class file
+     * @param className the name of the class (extracted from filename)
+     * @param detectionTimestamp the timestamp when the deletion was detected
      */
     public ClassFileDeleted(
         EventMetadata metadata,
