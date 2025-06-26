@@ -47,7 +47,7 @@
  *   <li>{@link Repository} - Repository pattern for aggregate persistence</li>
  * </ul>
  * 
- * <h3>Error Handling & Recovery</h3>
+ * <h3>Error Handling &amp; Recovery</h3>
  * <ul>
  *   <li>{@link ErrorSeverity} - Comprehensive error severity classification</li>
  *   <li>{@link ErrorCategory} - Interface for error categorization systems</li>
