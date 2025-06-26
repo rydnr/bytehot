@@ -42,6 +42,9 @@ import org.acmsl.commons.CheckedException;
 /**
  * Keeps track of the order in which objects are invoked to
  * make them participate in the chain of responsibility pattern.
+ * @param <C> the command type parameter
+ * @param <E> the exception type parameter
+ * @param <CH> the command handler type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 @SuppressWarnings("unused")

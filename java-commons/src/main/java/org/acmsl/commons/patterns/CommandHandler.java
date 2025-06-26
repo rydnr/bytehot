@@ -43,6 +43,8 @@ package org.acmsl.commons.patterns;
  * Represents objects responsible of receiving {@link Command} instances, and
  * depending on the command passed, handle it or pass it to the next
  * handler in the chain.
+ * @param <C> the command type parameter
+ * @param <E> the exception type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface CommandHandler<C extends Command, E extends Exception>
