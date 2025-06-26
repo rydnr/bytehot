@@ -46,6 +46,8 @@ import org.acmsl.commons.CheckedException;
 
 /**
  * Defines the behavior of any class capable to send {@link Command} objects.
+ * @param <C> the command type parameter
+ * @param <E> the exception type parameter
  * @author <a href="mailto:chous@acm-sl.org">Jose San Leandro Armendariz</a>
  */
 public interface CommandSender<C extends Command, E extends CheckedException>
