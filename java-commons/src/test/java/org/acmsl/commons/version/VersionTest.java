@@ -60,10 +60,6 @@ import junit.framework.TestCase;
 
 /**
  * Performs some unit tests on Version class.
- * @testfamily JUnit
- * @testkind testcase
- * @testsetup Default TestCase
- * @testedclass org.acmsl.commons.version.Version
  * @see org.acmsl.commons.version.Version
  * @author <a href="mailto:jsanleandro@yahoo.es"
            >Jose San Leandro Armend�riz</a>

@@ -58,10 +58,6 @@ import junit.framework.TestCase;
 
 /**
  * Performs some unit tests on URLUtils class.
- * @testfamily JUnit
- * @testkind testcase
- * @testsetup Default TestCase
- * @testedclass org.acmsl.commons.utils.net.URLUtils
  * @see org.acmsl.commons.utils.net.URLUtils
  * @author <a href="mailto:jsanleandro@yahoo.es"
            >Jose San Leandro Armend�riz</a>

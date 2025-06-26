@@ -57,10 +57,6 @@ import junit.framework.TestCase;
  * Performs some unit tests on StringValidator class.
  * @author <a href="mailto:chous@acm-sl.org"
            >Jose San Leandro Armendariz</a>
- * @testfamily JUnit
- * @testkind testcase
- * @testsetup Default TestCase
- * @testedclass org.acmsl.commons.utils.StringValidator
  * @see org.acmsl.commons.utils.StringValidator
  */
 public class StringValidatorTest
