@@ -39,7 +39,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import lombok.EqualsAndHashCode;
@@ -142,13 +143,14 @@ public final class DocumentationCacheMiss
         final String missReason,
         final boolean isFirstMiss
     ) {
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "documentation-cache", 
             originalRequest.getRequestingClass().getSimpleName() + "-miss",
             null,
             0L,
             "system",
-            originalRequest.getEventId()
+            originalRequest.getEventId(),
+            null
         );
         
         return new DocumentationCacheMiss(

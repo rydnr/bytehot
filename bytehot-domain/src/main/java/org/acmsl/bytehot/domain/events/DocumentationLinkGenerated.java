@@ -42,7 +42,8 @@
 package org.acmsl.bytehot.domain.events;
 
 import org.acmsl.bytehot.domain.DocumentationGenerationStrategy;
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.bytehot.domain.Flow;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
@@ -152,13 +153,14 @@ public final class DocumentationLinkGenerated
         final String generatedUrl,
         final Duration generationTime
     ) {
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "documentation-generation", 
             originalRequest.getRequestingClass().getSimpleName(),
             null,
             0L,
             "system",
-            originalRequest.getEventId()
+            originalRequest.getEventId(),
+            null
         );
         
         return new DocumentationLinkGenerated(
@@ -187,13 +189,14 @@ public final class DocumentationLinkGenerated
         final Flow appliedFlowContext,
         final Duration generationTime
     ) {
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "documentation-generation", 
             originalRequest.getRequestingClass().getSimpleName() + "@" + appliedFlowContext.getName(),
             null,
             0L,
             "system",
-            originalRequest.getEventId()
+            originalRequest.getEventId(),
+            null
         );
         
         return new DocumentationLinkGenerated(
@@ -220,13 +223,14 @@ public final class DocumentationLinkGenerated
         final String cachedUrl,
         final Duration cacheRetrievalTime
     ) {
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "documentation-generation", 
             originalRequest.getRequestingClass().getSimpleName() + "-cached",
             null,
             0L,
             "system",
-            originalRequest.getEventId()
+            originalRequest.getEventId(),
+            null
         );
         
         return new DocumentationLinkGenerated(

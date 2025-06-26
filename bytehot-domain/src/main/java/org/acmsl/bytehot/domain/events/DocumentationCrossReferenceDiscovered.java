@@ -39,7 +39,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
 import lombok.EqualsAndHashCode;
@@ -172,13 +173,14 @@ public final class DocumentationCrossReferenceDiscovered
         final double relationshipStrength,
         final String discoveryMethod
     ) {
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "documentation-cross-reference", 
             sourceArtifact + "-" + relationshipType,
             null,
             0L,
             "system",
-            originalRequest.getEventId()
+            originalRequest.getEventId(),
+            null
         );
         
         return new DocumentationCrossReferenceDiscovered(
@@ -217,13 +219,14 @@ public final class DocumentationCrossReferenceDiscovered
         final String discoveryMethod,
         final String relationshipMetadata
     ) {
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "documentation-cross-reference", 
             sourceArtifact + "-" + relationshipType + "-contextual",
             null,
             0L,
             "system",
-            originalRequest.getEventId()
+            originalRequest.getEventId(),
+            null
         );
         
         return new DocumentationCrossReferenceDiscovered(

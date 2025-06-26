@@ -35,7 +35,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
 import org.acmsl.bytehot.domain.WatchConfiguration;
 import org.acmsl.commons.patterns.DomainEvent;
 

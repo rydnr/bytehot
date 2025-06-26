@@ -163,6 +163,8 @@ public class JsonClassFileChanged {
             schemaVersion,
             userId,
             correlationId,
+            null, // causationId
+            null, // streamPosition
             Paths.get(classFile),
             className,
             fileSize,

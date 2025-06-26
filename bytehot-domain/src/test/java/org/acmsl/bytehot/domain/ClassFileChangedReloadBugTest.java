@@ -39,7 +39,7 @@ package org.acmsl.bytehot.domain;
 
 // Note: Domain test should not import application layer
 // import org.acmsl.bytehot.application.ByteHotApplication;
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.HotSwapRequested;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionSucceeded;

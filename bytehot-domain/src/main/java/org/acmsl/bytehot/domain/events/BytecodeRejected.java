@@ -36,7 +36,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -95,6 +96,8 @@ public class BytecodeRejected extends AbstractVersionedDomainEvent {
      * @param schemaVersion the version of the event schema
      * @param userId the identifier of the user who triggered this event
      * @param correlationId the correlation identifier for tracking related events
+     * @param causationId the causation identifier for tracking command origin
+     * @param streamPosition the stream position in the event store
      * @param classFile the path to the rejected .class file
      * @param className the name of the rejected class
      * @param validForHotSwap whether the bytecode is valid for hot-swap (always false)
@@ -111,6 +114,8 @@ public class BytecodeRejected extends AbstractVersionedDomainEvent {
         int schemaVersion,
         String userId,
         String correlationId,
+        String causationId,
+        Long streamPosition,
         Path classFile,
         String className,
         boolean validForHotSwap,
@@ -118,7 +123,7 @@ public class BytecodeRejected extends AbstractVersionedDomainEvent {
         Instant detectionTimestamp
     ) {
         super(eventId, aggregateType, aggregateId, aggregateVersion, timestamp, 
-              previousEventId, schemaVersion, userId, correlationId);
+              previousEventId, schemaVersion, userId, correlationId, causationId, streamPosition);
         this.classFile = classFile;
         this.className = className;
         this.validForHotSwap = validForHotSwap;

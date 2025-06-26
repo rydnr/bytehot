@@ -36,7 +36,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
 
@@ -160,13 +161,14 @@ public class HotSwapRequested extends AbstractVersionedDomainEvent implements Do
         byte[] newBytecode = new byte[]{0x05, 0x06, 0x07, 0x08};
         
         // Create metadata with correlation to the original event and preserve user context
-        final EventMetadata metadata = createMetadataWithCorrelation(
+        final EventMetadata metadata = createMetadataWithFullContext(
             "hotswap",
             fileChangeEvent.getClassName() + "-request",
             null,
             0L,
             fileChangeEvent.getMetadata() != null ? fileChangeEvent.getMetadata().getUserId() : "system",
-            fileChangeEvent.getEventId()
+            fileChangeEvent.getEventId(),
+            null
         );
         
         return new HotSwapRequested(

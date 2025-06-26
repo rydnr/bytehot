@@ -38,7 +38,7 @@
  */
 package org.acmsl.bytehot.domain;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.bytehot.domain.events.BytecodeValidated;
 import org.acmsl.bytehot.domain.events.ClassFileChanged;
 import org.acmsl.bytehot.domain.events.ClassRedefinitionFailed;

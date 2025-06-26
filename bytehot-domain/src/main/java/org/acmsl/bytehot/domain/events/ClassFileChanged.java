@@ -36,7 +36,8 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.AbstractVersionedDomainEvent;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -91,13 +92,15 @@ public class ClassFileChanged extends AbstractVersionedDomainEvent {
         int schemaVersion,
         String userId,
         String correlationId,
+        String causationId,
+        Long streamPosition,
         Path classFile,
         String className,
         long fileSize,
         Instant detectionTimestamp
     ) {
         super(eventId, aggregateType, aggregateId, aggregateVersion, timestamp, 
-              previousEventId, schemaVersion, userId, correlationId);
+              previousEventId, schemaVersion, userId, correlationId, causationId, streamPosition);
         this.classFile = classFile;
         this.className = className;
         this.fileSize = fileSize;

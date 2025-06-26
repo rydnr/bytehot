@@ -40,7 +40,7 @@
  */
 package org.acmsl.bytehot.domain.events;
 
-import org.acmsl.bytehot.domain.EventMetadata;
+import org.acmsl.commons.patterns.eventsourcing.EventMetadata;
 import org.acmsl.bytehot.domain.UserId;
 import org.acmsl.bytehot.domain.UserProfile;
 import org.acmsl.bytehot.domain.UserRegistrationSource;
