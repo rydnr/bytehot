@@ -1,0 +1,1136 @@
+#+TITLE: Milestone 11: IntelliJ IDEA Plugin (Walking Skeleton)
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+Milestone 11 creates the IntelliJ IDEA plugin that provides native IDE integration for ByteHot, delivering the most seamless development experience possible. The plugin leverages IntelliJ's powerful API to make live coding feel like a natural part of the IDE, with visual feedback, integrated toolwindows, and zero-configuration activation.
+
+** Goals
+
+- Create native IntelliJ IDEA integration that feels like a built-in feature
+- Implement visual indicators and real-time feedback for hot-swap operations
+- Provide comprehensive toolwindow integration with project awareness
+- Establish seamless integration with IntelliJ's run/debug infrastructure
+- Validate plugin foundation architecture in a sophisticated IDE environment
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I click the 'Live Mode' button in IntelliJ, and my application starts with immediate code reflection. I see real-time visual feedback when classes are hot-swapped. The integration feels like it's part of IntelliJ itself, not an external tool."
+#+END_QUOTE
+
+* Architecture Overview
+
+** IntelliJ Plugin Integration Architecture
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                Developer Experience                 │
+│  • Click "Live Mode" toolbar button                │
+│  • Visual hot-swap notifications in editor         │
+│  • Real-time status in ByteHot toolwindow          │
+│  • Integrated run configurations                   │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              bytehot-intellij-plugin                │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │   LiveModeAction│  │  ByteHotToolWindow      │   │
+│  │  - Toolbar btn  │  │  - Status monitoring    │   │
+│  │  - Run config   │  │  - Event history        │   │
+│  │  - Process mgmt │  │  │  - Settings panel     │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │ProjectAnalyzer  │  │  EditorNotifications    │   │
+│  │  - Module scan  │  │  - Hot-swap indicators  │   │
+│  │  - Main class   │  │  - Error highlighting   │   │
+│  │  - Dependencies │  │  - Success animations   │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              Plugin Foundation Layer                │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │        bytehot-plugin-commons                   │ │
+│  │  • Agent Discovery    • Communication Protocol │ │
+│  │  • Configuration Mgmt • Health Monitoring      │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│        ByteHot Agent (Auto-discovered)             │
+│  bytehot-application-latest-SNAPSHOT-agent.jar     │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Plugin Structure
+
+#+BEGIN_SRC
+bytehot-intellij-plugin/
+├── build.gradle.kts                     # IntelliJ plugin build config
+├── src/main/kotlin/org/acmsl/bytehot/intellij/
+│   ├── ByteHotPlugin.kt                 # Main plugin class
+│   ├── actions/
+│   │   ├── LiveModeAction.kt            # Live mode toolbar action
+│   │   ├── StopLiveModeAction.kt        # Stop live mode action
+│   │   └── ConfigureBytehHotAction.kt   # Configuration action
+│   ├── toolwindow/
+│   │   ├── ByteHotToolWindowFactory.kt  # Tool window factory
+│   │   ├── ByteHotToolWindowContent.kt  # Main tool window panel
+│   │   ├── StatusPanel.kt               # Status monitoring panel
+│   │   ├── EventHistoryPanel.kt         # Event history viewer
+│   │   └── SettingsPanel.kt             # Plugin settings panel
+│   ├── runconfig/
+│   │   ├── ByteHotRunConfiguration.kt   # Run configuration type
+│   │   ├── ByteHotRunConfigurationProducer.kt
+│   │   └── ByteHotProgramRunner.kt      # Custom program runner
+│   ├── notifications/
+│   │   ├── EditorNotificationProvider.kt
+│   │   ├── HotSwapNotificationPanel.kt
+│   │   └── ByteHotNotifications.kt      # Notification utilities
+│   ├── analysis/
+│   │   ├── IntellijProjectAnalyzer.kt   # Project analysis
+│   │   ├── ModuleScanner.kt             # Module scanning
+│   │   └── MainClassDetector.kt         # Main class detection
+│   ├── settings/
+│   │   ├── ByteHotConfigurable.kt       # Settings configurable
+│   │   ├── ByteHotSettings.kt           # Settings state
+│   │   └── ByteHotSettingsComponent.kt  # Settings UI component
+│   └── integration/
+│       ├── IntellijConfigurationAdapter.kt
+│       ├── IntellijProcessLauncher.kt
+│       └── IdeaPluginBase.kt           # Base plugin utilities
+├── src/main/resources/
+│   ├── META-INF/
+│   │   └── plugin.xml                   # Plugin descriptor
+│   ├── icons/                           # Plugin icons
+│   │   ├── bytehot_16.svg
+│   │   ├── bytehot_32.svg
+│   │   └── live_mode_16.svg
+│   └── messages/
+│       └── ByteHotBundle.properties     # Internationalization
+├── src/test/kotlin/
+│   ├── unit/                            # Unit tests
+│   └── integration/                     # Integration tests
+└── src/test/resources/
+    └── test-projects/                   # Test IntelliJ projects
+        ├── simple-java-project/
+        ├── multi-module-project/
+        └── spring-boot-project/
+#+END_SRC
+
+* Phase 1: Basic IntelliJ Integration
+
+** Objective
+Create the minimal viable IntelliJ plugin that provides native live mode activation with visual feedback and seamless integration into the IDE's workflow.
+
+** Walking Skeleton Implementation
+
+*** Plugin Descriptor
+#+BEGIN_SRC xml
+<!-- src/main/resources/META-INF/plugin.xml -->
+<idea-plugin>
+  <id>org.acmsl.bytehot.intellij</id>
+  <name>ByteHot Live Coding</name>
+  <version>1.0.0</version>
+  <vendor email="rydnr@acm-sl.org" url="https://github.com/rydnr/bytehot">
+    ByteHot Development Team
+  </vendor>
+
+  <description><![CDATA[
+    ByteHot Live Coding enables hot-swapping of Java classes during development,
+    allowing you to see code changes instantly without restarting your application.
+    Simply click "Live Mode" and start coding with immediate feedback.
+  ]]></description>
+
+  <change-notes><![CDATA[
+    <ul>
+      <li>Initial release with live mode activation</li>
+      <li>Visual hot-swap notifications</li>
+      <li>Integrated toolwindow for monitoring</li>
+      <li>Automatic project analysis and configuration</li>
+    </ul>
+  ]]></change-notes>
+
+  <idea-version since-build="203"/>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.java</depends>
+  <depends optional="true" config-file="spring.xml">com.intellij.spring</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Tool Window -->
+    <toolWindow id="ByteHot" anchor="bottom" factoryClass="org.acmsl.bytehot.intellij.toolwindow.ByteHotToolWindowFactory"/>
+    
+    <!-- Actions -->
+    <action id="ByteHot.LiveMode" class="org.acmsl.bytehot.intellij.actions.LiveModeAction"
+            text="Start Live Mode" description="Start ByteHot live mode for instant code reflection">
+      <add-to-group group-id="RunnerActions" anchor="after" relative-to-action="Run"/>
+    </action>
+    
+    <!-- Run Configuration -->
+    <configurationType implementation="org.acmsl.bytehot.intellij.runconfig.ByteHotRunConfigurationType"/>
+    <runConfigurationProducer implementation="org.acmsl.bytehot.intellij.runconfig.ByteHotRunConfigurationProducer"/>
+    <programRunner implementation="org.acmsl.bytehot.intellij.runconfig.ByteHotProgramRunner"/>
+    
+    <!-- Settings -->
+    <projectConfigurable instance="org.acmsl.bytehot.intellij.settings.ByteHotConfigurable"/>
+    <projectService serviceImplementation="org.acmsl.bytehot.intellij.settings.ByteHotSettings"/>
+    
+    <!-- Editor Notifications -->
+    <editorNotificationProvider implementation="org.acmsl.bytehot.intellij.notifications.EditorNotificationProvider"/>
+  </extensions>
+
+  <actions>
+    <group id="ByteHot.MainMenu" text="ByteHot" description="ByteHot Live Coding">
+      <add-to-group group-id="MainMenu" anchor="before" relative-to-action="HelpMenu"/>
+      <action id="ByteHot.LiveMode" class="org.acmsl.bytehot.intellij.actions.LiveModeAction"/>
+      <action id="ByteHot.StopLiveMode" class="org.acmsl.bytehot.intellij.actions.StopLiveModeAction"/>
+      <separator/>
+      <action id="ByteHot.Configure" class="org.acmsl.bytehot.intellij.actions.ConfigureByteHotAction"/>
+    </group>
+    
+    <group id="ByteHot.Toolbar" text="ByteHot Toolbar">
+      <add-to-group group-id="MainToolBar" anchor="after" relative-to-action="RunnerActions"/>
+      <action id="ByteHot.LiveMode" class="org.acmsl.bytehot.intellij.actions.LiveModeAction"/>
+    </group>
+  </actions>
+</idea-plugin>
+#+END_SRC
+
+*** Main Plugin Class
+#+BEGIN_SRC kotlin
+class ByteHotPlugin : IdeaPluginBase, DumbAware {
+    
+    companion object {
+        const val PLUGIN_ID = "org.acmsl.bytehot.intellij"
+        
+        fun getInstance(): ByteHotPlugin = 
+            PluginManager.getPlugin(PluginId.getId(PLUGIN_ID))?.let {
+                it as? ByteHotPlugin
+            } ?: throw IllegalStateException("ByteHot plugin not found")
+    }
+    
+    override fun initPlugin() {
+        try {
+            // Initialize plugin foundation
+            if (!initializePlugin()) {
+                logger.error("Failed to initialize ByteHot plugin foundation")
+                return
+            }
+            
+            logger.info("ByteHot IntelliJ plugin initialized successfully")
+            
+        } catch (e: Exception) {
+            logger.error("Failed to initialize ByteHot plugin", e)
+        }
+    }
+    
+    override fun disposePlugin() {
+        try {
+            // Cleanup plugin resources
+            disposePlugin()
+            logger.info("ByteHot plugin disposed successfully")
+            
+        } catch (e: Exception) {
+            logger.error("Error disposing ByteHot plugin", e)
+        }
+    }
+    
+    private val logger = Logger.getInstance(ByteHotPlugin::class.java)
+}
+#+END_SRC
+
+*** Live Mode Action Implementation
+#+BEGIN_SRC kotlin
+class LiveModeAction : AnAction(), DumbAware, IdeaPluginBase {
+    
+    companion object {
+        private val LOG = Logger.getInstance(LiveModeAction::class.java)
+    }
+    
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        
+        try {
+            LOG.info("Starting ByteHot live mode for project: ${project.name}")
+            
+            // Initialize plugin foundation if not already done
+            if (!initializePlugin()) {
+                showErrorNotification(project, "Failed to initialize ByteHot plugin")
+                return
+            }
+            
+            // Analyze project to detect configuration
+            val projectAnalyzer = IntellijProjectAnalyzer(project)
+            val config = projectAnalyzer.analyzeProject()
+            
+            // Show confirmation dialog with detected configuration
+            if (confirmLiveModeStart(project, config)) {
+                startLiveModeWithConfig(project, config)
+            }
+            
+        } catch (ex: Exception) {
+            LOG.error("Failed to start live mode", ex)
+            showErrorNotification(project, "Failed to start live mode: ${ex.message}")
+        }
+    }
+    
+    override fun update(e: AnActionEvent) {
+        val project = e.project
+        val hasProject = project != null
+        val isLiveModeActive = project?.let { isLiveModeActive(it) } ?: false
+        
+        e.presentation.isEnabled = hasProject && !isLiveModeActive
+        e.presentation.text = if (isLiveModeActive) "Live Mode Active" else "Start Live Mode"
+        e.presentation.icon = if (isLiveModeActive) 
+            IconUtil.getAddIcon() else AllIcons.Actions.Execute
+    }
+    
+    private fun confirmLiveModeStart(project: Project, config: ProjectConfiguration): Boolean {
+        val message = buildString {
+            appendLine("ByteHot Live Mode Configuration:")
+            appendLine("Main Class: ${config.mainClass}")
+            appendLine("Watch Paths: ${config.watchPaths.joinToString(", ")}")
+            appendLine("JVM Args: ${config.jvmArgs.joinToString(" ")}")
+            appendLine()
+            appendLine("Start live mode with this configuration?")
+        }
+        
+        return Messages.showYesNoDialog(
+            project,
+            message,
+            "Start ByteHot Live Mode",
+            "Start",
+            "Cancel",
+            Messages.getQuestionIcon()
+        ) == Messages.YES
+    }
+    
+    private fun startLiveModeWithConfig(project: Project, config: ProjectConfiguration) {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                LOG.info("Starting application with ByteHot agent...")
+                
+                val processLauncher = IntellijProcessLauncher(project)
+                val process = processLauncher.startApplicationWithAgent(config)
+                
+                // Register the active process
+                registerLiveModeProcess(project, process)
+                
+                // Show success notification
+                ApplicationManager.getApplication().invokeLater {
+                    showSuccessNotification(project, "Live mode started successfully")
+                    
+                    // Update tool window
+                    updateToolWindow(project, config, process)
+                }
+                
+            } catch (ex: Exception) {
+                LOG.error("Failed to start application with agent", ex)
+                ApplicationManager.getApplication().invokeLater {
+                    showErrorNotification(project, "Failed to start application: ${ex.message}")
+                }
+            }
+        }
+    }
+    
+    private fun isLiveModeActive(project: Project): Boolean {
+        return getLiveModeProcess(project)?.isAlive ?: false
+    }
+    
+    private fun registerLiveModeProcess(project: Project, process: Process) {
+        project.putUserData(LIVE_MODE_PROCESS_KEY, process)
+    }
+    
+    private fun getLiveModeProcess(project: Project): Process? {
+        return project.getUserData(LIVE_MODE_PROCESS_KEY)
+    }
+    
+    private fun updateToolWindow(project: Project, config: ProjectConfiguration, process: Process) {
+        val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("ByteHot")
+        toolWindow?.let { tw ->
+            tw.show(null)
+            // Update tool window content with status
+            val content = tw.contentManager.contents.firstOrNull()
+            (content?.component as? ByteHotToolWindowContent)?.updateStatus(config, process)
+        }
+    }
+    
+    private fun showSuccessNotification(project: Project, message: String) {
+        Notifications.Bus.notify(
+            Notification(
+                "ByteHot",
+                "ByteHot Live Mode",
+                message,
+                NotificationType.INFORMATION
+            ),
+            project
+        )
+    }
+    
+    private fun showErrorNotification(project: Project, message: String) {
+        Notifications.Bus.notify(
+            Notification(
+                "ByteHot",
+                "ByteHot Error",
+                message,
+                NotificationType.ERROR
+            ),
+            project
+        )
+    }
+    
+    companion object {
+        private val LIVE_MODE_PROCESS_KEY = Key.create<Process>("BYTEHOT_LIVE_MODE_PROCESS")
+    }
+}
+#+END_SRC
+
+*** IntelliJ Project Analyzer
+#+BEGIN_SRC kotlin
+class IntellijProjectAnalyzer(private val project: Project) {
+    
+    companion object {
+        private val LOG = Logger.getInstance(IntellijProjectAnalyzer::class.java)
+    }
+    
+    fun analyzeProject(): ProjectConfiguration {
+        val config = ProjectConfiguration()
+        
+        // Detect main class
+        config.mainClass = detectMainClass()
+        LOG.info("Detected main class: ${config.mainClass}")
+        
+        // Detect watch paths
+        config.watchPaths = detectWatchPaths()
+        LOG.info("Detected watch paths: ${config.watchPaths}")
+        
+        // Build classpath
+        config.classpath = buildClasspath()
+        
+        // Configure JVM arguments
+        config.jvmArgs = buildJvmArgs()
+        
+        return config
+    }
+    
+    fun detectMainClass(): String {
+        // Strategy 1: Check existing run configurations
+        val mainClassFromRunConfig = findMainClassInRunConfigurations()
+        if (mainClassFromRunConfig != null) return mainClassFromRunConfig
+        
+        // Strategy 2: Check Spring Boot applications
+        val springBootMainClass = findSpringBootMainClass()
+        if (springBootMainClass != null) return springBootMainClass
+        
+        // Strategy 3: Scan modules for main methods
+        val scannedMainClass = scanModulesForMainClass()
+        if (scannedMainClass != null) return scannedMainClass
+        
+        throw IllegalStateException("Could not detect main class in project: ${project.name}")
+    }
+    
+    fun detectWatchPaths(): List<String> {
+        val watchPaths = mutableListOf<String>()
+        
+        // Get all modules in the project
+        val moduleManager = ModuleManager.getInstance(project)
+        
+        for (module in moduleManager.modules) {
+            // Add source roots
+            val moduleRootManager = ModuleRootManager.getInstance(module)
+            
+            // Add main source roots
+            moduleRootManager.getSourceRoots(JavaSourceRootType.SOURCE).forEach { sourceRoot ->
+                watchPaths.add(sourceRoot.path)
+            }
+            
+            // Add resource roots
+            moduleRootManager.getSourceRoots(JavaResourceRootType.RESOURCE).forEach { resourceRoot ->
+                watchPaths.add(resourceRoot.path)
+            }
+        }
+        
+        return watchPaths.distinct()
+    }
+    
+    fun buildClasspath(): List<String> {
+        val classpathEntries = mutableListOf<String>()
+        val moduleManager = ModuleManager.getInstance(project)
+        
+        for (module in moduleManager.modules) {
+            val moduleRootManager = ModuleRootManager.getInstance(module)
+            
+            // Add module output paths
+            val compilerModuleExtension = CompilerModuleExtension.getInstance(module)
+            compilerModuleExtension?.compilerOutputPath?.let { outputPath ->
+                classpathEntries.add(outputPath.path)
+            }
+            compilerModuleExtension?.compilerOutputPathForTests?.let { testOutputPath ->
+                classpathEntries.add(testOutputPath.path)
+            }
+            
+            // Add dependencies
+            moduleRootManager.orderEntries().forEach { orderEntry ->
+                if (orderEntry is LibraryOrderEntry) {
+                    orderEntry.library?.let { library ->
+                        library.getFiles(OrderRootType.CLASSES).forEach { file ->
+                            classpathEntries.add(file.path)
+                        }
+                    }
+                }
+            }
+        }
+        
+        return classpathEntries.distinct()
+    }
+    
+    fun buildJvmArgs(): List<String> {
+        val jvmArgs = mutableListOf<String>()
+        
+        // Add ByteHot agent argument
+        val agentPath = getAgentDiscovery().agentPath.orElseThrow {
+            IllegalStateException("ByteHot agent not found")
+        }
+        jvmArgs.add("-javaagent:$agentPath")
+        
+        // Add any project-specific JVM arguments
+        // This could be read from project settings or IntelliJ run configurations
+        
+        return jvmArgs
+    }
+    
+    private fun findMainClassInRunConfigurations(): String? {
+        val runManager = RunManager.getInstance(project)
+        
+        return runManager.allSettings
+            .asSequence()
+            .mapNotNull { it.configuration as? ApplicationConfiguration }
+            .mapNotNull { it.mainClassName }
+            .firstOrNull()
+    }
+    
+    private fun findSpringBootMainClass(): String? {
+        // Look for @SpringBootApplication annotation
+        val moduleManager = ModuleManager.getInstance(project)
+        
+        for (module in moduleManager.modules) {
+            val moduleScope = module.getModuleScope(false)
+            
+            // Search for classes with @SpringBootApplication
+            val query = AnnotatedElementsSearch.searchClasses(
+                SpringBootUtil.SPRING_BOOT_APPLICATION_CLASS,
+                moduleScope
+            )
+            
+            val springBootClass = query.findFirst()
+            if (springBootClass != null) {
+                return springBootClass.qualifiedName
+            }
+        }
+        
+        return null
+    }
+    
+    private fun scanModulesForMainClass(): String? {
+        val moduleManager = ModuleManager.getInstance(project)
+        
+        for (module in moduleManager.modules) {
+            val moduleScope = module.getModuleScope(false)
+            
+            // Search for classes with main methods
+            val query = MethodReferencesSearch.search(
+                PsiMethod::class.java,
+                moduleScope,
+                false
+            ) { method ->
+                method.name == "main" &&
+                method.hasModifierProperty(PsiModifier.STATIC) &&
+                method.hasModifierProperty(PsiModifier.PUBLIC) &&
+                method.parameterList.parametersCount == 1
+            }
+            
+            val mainMethod = query.findFirst()
+            if (mainMethod != null) {
+                return mainMethod.containingClass?.qualifiedName
+            }
+        }
+        
+        return null
+    }
+}
+#+END_SRC
+
+*** IntelliJ Process Launcher
+#+BEGIN_SRC kotlin
+class IntellijProcessLauncher(private val project: Project) {
+    
+    companion object {
+        private val LOG = Logger.getInstance(IntellijProcessLauncher::class.java)
+    }
+    
+    fun startApplicationWithAgent(config: ProjectConfiguration): Process {
+        LOG.info("Starting application with ByteHot agent: ${config.mainClass}")
+        
+        val command = buildCommand(config)
+        LOG.info("Executing command: ${command.joinToString(" ")}")
+        
+        val processBuilder = ProcessBuilder(command)
+        processBuilder.directory(File(project.basePath))
+        processBuilder.redirectErrorStream(true)
+        
+        val process = processBuilder.start()
+        
+        // Handle process output in background
+        ApplicationManager.getApplication().executeOnPooledThread {
+            handleProcessOutput(process)
+        }
+        
+        return process
+    }
+    
+    private fun buildCommand(config: ProjectConfiguration): List<String> {
+        val command = mutableListOf<String>()
+        
+        // Java executable
+        val javaHome = SystemProperties.getJavaHome()
+        command.add("$javaHome/bin/java")
+        
+        // JVM arguments (including ByteHot agent)
+        command.addAll(config.jvmArgs)
+        
+        // Classpath
+        command.add("-cp")
+        command.add(config.classpath.joinToString(File.pathSeparator))
+        
+        // Main class
+        command.add(config.mainClass)
+        
+        return command
+    }
+    
+    private fun handleProcessOutput(process: Process) {
+        try {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach { line ->
+                    LOG.info("App Output: $line")
+                    
+                    // Show important output in IDE
+                    if (line.contains("ByteHot") || line.contains("hot-swap")) {
+                        ApplicationManager.getApplication().invokeLater {
+                            showProcessOutput(line)
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            LOG.error("Error handling process output", e)
+        }
+    }
+    
+    private fun showProcessOutput(output: String) {
+        // Show in ByteHot tool window or as notification
+        val toolWindow = ToolWindowManager.getInstance(project).getToolWindow("ByteHot")
+        toolWindow?.let { tw ->
+            val content = tw.contentManager.contents.firstOrNull()
+            (content?.component as? ByteHotToolWindowContent)?.addOutputLine(output)
+        }
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Core Plugin Infrastructure
+1. Create IntelliJ plugin project with proper build.gradle.kts configuration
+2. Implement main plugin class with lifecycle management
+3. Create LiveModeAction with project analysis and process launching
+4. Integrate with bytehot-plugin-commons for shared functionality
+
+*** IDE Integration Features
+1. Implement IntellijProjectAnalyzer for automatic project detection
+2. Create IntellijProcessLauncher for seamless process management
+3. Build comprehensive tool window with status monitoring
+4. Add visual notifications and editor integration
+
+*** User Experience Enhancements
+1. Create intuitive toolbar actions and menu integration
+2. Implement run configuration support for advanced scenarios
+3. Add settings panel for user customization
+4. Build comprehensive error handling and user feedback
+
+** Acceptance Criteria
+
+- [ ] Plugin installs correctly in IntelliJ IDEA 2020.3+
+- [ ] "Start Live Mode" button starts applications with zero configuration
+- [ ] Automatic project analysis works for >90% of Java/Kotlin projects
+- [ ] Visual feedback shows hot-swap operations in real-time
+- [ ] Tool window provides comprehensive status monitoring and logs
+- [ ] Integration feels native and doesn't interfere with existing workflows
+- [ ] Plugin initialization time <2 seconds for typical projects
+
+* Phase 2: Advanced IDE Integration Features
+
+** Objective
+Enhance the basic plugin with sophisticated IDE integration, including advanced editor notifications, debugging integration, and comprehensive project management for a production-ready development experience.
+
+** Advanced Editor Integration
+
+*** Hot-Swap Visual Indicators
+#+BEGIN_SRC kotlin
+class HotSwapEditorNotificationProvider : EditorNotificationProvider {
+    
+    override fun collectNotificationData(
+        project: Project,
+        file: VirtualFile
+    ): Function<FileEditor, JComponent?>? {
+        
+        if (!isJavaFile(file) || !isLiveModeActive(project)) {
+            return null
+        }
+        
+        return Function { editor ->
+            createHotSwapNotificationPanel(project, file, editor)
+        }
+    }
+    
+    private fun createHotSwapNotificationPanel(
+        project: Project,
+        file: VirtualFile,
+        editor: FileEditor
+    ): JComponent? {
+        
+        val panel = EditorNotificationPanel()
+        panel.text = "Live Mode Active - Changes will be hot-swapped automatically"
+        panel.icon = AllIcons.General.Information
+        
+        panel.createActionLabel("View Status") {
+            showByteHotToolWindow(project)
+        }
+        
+        panel.createActionLabel("Stop Live Mode") {
+            stopLiveMode(project)
+        }
+        
+        return panel
+    }
+    
+    private fun isJavaFile(file: VirtualFile): Boolean {
+        return file.extension in listOf("java", "kt", "scala")
+    }
+    
+    private fun isLiveModeActive(project: Project): Boolean {
+        return getLiveModeProcess(project)?.isAlive ?: false
+    }
+}
+#+END_SRC
+
+*** Real-time Hot-Swap Feedback
+#+BEGIN_SRC kotlin
+class HotSwapStatusIndicator : EditorCustomElementRenderer {
+    
+    private val hotSwapEvents = ConcurrentHashMap<String, HotSwapEvent>()
+    
+    fun registerHotSwapEvent(className: String, event: HotSwapEvent) {
+        hotSwapEvents[className] = event
+        
+        // Show visual indicator in editor
+        ApplicationManager.getApplication().invokeLater {
+            updateEditorGutters(className)
+        }
+    }
+    
+    private fun updateEditorGutters(className: String) {
+        val fileManager = FileEditorManager.getInstance(project)
+        
+        // Find open editors for the class
+        fileManager.allEditors.forEach { editor ->
+            if (editor is TextEditor) {
+                val psiFile = PsiDocumentManager.getInstance(project)
+                    .getPsiFile(editor.editor.document)
+                
+                if (psiFile?.containsClass(className) == true) {
+                    addHotSwapGutterIcon(editor.editor, className)
+                }
+            }
+        }
+    }
+    
+    private fun addHotSwapGutterIcon(editor: Editor, className: String) {
+        val event = hotSwapEvents[className] ?: return
+        
+        val icon = when (event.status) {
+            HotSwapStatus.SUCCESS -> AllIcons.General.InspectionsOK
+            HotSwapStatus.FAILED -> AllIcons.General.Error
+            HotSwapStatus.IN_PROGRESS -> AllIcons.General.Information
+        }
+        
+        val gutterIconRenderer = object : GutterIconRenderer() {
+            override fun getIcon(): Icon = icon
+            override fun getTooltipText(): String = "Hot-swap ${event.status}: ${event.message}"
+            override fun equals(other: Any?): Boolean = other is HotSwapStatusIndicator
+            override fun hashCode(): Int = className.hashCode()
+        }
+        
+        // Add to gutter
+        editor.markupModel.addLineHighlighter(
+            0, // Line number
+            HighlighterLayer.LAST,
+            null
+        ).gutterIconRenderer = gutterIconRenderer
+    }
+}
+#+END_SRC
+
+*** Debugging Integration
+#+BEGIN_SRC kotlin
+class ByteHotDebuggerSupport : XDebuggerManagerListener {
+    
+    override fun processStarted(debugProcess: XDebugProcess) {
+        if (isLiveModeActive(debugProcess.session.project)) {
+            enhanceDebuggerForLiveMode(debugProcess)
+        }
+    }
+    
+    private fun enhanceDebuggerForLiveMode(debugProcess: XDebugProcess) {
+        // Add ByteHot-specific debug capabilities
+        val session = debugProcess.session
+        
+        // Register hot-swap aware breakpoint handler
+        session.project.messageBus.connect(session).subscribe(
+            XBreakpointListener.TOPIC,
+            HotSwapAwareBreakpointListener(session)
+        )
+        
+        // Add live mode debug actions
+        session.ui.addAction(
+            object : AnAction("Trigger Hot-Swap", "Force hot-swap current class", AllIcons.Actions.ForceRefresh) {
+                override fun actionPerformed(e: AnActionEvent) {
+                    triggerManualHotSwap(session)
+                }
+            }
+        )
+    }
+    
+    private fun triggerManualHotSwap(session: XDebugSession) {
+        val project = session.project
+        val currentFile = getCurrentEditedFile(project)
+        
+        if (currentFile != null) {
+            // Trigger hot-swap for current file
+            val event = ClassFileChanged(
+                currentFile.path,
+                extractClassNameFromFile(currentFile),
+                System.currentTimeMillis()
+            )
+            
+            // Process through ByteHot pipeline
+            val application = ByteHotApplication.getInstance()
+            application.processClassFileChanged(event)
+        }
+    }
+}
+#+END_SRC
+
+** Comprehensive Tool Window
+
+*** Advanced Status Monitoring
+#+BEGIN_SRC kotlin
+class ByteHotToolWindowContent : SimpleToolWindowPanel(true) {
+    
+    private val statusPanel = StatusPanel()
+    private val eventHistoryPanel = EventHistoryPanel()
+    private val settingsPanel = SettingsPanel()
+    private val performancePanel = PerformancePanel()
+    
+    init {
+        setupToolWindowLayout()
+    }
+    
+    private fun setupToolWindowLayout() {
+        val tabbedPane = JBTabbedPane()
+        
+        tabbedPane.addTab("Status", statusPanel)
+        tabbedPane.addTab("Events", eventHistoryPanel)
+        tabbedPane.addTab("Performance", performancePanel)
+        tabbedPane.addTab("Settings", settingsPanel)
+        
+        setContent(tabbedPane)
+    }
+    
+    fun updateStatus(config: ProjectConfiguration, process: Process) {
+        statusPanel.updateConfiguration(config)
+        statusPanel.updateProcessStatus(process)
+    }
+    
+    fun addHotSwapEvent(event: HotSwapEvent) {
+        eventHistoryPanel.addEvent(event)
+        statusPanel.updateLastActivity(event)
+        performancePanel.recordHotSwapMetrics(event)
+    }
+    
+    fun addOutputLine(output: String) {
+        eventHistoryPanel.addOutputLine(output)
+    }
+}
+
+class StatusPanel : JPanel() {
+    
+    private val statusLabel = JLabel("Inactive")
+    private val mainClassLabel = JLabel("No main class detected")
+    private val processIdLabel = JLabel("No process")
+    private val lastActivityLabel = JLabel("No activity")
+    private val statisticsPanel = HotSwapStatisticsPanel()
+    
+    init {
+        layout = GridBagLayout()
+        setupStatusPanel()
+    }
+    
+    private fun setupStatusPanel() {
+        val gbc = GridBagConstraints()
+        
+        // Status indicator
+        gbc.gridx = 0; gbc.gridy = 0
+        gbc.anchor = GridBagConstraints.WEST
+        add(JLabel("Status:"), gbc)
+        
+        gbc.gridx = 1
+        add(statusLabel, gbc)
+        
+        // Main class info
+        gbc.gridx = 0; gbc.gridy = 1
+        add(JLabel("Main Class:"), gbc)
+        
+        gbc.gridx = 1
+        add(mainClassLabel, gbc)
+        
+        // Process info
+        gbc.gridx = 0; gbc.gridy = 2
+        add(JLabel("Process:"), gbc)
+        
+        gbc.gridx = 1
+        add(processIdLabel, gbc)
+        
+        // Last activity
+        gbc.gridx = 0; gbc.gridy = 3
+        add(JLabel("Last Activity:"), gbc)
+        
+        gbc.gridx = 1
+        add(lastActivityLabel, gbc)
+        
+        // Statistics
+        gbc.gridx = 0; gbc.gridy = 4
+        gbc.gridwidth = 2
+        gbc.fill = GridBagConstraints.BOTH
+        gbc.weightx = 1.0
+        gbc.weighty = 1.0
+        add(statisticsPanel, gbc)
+    }
+    
+    fun updateConfiguration(config: ProjectConfiguration) {
+        mainClassLabel.text = config.mainClass
+        statusLabel.text = "Active"
+        statusLabel.foreground = JBColor.GREEN
+    }
+    
+    fun updateProcessStatus(process: Process) {
+        processIdLabel.text = "PID: ${process.pid()}"
+    }
+    
+    fun updateLastActivity(event: HotSwapEvent) {
+        lastActivityLabel.text = "${event.className} - ${event.timestamp}"
+        statisticsPanel.recordEvent(event)
+    }
+}
+#+END_SRC
+
+** Run Configuration Integration
+
+*** Custom Run Configuration Type
+#+BEGIN_SRC kotlin
+class ByteHotRunConfigurationType : ConfigurationType {
+    
+    companion object {
+        const val ID = "ByteHotRunConfiguration"
+        
+        fun getInstance(): ByteHotRunConfigurationType {
+            return ConfigurationTypeUtil.findConfigurationType(ByteHotRunConfigurationType::class.java)
+        }
+    }
+    
+    override fun getDisplayName(): String = "ByteHot Live Mode"
+    
+    override fun getConfigurationTypeDescription(): String = 
+        "Run Java application with ByteHot live coding enabled"
+    
+    override fun getIcon(): Icon = AllIcons.Actions.Execute
+    
+    override fun getId(): String = ID
+    
+    override fun getConfigurationFactories(): Array<ConfigurationFactory> {
+        return arrayOf(ByteHotRunConfigurationFactory(this))
+    }
+}
+
+class ByteHotRunConfiguration(
+    project: Project,
+    factory: ConfigurationFactory,
+    name: String
+) : ApplicationConfiguration(project, factory, name) {
+    
+    var enableHotReload: Boolean = true
+    var agentOptions: String = ""
+    var watchPaths: MutableList<String> = mutableListOf()
+    
+    override fun getState(executor: Executor, env: ExecutionEnvironment): RunProfileState? {
+        return ByteHotRunProfileState(env, this)
+    }
+    
+    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> {
+        return ByteHotRunConfigurationEditor(project)
+    }
+    
+    override fun readExternal(element: Element) {
+        super.readExternal(element)
+        
+        enableHotReload = element.getAttributeValue("enableHotReload")?.toBoolean() ?: true
+        agentOptions = element.getAttributeValue("agentOptions") ?: ""
+        
+        val watchPathsElement = element.getChild("watchPaths")
+        if (watchPathsElement != null) {
+            watchPaths.clear()
+            watchPathsElement.getChildren("path").forEach { pathElement ->
+                pathElement.getAttributeValue("value")?.let { watchPaths.add(it) }
+            }
+        }
+    }
+    
+    override fun writeExternal(element: Element) {
+        super.writeExternal(element)
+        
+        element.setAttribute("enableHotReload", enableHotReload.toString())
+        element.setAttribute("agentOptions", agentOptions)
+        
+        if (watchPaths.isNotEmpty()) {
+            val watchPathsElement = Element("watchPaths")
+            watchPaths.forEach { path ->
+                val pathElement = Element("path")
+                pathElement.setAttribute("value", path)
+                watchPathsElement.addContent(pathElement)
+            }
+            element.addContent(watchPathsElement)
+        }
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Advanced Editor Integration
+1. Implement real-time hot-swap visual indicators in editor gutters
+2. Create comprehensive editor notification system
+3. Build debugging integration with hot-swap awareness
+4. Add performance monitoring and metrics collection
+
+*** Tool Window Enhancement
+1. Create multi-tab tool window with status, events, and settings
+2. Implement real-time hot-swap event monitoring and history
+3. Build performance metrics dashboard
+4. Add comprehensive configuration management UI
+
+*** Run Configuration Support
+1. Create custom ByteHot run configuration type
+2. Implement advanced configuration editor with all options
+3. Build run profile state with ByteHot agent integration
+4. Add template-based run configuration generation
+
+** Acceptance Criteria
+
+- [ ] Advanced editor integration shows real-time hot-swap feedback
+- [ ] Comprehensive tool window provides full monitoring capabilities
+- [ ] Custom run configurations work seamlessly with existing IntelliJ workflows
+- [ ] Debugging integration maintains all standard debugging features
+- [ ] Performance monitoring helps identify hot-swap bottlenecks
+- [ ] Settings panel allows full customization of plugin behavior
+- [ ] Plugin works correctly with IntelliJ IDEA 2020.3 through latest versions
+
+* Testing Strategy
+
+** Unit Testing
+- Plugin component initialization and lifecycle management
+- Project analysis algorithms with various project types
+- Configuration management and persistence
+- Process launching and monitoring logic
+
+** Integration Testing
+- End-to-end plugin functionality with real IntelliJ projects
+- Tool window integration and UI behavior
+- Run configuration creation and execution
+- Editor notification and visual feedback systems
+
+** UI Testing
+- Plugin UI components and user interactions
+- Tool window behavior and data updates
+- Settings panel functionality and validation
+- Notification display and user responses
+
+** Compatibility Testing
+- IntelliJ IDEA versions from 2020.3 to latest
+- Different project types (Java, Kotlin, Scala, Spring Boot)
+- Various operating systems and JVM versions
+- Integration with other popular IntelliJ plugins
+
+* Dependencies & Prerequisites
+
+** IntelliJ Platform Dependencies
+- IntelliJ Platform API 2020.3+
+- Java plugin support for project analysis
+- Kotlin plugin for Kotlin project support
+- Optional Spring plugin for Spring Boot integration
+
+** Build Environment
+- Gradle 6.0+ with IntelliJ Plugin Development plugin
+- Kotlin 1.4+ for plugin implementation
+- bytehot-plugin-commons for shared functionality
+- IntelliJ Plugin Verifier for compatibility testing
+
+** External Requirements
+- ByteHot agent JAR available and functional
+- Java 8+ for broad compatibility
+- Properly configured development environment with IntelliJ IDEA
+
+* Success Metrics
+
+** Technical Success Criteria
+- Plugin activation time: <3 seconds
+- Project analysis accuracy: >95% for standard Java projects
+- Live mode startup time: <5 seconds for typical projects
+- Memory overhead: <100MB during active development
+
+** User Experience Metrics
+- Plugin installation success rate: >95%
+- Zero-configuration success rate: >85% of Java projects
+- User satisfaction rating: >4.7/5 for ease of use
+- Support ticket volume: <2% of active installations
+
+* Future Enhancements
+
+** Planned Phase 3 Features
+- Integration with IntelliJ's profiler for hot-swap performance analysis
+- Advanced code completion aware of hot-swapped changes
+- Integration with IntelliJ's VCS for hot-swap history tracking
+- Custom inspections for hot-swap compatibility analysis
+
+** Community Contributions
+- Plugin templates for different project types
+- Integration with popular frameworks (Spring, Micronaut, Quarkus)
+- Enhanced Kotlin and Scala support
+- Plugin API for third-party extensions
+
+This IntelliJ IDEA plugin represents the pinnacle of ByteHot's IDE integration capabilities, providing developers with a native, intuitive experience that makes live coding feel like a natural part of their development workflow.
