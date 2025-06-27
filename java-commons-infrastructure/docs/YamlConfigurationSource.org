@@ -1,0 +1,614 @@
+#+TITLE: YamlConfigurationSource - YAML Configuration Loading Infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+
+* Overview
+
+The ~YamlConfigurationSource~ class provides comprehensive YAML configuration file loading capabilities within the ~java-commons-infrastructure~ module. This implementation supports both classpath resource loading and external file system access, enabling flexible deployment scenarios while maintaining consistent YAML parsing and error handling across different configuration sources and environments.
+
+* YAML Configuration Strategy and Design
+
+** Dual-Mode Resource Loading
+YamlConfigurationSource supports flexible resource loading strategies:
+- **Classpath Resource Loading**: Embedded configuration files packaged with applications
+- **External File System Loading**: Configuration files deployed separately from application code
+- **Deployment Flexibility**: Seamless switching between embedded and external configuration
+- **Development and Production Support**: Different loading strategies for different environments
+
+** YAML Format Advantages
+YAML provides several advantages for configuration management:
+- **Human-Readable Format**: Easy to read and edit by developers and operators
+- **Hierarchical Structure**: Natural representation of complex configuration hierarchies
+- **Data Type Support**: Native support for strings, numbers, booleans, lists, and maps
+- **Comment Support**: Inline documentation and configuration explanations
+- **Multi-Document Support**: Multiple configuration sections in a single file
+
+** Integration with SnakeYAML
+The implementation leverages SnakeYAML for robust parsing:
+- **Standards Compliance**: Full YAML 1.1 specification compliance
+- **Performance Optimization**: Efficient parsing for large configuration files
+- **Error Handling**: Detailed parsing error information with line numbers
+- **Security Features**: Safe parsing to prevent arbitrary code execution
+
+* Core Implementation and Resource Loading
+
+** Classpath Resource Constructor
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/YamlConfigurationSource.java
+/**
+ * Creates a new YAML configuration source that loads from classpath.
+ * 
+ * @param resourceName the classpath resource name
+ */
+public YamlConfigurationSource(@NonNull final String resourceName) {
+    this.filePath = resourceName;
+    this.loadFromClasspath = true;
+}
+#+END_SRC
+
+Classpath loading enables:
+- **Embedded Configuration**: Configuration files packaged within JAR files
+- **Classpath Scanning**: Automatic discovery of configuration resources
+- **Deployment Simplification**: Single artifact deployment with embedded configuration
+- **Version Coupling**: Configuration versioned alongside application code
+
+** External File System Constructor
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/YamlConfigurationSource.java
+/**
+ * Creates a new YAML configuration source.
+ * 
+ * @param filePath the file path
+ * @param loadFromClasspath whether to load from classpath
+ */
+public YamlConfigurationSource(@NonNull final String filePath, final boolean loadFromClasspath) {
+    this.filePath = filePath;
+    this.loadFromClasspath = loadFromClasspath;
+}
+#+END_SRC
+
+External file loading supports:
+- **Configuration Externalization**: Configuration separated from application code
+- **Runtime Configuration Updates**: Ability to modify configuration without redeployment
+- **Environment-Specific Configuration**: Different configuration files per environment
+- **Operational Flexibility**: Configuration management by operations teams
+
+** Factory Methods for Clear Intent
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/YamlConfigurationSource.java
+/**
+ * Creates a new YAML configuration source for external files.
+ * 
+ * @param filePath the external file path
+ * @return new YAML configuration source
+ */
+@NonNull
+public static YamlConfigurationSource fromFile(@NonNull final String filePath) {
+    return new YamlConfigurationSource(filePath, false);
+}
+
+/**
+ * Creates a new YAML configuration source for classpath resources.
+ * 
+ * @param resourceName the classpath resource name
+ * @return new YAML configuration source
+ */
+@NonNull
+public static YamlConfigurationSource fromClasspath(@NonNull final String resourceName) {
+    return new YamlConfigurationSource(resourceName, true);
+}
+#+END_SRC
+
+Factory methods provide:
+- **Clear Intent Expression**: Explicit indication of loading strategy
+- **Type Safety**: Compile-time verification of loading strategy
+- **API Clarity**: Self-documenting configuration source creation
+- **Reduced Error Potential**: Eliminates boolean parameter confusion
+
+* Configuration Availability and Health Checking
+
+** Availability Verification Implementation
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/YamlConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+public boolean isAvailable() {
+    if (loadFromClasspath) {
+        return getClass().getClassLoader().getResourceAsStream(filePath) != null;
+    } else {
+        final Path path = Paths.get(filePath);
+        return Files.exists(path) && Files.isReadable(path);
+    }
+}
+#+END_SRC
+
+Availability checking provides:
+- **Proactive Health Monitoring**: Early detection of configuration availability issues
+- **Fail-Fast Behavior**: Quick identification of missing or inaccessible configuration
+- **Load Balancing Support**: Health checking for configuration source selection
+- **Operational Visibility**: Monitoring configuration source health status
+
+** Classpath Resource Availability
+Classpath availability checking features:
+- **ClassLoader Integration**: Uses current thread's class loader for resource discovery
+- **JAR File Support**: Works with resources packaged in JAR and WAR files
+- **Resource Path Normalization**: Handles different resource path formats consistently
+- **Security-Aware Loading**: Respects classpath security constraints
+
+** File System Availability
+File system availability checking capabilities:
+- **Path Existence Verification**: Confirms file exists at specified path
+- **Read Permission Checking**: Verifies application has read access to configuration file
+- **Symbolic Link Support**: Follows symbolic links to actual configuration files
+- **Network File System Support**: Compatible with NFS and other network file systems
+
+* YAML Parsing and Configuration Loading
+
+** Core Configuration Loading Implementation
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/YamlConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+@Nullable
+public Object loadConfiguration() throws ConfigurationException {
+    try {
+        final InputStream inputStream = loadFromClasspath ?
+            getClass().getClassLoader().getResourceAsStream(filePath) :
+            Files.newInputStream(Paths.get(filePath));
+
+        if (inputStream == null) {
+            return null;
+        }
+
+        try (inputStream) {
+            final Yaml yaml = new Yaml();
+            return yaml.load(inputStream);
+        }
+    } catch (final Exception e) {
+        throw new ConfigurationException("Failed to load YAML configuration from: " + filePath, e);
+    }
+}
+#+END_SRC
+
+Configuration loading features:
+- **Resource Management**: Automatic input stream cleanup using try-with-resources
+- **Null Safety**: Proper handling of missing resources returning null
+- **Exception Wrapping**: Conversion of low-level exceptions to ConfigurationException
+- **Error Context**: Detailed error messages including file path information
+
+** YAML Parsing Configuration
+Advanced YAML parsing capabilities:
+
+#+begin_src java
+public class CustomYamlConfigurationSource extends YamlConfigurationSource {
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try (InputStream inputStream = getInputStream()) {
+            if (inputStream == null) {
+                return null;
+            }
+            
+            // Configure YAML parser with custom settings
+            Yaml yaml = new Yaml(createCustomConstructor());
+            
+            // Support for multiple YAML documents
+            Iterable<Object> documents = yaml.loadAll(inputStream);
+            List<Object> documentList = new ArrayList<>();
+            documents.forEach(documentList::add);
+            
+            // Return single document or document list
+            return documentList.size() == 1 ? documentList.get(0) : documentList;
+            
+        } catch (YamlException e) {
+            throw new ConfigurationException(
+                "YAML parsing error in " + getDescription() + 
+                " at line " + extractLineNumber(e) + ": " + e.getMessage(), e);
+        } catch (IOException e) {
+            throw new ConfigurationException(
+                "IO error reading YAML from " + getDescription() + ": " + e.getMessage(), e);
+        }
+    }
+    
+    private Constructor createCustomConstructor() {
+        Constructor constructor = new Constructor();
+        
+        // Add custom type constructors
+        constructor.addTypeDescription(new TypeDescription(CustomConfig.class, "!config"));
+        
+        // Configure safe parsing
+        constructor.setAllowDuplicateKeys(false);
+        
+        return constructor;
+    }
+}
+#+end_src
+
+** Error Handling and Recovery
+Comprehensive error handling for YAML operations:
+
+#+begin_src java
+public class RobustYamlConfigurationSource extends YamlConfigurationSource {
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            return loadYamlWithValidation();
+        } catch (YamlException e) {
+            return handleYamlParsingError(e);
+        } catch (IOException e) {
+            return handleIOError(e);
+        }
+    }
+    
+    private Object loadYamlWithValidation() throws ConfigurationException {
+        // Load YAML with schema validation
+        Object config = super.loadConfiguration();
+        
+        if (config != null) {
+            validateYamlStructure(config);
+        }
+        
+        return config;
+    }
+    
+    private Object handleYamlParsingError(YamlException e) throws ConfigurationException {
+        String errorMessage = "YAML parsing failed for " + getDescription();
+        
+        // Extract specific error information
+        if (e instanceof ParserException) {
+            ParserException pe = (ParserException) e;
+            errorMessage += " at line " + pe.getProblemMark().getLine() + 
+                           ", column " + pe.getProblemMark().getColumn();
+        }
+        
+        errorMessage += ": " + e.getMessage();
+        errorMessage += ". Please verify YAML syntax and structure.";
+        
+        throw new ConfigurationException(errorMessage, e);
+    }
+    
+    private Object handleIOError(IOException e) throws ConfigurationException {
+        throw new ConfigurationException(
+            "Failed to read YAML configuration from " + getDescription() + 
+            ": " + e.getMessage() + ". Please check file accessibility and permissions.", e);
+    }
+    
+    private void validateYamlStructure(Object config) throws ConfigurationException {
+        // Custom YAML structure validation
+        if (config instanceof Map) {
+            validateMapStructure((Map<?, ?>) config);
+        } else if (config instanceof List) {
+            validateListStructure((List<?>) config);
+        }
+    }
+}
+#+end_src
+
+* Advanced YAML Configuration Patterns
+
+** Hierarchical Configuration Support
+YAML's natural hierarchical structure enables sophisticated configuration patterns:
+
+#+begin_src yaml
+# Example hierarchical YAML configuration
+application:
+  name: "ByteHot Application"
+  version: "1.0.0"
+  
+database:
+  primary:
+    url: "jdbc:postgresql://localhost:5432/bytehot"
+    username: "bytehot_user"
+    password: "${DB_PASSWORD}"
+    pool:
+      minSize: 5
+      maxSize: 20
+      timeout: 30000
+  
+monitoring:
+  enabled: true
+  endpoints:
+    - name: "health"
+      path: "/health"
+      timeout: 5000
+    - name: "metrics"
+      path: "/metrics"
+      timeout: 10000
+      
+logging:
+  level: INFO
+  appenders:
+    - type: "console"
+      pattern: "%d{ISO8601} [%thread] %-5level %logger{36} - %msg%n"
+    - type: "file"
+      filename: "logs/application.log"
+      maxSize: "100MB"
+      maxHistory: 10
+#+end_src
+
+** Environment-Specific Configuration
+YAML supports environment-specific configuration strategies:
+
+#+begin_src java
+public class EnvironmentAwareYamlConfigurationSource extends YamlConfigurationSource {
+    private final String environment;
+    
+    public EnvironmentAwareYamlConfigurationSource(String baseFileName, String environment) {
+        super(buildEnvironmentSpecificFileName(baseFileName, environment));
+        this.environment = environment;
+    }
+    
+    private static String buildEnvironmentSpecificFileName(String baseFileName, String environment) {
+        // Transform application.yml to application-dev.yml for dev environment
+        String baseName = baseFileName.replaceFirst("\\.[^.]+$", "");
+        String extension = baseFileName.substring(baseFileName.lastIndexOf('.'));
+        return baseName + "-" + environment + extension;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            // Try environment-specific configuration first
+            Object envConfig = super.loadConfiguration();
+            if (envConfig != null) {
+                return envConfig;
+            }
+            
+            // Fall back to base configuration
+            YamlConfigurationSource baseSource = YamlConfigurationSource.fromClasspath(
+                getBaseFileName());
+            return baseSource.loadConfiguration();
+            
+        } catch (ConfigurationException e) {
+            throw new ConfigurationException(
+                "Failed to load environment-specific configuration for environment: " + 
+                environment, e);
+        }
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Environment-specific YAML (" + environment + "): " + getFilePath();
+    }
+}
+#+end_src
+
+** Profile-Based Configuration
+Support for Spring-style profile-based configuration:
+
+#+begin_src yaml
+# application.yml with profile sections
+spring:
+  profiles:
+    active: development
+
+server:
+  port: 8080
+
+---
+spring:
+  profiles: development
+  
+database:
+  url: "jdbc:h2:mem:testdb"
+  
+logging:
+  level: DEBUG
+
+---
+spring:
+  profiles: production
+  
+database:
+  url: "jdbc:postgresql://prod-db:5432/bytehot"
+  
+logging:
+  level: WARN
+  
+monitoring:
+  enabled: true
+#+end_src
+
+* Integration Examples and Usage Patterns
+
+** Basic YAML Configuration Loading
+Simple YAML configuration source usage:
+
+#+begin_src java
+// Load from classpath
+ConfigurationSource yamlClasspath = YamlConfigurationSource.fromClasspath("application.yml");
+
+if (yamlClasspath.isAvailable()) {
+    try {
+        Object config = yamlClasspath.loadConfiguration();
+        if (config instanceof Map) {
+            Map<String, Object> configMap = (Map<String, Object>) config;
+            String appName = (String) configMap.get("application.name");
+            System.out.println("Application: " + appName);
+        }
+    } catch (ConfigurationException e) {
+        logger.error("Failed to load YAML configuration", e);
+    }
+}
+#+end_src
+
+** Integration with BaseConfigurationAdapter
+YAML configuration source in hierarchical configuration loading:
+
+#+begin_src java
+public class ApplicationConfigurationAdapter 
+    extends BaseConfigurationAdapter<ApplicationConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            // Highest priority: Environment-specific YAML
+            YamlConfigurationSource.fromFile("/etc/myapp/application-" + getEnvironment() + ".yml"),
+            
+            // Medium priority: General external YAML
+            YamlConfigurationSource.fromFile("/etc/myapp/application.yml"),
+            
+            // Lower priority: Packaged YAML configurations
+            YamlConfigurationSource.fromClasspath("application-" + getEnvironment() + ".yml"),
+            YamlConfigurationSource.fromClasspath("application.yml"),
+            
+            // Lowest priority: Default configuration
+            YamlConfigurationSource.fromClasspath("application-defaults.yml")
+        );
+    }
+    
+    @Override
+    protected ApplicationConfig transformConfiguration(Object rawConfiguration) {
+        if (rawConfiguration instanceof Map) {
+            return ApplicationConfigMapper.fromMap((Map<String, Object>) rawConfiguration);
+        }
+        throw new IllegalArgumentException("Expected Map configuration, got: " + 
+            rawConfiguration.getClass());
+    }
+}
+#+end_src
+
+** Multi-Document YAML Support
+Handling YAML files with multiple documents:
+
+#+begin_src java
+public class MultiDocumentYamlConfigurationSource extends YamlConfigurationSource {
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try (InputStream inputStream = getInputStream()) {
+            if (inputStream == null) {
+                return null;
+            }
+            
+            Yaml yaml = new Yaml();
+            Iterable<Object> documents = yaml.loadAll(inputStream);
+            
+            List<Object> documentList = new ArrayList<>();
+            Map<String, Object> mergedConfig = new HashMap<>();
+            
+            for (Object document : documents) {
+                documentList.add(document);
+                
+                // Merge documents into single configuration
+                if (document instanceof Map) {
+                    mergeConfiguration(mergedConfig, (Map<String, Object>) document);
+                }
+            }
+            
+            // Return merged configuration or document list based on content
+            return documentList.size() == 1 ? documentList.get(0) : mergedConfig;
+            
+        } catch (Exception e) {
+            throw new ConfigurationException("Failed to load multi-document YAML", e);
+        }
+    }
+    
+    private void mergeConfiguration(Map<String, Object> target, Map<String, Object> source) {
+        for (Map.Entry<String, Object> entry : source.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            if (target.containsKey(key) && 
+                target.get(key) instanceof Map && 
+                value instanceof Map) {
+                // Recursively merge nested maps
+                mergeConfiguration(
+                    (Map<String, Object>) target.get(key),
+                    (Map<String, Object>) value
+                );
+            } else {
+                target.put(key, value);
+            }
+        }
+    }
+}
+#+end_src
+
+* Performance Optimization and Caching
+
+** Caching and Performance Strategies
+YAML parsing can be expensive for large files; caching strategies help:
+
+#+begin_src java
+public class CachedYamlConfigurationSource extends YamlConfigurationSource {
+    private final Cache<String, Object> configurationCache;
+    private final long cacheExpirationMs;
+    
+    public CachedYamlConfigurationSource(String filePath, Duration cacheExpiration) {
+        super(filePath);
+        this.cacheExpirationMs = cacheExpiration.toMillis();
+        this.configurationCache = Caffeine.newBuilder()
+            .maximumSize(100)
+            .expireAfterWrite(cacheExpiration)
+            .build();
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        String cacheKey = getFilePath() + ":" + getLastModifiedTime();
+        
+        try {
+            return configurationCache.get(cacheKey, key -> {
+                try {
+                    return CachedYamlConfigurationSource.super.loadConfiguration();
+                } catch (ConfigurationException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof ConfigurationException) {
+                throw (ConfigurationException) e.getCause();
+            }
+            throw new ConfigurationException("Cache loading error", e);
+        }
+    }
+    
+    private long getLastModifiedTime() {
+        try {
+            if (isLoadFromClasspath()) {
+                // For classpath resources, use a fixed timestamp or JAR modification time
+                return System.currentTimeMillis();
+            } else {
+                return Files.getLastModifiedTime(Paths.get(getFilePath())).toMillis();
+            }
+        } catch (IOException e) {
+            return System.currentTimeMillis();
+        }
+    }
+}
+#+end_src
+
+** Streaming and Large File Support
+For very large YAML files, streaming approaches may be necessary:
+
+#+begin_src java
+public class StreamingYamlConfigurationSource extends YamlConfigurationSource {
+    
+    public Stream<Object> loadConfigurationStream() throws ConfigurationException {
+        try {
+            InputStream inputStream = getInputStream();
+            if (inputStream == null) {
+                return Stream.empty();
+            }
+            
+            Yaml yaml = new Yaml();
+            Iterable<Object> documents = yaml.loadAll(inputStream);
+            
+            return StreamSupport.stream(documents.spliterator(), false)
+                .onClose(() -> {
+                    try {
+                        inputStream.close();
+                    } catch (IOException e) {
+                        logger.warn("Error closing YAML input stream", e);
+                    }
+                });
+                
+        } catch (Exception e) {
+            throw new ConfigurationException("Failed to create YAML configuration stream", e);
+        }
+    }
+}
+#+end_src
+
+The YamlConfigurationSource provides comprehensive YAML configuration loading capabilities with robust error handling, flexible resource loading strategies, and integration with the broader configuration infrastructure, enabling sophisticated configuration management scenarios across diverse deployment environments.

@@ -1,0 +1,566 @@
+#+TITLE: ConfigurationException - Configuration Error Handling and Recovery
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+
+* Overview
+
+The ~ConfigurationException~ class provides comprehensive error handling for configuration operations within the ~java-commons-infrastructure~ module. This checked exception serves as the foundation for configuration error management, enabling detailed error reporting, recovery guidance, and operational visibility for configuration-related failures across different configuration sources and loading scenarios.
+
+* Exception Design and Error Handling Strategy
+
+** Checked Exception Pattern
+ConfigurationException follows the checked exception pattern for configuration errors:
+- **Explicit Error Handling**: Forces callers to explicitly handle configuration failures
+- **Recovery-Oriented Design**: Encourages proper error recovery and fallback mechanisms
+- **Operational Visibility**: Ensures configuration errors are not silently ignored
+- **Clean API Design**: Provides clear separation between configuration success and failure
+
+** Exception Hierarchy and Categorization
+The exception supports comprehensive error categorization:
+- **Configuration Loading Errors**: Failures during configuration source access and reading
+- **Configuration Parsing Errors**: Format-specific parsing and validation failures
+- **Configuration Validation Errors**: Business rule and schema validation failures
+- **Configuration Access Errors**: Security and permission-related configuration failures
+
+** Error Context and Debugging Support
+ConfigurationException provides rich error context:
+- **Detailed Error Messages**: Human-readable error descriptions with context
+- **Cause Chain Preservation**: Complete exception cause chain for root cause analysis
+- **Source Information**: Configuration source context for troubleshooting
+- **Recovery Suggestions**: Actionable guidance for resolving configuration issues
+
+* Core Exception Constructors and Usage
+
+** Basic Exception Construction
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationException.java
+/**
+ * Creates a new ConfigurationException with the specified message.
+ * 
+ * @param message the exception message
+ */
+public ConfigurationException(@NonNull final String message) {
+    super(message);
+}
+#+END_SRC
+
+Basic message-only construction for simple configuration errors:
+- **Clear Error Description**: Concise description of the configuration problem
+- **User-Friendly Messages**: Messages appropriate for both developers and operators
+- **Actionable Information**: Error messages that suggest next steps for resolution
+
+** Exception with Cause Chain
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationException.java
+/**
+ * Creates a new ConfigurationException with the specified message and cause.
+ * 
+ * @param message the exception message
+ * @param cause the underlying cause
+ */
+public ConfigurationException(@NonNull final String message, @Nullable final Throwable cause) {
+    super(message, cause);
+}
+#+END_SRC
+
+Message and cause construction for wrapped exceptions:
+- **Root Cause Preservation**: Maintains complete exception cause chain
+- **Layered Error Information**: Provides both high-level and detailed error context
+- **Debugging Support**: Enables full stack trace analysis for complex failures
+
+** Cause-Only Exception Construction
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationException.java
+/**
+ * Creates a new ConfigurationException with the specified cause.
+ * 
+ * @param cause the underlying cause
+ */
+public ConfigurationException(@Nullable final Throwable cause) {
+    super(cause);
+}
+#+END_SRC
+
+Cause-only construction for exception wrapping scenarios:
+- **Exception Transformation**: Converts infrastructure exceptions to configuration exceptions
+- **API Boundary Management**: Maintains clean exception boundaries across layers
+- **Simplified Exception Handling**: Reduces exception type proliferation
+
+* Configuration Error Scenarios and Patterns
+
+** Configuration Source Access Errors
+Common configuration source access failures:
+
+#+begin_src java
+// File not found error
+try {
+    configuration = loadFromFile("missing-config.yml");
+} catch (FileNotFoundException e) {
+    throw new ConfigurationException("Configuration file not found: missing-config.yml. " +
+        "Please ensure the file exists and is accessible.", e);
+}
+
+// Network connectivity error
+try {
+    configuration = loadFromRemoteSource(configUrl);
+} catch (ConnectException e) {
+    throw new ConfigurationException("Unable to connect to remote configuration source: " + 
+        configUrl + ". Please check network connectivity and service availability.", e);
+}
+
+// Permission error
+try {
+    configuration = loadFromSecureSource(secureConfigPath);
+} catch (SecurityException e) {
+    throw new ConfigurationException("Access denied to configuration source: " + 
+        secureConfigPath + ". Please verify permissions and credentials.", e);
+}
+#+end_src
+
+** Configuration Parsing and Format Errors
+Configuration format and parsing failures:
+
+#+begin_src java
+// YAML parsing error
+try {
+    Object config = yamlParser.parse(yamlContent);
+} catch (YamlParseException e) {
+    throw new ConfigurationException("Invalid YAML configuration format at line " + 
+        e.getLineNumber() + ": " + e.getMessage() + ". Please verify YAML syntax.", e);
+}
+
+// Properties parsing error
+try {
+    Properties props = new Properties();
+    props.load(new StringReader(propertiesContent));
+} catch (IOException e) {
+    throw new ConfigurationException("Invalid properties file format: " + e.getMessage() + 
+        ". Please check property syntax and encoding.", e);
+}
+
+// JSON parsing error
+try {
+    Object config = jsonParser.parse(jsonContent);
+} catch (JsonParseException e) {
+    throw new ConfigurationException("Invalid JSON configuration at position " + 
+        e.getLocation() + ": " + e.getMessage() + ". Please verify JSON syntax.", e);
+}
+#+end_src
+
+** Configuration Validation Errors
+Business rule and schema validation failures:
+
+#+begin_src java
+// Schema validation error
+public void validateConfiguration(Configuration config) throws ConfigurationException {
+    if (config.getDatabaseUrl() == null || config.getDatabaseUrl().trim().isEmpty()) {
+        throw new ConfigurationException("Database URL is required. " +
+            "Please provide a valid database connection URL in the configuration.");
+    }
+    
+    if (config.getMaxConnections() <= 0) {
+        throw new ConfigurationException("Maximum connections must be positive. " +
+            "Current value: " + config.getMaxConnections() + ". Please provide a positive integer.");
+    }
+    
+    if (config.getTimeoutMs() < 1000) {
+        throw new ConfigurationException("Timeout must be at least 1000ms for reliable operation. " +
+            "Current value: " + config.getTimeoutMs() + "ms. Please increase the timeout value.");
+    }
+}
+
+// Cross-validation error
+public void validateCrossReferences(Configuration config) throws ConfigurationException {
+    if (config.isSslEnabled() && config.getSslKeystore() == null) {
+        throw new ConfigurationException("SSL keystore path is required when SSL is enabled. " +
+            "Please provide a valid keystore path or disable SSL.");
+    }
+    
+    if (config.getBackupEnabled() && config.getBackupDirectory() == null) {
+        throw new ConfigurationException("Backup directory is required when backup is enabled. " +
+            "Please provide a valid backup directory path or disable backup.");
+    }
+}
+#+end_src
+
+* Error Recovery and Fallback Strategies
+
+** Configuration Source Fallback
+Exception handling with automatic fallback:
+
+#+begin_src java
+public class ResilientConfigurationLoader {
+    
+    public Configuration loadConfiguration() throws ConfigurationException {
+        List<ConfigurationException> exceptions = new ArrayList<>();
+        
+        // Try primary configuration source
+        try {
+            return loadFromPrimarySource();
+        } catch (ConfigurationException e) {
+            exceptions.add(e);
+            logger.warn("Primary configuration source failed: " + e.getMessage());
+        }
+        
+        // Try secondary configuration source
+        try {
+            return loadFromSecondarySource();
+        } catch (ConfigurationException e) {
+            exceptions.add(e);
+            logger.warn("Secondary configuration source failed: " + e.getMessage());
+        }
+        
+        // Try default configuration
+        try {
+            return createDefaultConfiguration();
+        } catch (ConfigurationException e) {
+            exceptions.add(e);
+        }
+        
+        // All sources failed - throw composite exception
+        throw new ConfigurationException(
+            "All configuration sources failed. Attempted sources: primary, secondary, default. " +
+            "See suppressed exceptions for details.",
+            exceptions.get(0)
+        );
+    }
+}
+#+end_src
+
+** Partial Configuration Loading
+Graceful degradation with partial configuration:
+
+#+begin_src java
+public class PartialConfigurationLoader {
+    
+    public Configuration loadPartialConfiguration() throws ConfigurationException {
+        Configuration.Builder builder = new Configuration.Builder();
+        List<String> warnings = new ArrayList<>();
+        boolean hasEssentialConfig = false;
+        
+        // Load essential configuration
+        try {
+            EssentialConfig essential = loadEssentialConfiguration();
+            builder.withEssentialConfig(essential);
+            hasEssentialConfig = true;
+        } catch (ConfigurationException e) {
+            throw new ConfigurationException("Essential configuration loading failed. " +
+                "Cannot continue without essential configuration: " + e.getMessage(), e);
+        }
+        
+        // Load optional configuration sections
+        try {
+            OptionalConfig optional = loadOptionalConfiguration();
+            builder.withOptionalConfig(optional);
+        } catch (ConfigurationException e) {
+            warnings.add("Optional configuration unavailable: " + e.getMessage());
+            logger.warn("Continuing with default optional configuration", e);
+            builder.withDefaultOptionalConfig();
+        }
+        
+        Configuration config = builder.build();
+        
+        if (!warnings.isEmpty()) {
+            logger.info("Configuration loaded with warnings: " + String.join(", ", warnings));
+        }
+        
+        return config;
+    }
+}
+#+end_src
+
+** Configuration Retry and Circuit Breaker
+Resilient configuration loading with retry and circuit breaker:
+
+#+begin_src java
+public class ResilientRemoteConfigurationSource implements ConfigurationSource {
+    private final CircuitBreaker circuitBreaker;
+    private final RetryPolicy retryPolicy;
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            return circuitBreaker.executeSupplier(() -> {
+                return retryPolicy.execute(() -> {
+                    try {
+                        return loadFromRemoteService();
+                    } catch (RemoteServiceException e) {
+                        throw new ConfigurationException(
+                            "Remote configuration service error: " + e.getMessage() + 
+                            ". Retrying with exponential backoff.", e);
+                    }
+                });
+            });
+        } catch (CircuitBreakerOpenException e) {
+            throw new ConfigurationException(
+                "Remote configuration service is currently unavailable (circuit breaker open). " +
+                "Please try again later or check service health.", e);
+        } catch (Exception e) {
+            throw new ConfigurationException(
+                "Failed to load configuration after retries: " + e.getMessage(), e);
+        }
+    }
+}
+#+end_src
+
+* Integration with Configuration Infrastructure
+
+** BaseConfigurationAdapter Integration
+Exception handling within BaseConfigurationAdapter:
+
+#+begin_src java
+public abstract class BaseConfigurationAdapter<T> {
+    
+    @NonNull
+    public T loadConfiguration() throws ConfigurationException {
+        try {
+            return loadConfigurationInternal();
+        } catch (ConfigurationException e) {
+            // Re-throw configuration exceptions as-is
+            throw e;
+        } catch (Exception e) {
+            // Wrap other exceptions with context
+            throw new ConfigurationException(
+                "Unexpected error during configuration loading for " + 
+                getConfigurationClass().getSimpleName() + ": " + e.getMessage(), e);
+        }
+    }
+    
+    protected Optional<T> loadFromSource(ConfigurationSource source) {
+        try {
+            if (!source.isAvailable()) {
+                return Optional.empty();
+            }
+            
+            Object rawConfig = source.loadConfiguration();
+            if (rawConfig == null) {
+                return Optional.empty();
+            }
+            
+            T config = transformConfiguration(rawConfig);
+            validateConfiguration(config);
+            return Optional.of(config);
+            
+        } catch (ConfigurationException e) {
+            logger.debug("Configuration source {} failed: {}", source.getDescription(), e.getMessage());
+            return Optional.empty();
+        }
+    }
+}
+#+end_src
+
+** Configuration Source Exception Wrapping
+Standardized exception handling in configuration sources:
+
+#+begin_src java
+public class YamlConfigurationSource implements ConfigurationSource {
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try (InputStream inputStream = getInputStream()) {
+            if (inputStream == null) {
+                return null;
+            }
+            
+            Yaml yaml = new Yaml();
+            return yaml.load(inputStream);
+            
+        } catch (YamlException e) {
+            throw new ConfigurationException(
+                "YAML parsing failed for " + getDescription() + ": " + e.getMessage() + 
+                ". Please verify YAML syntax and structure.", e);
+        } catch (IOException e) {
+            throw new ConfigurationException(
+                "IO error reading configuration from " + getDescription() + ": " + e.getMessage() + 
+                ". Please check file accessibility and permissions.", e);
+        } catch (SecurityException e) {
+            throw new ConfigurationException(
+                "Access denied to configuration source " + getDescription() + ": " + e.getMessage() + 
+                ". Please verify security permissions.", e);
+        }
+    }
+}
+#+end_src
+
+* Logging and Monitoring Integration
+
+** Structured Exception Logging
+Integration with logging frameworks for operational visibility:
+
+#+begin_src java
+public class ConfigurationExceptionLogger {
+    private static final Logger logger = LoggerFactory.getLogger(ConfigurationExceptionLogger.class);
+    
+    public static void logConfigurationException(ConfigurationException e, String context) {
+        logger.error("Configuration error in {}: {}", context, e.getMessage());
+        
+        // Log structured information for monitoring
+        logger.error("Configuration exception details", 
+            kv("error.type", "configuration"),
+            kv("error.context", context),
+            kv("error.message", e.getMessage()),
+            kv("error.recoverable", isRecoverable(e)),
+            kv("error.source", extractSourceInfo(e)));
+        
+        // Log full stack trace at debug level
+        logger.debug("Configuration exception stack trace", e);
+    }
+    
+    private static boolean isRecoverable(ConfigurationException e) {
+        // Determine if exception represents a recoverable error
+        return e.getCause() instanceof ConnectException ||
+               e.getCause() instanceof SocketTimeoutException ||
+               e.getMessage().contains("temporarily unavailable");
+    }
+    
+    private static String extractSourceInfo(ConfigurationException e) {
+        // Extract configuration source information from exception context
+        String message = e.getMessage();
+        if (message.contains("File:")) {
+            return "file";
+        } else if (message.contains("Remote")) {
+            return "remote";
+        } else if (message.contains("Environment")) {
+            return "environment";
+        }
+        return "unknown";
+    }
+}
+#+end_src
+
+** Metrics and Alerting Integration
+Exception metrics for monitoring and alerting:
+
+#+begin_src java
+public class ConfigurationMetrics {
+    private final MeterRegistry meterRegistry;
+    private final Counter configurationErrors;
+    private final Timer configurationLoadTime;
+    
+    public ConfigurationMetrics(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        this.configurationErrors = Counter.builder("configuration.errors")
+            .description("Configuration loading errors")
+            .register(meterRegistry);
+        this.configurationLoadTime = Timer.builder("configuration.load.time")
+            .description("Configuration loading time")
+            .register(meterRegistry);
+    }
+    
+    public void recordConfigurationError(ConfigurationException e, String source) {
+        configurationErrors.increment(
+            Tags.of(
+                Tag.of("source", source),
+                Tag.of("error.type", classifyError(e)),
+                Tag.of("recoverable", String.valueOf(isRecoverable(e)))
+            )
+        );
+    }
+    
+    public Timer.Sample startConfigurationLoad() {
+        return Timer.start(meterRegistry);
+    }
+    
+    public void recordConfigurationLoadTime(Timer.Sample sample, String source, boolean success) {
+        sample.stop(Timer.builder("configuration.load.time")
+            .tags("source", source, "success", String.valueOf(success))
+            .register(meterRegistry));
+    }
+}
+#+end_src
+
+* Testing and Development Support
+
+** Exception Testing Utilities
+Testing utilities for configuration exception scenarios:
+
+#+begin_src java
+public class ConfigurationExceptionTestUtils {
+    
+    public static ConfigurationException createFileNotFoundError(String filename) {
+        return new ConfigurationException(
+            "Configuration file not found: " + filename,
+            new FileNotFoundException(filename)
+        );
+    }
+    
+    public static ConfigurationException createParsingError(String source, String details) {
+        return new ConfigurationException(
+            "Configuration parsing failed for " + source + ": " + details
+        );
+    }
+    
+    public static ConfigurationException createValidationError(String field, Object value) {
+        return new ConfigurationException(
+            "Configuration validation failed for field '" + field + 
+            "' with value '" + value + "'"
+        );
+    }
+    
+    public static void assertConfigurationException(
+        Executable executable, 
+        String expectedMessage) {
+        
+        ConfigurationException exception = assertThrows(
+            ConfigurationException.class, 
+            executable
+        );
+        assertTrue(exception.getMessage().contains(expectedMessage),
+            "Expected message to contain: " + expectedMessage + 
+            ", but was: " + exception.getMessage());
+    }
+}
+#+end_src
+
+** Mock Exception Scenarios
+Mock configuration sources that simulate exception scenarios:
+
+#+begin_src java
+public class FailingConfigurationSource implements ConfigurationSource {
+    private final ConfigurationException exceptionToThrow;
+    
+    public FailingConfigurationSource(ConfigurationException exception) {
+        this.exceptionToThrow = exception;
+    }
+    
+    @Override
+    public boolean isAvailable() {
+        return true; // Available but will fail on load
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        throw exceptionToThrow;
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Failing Configuration Source (test)";
+    }
+    
+    @Override
+    public int getPriority() {
+        return 1000; // High priority for testing
+    }
+    
+    // Factory methods for common test scenarios
+    public static FailingConfigurationSource fileNotFound(String filename) {
+        return new FailingConfigurationSource(
+            new ConfigurationException("File not found: " + filename,
+                new FileNotFoundException(filename))
+        );
+    }
+    
+    public static FailingConfigurationSource networkTimeout(String url) {
+        return new FailingConfigurationSource(
+            new ConfigurationException("Network timeout connecting to: " + url,
+                new SocketTimeoutException("Read timed out"))
+        );
+    }
+    
+    public static FailingConfigurationSource validationError(String field) {
+        return new FailingConfigurationSource(
+            new ConfigurationException("Validation failed for field: " + field)
+        );
+    }
+}
+#+end_src
+
+The ConfigurationException provides comprehensive error handling capabilities that enable robust configuration management with clear error reporting, recovery guidance, and operational visibility throughout the configuration loading and validation lifecycle.

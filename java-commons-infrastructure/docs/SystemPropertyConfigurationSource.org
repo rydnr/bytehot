@@ -1,0 +1,611 @@
+#+TITLE: SystemPropertyConfigurationSource - JVM System Properties Configuration
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+
+* Overview
+
+The ~SystemPropertyConfigurationSource~ class provides comprehensive integration with JVM system properties for configuration management within the ~java-commons-infrastructure~ module. This implementation enables runtime configuration overrides, debugging support, and development-time configuration flexibility through JVM system properties with configurable prefixes and robust error handling.
+
+* System Properties Integration Strategy
+
+** Runtime Configuration Override Pattern
+SystemPropertyConfigurationSource enables powerful runtime configuration capabilities:
+- **Command-Line Overrides**: Configuration modification through JVM arguments
+- **Runtime Debugging**: Quick configuration changes for troubleshooting
+- **Development Flexibility**: Easy configuration experimentation without file modification
+- **Operational Support**: Production configuration adjustments without redeployment
+
+** Prefix-Based Property Namespacing
+The implementation uses configurable prefixes for property organization:
+- **Namespace Isolation**: Prevents conflicts with other system properties
+- **Application-Specific Properties**: Clear separation of application configuration
+- **Multi-Application Support**: Different prefixes for different applications on same JVM
+- **Property Organization**: Logical grouping of related configuration properties
+
+** High-Priority Configuration Source
+System properties typically have the highest priority in configuration hierarchies:
+- **Override Semantics**: System properties override file-based configuration
+- **Debugging Priority**: Enables quick configuration changes for troubleshooting
+- **Developer Workflow**: Supports development and testing scenarios
+- **Operational Flexibility**: Production support and emergency configuration changes
+
+* Core Implementation and Property Scanning
+
+** Constructor and Prefix Configuration
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/SystemPropertyConfigurationSource.java
+/**
+ * Creates a new system property configuration source.
+ * 
+ * @param prefix the property prefix to scan for
+ */
+public SystemPropertyConfigurationSource(@NonNull final String prefix) {
+    this.prefix = prefix;
+}
+#+END_SRC
+
+Prefix configuration enables:
+- **Configurable Namespacing**: Application-specific property prefixes
+- **Conflict Avoidance**: Isolation from system and framework properties
+- **Clear Property Organization**: Logical grouping of configuration properties
+- **Multiple Application Support**: Different prefixes for different components
+
+** Property Availability Detection
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/SystemPropertyConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+public boolean isAvailable() {
+    final Properties systemProperties = System.getProperties();
+    return systemProperties.stringPropertyNames().stream()
+        .anyMatch(name -> name.startsWith(prefix));
+}
+#+END_SRC
+
+Availability detection provides:
+- **Proactive Configuration Detection**: Early identification of system property configuration
+- **Fast Availability Checking**: Efficient scanning without full property loading
+- **Configuration Health Monitoring**: Support for configuration source monitoring
+- **Fallback Decision Support**: Enables intelligent fallback to alternative sources
+
+** Configuration Loading and Property Processing
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/SystemPropertyConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+@Nullable
+public Object loadConfiguration() throws ConfigurationException {
+    try {
+        final Properties systemProperties = System.getProperties();
+        final Map<String, Object> configurationMap = new HashMap<>();
+
+        systemProperties.stringPropertyNames().stream()
+            .filter(name -> name.startsWith(prefix))
+            .forEach(name -> {
+                final String key = name.substring(prefix.length());
+                final String value = systemProperties.getProperty(name);
+                configurationMap.put(key, value);
+            });
+
+        return configurationMap.isEmpty() ? null : configurationMap;
+    } catch (final Exception e) {
+        throw new ConfigurationException("Failed to load system property configuration", e);
+    }
+}
+#+END_SRC
+
+Configuration loading features:
+- **Prefix Stripping**: Removes prefix from property names for clean configuration keys
+- **Null Safety**: Returns null when no matching properties found
+- **Exception Handling**: Comprehensive error handling with context information
+- **Map Conversion**: Converts properties to standard Map<String, Object> format
+
+* Priority and Metadata Management
+
+** High Priority Assignment
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/SystemPropertyConfigurationSource.java
+/**
+ * Priority for system property configuration source.
+ */
+private static final int PRIORITY = 1000;
+
+/**
+ * {@inheritDoc}
+ */
+@Override
+public int getPriority() {
+    return PRIORITY;
+}
+#+END_SRC
+
+High priority ensures:
+- **Override Capability**: System properties override file-based configuration
+- **Debug Support**: Quick configuration changes take precedence
+- **Operational Priority**: Runtime changes have immediate effect
+- **Development Workflow**: Easy configuration experimentation
+
+** Descriptive Source Information
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/SystemPropertyConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+@NonNull
+public String getDescription() {
+    return "System Properties (prefix: " + prefix + ")";
+}
+
+/**
+ * Returns the prefix used by this configuration source.
+ * 
+ * @return the property prefix
+ */
+@NonNull
+public String getPrefix() {
+    return prefix;
+}
+#+END_SRC
+
+Source description provides:
+- **Clear Identification**: Human-readable source identification for logging
+- **Debugging Support**: Easy identification in configuration source lists
+- **Operational Visibility**: Clear source information for monitoring and troubleshooting
+- **Configuration Audit**: Traceable configuration source information
+
+* Advanced System Property Patterns
+
+** Type-Safe Property Conversion
+Enhanced system property handling with type conversion:
+
+#+begin_src java
+public class TypedSystemPropertyConfigurationSource extends SystemPropertyConfigurationSource {
+    private final Map<String, Class<?>> propertyTypes;
+    
+    public TypedSystemPropertyConfigurationSource(String prefix, Map<String, Class<?>> types) {
+        super(prefix);
+        this.propertyTypes = types;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> baseConfig = (Map<String, Object>) super.loadConfiguration();
+        if (baseConfig == null) {
+            return null;
+        }
+        
+        Map<String, Object> typedConfig = new HashMap<>();
+        
+        for (Map.Entry<String, Object> entry : baseConfig.entrySet()) {
+            String key = entry.getKey();
+            String stringValue = (String) entry.getValue();
+            
+            Class<?> expectedType = propertyTypes.get(key);
+            if (expectedType != null) {
+                Object typedValue = convertValue(stringValue, expectedType);
+                typedConfig.put(key, typedValue);
+            } else {
+                typedConfig.put(key, stringValue);
+            }
+        }
+        
+        return typedConfig;
+    }
+    
+    private Object convertValue(String value, Class<?> targetType) throws ConfigurationException {
+        try {
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                return Boolean.parseBoolean(value);
+            } else if (targetType == Integer.class || targetType == int.class) {
+                return Integer.parseInt(value);
+            } else if (targetType == Long.class || targetType == long.class) {
+                return Long.parseLong(value);
+            } else if (targetType == Double.class || targetType == double.class) {
+                return Double.parseDouble(value);
+            } else if (targetType == String.class) {
+                return value;
+            } else {
+                throw new ConfigurationException("Unsupported property type: " + targetType);
+            }
+        } catch (NumberFormatException e) {
+            throw new ConfigurationException(
+                "Invalid " + targetType.getSimpleName() + " value: " + value, e);
+        }
+    }
+}
+#+end_src
+
+** Hierarchical Property Support
+Support for nested property structures:
+
+#+begin_src java
+public class HierarchicalSystemPropertyConfigurationSource extends SystemPropertyConfigurationSource {
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> flatConfig = (Map<String, Object>) super.loadConfiguration();
+        if (flatConfig == null) {
+            return null;
+        }
+        
+        return buildHierarchicalStructure(flatConfig);
+    }
+    
+    private Map<String, Object> buildHierarchicalStructure(Map<String, Object> flatConfig) {
+        Map<String, Object> hierarchical = new HashMap<>();
+        
+        for (Map.Entry<String, Object> entry : flatConfig.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            setNestedValue(hierarchical, key.split("\\."), value);
+        }
+        
+        return hierarchical;
+    }
+    
+    private void setNestedValue(Map<String, Object> map, String[] keyParts, Object value) {
+        Map<String, Object> current = map;
+        
+        for (int i = 0; i < keyParts.length - 1; i++) {
+            String part = keyParts[i];
+            current.computeIfAbsent(part, k -> new HashMap<String, Object>());
+            current = (Map<String, Object>) current.get(part);
+        }
+        
+        current.put(keyParts[keyParts.length - 1], value);
+    }
+}
+#+end_src
+
+** Validation and Constraint Support
+System property validation and constraint checking:
+
+#+begin_src java
+public class ValidatingSystemPropertyConfigurationSource extends SystemPropertyConfigurationSource {
+    private final Map<String, PropertyValidator> validators;
+    
+    public ValidatingSystemPropertyConfigurationSource(
+        String prefix, 
+        Map<String, PropertyValidator> validators) {
+        super(prefix);
+        this.validators = validators;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> config = (Map<String, Object>) super.loadConfiguration();
+        if (config == null) {
+            return null;
+        }
+        
+        validateConfiguration(config);
+        return config;
+    }
+    
+    private void validateConfiguration(Map<String, Object> config) throws ConfigurationException {
+        for (Map.Entry<String, Object> entry : config.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            PropertyValidator validator = validators.get(key);
+            if (validator != null) {
+                ValidationResult result = validator.validate(value);
+                if (!result.isValid()) {
+                    throw new ConfigurationException(
+                        "System property validation failed for " + getPrefix() + key + 
+                        ": " + result.getErrorMessage());
+                }
+            }
+        }
+    }
+    
+    public interface PropertyValidator {
+        ValidationResult validate(Object value);
+    }
+    
+    public static class ValidationResult {
+        private final boolean valid;
+        private final String errorMessage;
+        
+        public ValidationResult(boolean valid, String errorMessage) {
+            this.valid = valid;
+            this.errorMessage = errorMessage;
+        }
+        
+        public boolean isValid() { return valid; }
+        public String getErrorMessage() { return errorMessage; }
+        
+        public static ValidationResult valid() {
+            return new ValidationResult(true, null);
+        }
+        
+        public static ValidationResult invalid(String message) {
+            return new ValidationResult(false, message);
+        }
+    }
+}
+#+end_src
+
+* Usage Examples and Integration Patterns
+
+** Basic System Property Configuration
+Simple system property configuration usage:
+
+#+begin_src java
+// Create system property configuration source
+ConfigurationSource systemProps = new SystemPropertyConfigurationSource("myapp.");
+
+// Set system properties via command line:
+// java -Dmyapp.database.url=jdbc:postgresql://localhost:5432/mydb 
+//      -Dmyapp.database.username=user 
+//      -Dmyapp.max.connections=20 
+//      MyApplication
+
+if (systemProps.isAvailable()) {
+    try {
+        Object config = systemProps.loadConfiguration();
+        if (config instanceof Map) {
+            Map<String, Object> configMap = (Map<String, Object>) config;
+            
+            // Accessed as:
+            // database.url -> "jdbc:postgresql://localhost:5432/mydb"
+            // database.username -> "user"  
+            // max.connections -> "20"
+            
+            String dbUrl = (String) configMap.get("database.url");
+            String dbUser = (String) configMap.get("database.username");
+            String maxConnections = (String) configMap.get("max.connections");
+        }
+    } catch (ConfigurationException e) {
+        logger.error("Failed to load system property configuration", e);
+    }
+}
+#+end_src
+
+** Integration with BaseConfigurationAdapter
+System properties as highest priority configuration source:
+
+#+begin_src java
+public class DatabaseConfigurationAdapter 
+    extends BaseConfigurationAdapter<DatabaseConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            // Note: System properties are automatically handled by BaseConfigurationAdapter
+            // These are additional project-specific sources
+            YamlConfigurationSource.fromFile("/etc/myapp/database.yml"),
+            YamlConfigurationSource.fromClasspath("database.yml"),
+            PropertiesConfigurationSource.fromClasspath("database.properties")
+        );
+    }
+    
+    @Override
+    protected String getSystemPropertyPrefix() {
+        return "myapp.database.";
+    }
+    
+    @Override
+    protected DatabaseConfig transformConfiguration(Object rawConfiguration) {
+        if (rawConfiguration instanceof Map) {
+            return DatabaseConfigMapper.fromMap((Map<String, Object>) rawConfiguration);
+        }
+        throw new IllegalArgumentException("Expected Map configuration");
+    }
+    
+    @Override
+    protected DatabaseConfig createDefaultConfiguration() {
+        return DatabaseConfig.builder()
+            .withUrl("jdbc:h2:mem:testdb")
+            .withUsername("sa")
+            .withPassword("")
+            .withMaxConnections(10)
+            .build();
+    }
+}
+#+end_src
+
+** Development and Testing Configuration
+System properties for development scenarios:
+
+#+begin_src java
+public class DevelopmentConfigurationSetup {
+    
+    public static void configureForDevelopment() {
+        // Set development-specific system properties
+        System.setProperty("myapp.environment", "development");
+        System.setProperty("myapp.logging.level", "DEBUG");
+        System.setProperty("myapp.database.url", "jdbc:h2:mem:devdb");
+        System.setProperty("myapp.cache.enabled", "false");
+        System.setProperty("myapp.external.service.timeout", "1000");
+    }
+    
+    public static void configureForTesting() {
+        // Set test-specific system properties
+        System.setProperty("myapp.environment", "test");
+        System.setProperty("myapp.logging.level", "WARN");
+        System.setProperty("myapp.database.url", "jdbc:h2:mem:testdb");
+        System.setProperty("myapp.cache.enabled", "false");
+        System.setProperty("myapp.external.service.mock", "true");
+    }
+    
+    public static void clearConfiguration() {
+        // Clear application-specific system properties
+        System.getProperties().stringPropertyNames().stream()
+            .filter(name -> name.startsWith("myapp."))
+            .forEach(System::clearProperty);
+    }
+}
+#+end_src
+
+** Container and Cloud Deployment
+System properties in containerized environments:
+
+#+begin_src dockerfile
+# Dockerfile with system property configuration
+FROM openjdk:17-jdk-slim
+
+COPY application.jar /app/application.jar
+
+# Configure system properties via environment variables
+ENV JAVA_OPTS="-Dmyapp.database.url=${DATABASE_URL} \
+               -Dmyapp.database.username=${DATABASE_USERNAME} \
+               -Dmyapp.database.password=${DATABASE_PASSWORD} \
+               -Dmyapp.environment=${ENVIRONMENT} \
+               -Dmyapp.logging.level=${LOG_LEVEL:-INFO}"
+
+CMD java $JAVA_OPTS -jar /app/application.jar
+#+end_src
+
+** Kubernetes ConfigMap Integration
+Using Kubernetes to inject system properties:
+
+#+begin_src yaml
+# kubernetes-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:latest
+        env:
+        - name: JAVA_OPTS
+          value: >-
+            -Dmyapp.database.url=$(DATABASE_URL)
+            -Dmyapp.database.username=$(DATABASE_USERNAME)
+            -Dmyapp.cache.redis.url=$(REDIS_URL)
+            -Dmyapp.logging.level=$(LOG_LEVEL)
+        envFrom:
+        - configMapRef:
+            name: myapp-config
+        - secretRef:
+            name: myapp-secrets
+#+end_src
+
+* Debugging and Operational Support
+
+** Configuration Debugging Utilities
+Tools for debugging system property configuration:
+
+#+begin_src java
+public class SystemPropertyDebugUtils {
+    
+    public static void dumpSystemProperties(String prefix) {
+        System.out.println("System Properties with prefix: " + prefix);
+        System.out.println("================================================");
+        
+        Properties props = System.getProperties();
+        props.stringPropertyNames().stream()
+            .filter(name -> name.startsWith(prefix))
+            .sorted()
+            .forEach(name -> {
+                String value = props.getProperty(name);
+                System.out.println(name + " = " + value);
+            });
+    }
+    
+    public static Map<String, String> getPropertiesWithPrefix(String prefix) {
+        Properties props = System.getProperties();
+        return props.stringPropertyNames().stream()
+            .filter(name -> name.startsWith(prefix))
+            .collect(Collectors.toMap(
+                name -> name,
+                name -> props.getProperty(name),
+                (v1, v2) -> v1,
+                TreeMap::new
+            ));
+    }
+    
+    public static void validateRequiredProperties(String prefix, List<String> requiredKeys) {
+        List<String> missing = new ArrayList<>();
+        
+        for (String key : requiredKeys) {
+            String fullKey = prefix + key;
+            if (System.getProperty(fullKey) == null) {
+                missing.add(fullKey);
+            }
+        }
+        
+        if (!missing.isEmpty()) {
+            throw new IllegalStateException(
+                "Missing required system properties: " + String.join(", ", missing));
+        }
+    }
+}
+#+end_src
+
+** Runtime Configuration Monitoring
+Monitoring system property configuration changes:
+
+#+begin_src java
+public class SystemPropertyMonitor {
+    private final String prefix;
+    private final Map<String, String> lastKnownValues;
+    private final List<PropertyChangeListener> listeners;
+    
+    public SystemPropertyMonitor(String prefix) {
+        this.prefix = prefix;
+        this.lastKnownValues = new ConcurrentHashMap<>();
+        this.listeners = new CopyOnWriteArrayList<>();
+        
+        // Initialize with current values
+        captureCurrentValues();
+    }
+    
+    public void checkForChanges() {
+        Map<String, String> currentValues = getCurrentValues();
+        
+        for (Map.Entry<String, String> entry : currentValues.entrySet()) {
+            String key = entry.getKey();
+            String currentValue = entry.getValue();
+            String previousValue = lastKnownValues.get(key);
+            
+            if (!Objects.equals(currentValue, previousValue)) {
+                PropertyChangeEvent event = new PropertyChangeEvent(
+                    key, previousValue, currentValue);
+                notifyListeners(event);
+                lastKnownValues.put(key, currentValue);
+            }
+        }
+        
+        // Check for removed properties
+        Set<String> removedKeys = new HashSet<>(lastKnownValues.keySet());
+        removedKeys.removeAll(currentValues.keySet());
+        
+        for (String removedKey : removedKeys) {
+            PropertyChangeEvent event = new PropertyChangeEvent(
+                removedKey, lastKnownValues.get(removedKey), null);
+            notifyListeners(event);
+            lastKnownValues.remove(removedKey);
+        }
+    }
+    
+    private Map<String, String> getCurrentValues() {
+        return System.getProperties().stringPropertyNames().stream()
+            .filter(name -> name.startsWith(prefix))
+            .collect(Collectors.toMap(
+                name -> name,
+                name -> System.getProperty(name)
+            ));
+    }
+    
+    public interface PropertyChangeListener {
+        void onPropertyChanged(PropertyChangeEvent event);
+    }
+    
+    public static class PropertyChangeEvent {
+        private final String propertyName;
+        private final String oldValue;
+        private final String newValue;
+        
+        // Constructor and getters...
+    }
+}
+#+end_src
+
+The SystemPropertyConfigurationSource provides powerful runtime configuration capabilities through JVM system properties, enabling flexible deployment scenarios, debugging support, and operational configuration management while maintaining clean integration with the broader configuration infrastructure.

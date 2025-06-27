@@ -1,0 +1,475 @@
+#+TITLE: ConfigurationSource - Uniform Configuration Loading Abstraction
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+
+* Overview
+
+The ~ConfigurationSource~ interface provides a uniform abstraction for loading configuration data from diverse sources within the ~java-commons-infrastructure~ module. This fundamental interface enables the strategy pattern implementation for configuration loading, allowing applications to seamlessly switch between different configuration sources such as files, environment variables, databases, or cloud services while maintaining consistent behavior and error handling across all source types.
+
+* Interface Design and Strategy Pattern
+
+** Configuration Source Abstraction
+ConfigurationSource serves as the foundation for configuration source implementations:
+- Provides uniform interface for configuration loading regardless of source type
+- Enables strategy pattern for pluggable configuration source implementations
+- Abstracts source-specific complexity behind a consistent interface
+- Supports priority-based configuration source ordering and selection
+
+** Source Availability and Health Monitoring
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationSource.java
+/**
+ * Checks if this configuration source is available.
+ * 
+ * @return true if the source is available for loading
+ */
+boolean isAvailable();
+#+END_SRC
+
+The availability checking mechanism provides:
+- **Proactive Health Monitoring**: Check source availability before attempting to load
+- **Fail-Fast Behavior**: Quick detection of unavailable configuration sources
+- **Resilience Support**: Enable fallback mechanisms when sources are unavailable
+- **Operational Visibility**: Support monitoring and alerting for configuration health
+
+** Configuration Loading with Error Handling
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationSource.java
+/**
+ * Loads configuration data from this source.
+ * 
+ * @return the configuration data, or null if not available
+ * @throws ConfigurationException if loading fails
+ */
+@Nullable
+Object loadConfiguration() throws ConfigurationException;
+#+END_SRC
+
+The loading mechanism provides:
+- **Null Return Semantics**: Null return indicates source has no configuration (different from failure)
+- **Exception-Based Error Reporting**: Clear distinction between "no data" and "error loading data"
+- **Type-Agnostic Loading**: Returns Object to support different configuration formats
+- **Consistent Error Handling**: Uniform exception handling across all source types
+
+* Configuration Source Metadata and Discovery
+
+** Source Description and Identification
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationSource.java
+/**
+ * Returns a human-readable description of this configuration source.
+ * 
+ * @return source description
+ */
+@NonNull
+String getDescription();
+#+END_SRC
+
+Source descriptions enable:
+- **Debugging Support**: Clear identification of configuration sources for troubleshooting
+- **Operational Visibility**: Logging and monitoring of active configuration sources
+- **User Interface Display**: Human-readable source information for management interfaces
+- **Audit Trail Support**: Comprehensive tracking of configuration source usage
+
+** Priority-Based Source Ordering
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/ConfigurationSource.java
+/**
+ * Returns the priority of this configuration source.
+ * Higher values indicate higher priority.
+ * 
+ * @return source priority
+ */
+int getPriority();
+#+END_SRC
+
+Priority mechanisms support:
+- **Hierarchical Configuration**: Higher priority sources override lower priority ones
+- **Source Ordering**: Automatic ordering of configuration sources by priority
+- **Override Semantics**: Clear precedence rules for configuration values
+- **Flexible Prioritization**: Configurable priority schemes for different deployment scenarios
+
+* Standard Configuration Source Implementations
+
+** System Properties Configuration Source
+The ~SystemPropertyConfigurationSource~ provides system property integration:
+- **Prefix-Based Filtering**: Configurable property prefixes for namespacing
+- **Automatic Property Discovery**: Scans system properties for matching patterns
+- **Runtime Override Support**: Enable configuration overrides through JVM arguments
+- **Development and Debugging**: Easy configuration modification for testing scenarios
+
+#+begin_src java
+// System Properties Configuration Source
+ConfigurationSource systemProps = new SystemPropertyConfigurationSource("myapp.");
+if (systemProps.isAvailable()) {
+    Object config = systemProps.loadConfiguration();
+    // Returns Map<String, Object> with property keys and values
+}
+#+end_src
+
+** Environment Variables Configuration Source
+The ~EnvironmentVariableConfigurationSource~ provides environment integration:
+- **Container-Friendly Configuration**: Native support for containerized deployments
+- **Cloud Platform Integration**: Works seamlessly with cloud deployment platforms
+- **Security-Conscious Design**: Suitable for sensitive configuration without file storage
+- **DevOps Workflow Integration**: Integrates with modern deployment and CI/CD pipelines
+
+#+begin_src java
+// Environment Variables Configuration Source
+ConfigurationSource envVars = new EnvironmentVariableConfigurationSource("MYAPP_");
+if (envVars.isAvailable()) {
+    Object config = envVars.loadConfiguration();
+    // Returns Map<String, Object> with environment variable keys and values
+}
+#+end_src
+
+** File-Based Configuration Sources
+The infrastructure provides multiple file-based configuration sources:
+
+*** YAML Configuration Source
+#+begin_src java
+// YAML Configuration from classpath
+ConfigurationSource yamlClasspath = YamlConfigurationSource.fromClasspath("application.yml");
+
+// YAML Configuration from file system
+ConfigurationSource yamlFile = YamlConfigurationSource.fromFile("/etc/myapp/config.yml");
+
+if (yamlClasspath.isAvailable()) {
+    Object config = yamlClasspath.loadConfiguration();
+    // Returns parsed YAML as Map<String, Object> or List<Object>
+}
+#+end_src
+
+*** Properties Configuration Source
+#+begin_src java
+// Properties Configuration from classpath
+ConfigurationSource propsClasspath = PropertiesConfigurationSource.fromClasspath("application.properties");
+
+// Properties Configuration from file system
+ConfigurationSource propsFile = PropertiesConfigurationSource.fromFile("/etc/myapp/config.properties");
+
+if (propsClasspath.isAvailable()) {
+    Object config = propsClasspath.loadConfiguration();
+    // Returns Map<String, Object> with property keys and values
+}
+#+end_src
+
+* Configuration Source Priority Patterns
+
+** Standard Priority Hierarchy
+The infrastructure establishes standard priority levels:
+- **System Properties**: Priority 1000 (highest) - Runtime overrides and debugging
+- **Environment Variables**: Priority 900 - Deployment and container configuration
+- **YAML Files**: Priority 500 - Application-specific configuration
+- **Properties Files**: Priority 400 - Legacy and simple configuration
+- **Default Configuration**: Priority 0 (lowest) - Fallback values
+
+** Custom Priority Implementation
+#+begin_src java
+public class DatabaseConfigurationSource implements ConfigurationSource {
+    
+    @Override
+    public int getPriority() {
+        return 800; // High priority, but below environment variables
+    }
+    
+    @Override
+    public boolean isAvailable() {
+        return databaseConnectionHealthy();
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            return loadConfigurationFromDatabase();
+        } catch (SQLException e) {
+            throw new ConfigurationException("Database configuration loading failed", e);
+        }
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Database Configuration (connection: " + connectionString + ")";
+    }
+}
+#+end_src
+
+* Integration with BaseConfigurationAdapter
+
+** Source Registration and Usage
+Configuration sources integrate seamlessly with BaseConfigurationAdapter:
+
+#+begin_src java
+public class ProjectConfigurationAdapter extends BaseConfigurationAdapter<ProjectConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            // High priority: Project-specific YAML
+            new YamlConfigurationSource("project-config.yml"),
+            
+            // Medium priority: Shared configuration
+            new YamlConfigurationSource("shared-config.yml"),
+            
+            // Low priority: Default properties
+            new PropertiesConfigurationSource("defaults.properties"),
+            
+            // Custom source: Database configuration
+            new DatabaseConfigurationSource(dataSource)
+        );
+    }
+}
+#+end_src
+
+** Automatic Source Ordering
+The BaseConfigurationAdapter automatically orders sources by priority:
+1. Sources are sorted by priority (highest first)
+2. Each source is checked for availability
+3. First available source with valid configuration is used
+4. Lower priority sources provide fallback options
+
+** Source Health Monitoring
+The integration provides comprehensive health monitoring:
+- **Availability Checking**: Regular health checks for all registered sources
+- **Failure Recovery**: Automatic fallback when higher priority sources fail
+- **Performance Monitoring**: Tracking of source response times and reliability
+- **Operational Alerts**: Notification when critical configuration sources become unavailable
+
+* Advanced Configuration Source Patterns
+
+** Composite Configuration Sources
+#+begin_src java
+public class CompositeConfigurationSource implements ConfigurationSource {
+    private final List<ConfigurationSource> sources;
+    
+    public CompositeConfigurationSource(List<ConfigurationSource> sources) {
+        this.sources = sources.stream()
+            .sorted(Comparator.comparing(ConfigurationSource::getPriority).reversed())
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> mergedConfig = new HashMap<>();
+        
+        // Merge configurations from all sources, respecting priority
+        for (ConfigurationSource source : sources) {
+            if (source.isAvailable()) {
+                Object config = source.loadConfiguration();
+                if (config instanceof Map) {
+                    mergedConfig.putAll((Map<String, Object>) config);
+                }
+            }
+        }
+        
+        return mergedConfig.isEmpty() ? null : mergedConfig;
+    }
+}
+#+end_src
+
+** Cached Configuration Sources
+#+begin_src java
+public class CachedConfigurationSource implements ConfigurationSource {
+    private final ConfigurationSource delegate;
+    private final Cache<String, Object> cache;
+    private final Duration cacheTtl;
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        return cache.get("configuration", key -> {
+            try {
+                return delegate.loadConfiguration();
+            } catch (ConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+    
+    @Override
+    public boolean isAvailable() {
+        // Check cache first, then delegate
+        return cache.getIfPresent("configuration") != null || delegate.isAvailable();
+    }
+}
+#+end_src
+
+** Remote Configuration Sources
+#+begin_src java
+public class HttpConfigurationSource implements ConfigurationSource {
+    private final String configurationUrl;
+    private final HttpClient httpClient;
+    
+    @Override
+    public boolean isAvailable() {
+        try {
+            HttpResponse<String> response = httpClient.send(
+                HttpRequest.newBuilder()
+                    .uri(URI.create(configurationUrl + "/health"))
+                    .timeout(Duration.ofSeconds(5))
+                    .build(),
+                HttpResponse.BodyHandlers.ofString()
+            );
+            return response.statusCode() == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            HttpResponse<String> response = httpClient.send(
+                HttpRequest.newBuilder()
+                    .uri(URI.create(configurationUrl))
+                    .timeout(Duration.ofSeconds(30))
+                    .build(),
+                HttpResponse.BodyHandlers.ofString()
+            );
+            
+            if (response.statusCode() != 200) {
+                throw new ConfigurationException("HTTP " + response.statusCode() + ": " + response.body());
+            }
+            
+            return parseJsonConfiguration(response.body());
+        } catch (Exception e) {
+            throw new ConfigurationException("Failed to load remote configuration", e);
+        }
+    }
+}
+#+end_src
+
+* Error Handling and Resilience
+
+** Configuration Exception Handling
+Configuration sources provide comprehensive error handling:
+- **Checked Exceptions**: ConfigurationException for recoverable configuration errors
+- **Detailed Error Messages**: Comprehensive error information for troubleshooting
+- **Error Context**: Source-specific context information for debugging
+- **Recovery Guidance**: Suggestions for resolving configuration issues
+
+** Resilience Patterns
+The interface supports various resilience patterns:
+- **Circuit Breaker**: Temporary source disabling after repeated failures
+- **Retry Logic**: Automatic retry for transient configuration loading failures
+- **Timeout Handling**: Configurable timeouts for slow configuration sources
+- **Graceful Degradation**: Continue operation with partial configuration when possible
+
+** Source Validation and Verification
+#+begin_src java
+public interface ValidatingConfigurationSource extends ConfigurationSource {
+    
+    /**
+     * Validates the configuration data from this source.
+     * 
+     * @param configuration the configuration to validate
+     * @throws ConfigurationException if validation fails
+     */
+    void validateConfiguration(Object configuration) throws ConfigurationException;
+    
+    /**
+     * Returns the configuration schema for validation.
+     * 
+     * @return configuration schema or null if no schema validation
+     */
+    @Nullable
+    Object getConfigurationSchema();
+}
+#+end_src
+
+* Testing and Development Support
+
+** Mock Configuration Sources
+The interface design enables easy testing:
+#+begin_src java
+public class MockConfigurationSource implements ConfigurationSource {
+    private final Object mockConfiguration;
+    private final boolean available;
+    
+    public MockConfigurationSource(Object mockConfig, boolean available) {
+        this.mockConfiguration = mockConfig;
+        this.available = available;
+    }
+    
+    @Override
+    public boolean isAvailable() {
+        return available;
+    }
+    
+    @Override
+    public Object loadConfiguration() {
+        return mockConfiguration;
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Mock Configuration Source";
+    }
+    
+    @Override
+    public int getPriority() {
+        return Integer.MAX_VALUE; // Highest priority for testing
+    }
+}
+#+end_src
+
+** Development Configuration Sources
+Special configuration sources for development scenarios:
+- **Hot-Reload Sources**: Configuration sources that detect file changes
+- **Development Override Sources**: High-priority sources for development-specific configuration
+- **Debug Configuration Sources**: Sources that provide detailed logging and debugging information
+- **Test Configuration Sources**: Sources optimized for test execution and validation
+
+* Integration Examples and Best Practices
+
+** Enterprise Configuration Architecture
+#+begin_src java
+public class EnterpriseConfigurationAdapter extends BaseConfigurationAdapter<EnterpriseConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        List<ConfigurationSource> sources = new ArrayList<>();
+        
+        // Highest priority: Kubernetes ConfigMaps and Secrets
+        if (isKubernetesEnvironment()) {
+            sources.add(new KubernetesConfigMapSource("enterprise-config"));
+            sources.add(new KubernetesSecretSource("enterprise-secrets"));
+        }
+        
+        // High priority: Cloud configuration services
+        if (cloudConfigurationAvailable()) {
+            sources.add(new AwsParameterStoreSource("/enterprise/config"));
+            sources.add(new AzureKeyVaultSource("enterprise-vault"));
+        }
+        
+        // Medium priority: Database configuration
+        sources.add(new DatabaseConfigurationSource(dataSource));
+        
+        // Low priority: File-based configuration
+        sources.add(new YamlConfigurationSource("enterprise-config.yml"));
+        sources.add(new PropertiesConfigurationSource("enterprise.properties"));
+        
+        return sources;
+    }
+}
+#+end_src
+
+** Development and Testing Configuration
+#+begin_src java
+public class DevelopmentConfigurationAdapter extends BaseConfigurationAdapter<DevConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        List<ConfigurationSource> sources = new ArrayList<>();
+        
+        // Highest priority: Local development overrides
+        sources.add(new YamlConfigurationSource("dev-local.yml"));
+        sources.add(new PropertiesConfigurationSource("dev-local.properties"));
+        
+        // Medium priority: Shared development configuration
+        sources.add(new YamlConfigurationSource("dev-shared.yml"));
+        
+        // Low priority: Default development configuration
+        sources.add(new YamlConfigurationSource("dev-defaults.yml"));
+        
+        return sources;
+    }
+}
+#+end_src
+
+The ConfigurationSource interface provides the foundation for flexible, extensible configuration management that supports diverse deployment scenarios while maintaining clean architectural boundaries and comprehensive error handling throughout the configuration loading lifecycle.

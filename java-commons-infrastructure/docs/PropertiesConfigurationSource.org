@@ -1,0 +1,687 @@
+#+TITLE: PropertiesConfigurationSource - Java Properties File Configuration
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+
+* Overview
+
+The ~PropertiesConfigurationSource~ class provides comprehensive Java properties file configuration support within the ~java-commons-infrastructure~ module. This implementation supports both classpath resource loading and external file system access, enabling traditional Java configuration patterns while maintaining consistency with modern configuration infrastructure through flexible deployment scenarios and robust error handling.
+
+* Properties Configuration Strategy and Design
+
+** Traditional Java Configuration Pattern
+PropertiesConfigurationSource supports established Java application configuration patterns:
+- **Properties File Format**: Native Java properties file format support with key-value pairs
+- **Classpath Integration**: Standard classpath resource loading for packaged configuration
+- **File System Support**: External properties files for deployment-specific configuration
+- **Encoding Compatibility**: Proper handling of character encoding and internationalization
+
+** Dual-Mode Resource Loading
+The implementation provides flexible resource loading strategies:
+- **Classpath Resource Loading**: Configuration files packaged within JAR and WAR files
+- **External File System Loading**: Configuration files deployed separately from application code
+- **Development Flexibility**: Easy switching between embedded and external configuration
+- **Deployment Scenarios**: Support for different configuration strategies across environments
+
+** Legacy System Integration
+Properties files enable integration with existing Java systems:
+- **Existing Configuration**: Seamless integration with legacy properties-based configuration
+- **Tool Compatibility**: Compatible with existing Java configuration management tools
+- **Migration Support**: Gradual migration from properties to more advanced configuration formats
+- **Standard Compliance**: Follows Java properties file specification and conventions
+
+* Core Implementation and Resource Loading
+
+** Classpath Resource Constructor
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/PropertiesConfigurationSource.java
+/**
+ * Creates a new properties configuration source that loads from classpath.
+ * 
+ * @param resourceName the classpath resource name
+ */
+public PropertiesConfigurationSource(@NonNull final String resourceName) {
+    this.filePath = resourceName;
+    this.loadFromClasspath = true;
+}
+#+END_SRC
+
+Classpath loading enables:
+- **Embedded Configuration**: Properties files packaged within application JAR files
+- **Classpath Scanning**: Automatic discovery of configuration resources
+- **Deployment Simplification**: Single artifact deployment with embedded configuration
+- **Version Coupling**: Configuration versioned alongside application code
+
+** External File System Constructor
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/PropertiesConfigurationSource.java
+/**
+ * Creates a new properties configuration source.
+ * 
+ * @param filePath the file path
+ * @param loadFromClasspath whether to load from classpath
+ */
+public PropertiesConfigurationSource(@NonNull final String filePath, final boolean loadFromClasspath) {
+    this.filePath = filePath;
+    this.loadFromClasspath = loadFromClasspath;
+}
+#+END_SRC
+
+External file loading supports:
+- **Configuration Externalization**: Properties files separated from application code
+- **Runtime Configuration Updates**: Ability to modify configuration without redeployment
+- **Environment-Specific Configuration**: Different properties files per environment
+- **Operational Flexibility**: Configuration management by operations teams
+
+** Factory Methods for Clear Intent
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/PropertiesConfigurationSource.java
+/**
+ * Creates a new properties configuration source for external files.
+ * 
+ * @param filePath the external file path
+ * @return new properties configuration source
+ */
+@NonNull
+public static PropertiesConfigurationSource fromFile(@NonNull final String filePath) {
+    return new PropertiesConfigurationSource(filePath, false);
+}
+
+/**
+ * Creates a new properties configuration source for classpath resources.
+ * 
+ * @param resourceName the classpath resource name
+ * @return new properties configuration source
+ */
+@NonNull
+public static PropertiesConfigurationSource fromClasspath(@NonNull final String resourceName) {
+    return new PropertiesConfigurationSource(resourceName, true);
+}
+#+END_SRC
+
+Factory methods provide:
+- **Clear Intent Expression**: Explicit indication of loading strategy
+- **Type Safety**: Compile-time verification of loading strategy
+- **API Clarity**: Self-documenting configuration source creation
+- **Reduced Error Potential**: Eliminates boolean parameter confusion
+
+* Configuration Availability and Health Checking
+
+** Availability Verification Implementation
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/PropertiesConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+public boolean isAvailable() {
+    if (loadFromClasspath) {
+        return getClass().getClassLoader().getResourceAsStream(filePath) != null;
+    } else {
+        final Path path = Paths.get(filePath);
+        return Files.exists(path) && Files.isReadable(path);
+    }
+}
+#+END_SRC
+
+Availability checking provides:
+- **Proactive Health Monitoring**: Early detection of configuration availability issues
+- **Fail-Fast Behavior**: Quick identification of missing or inaccessible configuration
+- **Load Balancing Support**: Health checking for configuration source selection
+- **Operational Visibility**: Monitoring configuration source health status
+
+** Classpath Resource Availability
+Classpath availability checking features:
+- **ClassLoader Integration**: Uses current thread's class loader for resource discovery
+- **JAR File Support**: Works with resources packaged in JAR and WAR files
+- **Resource Path Normalization**: Handles different resource path formats consistently
+- **Security-Aware Loading**: Respects classpath security constraints
+
+** File System Availability
+File system availability checking capabilities:
+- **Path Existence Verification**: Confirms file exists at specified path
+- **Read Permission Checking**: Verifies application has read access to configuration file
+- **Symbolic Link Support**: Follows symbolic links to actual configuration files
+- **Network File System Support**: Compatible with NFS and other network file systems
+
+* Properties Loading and Configuration Processing
+
+** Core Properties Loading Implementation
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/PropertiesConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+@Nullable
+public Object loadConfiguration() throws ConfigurationException {
+    try {
+        final InputStream inputStream = loadFromClasspath ?
+            getClass().getClassLoader().getResourceAsStream(filePath) :
+            Files.newInputStream(Paths.get(filePath));
+
+        if (inputStream == null) {
+            return null;
+        }
+
+        try (inputStream) {
+            final Properties properties = new Properties();
+            properties.load(inputStream);
+            
+            // Convert properties to map for consistent handling
+            final Map<String, Object> configurationMap = new HashMap<>();
+            properties.stringPropertyNames().forEach(key -> 
+                configurationMap.put(key, properties.getProperty(key)));
+            
+            return configurationMap.isEmpty() ? null : configurationMap;
+        }
+    } catch (final Exception e) {
+        throw new ConfigurationException("Failed to load properties configuration from: " + filePath, e);
+    }
+}
+#+END_SRC
+
+Configuration loading features:
+- **Resource Management**: Automatic input stream cleanup using try-with-resources
+- **Null Safety**: Proper handling of missing resources returning null
+- **Map Conversion**: Converts properties to standard Map<String, Object> format for consistency
+- **Exception Handling**: Comprehensive error handling with context information
+
+** Properties Format Support
+The implementation supports complete Java properties file features:
+- **Standard Key-Value Pairs**: Traditional Java properties key=value format
+- **Unicode Escape Sequences**: Support for Unicode characters in properties files
+- **Multi-line Values**: Properties values spanning multiple lines with continuation characters
+- **Comment Support**: Both # and ! style comments for documentation
+- **Whitespace Handling**: Proper handling of leading and trailing whitespace
+
+* Advanced Properties Configuration Patterns
+
+** Environment-Specific Properties Loading
+Support for environment-specific properties files:
+
+#+begin_src java
+public class EnvironmentAwarePropertiesConfigurationSource extends PropertiesConfigurationSource {
+    private final String environment;
+    
+    public EnvironmentAwarePropertiesConfigurationSource(String baseFileName, String environment) {
+        super(buildEnvironmentSpecificFileName(baseFileName, environment));
+        this.environment = environment;
+    }
+    
+    private static String buildEnvironmentSpecificFileName(String baseFileName, String environment) {
+        // Transform application.properties to application-dev.properties for dev environment
+        String baseName = baseFileName.replaceFirst("\\.[^.]+$", "");
+        String extension = baseFileName.substring(baseFileName.lastIndexOf('.'));
+        return baseName + "-" + environment + extension;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            // Try environment-specific properties first
+            Object envConfig = super.loadConfiguration();
+            if (envConfig != null) {
+                return envConfig;
+            }
+            
+            // Fall back to base properties
+            PropertiesConfigurationSource baseSource = PropertiesConfigurationSource.fromClasspath(
+                getBaseFileName());
+            return baseSource.loadConfiguration();
+            
+        } catch (ConfigurationException e) {
+            throw new ConfigurationException(
+                "Failed to load environment-specific properties for environment: " + environment, e);
+        }
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Environment-specific Properties (" + environment + "): " + getFilePath();
+    }
+}
+#+end_src
+
+** Profile-Based Properties Configuration
+Support for Spring-style profile-based properties:
+
+#+begin_src java
+public class ProfileBasedPropertiesConfigurationSource extends PropertiesConfigurationSource {
+    private final List<String> activeProfiles;
+    
+    public ProfileBasedPropertiesConfigurationSource(String baseFileName, List<String> profiles) {
+        super(baseFileName);
+        this.activeProfiles = profiles;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        try {
+            Map<String, Object> mergedConfig = new HashMap<>();
+            
+            // Load base properties first
+            Object baseConfig = super.loadConfiguration();
+            if (baseConfig instanceof Map) {
+                mergedConfig.putAll((Map<String, Object>) baseConfig);
+            }
+            
+            // Load and merge profile-specific properties
+            for (String profile : activeProfiles) {
+                String profileFileName = buildProfileFileName(getFilePath(), profile);
+                PropertiesConfigurationSource profileSource = 
+                    PropertiesConfigurationSource.fromClasspath(profileFileName);
+                
+                if (profileSource.isAvailable()) {
+                    Object profileConfig = profileSource.loadConfiguration();
+                    if (profileConfig instanceof Map) {
+                        mergedConfig.putAll((Map<String, Object>) profileConfig);
+                    }
+                }
+            }
+            
+            return mergedConfig.isEmpty() ? null : mergedConfig;
+            
+        } catch (Exception e) {
+            throw new ConfigurationException(
+                "Failed to load profile-based properties for profiles: " + activeProfiles, e);
+        }
+    }
+    
+    private String buildProfileFileName(String baseFileName, String profile) {
+        String baseName = baseFileName.replaceFirst("\\.[^.]+$", "");
+        String extension = baseFileName.substring(baseFileName.lastIndexOf('.'));
+        return baseName + "-" + profile + extension;
+    }
+}
+#+end_src
+
+** Properties Interpolation and Variable Substitution
+Enhanced properties with variable substitution:
+
+#+begin_src java
+public class InterpolatingPropertiesConfigurationSource extends PropertiesConfigurationSource {
+    private final Map<String, String> substitutionVariables;
+    
+    public InterpolatingPropertiesConfigurationSource(String filePath, Map<String, String> variables) {
+        super(filePath);
+        this.substitutionVariables = variables;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> config = (Map<String, Object>) super.loadConfiguration();
+        if (config == null) {
+            return null;
+        }
+        
+        return interpolateVariables(config);
+    }
+    
+    private Map<String, Object> interpolateVariables(Map<String, Object> config) {
+        Map<String, Object> interpolated = new HashMap<>();
+        
+        for (Map.Entry<String, Object> entry : config.entrySet()) {
+            String key = entry.getKey();
+            String value = (String) entry.getValue();
+            
+            String interpolatedValue = interpolateValue(value);
+            interpolated.put(key, interpolatedValue);
+        }
+        
+        return interpolated;
+    }
+    
+    private String interpolateValue(String value) {
+        String result = value;
+        
+        // Replace ${variable} patterns
+        Pattern pattern = Pattern.compile("\\$\\{([^}]+)\\}");
+        Matcher matcher = pattern.matcher(result);
+        
+        while (matcher.find()) {
+            String variableName = matcher.group(1);
+            String replacement = substitutionVariables.get(variableName);
+            
+            if (replacement != null) {
+                result = result.replace(matcher.group(0), replacement);
+            } else {
+                // Try environment variables as fallback
+                replacement = System.getenv(variableName);
+                if (replacement != null) {
+                    result = result.replace(matcher.group(0), replacement);
+                } else {
+                    // Try system properties as fallback
+                    replacement = System.getProperty(variableName);
+                    if (replacement != null) {
+                        result = result.replace(matcher.group(0), replacement);
+                    }
+                }
+            }
+        }
+        
+        return result;
+    }
+}
+#+end_src
+
+** Type-Safe Properties Loading
+Enhanced properties loading with type conversion:
+
+#+begin_src java
+public class TypedPropertiesConfigurationSource extends PropertiesConfigurationSource {
+    private final Map<String, Class<?>> propertyTypes;
+    
+    public TypedPropertiesConfigurationSource(String filePath, Map<String, Class<?>> types) {
+        super(filePath);
+        this.propertyTypes = types;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> baseConfig = (Map<String, Object>) super.loadConfiguration();
+        if (baseConfig == null) {
+            return null;
+        }
+        
+        return convertToTypedConfiguration(baseConfig);
+    }
+    
+    private Map<String, Object> convertToTypedConfiguration(Map<String, Object> config) 
+        throws ConfigurationException {
+        Map<String, Object> typedConfig = new HashMap<>();
+        
+        for (Map.Entry<String, Object> entry : config.entrySet()) {
+            String key = entry.getKey();
+            String stringValue = (String) entry.getValue();
+            
+            Class<?> expectedType = propertyTypes.get(key);
+            if (expectedType != null) {
+                Object typedValue = convertPropertyValue(stringValue, expectedType);
+                typedConfig.put(key, typedValue);
+            } else {
+                typedConfig.put(key, stringValue);
+            }
+        }
+        
+        return typedConfig;
+    }
+    
+    private Object convertPropertyValue(String value, Class<?> targetType) throws ConfigurationException {
+        try {
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                return Boolean.parseBoolean(value);
+            } else if (targetType == Integer.class || targetType == int.class) {
+                return Integer.parseInt(value);
+            } else if (targetType == Long.class || targetType == long.class) {
+                return Long.parseLong(value);
+            } else if (targetType == Double.class || targetType == double.class) {
+                return Double.parseDouble(value);
+            } else if (targetType == String.class) {
+                return value;
+            } else if (targetType == List.class) {
+                return Arrays.asList(value.split(","));
+            } else if (targetType.isEnum()) {
+                return Enum.valueOf((Class<Enum>) targetType, value.toUpperCase());
+            } else {
+                throw new ConfigurationException("Unsupported property type: " + targetType);
+            }
+        } catch (NumberFormatException | IllegalArgumentException e) {
+            throw new ConfigurationException(
+                "Invalid " + targetType.getSimpleName() + " value for property: " + value, e);
+        }
+    }
+}
+#+end_src
+
+* Integration Examples and Usage Patterns
+
+** Basic Properties Configuration Loading
+Simple properties configuration source usage:
+
+#+begin_src java
+// Load from classpath
+ConfigurationSource propsClasspath = PropertiesConfigurationSource.fromClasspath("application.properties");
+
+if (propsClasspath.isAvailable()) {
+    try {
+        Object config = propsClasspath.loadConfiguration();
+        if (config instanceof Map) {
+            Map<String, Object> configMap = (Map<String, Object>) config;
+            String appName = (String) configMap.get("application.name");
+            String dbUrl = (String) configMap.get("database.url");
+            System.out.println("Application: " + appName + ", Database: " + dbUrl);
+        }
+    } catch (ConfigurationException e) {
+        logger.error("Failed to load properties configuration", e);
+    }
+}
+
+// Load from external file
+ConfigurationSource propsFile = PropertiesConfigurationSource.fromFile("/etc/myapp/config.properties");
+#+end_src
+
+** Integration with BaseConfigurationAdapter
+Properties configuration source in hierarchical configuration loading:
+
+#+begin_src java
+public class ApplicationConfigurationAdapter 
+    extends BaseConfigurationAdapter<ApplicationConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            // Highest priority: External environment-specific properties
+            PropertiesConfigurationSource.fromFile("/etc/myapp/application-" + getEnvironment() + ".properties"),
+            
+            // Medium priority: External general properties
+            PropertiesConfigurationSource.fromFile("/etc/myapp/application.properties"),
+            
+            // Lower priority: Packaged environment-specific properties
+            PropertiesConfigurationSource.fromClasspath("application-" + getEnvironment() + ".properties"),
+            
+            // Lowest priority: Packaged default properties
+            PropertiesConfigurationSource.fromClasspath("application.properties")
+        );
+    }
+    
+    @Override
+    protected ApplicationConfig transformConfiguration(Object rawConfiguration) {
+        if (rawConfiguration instanceof Map) {
+            return ApplicationConfigMapper.fromMap((Map<String, Object>) rawConfiguration);
+        }
+        throw new IllegalArgumentException("Expected Map configuration, got: " + 
+            rawConfiguration.getClass());
+    }
+    
+    @Override
+    protected ApplicationConfig createDefaultConfiguration() {
+        return ApplicationConfig.builder()
+            .withName("Default Application")
+            .withPort(8080)
+            .withDatabaseUrl("jdbc:h2:mem:testdb")
+            .build();
+    }
+}
+#+end_src
+
+** Legacy System Migration
+Gradual migration from legacy properties to modern configuration:
+
+#+begin_src java
+public class LegacyPropertiesMigrationAdapter extends BaseConfigurationAdapter<ModernConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            // Modern YAML configuration (preferred)
+            YamlConfigurationSource.fromClasspath("application.yml"),
+            
+            // Legacy properties configuration (fallback)
+            PropertiesConfigurationSource.fromClasspath("legacy-config.properties"),
+            
+            // System properties configuration (compatibility)
+            new LegacySystemPropertiesAdapter()
+        );
+    }
+    
+    @Override
+    protected ModernConfig transformConfiguration(Object rawConfiguration) {
+        if (rawConfiguration instanceof Map) {
+            Map<String, Object> configMap = (Map<String, Object>) rawConfiguration;
+            
+            // Transform legacy property names to modern configuration
+            return ModernConfigMapper.fromLegacyMap(transformLegacyKeys(configMap));
+        }
+        throw new IllegalArgumentException("Expected Map configuration");
+    }
+    
+    private Map<String, Object> transformLegacyKeys(Map<String, Object> legacyConfig) {
+        Map<String, Object> modernConfig = new HashMap<>();
+        
+        // Transform legacy property names
+        transformProperty(legacyConfig, modernConfig, "db.url", "database.url");
+        transformProperty(legacyConfig, modernConfig, "db.user", "database.username");
+        transformProperty(legacyConfig, modernConfig, "db.pass", "database.password");
+        transformProperty(legacyConfig, modernConfig, "server.port", "application.port");
+        
+        // Copy other properties as-is
+        legacyConfig.entrySet().stream()
+            .filter(entry -> !isLegacyKey(entry.getKey()))
+            .forEach(entry -> modernConfig.put(entry.getKey(), entry.getValue()));
+        
+        return modernConfig;
+    }
+    
+    private void transformProperty(Map<String, Object> source, Map<String, Object> target, 
+                                 String oldKey, String newKey) {
+        if (source.containsKey(oldKey)) {
+            target.put(newKey, source.get(oldKey));
+        }
+    }
+    
+    private boolean isLegacyKey(String key) {
+        return key.startsWith("db.") || key.equals("server.port");
+    }
+}
+#+end_src
+
+** Properties File Examples
+Standard Java properties file formats:
+
+#+begin_src properties
+# application.properties - Basic configuration
+application.name=ByteHot Application
+application.version=1.0.0
+application.port=8080
+
+# Database configuration
+database.url=jdbc:postgresql://localhost:5432/bytehot
+database.username=bytehot_user
+database.password=${DB_PASSWORD}
+database.pool.min-size=5
+database.pool.max-size=20
+database.pool.timeout=30000
+
+# Logging configuration
+logging.level=INFO
+logging.file.name=logs/application.log
+logging.file.max-size=100MB
+logging.file.max-history=10
+
+# Feature flags
+features.cache.enabled=true
+features.metrics.enabled=true
+features.security.enabled=true
+
+# Multi-line property example
+help.message=This is a multi-line help message \
+that spans several lines and provides \
+detailed information about the application.
+
+# List property (comma-separated)
+allowed.hosts=localhost,127.0.0.1,app.example.com
+#+end_src
+
+* Performance Optimization and Caching
+
+** Caching Properties Configuration
+Properties parsing can be expensive for large files; caching helps:
+
+#+begin_src java
+public class CachedPropertiesConfigurationSource extends PropertiesConfigurationSource {
+    private final Cache<String, Object> configurationCache;
+    private final Duration cacheExpiration;
+    
+    public CachedPropertiesConfigurationSource(String filePath, Duration cacheExpiration) {
+        super(filePath);
+        this.cacheExpiration = cacheExpiration;
+        this.configurationCache = Caffeine.newBuilder()
+            .maximumSize(100)
+            .expireAfterWrite(cacheExpiration)
+            .build();
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        String cacheKey = getFilePath() + ":" + getLastModifiedTime();
+        
+        try {
+            return configurationCache.get(cacheKey, key -> {
+                try {
+                    return CachedPropertiesConfigurationSource.super.loadConfiguration();
+                } catch (ConfigurationException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof ConfigurationException) {
+                throw (ConfigurationException) e.getCause();
+            }
+            throw new ConfigurationException("Cache loading error", e);
+        }
+    }
+    
+    private long getLastModifiedTime() {
+        try {
+            if (isLoadFromClasspath()) {
+                // For classpath resources, use a fixed timestamp or JAR modification time
+                return System.currentTimeMillis();
+            } else {
+                return Files.getLastModifiedTime(Paths.get(getFilePath())).toMillis();
+            }
+        } catch (IOException e) {
+            return System.currentTimeMillis();
+        }
+    }
+}
+#+end_src
+
+** Memory-Efficient Properties Loading
+For large properties files, memory-efficient loading:
+
+#+begin_src java
+public class StreamingPropertiesConfigurationSource extends PropertiesConfigurationSource {
+    
+    public Stream<Map.Entry<String, String>> loadConfigurationStream() throws ConfigurationException {
+        try {
+            InputStream inputStream = getInputStream();
+            if (inputStream == null) {
+                return Stream.empty();
+            }
+            
+            Properties properties = new Properties();
+            properties.load(inputStream);
+            
+            return properties.stringPropertyNames().stream()
+                .map(key -> new AbstractMap.SimpleEntry<>(key, properties.getProperty(key)))
+                .onClose(() -> {
+                    try {
+                        inputStream.close();
+                    } catch (IOException e) {
+                        logger.warn("Error closing properties input stream", e);
+                    }
+                });
+                
+        } catch (Exception e) {
+            throw new ConfigurationException("Failed to create properties configuration stream", e);
+        }
+    }
+}
+#+end_src
+
+The PropertiesConfigurationSource provides comprehensive Java properties file configuration loading capabilities with robust error handling, flexible resource loading strategies, and seamless integration with modern configuration infrastructure, enabling traditional Java configuration patterns within contemporary application architectures.

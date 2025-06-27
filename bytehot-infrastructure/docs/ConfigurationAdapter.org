@@ -1,10 +1,14 @@
 #+TITLE: ConfigurationAdapter - Multi-Source Configuration Infrastructure
 #+AUTHOR: ByteHot Development Team
-#+DATE: [2025-06-20]
+#+DATE: [2025-06-27]
 
 * Overview
 
 The ~ConfigurationAdapter~ class provides the infrastructure implementation of the ~ConfigurationPort~ interface, serving as the sophisticated configuration management system for ByteHot's hexagonal architecture. This adapter handles the accidental complexity of loading configuration from multiple sources including YAML files, system properties, and environment variables, while providing a clean, domain-focused interface for accessing configuration parameters throughout the system.
+
+** Migration to Base Infrastructure
+
+*Note: This adapter is a candidate for migration to use the new ~BaseConfigurationAdapter~ from ~java-commons-infrastructure~. The migration would reduce code complexity from 300+ lines to approximately 50 lines of ByteHot-specific logic while leveraging reusable configuration patterns. See [[../../specs/migration-guides/adapter-migration-guide.org][Adapter Migration Guide]] for detailed migration instructions.*
 
 * Hexagonal Architecture Role
 
@@ -625,3 +629,102 @@ The implementation uses reflection for configuration object construction:
 - Performance impact minimized through caching
 
 The ConfigurationAdapter provides ByteHot's comprehensive configuration management system while maintaining architectural purity and enabling flexible, reliable, and secure configuration loading across diverse deployment environments and development workflows.
+
+* Migration to BaseConfigurationAdapter
+
+** Current Implementation Complexity
+The current ConfigurationAdapter implementation contains ~399 lines of code handling:
+- Manual configuration source management and hierarchical loading logic
+- Custom error handling and fallback mechanisms for missing sources  
+- Configuration transformation and validation with reflection-based object construction
+- Multiple configuration source types (system properties, environment variables, YAML files)
+- Default configuration creation with intelligent build directory detection
+
+** Proposed Migration Benefits
+Migrating to ~BaseConfigurationAdapter~ would provide:
+- **Code Reduction**: From ~399 lines to ~50 lines of ByteHot-specific logic
+- **Improved Maintainability**: Leverage tested infrastructure patterns from java-commons-infrastructure
+- **Enhanced Consistency**: Uniform configuration patterns across projects using shared base adapters
+- **Better Error Handling**: Standardized ConfigurationException handling and recovery mechanisms
+- **Performance Optimization**: Built-in caching and source priority optimization
+
+** Migration Implementation Example
+#+begin_src java
+// Proposed migrated implementation
+public class ByteHotConfigurationAdapter 
+    extends BaseConfigurationAdapter<WatchConfiguration>
+    implements ConfigurationPort {
+    
+    @Override
+    protected Class<WatchConfiguration> getConfigurationClass() {
+        return WatchConfiguration.class;
+    }
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            new YamlConfigurationSource("bytehot.yml"),
+            new YamlConfigurationSource("bytehot.yaml"),
+            new YamlConfigurationSource("application.yml"),
+            new YamlConfigurationSource("application.yaml")
+        );
+    }
+    
+    @Override
+    protected String getEnvironmentPrefix() {
+        return "BYTEHOT_";
+    }
+    
+    @Override
+    protected String getSystemPropertyPrefix() {
+        return "bytehot.";
+    }
+    
+    @Override
+    protected WatchConfiguration createDefaultConfiguration() {
+        List<FolderWatch> defaultFolders = Arrays.asList(
+            new FolderWatch(Paths.get("target/classes"), 1000),
+            new FolderWatch(Paths.get("build/classes"), 1000),
+            new FolderWatch(Paths.get("out/production/classes"), 1000)
+        );
+        return new WatchConfiguration(8080, defaultFolders);
+    }
+    
+    @Override
+    protected WatchConfiguration transformConfiguration(@NonNull final Object rawConfiguration) {
+        if (rawConfiguration instanceof Map) {
+            return WatchConfigurationMapper.fromMap((Map<String, Object>) rawConfiguration);
+        }
+        return super.transformConfiguration(rawConfiguration);
+    }
+    
+    @Override
+    protected void validateConfiguration(@NonNull final WatchConfiguration configuration) 
+        throws ConfigurationException {
+        if (configuration.getFolders().isEmpty()) {
+            throw new ConfigurationException("At least one watch folder must be configured");
+        }
+        
+        for (FolderWatch folder : configuration.getFolders()) {
+            if (!Files.exists(folder.getPath())) {
+                logger.warn("Watch folder does not exist: {}", folder.getPath());
+            }
+        }
+    }
+    
+    @Override
+    public Class<ConfigurationPort> adapts() {
+        return ConfigurationPort.class;
+    }
+}
+#+end_src
+
+** Migration Steps
+1. **Add dependency** on ~java-commons-infrastructure~
+2. **Create migrated adapter** extending ~BaseConfigurationAdapter~
+3. **Update application wiring** to use new adapter
+4. **Run comprehensive tests** to ensure functionality parity
+5. **Remove old adapter** after validation
+6. **Update documentation** to reflect new implementation
+
+For detailed migration instructions, see [[../../specs/migration-guides/adapter-migration-guide.org][Adapter Migration Guide]].

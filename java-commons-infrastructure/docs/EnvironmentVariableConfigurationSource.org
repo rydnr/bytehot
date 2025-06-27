@@ -1,0 +1,621 @@
+#+TITLE: EnvironmentVariableConfigurationSource - Environment-Based Configuration
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+
+* Overview
+
+The ~EnvironmentVariableConfigurationSource~ class provides comprehensive environment variable configuration support within the ~java-commons-infrastructure~ module. This implementation enables cloud-native and containerized deployment scenarios by reading configuration from environment variables with configurable prefixes, automatic key transformation, and robust error handling for secure and flexible configuration management.
+
+* Environment Variable Configuration Strategy
+
+** Cloud-Native Configuration Pattern
+EnvironmentVariableConfigurationSource supports modern cloud-native application patterns:
+- **Container Configuration**: Perfect for Docker and container-based deployments
+- **Kubernetes Integration**: Seamless integration with ConfigMaps and Secrets
+- **Twelve-Factor App Compliance**: Follows the configuration principle of storing config in environment
+- **Platform Independence**: Works across different deployment platforms and orchestrators
+
+** Prefix-Based Environment Isolation
+The implementation uses configurable prefixes for environment variable organization:
+- **Namespace Isolation**: Prevents conflicts with system and other application variables
+- **Application-Specific Variables**: Clear separation of application configuration from system settings
+- **Multi-Tenant Support**: Different prefixes for different applications on same host
+- **Security Through Segregation**: Logical separation of sensitive configuration values
+
+** High-Priority Configuration Source
+Environment variables typically have high priority in configuration hierarchies:
+- **Deployment Override**: Environment-specific configuration overrides packaged defaults
+- **Operational Control**: Operations teams can configure applications without code changes
+- **Security Integration**: Integration with secrets management systems
+- **Dynamic Configuration**: Runtime configuration changes through environment updates
+
+* Core Implementation and Environment Variable Processing
+
+** Constructor and Prefix Configuration
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/EnvironmentVariableConfigurationSource.java
+/**
+ * Creates a new environment variable configuration source.
+ * 
+ * @param prefix the environment variable prefix to scan for
+ */
+public EnvironmentVariableConfigurationSource(@NonNull final String prefix) {
+    this.prefix = prefix;
+}
+#+END_SRC
+
+Prefix configuration enables:
+- **Configurable Namespacing**: Application-specific environment variable prefixes
+- **Conflict Avoidance**: Isolation from system and framework environment variables
+- **Clear Variable Organization**: Logical grouping of related configuration variables
+- **Multiple Application Support**: Different prefixes for different components or services
+
+** Environment Variable Availability Detection
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/EnvironmentVariableConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+public boolean isAvailable() {
+    final Map<String, String> environmentVariables = System.getenv();
+    return environmentVariables.keySet().stream()
+        .anyMatch(name -> name.startsWith(prefix));
+}
+#+END_SRC
+
+Availability detection provides:
+- **Proactive Configuration Detection**: Early identification of environment variable configuration
+- **Fast Availability Checking**: Efficient scanning without full variable processing
+- **Configuration Health Monitoring**: Support for configuration source health checks
+- **Fallback Decision Support**: Enables intelligent fallback to alternative configuration sources
+
+** Configuration Loading and Variable Processing
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/EnvironmentVariableConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+@Nullable
+public Object loadConfiguration() throws ConfigurationException {
+    try {
+        final Map<String, String> environmentVariables = System.getenv();
+        final Map<String, Object> configurationMap = new HashMap<>();
+
+        environmentVariables.entrySet().stream()
+            .filter(entry -> entry.getKey().startsWith(prefix))
+            .forEach(entry -> {
+                final String key = entry.getKey().substring(prefix.length()).toLowerCase();
+                final String value = entry.getValue();
+                configurationMap.put(key, value);
+            });
+
+        return configurationMap.isEmpty() ? null : configurationMap;
+    } catch (final Exception e) {
+        throw new ConfigurationException("Failed to load environment variable configuration", e);
+    }
+}
+#+END_SRC
+
+Configuration loading features:
+- **Prefix Stripping**: Removes prefix from variable names for clean configuration keys
+- **Key Normalization**: Converts variable names to lowercase for consistent key handling
+- **Null Safety**: Returns null when no matching environment variables found
+- **Exception Handling**: Comprehensive error handling with context information
+
+* Priority and Metadata Management
+
+** High Priority Assignment
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/EnvironmentVariableConfigurationSource.java
+/**
+ * Priority for environment variable configuration source.
+ */
+private static final int PRIORITY = 900;
+
+/**
+ * {@inheritDoc}
+ */
+@Override
+public int getPriority() {
+    return PRIORITY;
+}
+#+END_SRC
+
+High priority (900) ensures:
+- **Deployment Override**: Environment variables override file-based configuration
+- **Operational Priority**: Runtime environment settings take precedence
+- **Security Override**: Environment-based secrets override default values
+- **Cloud Platform Integration**: Platform-provided configuration has immediate effect
+
+** Descriptive Source Information
+#+BEGIN_SRC java :tangle ../java-commons-infrastructure/src/main/java/org/acmsl/commons/infrastructure/config/EnvironmentVariableConfigurationSource.java
+/**
+ * {@inheritDoc}
+ */
+@Override
+@NonNull
+public String getDescription() {
+    return "Environment Variables (prefix: " + prefix + ")";
+}
+
+/**
+ * Returns the prefix used by this configuration source.
+ * 
+ * @return the environment variable prefix
+ */
+@NonNull
+public String getPrefix() {
+    return prefix;
+}
+#+END_SRC
+
+Source description provides:
+- **Clear Identification**: Human-readable source identification for logging and monitoring
+- **Debugging Support**: Easy identification in configuration source lists and traces
+- **Operational Visibility**: Clear source information for troubleshooting and auditing
+- **Configuration Audit**: Traceable configuration source information for compliance
+
+* Advanced Environment Variable Patterns
+
+** Type-Safe Environment Variable Conversion
+Enhanced environment variable handling with automatic type conversion:
+
+#+begin_src java
+public class TypedEnvironmentVariableConfigurationSource extends EnvironmentVariableConfigurationSource {
+    private final Map<String, Class<?>> variableTypes;
+    
+    public TypedEnvironmentVariableConfigurationSource(String prefix, Map<String, Class<?>> types) {
+        super(prefix);
+        this.variableTypes = types;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> baseConfig = (Map<String, Object>) super.loadConfiguration();
+        if (baseConfig == null) {
+            return null;
+        }
+        
+        Map<String, Object> typedConfig = new HashMap<>();
+        
+        for (Map.Entry<String, Object> entry : baseConfig.entrySet()) {
+            String key = entry.getKey();
+            String stringValue = (String) entry.getValue();
+            
+            Class<?> expectedType = variableTypes.get(key);
+            if (expectedType != null) {
+                Object typedValue = convertEnvironmentValue(stringValue, expectedType);
+                typedConfig.put(key, typedValue);
+            } else {
+                typedConfig.put(key, stringValue);
+            }
+        }
+        
+        return typedConfig;
+    }
+    
+    private Object convertEnvironmentValue(String value, Class<?> targetType) throws ConfigurationException {
+        try {
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                return Boolean.parseBoolean(value);
+            } else if (targetType == Integer.class || targetType == int.class) {
+                return Integer.parseInt(value);
+            } else if (targetType == Long.class || targetType == long.class) {
+                return Long.parseLong(value);
+            } else if (targetType == Double.class || targetType == double.class) {
+                return Double.parseDouble(value);
+            } else if (targetType == String.class) {
+                return value;
+            } else if (targetType.isEnum()) {
+                return Enum.valueOf((Class<Enum>) targetType, value.toUpperCase());
+            } else {
+                throw new ConfigurationException("Unsupported environment variable type: " + targetType);
+            }
+        } catch (NumberFormatException | IllegalArgumentException e) {
+            throw new ConfigurationException(
+                "Invalid " + targetType.getSimpleName() + " value for environment variable: " + value, e);
+        }
+    }
+}
+#+end_src
+
+** Hierarchical Environment Variable Support
+Support for nested configuration structures using dot notation:
+
+#+begin_src java
+public class HierarchicalEnvironmentVariableConfigurationSource extends EnvironmentVariableConfigurationSource {
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> flatConfig = (Map<String, Object>) super.loadConfiguration();
+        if (flatConfig == null) {
+            return null;
+        }
+        
+        return buildHierarchicalStructure(flatConfig);
+    }
+    
+    private Map<String, Object> buildHierarchicalStructure(Map<String, Object> flatConfig) {
+        Map<String, Object> hierarchical = new HashMap<>();
+        
+        for (Map.Entry<String, Object> entry : flatConfig.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            // Convert underscores to dots for hierarchical structure
+            String hierarchicalKey = key.replace("_", ".");
+            setNestedValue(hierarchical, hierarchicalKey.split("\\."), value);
+        }
+        
+        return hierarchical;
+    }
+    
+    private void setNestedValue(Map<String, Object> map, String[] keyParts, Object value) {
+        Map<String, Object> current = map;
+        
+        for (int i = 0; i < keyParts.length - 1; i++) {
+            String part = keyParts[i];
+            current.computeIfAbsent(part, k -> new HashMap<String, Object>());
+            current = (Map<String, Object>) current.get(part);
+        }
+        
+        current.put(keyParts[keyParts.length - 1], value);
+    }
+}
+#+end_src
+
+** Validation and Security Features
+Environment variable validation and security enhancements:
+
+#+begin_src java
+public class SecureEnvironmentVariableConfigurationSource extends EnvironmentVariableConfigurationSource {
+    private final Set<String> sensitiveKeys;
+    private final Map<String, EnvironmentVariableValidator> validators;
+    
+    public SecureEnvironmentVariableConfigurationSource(
+        String prefix, 
+        Set<String> sensitiveKeys,
+        Map<String, EnvironmentVariableValidator> validators) {
+        super(prefix);
+        this.sensitiveKeys = sensitiveKeys;
+        this.validators = validators;
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> config = (Map<String, Object>) super.loadConfiguration();
+        if (config == null) {
+            return null;
+        }
+        
+        validateAndSanitizeConfiguration(config);
+        return config;
+    }
+    
+    private void validateAndSanitizeConfiguration(Map<String, Object> config) throws ConfigurationException {
+        for (Map.Entry<String, Object> entry : config.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            // Validate environment variable value
+            EnvironmentVariableValidator validator = validators.get(key);
+            if (validator != null) {
+                ValidationResult result = validator.validate(value);
+                if (!result.isValid()) {
+                    throw new ConfigurationException(
+                        "Environment variable validation failed for " + getPrefix() + key.toUpperCase() + 
+                        ": " + result.getErrorMessage());
+                }
+            }
+            
+            // Mask sensitive values in logs
+            if (sensitiveKeys.contains(key)) {
+                logger.debug("Loaded sensitive environment variable: {}", key);
+            } else {
+                logger.debug("Loaded environment variable: {} = {}", key, value);
+            }
+        }
+    }
+    
+    public interface EnvironmentVariableValidator {
+        ValidationResult validate(Object value);
+    }
+    
+    public static class ValidationResult {
+        private final boolean valid;
+        private final String errorMessage;
+        
+        public ValidationResult(boolean valid, String errorMessage) {
+            this.valid = valid;
+            this.errorMessage = errorMessage;
+        }
+        
+        public boolean isValid() { return valid; }
+        public String getErrorMessage() { return errorMessage; }
+        
+        public static ValidationResult valid() {
+            return new ValidationResult(true, null);
+        }
+        
+        public static ValidationResult invalid(String message) {
+            return new ValidationResult(false, message);
+        }
+    }
+}
+#+end_src
+
+* Container and Cloud Platform Integration
+
+** Docker Container Configuration
+Environment variable configuration in Docker containers:
+
+#+begin_src dockerfile
+# Dockerfile with environment variable configuration
+FROM openjdk:17-jdk-slim
+
+COPY application.jar /app/application.jar
+
+# Set application-specific environment variables
+ENV MYAPP_DATABASE_URL="jdbc:postgresql://db:5432/myapp"
+ENV MYAPP_DATABASE_USERNAME="myapp_user"
+ENV MYAPP_CACHE_ENABLED="true"
+ENV MYAPP_LOGGING_LEVEL="INFO"
+
+# Configure JVM and application
+ENV JAVA_OPTS="-Xmx512m -Xms256m"
+
+CMD java $JAVA_OPTS -jar /app/application.jar
+#+end_src
+
+** Kubernetes ConfigMap and Secret Integration
+Kubernetes integration for environment variable injection:
+
+#+begin_src yaml
+# kubernetes-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myapp-config
+data:
+  MYAPP_DATABASE_URL: "jdbc:postgresql://postgres-service:5432/myapp"
+  MYAPP_CACHE_ENABLED: "true"
+  MYAPP_LOGGING_LEVEL: "INFO"
+  MYAPP_MAX_CONNECTIONS: "20"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myapp-secrets
+type: Opaque
+stringData:
+  MYAPP_DATABASE_PASSWORD: "secure-password"
+  MYAPP_API_KEY: "secret-api-key"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    spec:
+      containers:
+      - name: myapp
+        image: myapp:latest
+        envFrom:
+        - configMapRef:
+            name: myapp-config
+        - secretRef:
+            name: myapp-secrets
+        env:
+        - name: MYAPP_INSTANCE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+#+end_src
+
+** Cloud Platform Configuration
+Integration with major cloud platform configuration services:
+
+#+begin_src java
+public class CloudPlatformEnvironmentConfigurationSource extends EnvironmentVariableConfigurationSource {
+    
+    public CloudPlatformEnvironmentConfigurationSource(String prefix) {
+        super(prefix);
+    }
+    
+    @Override
+    public Object loadConfiguration() throws ConfigurationException {
+        Map<String, Object> config = (Map<String, Object>) super.loadConfiguration();
+        
+        if (config != null) {
+            enhanceWithCloudPlatformMetadata(config);
+        }
+        
+        return config;
+    }
+    
+    private void enhanceWithCloudPlatformMetadata(Map<String, Object> config) {
+        // AWS metadata
+        addIfPresent(config, "aws.region", "AWS_REGION");
+        addIfPresent(config, "aws.account.id", "AWS_ACCOUNT_ID");
+        
+        // Google Cloud metadata
+        addIfPresent(config, "gcp.project.id", "GOOGLE_CLOUD_PROJECT");
+        addIfPresent(config, "gcp.region", "GOOGLE_CLOUD_REGION");
+        
+        // Azure metadata
+        addIfPresent(config, "azure.subscription.id", "AZURE_SUBSCRIPTION_ID");
+        addIfPresent(config, "azure.resource.group", "AZURE_RESOURCE_GROUP");
+        
+        // Kubernetes metadata
+        addIfPresent(config, "k8s.namespace", "KUBERNETES_NAMESPACE");
+        addIfPresent(config, "k8s.pod.name", "HOSTNAME");
+    }
+    
+    private void addIfPresent(Map<String, Object> config, String key, String envVar) {
+        String value = System.getenv(envVar);
+        if (value != null && !value.trim().isEmpty()) {
+            config.put(key, value);
+        }
+    }
+}
+#+end_src
+
+* Usage Examples and Integration Patterns
+
+** Basic Environment Variable Configuration
+Simple environment variable configuration usage:
+
+#+begin_src java
+// Create environment variable configuration source
+ConfigurationSource envVars = new EnvironmentVariableConfigurationSource("MYAPP_");
+
+// Set environment variables:
+// export MYAPP_DATABASE_URL="jdbc:postgresql://localhost:5432/mydb"
+// export MYAPP_DATABASE_USERNAME="user"
+// export MYAPP_MAX_CONNECTIONS="20"
+
+if (envVars.isAvailable()) {
+    try {
+        Object config = envVars.loadConfiguration();
+        if (config instanceof Map) {
+            Map<String, Object> configMap = (Map<String, Object>) config;
+            
+            // Accessed as (note lowercase keys):
+            // database_url -> "jdbc:postgresql://localhost:5432/mydb"
+            // database_username -> "user"
+            // max_connections -> "20"
+            
+            String dbUrl = (String) configMap.get("database_url");
+            String dbUser = (String) configMap.get("database_username");
+            String maxConnections = (String) configMap.get("max_connections");
+        }
+    } catch (ConfigurationException e) {
+        logger.error("Failed to load environment variable configuration", e);
+    }
+}
+#+end_src
+
+** Integration with BaseConfigurationAdapter
+Environment variables as high-priority configuration source:
+
+#+begin_src java
+public class DatabaseConfigurationAdapter 
+    extends BaseConfigurationAdapter<DatabaseConfig> {
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            // Note: Environment variables are automatically handled by BaseConfigurationAdapter
+            // These are additional project-specific sources
+            YamlConfigurationSource.fromFile("/etc/myapp/database.yml"),
+            YamlConfigurationSource.fromClasspath("database.yml"),
+            PropertiesConfigurationSource.fromClasspath("database.properties")
+        );
+    }
+    
+    @Override
+    protected String getEnvironmentVariablePrefix() {
+        return "MYAPP_DATABASE_";
+    }
+    
+    @Override
+    protected DatabaseConfig transformConfiguration(Object rawConfiguration) {
+        if (rawConfiguration instanceof Map) {
+            return DatabaseConfigMapper.fromMap((Map<String, Object>) rawConfiguration);
+        }
+        throw new IllegalArgumentException("Expected Map configuration");
+    }
+    
+    @Override
+    protected DatabaseConfig createDefaultConfiguration() {
+        return DatabaseConfig.builder()
+            .withUrl("jdbc:h2:mem:testdb")
+            .withUsername("sa")
+            .withPassword("")
+            .withMaxConnections(10)
+            .build();
+    }
+}
+#+end_src
+
+** CI/CD Pipeline Configuration
+Environment variable configuration in CI/CD pipelines:
+
+#+begin_src yaml
+# .github/workflows/deploy.yml
+name: Deploy Application
+
+env:
+  # Application configuration
+  MYAPP_ENVIRONMENT: production
+  MYAPP_LOGGING_LEVEL: WARN
+  MYAPP_METRICS_ENABLED: true
+  
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy to production
+      env:
+        # Database configuration from secrets
+        MYAPP_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        MYAPP_DATABASE_USERNAME: ${{ secrets.PROD_DATABASE_USERNAME }}
+        MYAPP_DATABASE_PASSWORD: ${{ secrets.PROD_DATABASE_PASSWORD }}
+        
+        # External service configuration
+        MYAPP_API_KEY: ${{ secrets.EXTERNAL_API_KEY }}
+        MYAPP_WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        
+        # Environment-specific overrides
+        MYAPP_MAX_CONNECTIONS: "50"
+        MYAPP_CACHE_TTL: "3600"
+      run: |
+        java -jar application.jar
+#+end_src
+
+** Development and Testing Configuration
+Environment variable configuration for development scenarios:
+
+#+begin_src java
+public class DevelopmentEnvironmentSetup {
+    
+    public static void configureForDevelopment() {
+        // Set development-specific environment variables
+        setEnvVar("MYAPP_ENVIRONMENT", "development");
+        setEnvVar("MYAPP_LOGGING_LEVEL", "DEBUG");
+        setEnvVar("MYAPP_DATABASE_URL", "jdbc:h2:mem:devdb");
+        setEnvVar("MYAPP_CACHE_ENABLED", "false");
+        setEnvVar("MYAPP_EXTERNAL_SERVICE_TIMEOUT", "1000");
+    }
+    
+    public static void configureForTesting() {
+        // Set test-specific environment variables
+        setEnvVar("MYAPP_ENVIRONMENT", "test");
+        setEnvVar("MYAPP_LOGGING_LEVEL", "WARN");
+        setEnvVar("MYAPP_DATABASE_URL", "jdbc:h2:mem:testdb");
+        setEnvVar("MYAPP_CACHE_ENABLED", "false");
+        setEnvVar("MYAPP_EXTERNAL_SERVICE_MOCK", "true");
+    }
+    
+    private static void setEnvVar(String name, String value) {
+        // Note: Setting environment variables programmatically has limitations
+        // This is primarily for testing scenarios with process builders
+        try {
+            Map<String, String> env = System.getenv();
+            Field field = env.getClass().getDeclaredField("m");
+            field.setAccessible(true);
+            ((Map<String, String>) field.get(env)).put(name, value);
+        } catch (Exception e) {
+            logger.warn("Failed to set environment variable programmatically: " + name, e);
+        }
+    }
+    
+    public static void clearDevelopmentConfiguration() {
+        // Clear application-specific environment variables
+        clearEnvVarsWithPrefix("MYAPP_");
+    }
+}
+#+end_src
+
+The EnvironmentVariableConfigurationSource provides essential cloud-native and container-ready configuration capabilities through environment variables, enabling secure, scalable, and platform-independent configuration management while maintaining clean integration with the broader configuration infrastructure.
