@@ -1,0 +1,1597 @@
+#+TITLE: Milestone 12: Eclipse Plugin (Walking Skeleton)
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+Milestone 12 creates the Eclipse plugin that brings ByteHot live coding capabilities to the Eclipse IDE ecosystem. The plugin integrates seamlessly with Eclipse's workbench, providing toolbar actions, views, and wizards that make live coding feel like a native Eclipse feature with comprehensive project support and visual feedback.
+
+** Goals
+
+- Create native Eclipse IDE integration that leverages Eclipse's rich plugin architecture
+- Implement comprehensive workbench integration with views, editors, and perspectives
+- Provide seamless integration with Eclipse's run/debug framework
+- Establish visual feedback through Eclipse's notification and progress systems
+- Validate plugin foundation architecture in Eclipse's OSGi environment
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I click the 'Live Mode' button in Eclipse's toolbar, and my application starts with immediate code reflection. The ByteHot view shows real-time hot-swap status. Everything feels like it's part of Eclipse itself, not an add-on."
+#+END_QUOTE
+
+* Architecture Overview
+
+** Eclipse Plugin Integration Architecture
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                Developer Experience                 │
+│  • Click "Live Mode" toolbar button                │
+│  • Real-time status in ByteHot view                │
+│  • Visual hot-swap notifications in editor         │
+│  • Integrated launch configurations                │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              org.acmsl.bytehot.eclipse              │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │   LiveModeAction│  │  ByteHotView            │   │
+│  │  - Toolbar btn  │  │  - Status monitoring    │   │
+│  │  - Launch config│  │  - Event history        │   │
+│  │  - Process mgmt │  │  - Configuration panel  │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │EclipseProject   │  │  EditorAnnotations      │   │
+│  │Analyzer         │  │  - Hot-swap markers     │   │
+│  │  - Project scan │  │  - Progress indicators  │   │
+│  │  - Main class   │  │  - Error highlighting   │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              Plugin Foundation Layer                │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │        bytehot-plugin-commons                   │ │
+│  │  • Agent Discovery    • Communication Protocol │ │
+│  │  • Configuration Mgmt • Health Monitoring      │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│        ByteHot Agent (Auto-discovered)             │
+│  bytehot-application-latest-SNAPSHOT-agent.jar     │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Plugin Structure
+
+#+BEGIN_SRC
+org.acmsl.bytehot.eclipse/
+├── META-INF/
+│   └── MANIFEST.MF                      # OSGi bundle manifest
+├── plugin.xml                          # Eclipse plugin descriptor
+├── build.properties                    # Build configuration
+├── src/main/java/org/acmsl/bytehot/eclipse/
+│   ├── ByteHotPlugin.java              # Main plugin activator
+│   ├── actions/
+│   │   ├── LiveModeAction.java         # Live mode toolbar action
+│   │   ├── StopLiveModeAction.java     # Stop live mode action
+│   │   └── ConfigureByteHotAction.java # Configuration action
+│   ├── views/
+│   │   ├── ByteHotView.java            # Main ByteHot view
+│   │   ├── StatusComposite.java        # Status monitoring composite
+│   │   ├── EventHistoryComposite.java  # Event history viewer
+│   │   └── SettingsComposite.java      # Settings configuration
+│   ├── launch/
+│   │   ├── ByteHotLaunchConfiguration.java
+│   │   ├── ByteHotLaunchConfigurationTab.java
+│   │   ├── ByteHotLaunchDelegate.java
+│   │   └── ByteHotLaunchShortcut.java
+│   ├── editors/
+│   │   ├── HotSwapAnnotationModel.java
+│   │   ├── ByteHotEditorContributor.java
+│   │   └── HotSwapMarkerResolver.java
+│   ├── wizards/
+│   │   ├── NewByteHotProjectWizard.java
+│   │   └── ByteHotConfigurationWizard.java
+│   ├── analysis/
+│   │   ├── EclipseProjectAnalyzer.java  # Project analysis
+│   │   ├── WorkspaceScanner.java        # Workspace scanning
+│   │   └── MainClassDetector.java       # Main class detection
+│   ├── preferences/
+│   │   ├── ByteHotPreferencePage.java   # Preference page
+│   │   └── ByteHotPreferences.java      # Preference store
+│   ├── jobs/
+│   │   ├── LiveModeJob.java             # Background live mode job
+│   │   ├── HotSwapProgressJob.java      # Hot-swap progress tracking
+│   │   └── AgentDiscoveryJob.java       # Agent discovery job
+│   └── integration/
+│       ├── EclipseConfigurationAdapter.java
+│       ├── EclipseProcessLauncher.java
+│       └── EclipsePluginBase.java       # Base plugin utilities
+├── src/main/resources/
+│   ├── icons/                           # Plugin icons
+│   │   ├── bytehot_16.png
+│   │   ├── bytehot_32.png
+│   │   ├── live_mode_16.png
+│   │   └── hot_swap_overlay.png
+│   └── messages/
+│       └── messages.properties          # Internationalization
+├── src/test/java/
+│   ├── unit/                            # Unit tests
+│   └── integration/                     # Integration tests
+└── src/test/resources/
+    └── test-projects/                   # Test Eclipse projects
+        ├── simple-java-project/
+        ├── multi-module-project/
+        └── spring-boot-project/
+#+END_SRC
+
+* Phase 1: Basic Eclipse Integration
+
+** Objective
+Create the minimal viable Eclipse plugin that provides native live mode activation with comprehensive workbench integration and visual feedback through Eclipse's standard UI components.
+
+** Walking Skeleton Implementation
+
+*** Plugin Manifest (MANIFEST.MF)
+#+BEGIN_SRC
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: ByteHot Live Coding
+Bundle-SymbolicName: org.acmsl.bytehot.eclipse;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Activator: org.acmsl.bytehot.eclipse.ByteHotPlugin
+Bundle-Vendor: ByteHot Development Team
+Require-Bundle: org.eclipse.ui,
+ org.eclipse.core.runtime,
+ org.eclipse.core.resources,
+ org.eclipse.jdt.core,
+ org.eclipse.jdt.ui,
+ org.eclipse.jdt.launching,
+ org.eclipse.debug.ui,
+ org.eclipse.ui.ide,
+ org.eclipse.ui.workbench.texteditor,
+ org.eclipse.jface.text
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Bundle-ActivationPolicy: lazy
+Export-Package: org.acmsl.bytehot.eclipse
+#+END_SRC
+
+*** Plugin Descriptor (plugin.xml)
+#+BEGIN_SRC xml
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <!-- Extension Point Definitions -->
+   <extension-point 
+      id="bytehotConfigurationProviders" 
+      name="ByteHot Configuration Providers" 
+      schema="schema/bytehotConfigurationProviders.exsd"/>
+
+   <!-- Actions and Commands -->
+   <extension point="org.eclipse.ui.commands">
+      <category id="org.acmsl.bytehot.eclipse.commands.category"
+                name="ByteHot Commands"
+                description="Commands for ByteHot live coding"/>
+      
+      <command id="org.acmsl.bytehot.eclipse.commands.liveModeCommand"
+               categoryId="org.acmsl.bytehot.eclipse.commands.category"
+               name="Start Live Mode"
+               description="Start ByteHot live mode for instant code reflection"/>
+               
+      <command id="org.acmsl.bytehot.eclipse.commands.stopLiveModeCommand"
+               categoryId="org.acmsl.bytehot.eclipse.commands.category"
+               name="Stop Live Mode"
+               description="Stop ByteHot live mode"/>
+   </extension>
+
+   <!-- Key Bindings -->
+   <extension point="org.eclipse.ui.bindings">
+      <key commandId="org.acmsl.bytehot.eclipse.commands.liveModeCommand"
+           schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+           sequence="Ctrl+Alt+L"/>
+   </extension>
+
+   <!-- Menu Contributions -->
+   <extension point="org.eclipse.ui.menus">
+      <!-- Main Menu -->
+      <menuContribution locationURI="menu:org.eclipse.ui.main.menu">
+         <menu id="org.acmsl.bytehot.eclipse.menu"
+               label="ByteHot"
+               mnemonic="B">
+            <command commandId="org.acmsl.bytehot.eclipse.commands.liveModeCommand"
+                     label="Start Live Mode"
+                     style="push"/>
+            <command commandId="org.acmsl.bytehot.eclipse.commands.stopLiveModeCommand"
+                     label="Stop Live Mode"
+                     style="push"/>
+            <separator name="separator1"/>
+            <command commandId="org.eclipse.ui.window.preferences"
+                     label="Preferences..."
+                     commandParameter.preferencePageId="org.acmsl.bytehot.eclipse.preferences"/>
+         </menu>
+      </menuContribution>
+      
+      <!-- Toolbar Contributions -->
+      <menuContribution locationURI="toolbar:org.eclipse.ui.main.toolbar">
+         <toolbar id="org.acmsl.bytehot.eclipse.toolbar"
+                  label="ByteHot Toolbar">
+            <command commandId="org.acmsl.bytehot.eclipse.commands.liveModeCommand"
+                     icon="icons/live_mode_16.png"
+                     tooltip="Start ByteHot Live Mode"
+                     style="push"/>
+         </toolbar>
+      </menuContribution>
+      
+      <!-- Context Menu in Package Explorer -->
+      <menuContribution locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+         <menu id="org.acmsl.bytehot.eclipse.contextMenu"
+               label="ByteHot">
+            <command commandId="org.acmsl.bytehot.eclipse.commands.liveModeCommand"
+                     label="Start Live Mode"/>
+         </menu>
+      </menuContribution>
+   </extension>
+
+   <!-- Command Handlers -->
+   <extension point="org.eclipse.ui.handlers">
+      <handler commandId="org.acmsl.bytehot.eclipse.commands.liveModeCommand"
+               class="org.acmsl.bytehot.eclipse.actions.LiveModeAction"/>
+      <handler commandId="org.acmsl.bytehot.eclipse.commands.stopLiveModeCommand"
+               class="org.acmsl.bytehot.eclipse.actions.StopLiveModeAction"/>
+   </extension>
+
+   <!-- Views -->
+   <extension point="org.eclipse.ui.views">
+      <category id="org.acmsl.bytehot.eclipse.views.category"
+                name="ByteHot"/>
+      <view id="org.acmsl.bytehot.eclipse.views.bytehotView"
+            name="ByteHot"
+            category="org.acmsl.bytehot.eclipse.views.category"
+            class="org.acmsl.bytehot.eclipse.views.ByteHotView"
+            icon="icons/bytehot_16.png"
+            allowMultiple="false"/>
+   </extension>
+
+   <!-- Launch Configuration Types -->
+   <extension point="org.eclipse.debug.core.launchConfigurationTypes">
+      <launchConfigurationType
+            id="org.acmsl.bytehot.eclipse.launch.bytehotLaunchConfiguration"
+            name="ByteHot Live Mode"
+            delegate="org.acmsl.bytehot.eclipse.launch.ByteHotLaunchDelegate"
+            modes="run,debug"
+            public="true"/>
+   </extension>
+
+   <!-- Launch Configuration Tab Groups -->
+   <extension point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+      <launchConfigurationTabGroup
+            type="org.acmsl.bytehot.eclipse.launch.bytehotLaunchConfiguration"
+            class="org.acmsl.bytehot.eclipse.launch.ByteHotLaunchConfigurationTabGroup"
+            id="org.acmsl.bytehot.eclipse.launch.bytehotTabGroup"/>
+   </extension>
+
+   <!-- Launch Shortcuts -->
+   <extension point="org.eclipse.debug.ui.launchShortcuts">
+      <shortcut
+            label="ByteHot Live Mode"
+            icon="icons/live_mode_16.png"
+            class="org.acmsl.bytehot.eclipse.launch.ByteHotLaunchShortcut"
+            modes="run,debug"
+            id="org.acmsl.bytehot.eclipse.launch.bytehotShortcut">
+         <contextualLaunch>
+            <enablement>
+               <with variable="selection">
+                  <count value="1"/>
+                  <iterate>
+                     <or>
+                        <instanceof value="org.eclipse.jdt.core.IJavaProject"/>
+                        <instanceof value="org.eclipse.core.resources.IProject"/>
+                        <test property="org.eclipse.jdt.core.isInJavaProject"/>
+                     </or>
+                  </iterate>
+               </with>
+            </enablement>
+         </contextualLaunch>
+      </shortcut>
+   </extension>
+
+   <!-- Preferences -->
+   <extension point="org.eclipse.ui.preferencePages">
+      <page id="org.acmsl.bytehot.eclipse.preferences"
+            name="ByteHot"
+            class="org.acmsl.bytehot.eclipse.preferences.ByteHotPreferencePage"/>
+   </extension>
+
+   <!-- Marker Types for Hot-Swap Indicators -->
+   <extension point="org.eclipse.core.resources.markers">
+      <super type="org.eclipse.core.resources.textmarker"/>
+      <persistent value="false"/>
+      <attribute name="hotSwapStatus"/>
+      <attribute name="hotSwapMessage"/>
+      <attribute name="hotSwapTimestamp"/>
+   </extension>
+
+   <!-- Editor Annotations -->
+   <extension point="org.eclipse.ui.editors.annotationTypes">
+      <type name="org.acmsl.bytehot.eclipse.hotSwapSuccess"
+            super="org.eclipse.ui.workbench.texteditor.info"
+            markerType="org.acmsl.bytehot.eclipse.hotSwapMarker"/>
+      <type name="org.acmsl.bytehot.eclipse.hotSwapError"
+            super="org.eclipse.ui.workbench.texteditor.error"
+            markerType="org.acmsl.bytehot.eclipse.hotSwapMarker"/>
+   </extension>
+
+   <!-- Marker Resolution -->
+   <extension point="org.eclipse.ui.ide.markerResolution">
+      <markerResolutionGenerator
+            class="org.acmsl.bytehot.eclipse.editors.HotSwapMarkerResolver"
+            markerType="org.acmsl.bytehot.eclipse.hotSwapMarker"/>
+   </extension>
+</plugin>
+#+END_SRC
+
+*** Main Plugin Activator
+#+BEGIN_SRC java
+public class ByteHotPlugin extends AbstractUIPlugin implements EclipsePluginBase {
+    
+    public static final String PLUGIN_ID = "org.acmsl.bytehot.eclipse";
+    private static ByteHotPlugin plugin;
+    
+    private HotSwapEventListener eventListener;
+    private IResourceChangeListener resourceChangeListener;
+    
+    @Override
+    public void start(BundleContext context) throws Exception {
+        super.start(context);
+        plugin = this;
+        
+        try {
+            // Initialize plugin foundation
+            if (!initializePlugin()) {
+                logError("Failed to initialize ByteHot plugin foundation");
+                return;
+            }
+            
+            // Initialize event listeners
+            initializeEventListeners();
+            
+            // Register resource change listener for file monitoring
+            registerResourceChangeListener();
+            
+            logInfo("ByteHot Eclipse plugin started successfully");
+            
+        } catch (Exception e) {
+            logError("Failed to start ByteHot plugin", e);
+            throw e;
+        }
+    }
+    
+    @Override
+    public void stop(BundleContext context) throws Exception {
+        try {
+            // Cleanup listeners
+            if (eventListener != null) {
+                eventListener.dispose();
+            }
+            
+            if (resourceChangeListener != null) {
+                ResourcesPlugin.getWorkspace().removeResourceChangeListener(resourceChangeListener);
+            }
+            
+            // Dispose plugin foundation
+            disposePlugin();
+            
+            logInfo("ByteHot plugin stopped successfully");
+            
+        } catch (Exception e) {
+            logError("Error stopping ByteHot plugin", e);
+        } finally {
+            plugin = null;
+            super.stop(context);
+        }
+    }
+    
+    public static ByteHotPlugin getDefault() {
+        return plugin;
+    }
+    
+    public static ImageDescriptor getImageDescriptor(String path) {
+        return imageDescriptorFromPlugin(PLUGIN_ID, path);
+    }
+    
+    private void initializeEventListeners() {
+        eventListener = new HotSwapEventListener();
+        // Register with plugin foundation event system
+        getCommunicationHandler().registerMessageHandler("hot_swap_notification", eventListener);
+    }
+    
+    private void registerResourceChangeListener() {
+        resourceChangeListener = new LiveModeResourceChangeListener();
+        ResourcesPlugin.getWorkspace().addResourceChangeListener(
+            resourceChangeListener,
+            IResourceChangeEvent.POST_CHANGE
+        );
+    }
+    
+    public void logInfo(String message) {
+        getLog().log(new Status(IStatus.INFO, PLUGIN_ID, message));
+    }
+    
+    public void logError(String message, Throwable throwable) {
+        getLog().log(new Status(IStatus.ERROR, PLUGIN_ID, message, throwable));
+    }
+    
+    public void logError(String message) {
+        logError(message, null);
+    }
+}
+#+END_SRC
+
+*** Live Mode Action Implementation
+#+BEGIN_SRC java
+public class LiveModeAction extends AbstractHandler implements EclipsePluginBase {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(LiveModeAction.class);
+    
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        try {
+            IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindow(event);
+            ISelection selection = HandlerUtil.getCurrentSelection(event);
+            
+            // Get the current project
+            IJavaProject javaProject = getJavaProjectFromSelection(selection);
+            if (javaProject == null) {
+                MessageDialog.openError(
+                    window.getShell(),
+                    "ByteHot Error",
+                    "Please select a Java project to start live mode."
+                );
+                return null;
+            }
+            
+            LOG.info("Starting ByteHot live mode for project: {}", javaProject.getElementName());
+            
+            // Initialize plugin foundation if not already done
+            if (!initializePlugin()) {
+                showErrorDialog(window.getShell(), "Failed to initialize ByteHot plugin");
+                return null;
+            }
+            
+            // Analyze project to detect configuration
+            EclipseProjectAnalyzer analyzer = new EclipseProjectAnalyzer(javaProject);
+            ProjectConfiguration config = analyzer.analyzeProject();
+            
+            // Show confirmation dialog
+            if (confirmLiveModeStart(window.getShell(), javaProject, config)) {
+                startLiveModeWithConfig(window, javaProject, config);
+            }
+            
+        } catch (Exception ex) {
+            LOG.error("Failed to start live mode", ex);
+            IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindow(event);
+            showErrorDialog(window.getShell(), "Failed to start live mode: " + ex.getMessage());
+        }
+        
+        return null;
+    }
+    
+    @Override
+    public boolean isEnabled() {
+        // Enable only when a Java project is selected
+        ISelection selection = PlatformUI.getWorkbench()
+            .getActiveWorkbenchWindow()
+            .getSelectionService()
+            .getSelection();
+            
+        IJavaProject javaProject = getJavaProjectFromSelection(selection);
+        return javaProject != null && !isLiveModeActive(javaProject);
+    }
+    
+    private IJavaProject getJavaProjectFromSelection(ISelection selection) {
+        if (selection instanceof IStructuredSelection) {
+            IStructuredSelection structuredSelection = (IStructuredSelection) selection;
+            Object firstElement = structuredSelection.getFirstElement();
+            
+            if (firstElement instanceof IJavaProject) {
+                return (IJavaProject) firstElement;
+            } else if (firstElement instanceof IProject) {
+                IProject project = (IProject) firstElement;
+                try {
+                    if (project.hasNature(JavaCore.NATURE_ID)) {
+                        return JavaCore.create(project);
+                    }
+                } catch (CoreException e) {
+                    LOG.warn("Failed to check Java nature", e);
+                }
+            } else if (firstElement instanceof IJavaElement) {
+                return ((IJavaElement) firstElement).getJavaProject();
+            }
+        }
+        return null;
+    }
+    
+    private boolean confirmLiveModeStart(Shell shell, IJavaProject project, ProjectConfiguration config) {
+        StringBuilder message = new StringBuilder();
+        message.append("ByteHot Live Mode Configuration:\n\n");
+        message.append("Project: ").append(project.getElementName()).append("\n");
+        message.append("Main Class: ").append(config.getMainClass()).append("\n");
+        message.append("Watch Paths: ").append(String.join(", ", config.getWatchPaths())).append("\n");
+        message.append("JVM Args: ").append(String.join(" ", config.getJvmArgs())).append("\n\n");
+        message.append("Start live mode with this configuration?");
+        
+        return MessageDialog.openQuestion(
+            shell,
+            "Start ByteHot Live Mode",
+            message.toString()
+        );
+    }
+    
+    private void startLiveModeWithConfig(IWorkbenchWindow window, IJavaProject project, ProjectConfiguration config) {
+        // Create and schedule background job
+        Job liveModeJob = new LiveModeJob("Starting ByteHot Live Mode", project, config);
+        liveModeJob.setUser(true);
+        liveModeJob.schedule();
+        
+        // Show ByteHot view
+        try {
+            IViewPart view = window.getActivePage().showView("org.acmsl.bytehot.eclipse.views.bytehotView");
+            if (view instanceof ByteHotView) {
+                ((ByteHotView) view).updateStatus(project, config);
+            }
+        } catch (PartInitException e) {
+            LOG.error("Failed to show ByteHot view", e);
+        }
+    }
+    
+    private boolean isLiveModeActive(IJavaProject project) {
+        // Check if there's an active live mode process for this project
+        return LiveModeProcessManager.getInstance().isActive(project);
+    }
+    
+    private void showErrorDialog(Shell shell, String message) {
+        MessageDialog.openError(shell, "ByteHot Error", message);
+    }
+}
+#+END_SRC
+
+*** Eclipse Project Analyzer
+#+BEGIN_SRC java
+public class EclipseProjectAnalyzer {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(EclipseProjectAnalyzer.class);
+    
+    private final IJavaProject javaProject;
+    
+    public EclipseProjectAnalyzer(IJavaProject javaProject) {
+        this.javaProject = javaProject;
+    }
+    
+    public ProjectConfiguration analyzeProject() throws CoreException {
+        ProjectConfiguration config = new ProjectConfiguration();
+        
+        // Detect main class
+        config.setMainClass(detectMainClass());
+        LOG.info("Detected main class: {}", config.getMainClass());
+        
+        // Detect watch paths
+        config.setWatchPaths(detectWatchPaths());
+        LOG.info("Detected watch paths: {}", config.getWatchPaths());
+        
+        // Build classpath
+        config.setClasspath(buildClasspath());
+        
+        // Configure JVM arguments
+        config.setJvmArgs(buildJvmArgs());
+        
+        return config;
+    }
+    
+    public String detectMainClass() throws CoreException {
+        // Strategy 1: Check existing launch configurations
+        String mainClassFromLaunch = findMainClassInLaunchConfigurations();
+        if (mainClassFromLaunch != null) return mainClassFromLaunch;
+        
+        // Strategy 2: Check for Spring Boot applications
+        String springBootMainClass = findSpringBootMainClass();
+        if (springBootMainClass != null) return springBootMainClass;
+        
+        // Strategy 3: Scan project for main methods
+        String scannedMainClass = scanProjectForMainClass();
+        if (scannedMainClass != null) return scannedMainClass;
+        
+        throw new IllegalStateException("Could not detect main class in project: " + javaProject.getElementName());
+    }
+    
+    public List<String> detectWatchPaths() throws CoreException {
+        List<String> watchPaths = new ArrayList<>();
+        
+        // Get source folders
+        IPackageFragmentRoot[] packageRoots = javaProject.getPackageFragmentRoots();
+        for (IPackageFragmentRoot root : packageRoots) {
+            if (root.getKind() == IPackageFragmentRoot.K_SOURCE) {
+                IResource resource = root.getResource();
+                if (resource != null) {
+                    watchPaths.add(resource.getLocation().toString());
+                }
+            }
+        }
+        
+        return watchPaths;
+    }
+    
+    public List<String> buildClasspath() throws CoreException {
+        List<String> classpathEntries = new ArrayList<>();
+        
+        // Get resolved classpath
+        IClasspathEntry[] classpathEntries = javaProject.getResolvedClasspath(true);
+        for (IClasspathEntry entry : classpathEntries) {
+            IPath path = entry.getPath();
+            
+            switch (entry.getEntryKind()) {
+                case IClasspathEntry.CPE_LIBRARY:
+                    classpathEntries.add(path.toString());
+                    break;
+                case IClasspathEntry.CPE_PROJECT:
+                    // Add project output folder
+                    IJavaProject depProject = JavaCore.create(
+                        ResourcesPlugin.getWorkspace().getRoot().getProject(path.lastSegment())
+                    );
+                    if (depProject.exists()) {
+                        IPath outputPath = depProject.getOutputLocation();
+                        classpathEntries.add(
+                            ResourcesPlugin.getWorkspace().getRoot()
+                                .getFolder(outputPath).getLocation().toString()
+                        );
+                    }
+                    break;
+                case IClasspathEntry.CPE_SOURCE:
+                    // Source entries contribute to output folder
+                    break;
+            }
+        }
+        
+        // Add project's own output folder
+        IPath outputPath = javaProject.getOutputLocation();
+        classpathEntries.add(
+            ResourcesPlugin.getWorkspace().getRoot()
+                .getFolder(outputPath).getLocation().toString()
+        );
+        
+        return classpathEntries;
+    }
+    
+    public List<String> buildJvmArgs() {
+        List<String> jvmArgs = new ArrayList<>();
+        
+        // Add ByteHot agent argument
+        Optional<String> agentPath = getAgentDiscovery().getAgentPath();
+        if (agentPath.isPresent()) {
+            jvmArgs.add("-javaagent:" + agentPath.get());
+        } else {
+            throw new IllegalStateException("ByteHot agent not found");
+        }
+        
+        // Add any project-specific JVM arguments from preferences
+        IEclipsePreferences prefs = InstanceScope.INSTANCE.getNode(ByteHotPlugin.PLUGIN_ID);
+        String additionalArgs = prefs.get("jvmArgs", "");
+        if (!additionalArgs.trim().isEmpty()) {
+            String[] args = additionalArgs.split("\\s+");
+            jvmArgs.addAll(Arrays.asList(args));
+        }
+        
+        return jvmArgs;
+    }
+    
+    private String findMainClassInLaunchConfigurations() {
+        try {
+            ILaunchManager launchManager = DebugPlugin.getDefault().getLaunchManager();
+            ILaunchConfigurationType javaAppType = launchManager.getLaunchConfigurationType(
+                IJavaLaunchConfigurationConstants.ID_JAVA_APPLICATION
+            );
+            
+            ILaunchConfiguration[] configs = launchManager.getLaunchConfigurations(javaAppType);
+            for (ILaunchConfiguration config : configs) {
+                String projectName = config.getAttribute(
+                    IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, ""
+                );
+                if (javaProject.getElementName().equals(projectName)) {
+                    return config.getAttribute(
+                        IJavaLaunchConfigurationConstants.ATTR_MAIN_TYPE_NAME, (String) null
+                    );
+                }
+            }
+        } catch (CoreException e) {
+            LOG.warn("Failed to check launch configurations", e);
+        }
+        return null;
+    }
+    
+    private String findSpringBootMainClass() {
+        try {
+            // Search for @SpringBootApplication annotation
+            IType[] types = javaProject.getAllTypes();
+            for (IType type : types) {
+                IAnnotation annotation = type.getAnnotation("SpringBootApplication");
+                if (annotation.exists()) {
+                    return type.getFullyQualifiedName();
+                }
+                
+                // Also check for @EnableAutoConfiguration as fallback
+                annotation = type.getAnnotation("EnableAutoConfiguration");
+                if (annotation.exists()) {
+                    return type.getFullyQualifiedName();
+                }
+            }
+        } catch (JavaModelException e) {
+            LOG.warn("Failed to scan for Spring Boot main class", e);
+        }
+        return null;
+    }
+    
+    private String scanProjectForMainClass() {
+        try {
+            IType[] types = javaProject.getAllTypes();
+            for (IType type : types) {
+                IMethod[] methods = type.getMethods();
+                for (IMethod method : methods) {
+                    if ("main".equals(method.getElementName()) &&
+                        Flags.isStatic(method.getFlags()) &&
+                        Flags.isPublic(method.getFlags()) &&
+                        method.getParameterTypes().length == 1) {
+                        return type.getFullyQualifiedName();
+                    }
+                }
+            }
+        } catch (JavaModelException e) {
+            LOG.warn("Failed to scan for main class", e);
+        }
+        return null;
+    }
+}
+#+END_SRC
+
+*** Live Mode Background Job
+#+BEGIN_SRC java
+public class LiveModeJob extends Job implements EclipsePluginBase {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(LiveModeJob.class);
+    
+    private final IJavaProject javaProject;
+    private final ProjectConfiguration config;
+    
+    public LiveModeJob(String name, IJavaProject javaProject, ProjectConfiguration config) {
+        super(name);
+        this.javaProject = javaProject;
+        this.config = config;
+    }
+    
+    @Override
+    protected IStatus run(IProgressMonitor monitor) {
+        try {
+            monitor.beginTask("Starting ByteHot Live Mode", 100);
+            
+            // Step 1: Validate configuration
+            monitor.subTask("Validating configuration...");
+            if (!validateConfiguration()) {
+                return new Status(IStatus.ERROR, ByteHotPlugin.PLUGIN_ID, 
+                    "Invalid configuration for live mode");
+            }
+            monitor.worked(20);
+            
+            // Step 2: Ensure project is compiled
+            monitor.subTask("Ensuring project is compiled...");
+            if (!ensureProjectCompiled(monitor)) {
+                return new Status(IStatus.ERROR, ByteHotPlugin.PLUGIN_ID, 
+                    "Failed to compile project");
+            }
+            monitor.worked(40);
+            
+            // Step 3: Start application with agent
+            monitor.subTask("Starting application with ByteHot agent...");
+            Process process = startApplicationWithAgent();
+            monitor.worked(80);
+            
+            // Step 4: Register process and start monitoring
+            monitor.subTask("Initializing monitoring...");
+            LiveModeProcessManager.getInstance().registerProcess(javaProject, process, config);
+            monitor.worked(100);
+            
+            // Show success notification
+            Display.getDefault().asyncExec(() -> {
+                showSuccessNotification();
+            });
+            
+            LOG.info("Live mode started successfully for project: {}", javaProject.getElementName());
+            return Status.OK_STATUS;
+            
+        } catch (Exception e) {
+            LOG.error("Failed to start live mode", e);
+            
+            Display.getDefault().asyncExec(() -> {
+                showErrorNotification(e.getMessage());
+            });
+            
+            return new Status(IStatus.ERROR, ByteHotPlugin.PLUGIN_ID, 
+                "Failed to start live mode: " + e.getMessage(), e);
+        } finally {
+            monitor.done();
+        }
+    }
+    
+    private boolean validateConfiguration() {
+        return config.getMainClass() != null && 
+               !config.getMainClass().trim().isEmpty() &&
+               !config.getClasspath().isEmpty();
+    }
+    
+    private boolean ensureProjectCompiled(IProgressMonitor monitor) {
+        try {
+            // Check if build is needed
+            if (needsBuild()) {
+                // Trigger incremental build
+                javaProject.getProject().build(IncrementalProjectBuilder.INCREMENTAL_BUILD, monitor);
+            }
+            return true;
+        } catch (CoreException e) {
+            LOG.error("Failed to build project", e);
+            return false;
+        }
+    }
+    
+    private boolean needsBuild() {
+        try {
+            // Simple check: see if output folder is older than any source file
+            IPath outputPath = javaProject.getOutputLocation();
+            IFolder outputFolder = ResourcesPlugin.getWorkspace().getRoot().getFolder(outputPath);
+            
+            if (!outputFolder.exists()) {
+                return true;
+            }
+            
+            long outputModified = outputFolder.getLocalTimeStamp();
+            
+            // Check source folders
+            IPackageFragmentRoot[] roots = javaProject.getPackageFragmentRoots();
+            for (IPackageFragmentRoot root : roots) {
+                if (root.getKind() == IPackageFragmentRoot.K_SOURCE) {
+                    IResource resource = root.getResource();
+                    if (resource != null && resource.getLocalTimeStamp() > outputModified) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        } catch (JavaModelException e) {
+            LOG.warn("Failed to check build status", e);
+            return true; // Build to be safe
+        }
+    }
+    
+    private Process startApplicationWithAgent() throws Exception {
+        EclipseProcessLauncher launcher = new EclipseProcessLauncher(javaProject);
+        return launcher.startApplicationWithAgent(config);
+    }
+    
+    private void showSuccessNotification() {
+        MessageDialog.openInformation(
+            PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
+            "ByteHot Live Mode",
+            "Live mode started successfully for project: " + javaProject.getElementName()
+        );
+    }
+    
+    private void showErrorNotification(String message) {
+        MessageDialog.openError(
+            PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
+            "ByteHot Error",
+            "Failed to start live mode: " + message
+        );
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Core Plugin Infrastructure
+1. Create Eclipse plugin project with proper MANIFEST.MF and plugin.xml
+2. Implement plugin activator with OSGi bundle lifecycle management
+3. Create LiveModeAction with comprehensive Eclipse workbench integration
+4. Integrate with bytehot-plugin-commons for shared functionality
+
+*** Workbench Integration
+1. Implement EclipseProjectAnalyzer for automatic project detection
+2. Create comprehensive ByteHotView with status monitoring and event history
+3. Build background jobs for non-blocking live mode operations
+4. Add preferences integration for user customization
+
+*** Launch Configuration Support
+1. Create custom ByteHot launch configuration type
+2. Implement launch configuration tabs and delegates
+3. Build launch shortcuts for quick access
+4. Add debugging integration with hot-swap awareness
+
+** Acceptance Criteria
+
+- [ ] Plugin installs correctly in Eclipse 2020-12+
+- [ ] "Start Live Mode" action starts applications with zero configuration
+- [ ] Automatic project analysis works for >90% of Java projects
+- [ ] ByteHot view provides comprehensive status monitoring
+- [ ] Launch configurations integrate seamlessly with Eclipse's run/debug framework
+- [ ] Background jobs provide non-blocking user experience
+- [ ] Plugin initialization time <3 seconds for typical workspaces
+
+* Phase 2: Advanced Eclipse Integration Features
+
+** Objective
+Enhance the basic plugin with sophisticated Eclipse workbench integration, including advanced editor annotations, perspective customization, and comprehensive project management for a production-ready development experience.
+
+** Advanced Editor Integration
+
+*** Hot-Swap Editor Annotations
+#+BEGIN_SRC java
+public class HotSwapAnnotationModel extends ResourceMarkerAnnotationModel {
+    
+    public static final String HOT_SWAP_SUCCESS_ANNOTATION = "org.acmsl.bytehot.eclipse.hotSwapSuccess";
+    public static final String HOT_SWAP_ERROR_ANNOTATION = "org.acmsl.bytehot.eclipse.hotSwapError";
+    
+    private final Map<String, Annotation> activeAnnotations = new HashMap<>();
+    
+    public void addHotSwapAnnotation(int lineNumber, HotSwapEvent event) {
+        String annotationType = event.isSuccess() ? 
+            HOT_SWAP_SUCCESS_ANNOTATION : HOT_SWAP_ERROR_ANNOTATION;
+        
+        Position position = new Position(lineNumber, 0);
+        Annotation annotation = new Annotation(annotationType, false, event.getMessage());
+        
+        // Remove any existing annotation for this line
+        removeAnnotationForLine(lineNumber);
+        
+        // Add new annotation
+        addAnnotation(annotation, position);
+        activeAnnotations.put(String.valueOf(lineNumber), annotation);
+        
+        // Auto-remove success annotations after delay
+        if (event.isSuccess()) {
+            scheduleAnnotationRemoval(annotation, 3000); // 3 seconds
+        }
+    }
+    
+    private void removeAnnotationForLine(int lineNumber) {
+        String key = String.valueOf(lineNumber);
+        Annotation existing = activeAnnotations.remove(key);
+        if (existing != null) {
+            removeAnnotation(existing);
+        }
+    }
+    
+    private void scheduleAnnotationRemoval(Annotation annotation, long delayMs) {
+        Display.getDefault().timerExec((int) delayMs, () -> {
+            if (activeAnnotations.containsValue(annotation)) {
+                removeAnnotation(annotation);
+                activeAnnotations.values().remove(annotation);
+            }
+        });
+    }
+}
+#+END_SRC
+
+*** Real-time Progress Indicators
+#+BEGIN_SRC java
+public class HotSwapProgressIndicator implements IProgressIndicator {
+    
+    private final ITextEditor editor;
+    private final IProgressBar progressBar;
+    private volatile boolean inProgress = false;
+    
+    public HotSwapProgressIndicator(ITextEditor editor) {
+        this.editor = editor;
+        this.progressBar = createProgressBar();
+    }
+    
+    public void startHotSwapProgress(String className) {
+        if (inProgress) return;
+        
+        inProgress = true;
+        Display.getDefault().asyncExec(() -> {
+            progressBar.setVisible(true);
+            progressBar.setMessage("Hot-swapping " + className + "...");
+            progressBar.startProgress();
+        });
+    }
+    
+    public void completeHotSwapProgress(HotSwapEvent event) {
+        if (!inProgress) return;
+        
+        inProgress = false;
+        Display.getDefault().asyncExec(() -> {
+            progressBar.completeProgress(event.isSuccess());
+            progressBar.setMessage(event.isSuccess() ? 
+                "Hot-swap completed successfully" : 
+                "Hot-swap failed: " + event.getMessage());
+            
+            // Hide progress bar after delay
+            Display.getDefault().timerExec(2000, () -> {
+                progressBar.setVisible(false);
+            });
+        });
+    }
+    
+    private IProgressBar createProgressBar() {
+        // Create custom progress bar in editor's status line
+        return new EditorProgressBar(editor);
+    }
+}
+#+END_SRC
+
+** Comprehensive View System
+
+*** Multi-Tab ByteHot View
+#+BEGIN_SRC java
+public class ByteHotView extends ViewPart {
+    
+    public static final String ID = "org.acmsl.bytehot.eclipse.views.bytehotView";
+    
+    private TabFolder tabFolder;
+    private StatusComposite statusComposite;
+    private EventHistoryComposite eventHistoryComposite;
+    private PerformanceComposite performanceComposite;
+    private SettingsComposite settingsComposite;
+    
+    @Override
+    public void createPartControl(Composite parent) {
+        createTabFolder(parent);
+        createTabs();
+        setupListeners();
+        
+        // Register as hot-swap event listener
+        ByteHotPlugin.getDefault().addHotSwapEventListener(this::handleHotSwapEvent);
+    }
+    
+    private void createTabFolder(Composite parent) {
+        tabFolder = new TabFolder(parent, SWT.NONE);
+    }
+    
+    private void createTabs() {
+        // Status Tab
+        TabItem statusTab = new TabItem(tabFolder, SWT.NONE);
+        statusTab.setText("Status");
+        statusComposite = new StatusComposite(tabFolder, SWT.NONE);
+        statusTab.setControl(statusComposite);
+        
+        // Event History Tab
+        TabItem eventsTab = new TabItem(tabFolder, SWT.NONE);
+        eventsTab.setText("Events");
+        eventHistoryComposite = new EventHistoryComposite(tabFolder, SWT.NONE);
+        eventsTab.setControl(eventHistoryComposite);
+        
+        // Performance Tab
+        TabItem performanceTab = new TabItem(tabFolder, SWT.NONE);
+        performanceTab.setText("Performance");
+        performanceComposite = new PerformanceComposite(tabFolder, SWT.NONE);
+        performanceTab.setControl(performanceComposite);
+        
+        // Settings Tab
+        TabItem settingsTab = new TabItem(tabFolder, SWT.NONE);
+        settingsTab.setText("Settings");
+        settingsComposite = new SettingsComposite(tabFolder, SWT.NONE);
+        settingsTab.setControl(settingsComposite);
+    }
+    
+    private void setupListeners() {
+        // Add selection listener to handle tab changes
+        tabFolder.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                int selectedIndex = tabFolder.getSelectionIndex();
+                handleTabSelection(selectedIndex);
+            }
+        });
+    }
+    
+    public void updateStatus(IJavaProject project, ProjectConfiguration config) {
+        statusComposite.updateProjectStatus(project, config);
+    }
+    
+    public void handleHotSwapEvent(HotSwapEvent event) {
+        Display.getDefault().asyncExec(() -> {
+            eventHistoryComposite.addEvent(event);
+            statusComposite.updateLastActivity(event);
+            performanceComposite.recordMetrics(event);
+        });
+    }
+    
+    private void handleTabSelection(int tabIndex) {
+        switch (tabIndex) {
+            case 0: // Status
+                statusComposite.refresh();
+                break;
+            case 1: // Events
+                eventHistoryComposite.refresh();
+                break;
+            case 2: // Performance
+                performanceComposite.refresh();
+                break;
+            case 3: // Settings
+                settingsComposite.refresh();
+                break;
+        }
+    }
+    
+    @Override
+    public void setFocus() {
+        tabFolder.setFocus();
+    }
+    
+    @Override
+    public void dispose() {
+        // Cleanup listeners
+        ByteHotPlugin.getDefault().removeHotSwapEventListener(this::handleHotSwapEvent);
+        super.dispose();
+    }
+}
+
+public class StatusComposite extends Composite {
+    
+    private Label statusLabel;
+    private Label projectLabel;
+    private Label mainClassLabel;
+    private Label processLabel;
+    private Label lastActivityLabel;
+    private ProgressBar hotSwapProgressBar;
+    private Text logOutput;
+    
+    public StatusComposite(Composite parent, int style) {
+        super(parent, style);
+        createControls();
+    }
+    
+    private void createControls() {
+        setLayout(new GridLayout(2, false));
+        
+        // Status information
+        createLabelPair("Status:", "Inactive");
+        statusLabel = (Label) getChildren()[1];
+        
+        createLabelPair("Project:", "None");
+        projectLabel = (Label) getChildren()[3];
+        
+        createLabelPair("Main Class:", "None");
+        mainClassLabel = (Label) getChildren()[5];
+        
+        createLabelPair("Process:", "None");
+        processLabel = (Label) getChildren()[7];
+        
+        createLabelPair("Last Activity:", "None");
+        lastActivityLabel = (Label) getChildren()[9];
+        
+        // Progress bar for hot-swap operations
+        Label progressLabel = new Label(this, SWT.NONE);
+        progressLabel.setText("Hot-swap Progress:");
+        hotSwapProgressBar = new ProgressBar(this, SWT.HORIZONTAL | SWT.INDETERMINATE);
+        hotSwapProgressBar.setVisible(false);
+        
+        // Log output area
+        Label logLabel = new Label(this, SWT.NONE);
+        logLabel.setText("Output:");
+        logLabel.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false, 2, 1));
+        
+        logOutput = new Text(this, SWT.MULTI | SWT.READ_ONLY | SWT.V_SCROLL | SWT.H_SCROLL);
+        GridData logData = new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1);
+        logData.heightHint = 200;
+        logOutput.setLayoutData(logData);
+    }
+    
+    private void createLabelPair(String labelText, String valueText) {
+        Label label = new Label(this, SWT.NONE);
+        label.setText(labelText);
+        
+        Label value = new Label(this, SWT.NONE);
+        value.setText(valueText);
+        value.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    }
+    
+    public void updateProjectStatus(IJavaProject project, ProjectConfiguration config) {
+        Display.getDefault().asyncExec(() -> {
+            projectLabel.setText(project.getElementName());
+            mainClassLabel.setText(config.getMainClass());
+            statusLabel.setText("Active");
+            statusLabel.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_GREEN));
+        });
+    }
+    
+    public void updateLastActivity(HotSwapEvent event) {
+        Display.getDefault().asyncExec(() -> {
+            String activity = String.format("%s - %s", 
+                event.getClassName(), 
+                new Date(event.getTimestamp()).toString());
+            lastActivityLabel.setText(activity);
+            
+            // Add to log output
+            String logEntry = String.format("[%s] %s: %s%n", 
+                new Date(event.getTimestamp()),
+                event.getClassName(),
+                event.getMessage());
+            logOutput.append(logEntry);
+            
+            // Scroll to bottom
+            logOutput.setTopIndex(logOutput.getLineCount() - 1);
+        });
+    }
+    
+    public void refresh() {
+        // Refresh status information
+        // This would typically query current state
+    }
+}
+#+END_SRC
+
+** Custom Perspective Integration
+
+*** ByteHot Development Perspective
+#+BEGIN_SRC java
+public class ByteHotPerspective implements IPerspectiveFactory {
+    
+    public static final String ID = "org.acmsl.bytehot.eclipse.perspective";
+    
+    @Override
+    public void createInitialLayout(IPageLayout layout) {
+        String editorArea = layout.getEditorArea();
+        
+        // Left side: Package Explorer and Project Explorer
+        IFolderLayout left = layout.createFolder("left", IPageLayout.LEFT, 0.25f, editorArea);
+        left.addView(JavaUI.ID_PACKAGES);
+        left.addView(IPageLayout.ID_PROJECT_EXPLORER);
+        
+        // Bottom: ByteHot view, Console, Problems
+        IFolderLayout bottom = layout.createFolder("bottom", IPageLayout.BOTTOM, 0.75f, editorArea);
+        bottom.addView(ByteHotView.ID);
+        bottom.addView(IConsoleConstants.ID_CONSOLE_VIEW);
+        bottom.addView(IPageLayout.ID_PROBLEM_VIEW);
+        
+        // Right side: Outline, Tasks
+        IFolderLayout right = layout.createFolder("right", IPageLayout.RIGHT, 0.75f, editorArea);
+        right.addView(IPageLayout.ID_OUTLINE);
+        right.addView(IPageLayout.ID_TASK_LIST);
+        
+        // Add action sets
+        layout.addActionSet(IDebugUIConstants.LAUNCH_ACTION_SET);
+        layout.addActionSet(JavaUI.ID_ACTION_SET);
+        layout.addActionSet("org.acmsl.bytehot.eclipse.actionSet");
+        
+        // Add perspective shortcuts
+        layout.addPerspectiveShortcut(JavaUI.ID_PERSPECTIVE);
+        layout.addPerspectiveShortcut(IDebugUIConstants.ID_DEBUG_PERSPECTIVE);
+        
+        // Add view shortcuts
+        layout.addShowViewShortcut(ByteHotView.ID);
+        layout.addShowViewShortcut(JavaUI.ID_PACKAGES);
+        layout.addShowViewShortcut(IConsoleConstants.ID_CONSOLE_VIEW);
+    }
+}
+#+END_SRC
+
+** Advanced Launch Configuration
+
+*** Comprehensive Launch Configuration Support
+#+BEGIN_SRC java
+public class ByteHotLaunchConfigurationTabGroup extends AbstractLaunchConfigurationTabGroup {
+    
+    @Override
+    public void createTabs(ILaunchConfigurationDialog dialog, String mode) {
+        setTabs(new ILaunchConfigurationTab[] {
+            new ByteHotMainTab(),
+            new ByteHotArgumentsTab(),
+            new ByteHotAgentTab(),
+            new JavaJRETab(),
+            new JavaClasspathTab(),
+            new SourceLookupTab(),
+            new EnvironmentTab(),
+            new CommonTab()
+        });
+    }
+}
+
+public class ByteHotMainTab extends AbstractLaunchConfigurationTab {
+    
+    private Text projectText;
+    private Text mainClassText;
+    private Button projectBrowseButton;
+    private Button mainClassSearchButton;
+    private Button enableHotReloadCheckbox;
+    
+    @Override
+    public void createControl(Composite parent) {
+        Composite composite = new Composite(parent, SWT.NONE);
+        composite.setLayout(new GridLayout(3, false));
+        setControl(composite);
+        
+        // Project selection
+        Label projectLabel = new Label(composite, SWT.NONE);
+        projectLabel.setText("Project:");
+        
+        projectText = new Text(composite, SWT.BORDER);
+        projectText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        projectText.addModifyListener(e -> updateLaunchConfigurationDialog());
+        
+        projectBrowseButton = new Button(composite, SWT.PUSH);
+        projectBrowseButton.setText("Browse...");
+        projectBrowseButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                browseForProject();
+            }
+        });
+        
+        // Main class selection
+        Label mainClassLabel = new Label(composite, SWT.NONE);
+        mainClassLabel.setText("Main class:");
+        
+        mainClassText = new Text(composite, SWT.BORDER);
+        mainClassText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        mainClassText.addModifyListener(e -> updateLaunchConfigurationDialog());
+        
+        mainClassSearchButton = new Button(composite, SWT.PUSH);
+        mainClassSearchButton.setText("Search...");
+        mainClassSearchButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                searchForMainClass();
+            }
+        });
+        
+        // Hot reload option
+        enableHotReloadCheckbox = new Button(composite, SWT.CHECK);
+        enableHotReloadCheckbox.setText("Enable hot reload");
+        enableHotReloadCheckbox.setSelection(true);
+        enableHotReloadCheckbox.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 3, 1));
+        enableHotReloadCheckbox.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                updateLaunchConfigurationDialog();
+            }
+        });
+    }
+    
+    @Override
+    public void setDefaults(ILaunchConfigurationWorkingCopy configuration) {
+        // Set default values based on current selection
+        IJavaProject project = getSelectedJavaProject();
+        if (project != null) {
+            configuration.setAttribute(
+                IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, 
+                project.getElementName()
+            );
+            
+            // Try to detect main class
+            try {
+                EclipseProjectAnalyzer analyzer = new EclipseProjectAnalyzer(project);
+                String mainClass = analyzer.detectMainClass();
+                configuration.setAttribute(
+                    IJavaLaunchConfigurationConstants.ATTR_MAIN_TYPE_NAME, 
+                    mainClass
+                );
+            } catch (Exception e) {
+                // Ignore - user will need to specify manually
+            }
+        }
+        
+        configuration.setAttribute("enableHotReload", true);
+    }
+    
+    @Override
+    public void initializeFrom(ILaunchConfiguration configuration) {
+        try {
+            String projectName = configuration.getAttribute(
+                IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, ""
+            );
+            projectText.setText(projectName);
+            
+            String mainClass = configuration.getAttribute(
+                IJavaLaunchConfigurationConstants.ATTR_MAIN_TYPE_NAME, ""
+            );
+            mainClassText.setText(mainClass);
+            
+            boolean enableHotReload = configuration.getAttribute("enableHotReload", true);
+            enableHotReloadCheckbox.setSelection(enableHotReload);
+            
+        } catch (CoreException e) {
+            setErrorMessage("Error reading launch configuration: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    public void performApply(ILaunchConfigurationWorkingCopy configuration) {
+        configuration.setAttribute(
+            IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, 
+            projectText.getText().trim()
+        );
+        configuration.setAttribute(
+            IJavaLaunchConfigurationConstants.ATTR_MAIN_TYPE_NAME, 
+            mainClassText.getText().trim()
+        );
+        configuration.setAttribute("enableHotReload", enableHotReloadCheckbox.getSelection());
+    }
+    
+    @Override
+    public String getName() {
+        return "Main";
+    }
+    
+    @Override
+    public boolean isValid(ILaunchConfiguration launchConfig) {
+        setErrorMessage(null);
+        
+        String projectName = projectText.getText().trim();
+        if (projectName.isEmpty()) {
+            setErrorMessage("Project must be specified");
+            return false;
+        }
+        
+        String mainClass = mainClassText.getText().trim();
+        if (mainClass.isEmpty()) {
+            setErrorMessage("Main class must be specified");
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private void browseForProject() {
+        IJavaProject project = chooseJavaProject();
+        if (project != null) {
+            projectText.setText(project.getElementName());
+        }
+    }
+    
+    private void searchForMainClass() {
+        String projectName = projectText.getText().trim();
+        if (projectName.isEmpty()) {
+            setErrorMessage("Please select a project first");
+            return;
+        }
+        
+        IJavaProject project = JavaCore.create(
+            ResourcesPlugin.getWorkspace().getRoot().getProject(projectName)
+        );
+        
+        try {
+            String mainClass = chooseMainClass(project);
+            if (mainClass != null) {
+                mainClassText.setText(mainClass);
+            }
+        } catch (Exception e) {
+            setErrorMessage("Error searching for main class: " + e.getMessage());
+        }
+    }
+    
+    private IJavaProject chooseJavaProject() {
+        // Implementation for project selection dialog
+        // Similar to standard Eclipse project selection
+        return null; // Placeholder
+    }
+    
+    private String chooseMainClass(IJavaProject project) {
+        // Implementation for main class selection dialog
+        // Similar to standard Eclipse main class selection
+        return null; // Placeholder
+    }
+    
+    private IJavaProject getSelectedJavaProject() {
+        // Get currently selected project from workspace
+        return null; // Placeholder
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Advanced Editor Integration
+1. Implement real-time hot-swap annotations and progress indicators
+2. Create comprehensive editor contribution with markers and quick fixes
+3. Build smart editor features that understand hot-swap context
+4. Add visual feedback system for successful and failed hot-swaps
+
+*** View System Enhancement
+1. Create comprehensive multi-tab ByteHot view with all monitoring capabilities
+2. Implement real-time event history with filtering and search
+3. Build performance monitoring dashboard with metrics visualization
+4. Add integrated settings management with live configuration updates
+
+*** Perspective and Workbench Integration
+1. Create custom ByteHot development perspective
+2. Implement comprehensive launch configuration support
+3. Build workbench integration with proper lifecycle management
+4. Add extensive keyboard shortcuts and command integration
+
+** Acceptance Criteria
+
+- [ ] Advanced editor integration provides real-time visual feedback
+- [ ] Comprehensive view system offers complete monitoring and control
+- [ ] Custom perspective optimizes workspace for live coding workflows
+- [ ] Launch configurations provide full control over ByteHot behavior
+- [ ] Workbench integration feels completely native to Eclipse
+- [ ] Performance remains excellent even with extensive monitoring
+- [ ] Plugin works correctly with Eclipse 2020-12 through latest versions
+
+* Testing Strategy
+
+** Unit Testing
+- Plugin lifecycle and OSGi bundle management
+- Project analysis algorithms with various Eclipse project types
+- Launch configuration creation and validation
+- View components and user interaction handling
+
+** Integration Testing
+- End-to-end plugin functionality with real Eclipse workspaces
+- Workbench integration and perspective behavior
+- Launch configuration execution and debugging
+- Cross-plugin compatibility with other Eclipse plugins
+
+** UI Testing
+- View system behavior and data updates
+- Editor annotations and visual feedback
+- Launch configuration dialogs and validation
+- Preference pages and settings persistence
+
+** Performance Testing
+- Plugin startup time and memory usage
+- View update performance with high-frequency events
+- Editor annotation performance with large files
+- Workspace scanning and project analysis speed
+
+* Dependencies & Prerequisites
+
+** Eclipse Platform Dependencies
+- Eclipse Platform 4.17+ (2020-12)
+- Java Development Tools (JDT) for project analysis
+- Platform Debug for launch configuration support
+- Workbench UI for view and perspective integration
+
+** Build Environment
+- Eclipse PDE (Plugin Development Environment)
+- Tycho Maven plugin for headless builds
+- bytehot-plugin-commons for shared functionality
+- JUnit 5 with Eclipse Test Framework for testing
+
+** External Requirements
+- ByteHot agent JAR available and functional
+- Java 8+ for broad Eclipse compatibility
+- Properly configured Eclipse development environment
+
+* Success Metrics
+
+** Technical Success Criteria
+- Plugin activation time: <3 seconds in typical Eclipse workspace
+- Project analysis accuracy: >95% for standard Java projects
+- Live mode startup time: <5 seconds for typical projects
+- Memory overhead: <100MB during active development
+
+** User Experience Metrics
+- Plugin installation success rate: >95%
+- Zero-configuration success rate: >85% of Java projects
+- User satisfaction rating: >4.5/5 for Eclipse integration
+- Support ticket volume: <3% of active installations
+
+* Future Enhancements
+
+** Planned Phase 3 Features
+- Integration with Eclipse's Marketplace for easy discovery
+- Advanced project templates with ByteHot pre-configured
+- Integration with Eclipse Git support for change tracking
+- Enhanced debugging integration with hot-swap history
+
+** Community Contributions
+- Eclipse plugin templates for ByteHot-enabled projects
+- Integration with popular Eclipse plugins (Spring Tools, M2E, etc.)
+- Enhanced multi-language support (Kotlin, Scala)
+- Plugin extension points for third-party enhancements
+
+This Eclipse plugin provides comprehensive integration with the Eclipse IDE ecosystem, making ByteHot live coding feel like a natural part of the Eclipse development experience while maintaining the high standards of quality and usability that Eclipse users expect.

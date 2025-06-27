@@ -1,0 +1,1894 @@
+#+TITLE: Milestone 13: VS Code Extension (Walking Skeleton)
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+Milestone 13 creates the Visual Studio Code extension that brings ByteHot live coding capabilities to the popular lightweight editor. The extension leverages VS Code's rich extension API to provide commands, views, and integrations that make live coding feel native while maintaining VS Code's philosophy of simplicity and performance.
+
+** Goals
+
+- Create lightweight VS Code integration that aligns with VS Code's performance-first philosophy
+- Implement command palette integration and status bar indicators for quick access
+- Provide comprehensive task and launch configuration integration
+- Establish visual feedback through VS Code's notification and progress systems
+- Validate plugin foundation architecture in VS Code's Node.js extension environment
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I open the command palette, type 'ByteHot: Start Live Mode', and my Java application starts with immediate code reflection. The status bar shows real-time hot-swap status. Everything integrates seamlessly with my VS Code workflow."
+#+END_QUOTE
+
+* Architecture Overview
+
+** VS Code Extension Integration Architecture
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                Developer Experience                 │
+│  • Command Palette: "ByteHot: Start Live Mode"     │
+│  • Status bar live mode indicator                  │
+│  • Real-time notifications for hot-swap events     │
+│  • Integrated terminal with agent output           │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              bytehot-vscode-extension               │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │   LiveModeCmd   │  │  ByteHotStatusBar       │   │
+│  │  - Command      │  │  - Status indicator     │   │
+│  │  - Task launch  │  │  - Progress display     │   │
+│  │  - Process mgmt │  │  - Quick actions        │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │VSCodeProject    │  │  HotSwapNotifications   │   │
+│  │Analyzer         │  │  - Toast notifications  │   │
+│  │  - Workspace    │  │  - Error decorations    │   │
+│  │  - Main class   │  │  - Success indicators   │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              Plugin Foundation Layer                │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │        bytehot-plugin-commons (via JNI)        │ │
+│  │  • Agent Discovery    • Communication Protocol │ │
+│  │  • Configuration Mgmt • Health Monitoring      │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│        ByteHot Agent (Auto-discovered)             │
+│  bytehot-application-latest-SNAPSHOT-agent.jar     │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Extension Structure
+
+#+BEGIN_SRC
+bytehot-vscode-extension/
+├── package.json                         # Extension manifest
+├── tsconfig.json                        # TypeScript configuration
+├── webpack.config.js                    # Webpack bundling config
+├── src/
+│   ├── extension.ts                     # Main extension entry point
+│   ├── commands/
+│   │   ├── liveModeCommand.ts          # Live mode command
+│   │   ├── stopLiveModeCommand.ts      # Stop live mode command
+│   │   └── configureByteHotCommand.ts  # Configuration command
+│   ├── views/
+│   │   ├── byteHotView.ts              # Custom view provider
+│   │   ├── statusBarManager.ts         # Status bar management
+│   │   └── outputChannelManager.ts     # Output channel management
+│   ├── tasks/
+│   │   ├── byteHotTaskProvider.ts      # Task provider
+│   │   └── taskDefinition.ts           # Task definition types
+│   ├── launch/
+│   │   ├── debugConfigurationProvider.ts
+│   │   └── launchConfiguration.ts      # Launch config types
+│   ├── analysis/
+│   │   ├── vscodeProjectAnalyzer.ts    # Project analysis
+│   │   ├── workspaceScanner.ts         # Workspace scanning
+│   │   └── mainClassDetector.ts        # Main class detection
+│   ├── integration/
+│   │   ├── vscodeConfigurationAdapter.ts
+│   │   ├── vscodeProcessLauncher.ts
+│   │   └── javaRuntimeBridge.ts        # Java runtime bridge
+│   ├── notifications/
+│   │   ├── hotSwapNotificationProvider.ts
+│   │   ├── progressReporter.ts
+│   │   └── decorationProvider.ts       # Editor decorations
+│   └── settings/
+│       ├── settingsManager.ts          # Settings management
+│       └── configurationSchema.ts      # Configuration schema
+├── resources/
+│   ├── icons/                          # Extension icons
+│   │   ├── bytehot.svg
+│   │   ├── live-mode-active.svg
+│   │   └── live-mode-inactive.svg
+│   └── schemas/
+│       └── bytehot-config.schema.json  # Configuration schema
+├── native/                             # Native module for Java bridge
+│   ├── binding.gyp                     # Node.js native addon config
+│   ├── src/
+│   │   └── bytehot_bridge.cc          # C++ bridge to Java
+│   └── lib/
+│       └── bytehot-plugin-commons.jar # Java commons library
+├── test/
+│   ├── suite/
+│   │   ├── extension.test.ts
+│   │   ├── commands.test.ts
+│   │   └── analysis.test.ts
+│   └── fixtures/
+│       └── sample-projects/
+├── CHANGELOG.md
+├── README.md
+└── LICENSE
+#+END_SRC
+
+* Phase 1: Basic VS Code Integration
+
+** Objective
+Create the minimal viable VS Code extension that provides live mode activation through command palette with comprehensive workspace integration and real-time feedback through VS Code's standard UI components.
+
+** Walking Skeleton Implementation
+
+*** Extension Manifest (package.json)
+#+BEGIN_SRC json
+{
+  "name": "bytehot-live-coding",
+  "displayName": "ByteHot Live Coding",
+  "description": "Instant Java hot-swapping for live coding without restarts",
+  "version": "1.0.0",
+  "publisher": "bytehot-team",
+  "author": {
+    "name": "ByteHot Development Team",
+    "email": "rydnr@acm-sl.org"
+  },
+  "license": "GPL-3.0",
+  "homepage": "https://github.com/rydnr/bytehot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rydnr/bytehot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rydnr/bytehot/issues"
+  },
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Debuggers",
+    "Other"
+  ],
+  "keywords": [
+    "java",
+    "hot-swap",
+    "live-coding",
+    "development",
+    "productivity"
+  ],
+  "activationEvents": [
+    "onLanguage:java",
+    "workspaceContains:**/*.java",
+    "onCommand:bytehot.startLiveMode"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "bytehot.startLiveMode",
+        "title": "Start Live Mode",
+        "category": "ByteHot",
+        "icon": "$(play)"
+      },
+      {
+        "command": "bytehot.stopLiveMode",
+        "title": "Stop Live Mode", 
+        "category": "ByteHot",
+        "icon": "$(stop)"
+      },
+      {
+        "command": "bytehot.configure",
+        "title": "Configure ByteHot",
+        "category": "ByteHot",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "bytehot.showOutput",
+        "title": "Show Output",
+        "category": "ByteHot",
+        "icon": "$(output)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "bytehot.startLiveMode",
+          "when": "bytehot.available && !bytehot.active"
+        },
+        {
+          "command": "bytehot.stopLiveMode", 
+          "when": "bytehot.active"
+        },
+        {
+          "command": "bytehot.configure",
+          "when": "bytehot.available"
+        },
+        {
+          "command": "bytehot.showOutput",
+          "when": "bytehot.available"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "bytehot.startLiveMode",
+          "when": "view == byteHotView && !bytehot.active",
+          "group": "navigation"
+        },
+        {
+          "command": "bytehot.stopLiveMode",
+          "when": "view == byteHotView && bytehot.active", 
+          "group": "navigation"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "byteHotView",
+          "name": "ByteHot",
+          "when": "bytehot.available"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "byteHotView",
+        "contents": "ByteHot live coding is not active.\n[Start Live Mode](command:bytehot.startLiveMode)\nTo learn more about ByteHot, [visit our documentation](https://github.com/rydnr/bytehot)."
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "bytehot",
+        "required": [
+          "mainClass"
+        ],
+        "properties": {
+          "mainClass": {
+            "type": "string",
+            "description": "The main class to run in live mode"
+          },
+          "jvmArgs": {
+            "type": "array",
+            "description": "JVM arguments for the application",
+            "items": {
+              "type": "string"
+            }
+          },
+          "watchPaths": {
+            "type": "array", 
+            "description": "Paths to watch for changes",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "bytehot",
+        "label": "ByteHot Live Mode",
+        "program": "./out/debugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "mainClass"
+            ],
+            "properties": {
+              "mainClass": {
+                "type": "string",
+                "description": "Main class to launch",
+                "default": "${workspaceFolder}"
+              },
+              "projectPath": {
+                "type": "string",
+                "description": "Path to the Java project",
+                "default": "${workspaceFolder}"
+              },
+              "jvmArgs": {
+                "type": "array",
+                "description": "JVM arguments",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "enableHotReload": {
+                "type": "boolean",
+                "description": "Enable hot reloading",
+                "default": true
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "bytehot",
+            "request": "launch",
+            "name": "ByteHot Live Mode",
+            "mainClass": "${input:mainClass}",
+            "projectPath": "${workspaceFolder}",
+            "enableHotReload": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "ByteHot: Launch Java Application",
+            "description": "Launch Java application with ByteHot live mode",
+            "body": {
+              "type": "bytehot",
+              "request": "launch",
+              "name": "ByteHot Live Mode",
+              "mainClass": "^\"\\${input:mainClass}\"",
+              "projectPath": "^\"\\${workspaceFolder}\"",
+              "enableHotReload": true
+            }
+          }
+        ],
+        "variables": {
+          "mainClass": {
+            "type": "command",
+            "command": "bytehot.selectMainClass"
+          }
+        }
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "ByteHot",
+      "properties": {
+        "bytehot.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable ByteHot extension"
+        },
+        "bytehot.agentPath": {
+          "type": "string",
+          "description": "Path to ByteHot agent JAR (auto-discovered if not specified)"
+        },
+        "bytehot.defaultJvmArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Default JVM arguments for all ByteHot launches"
+        },
+        "bytehot.autoDetectMainClass": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically detect main class from workspace"
+        },
+        "bytehot.showNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for hot-swap events"
+        },
+        "bytehot.logLevel": {
+          "type": "string",
+          "enum": ["error", "warn", "info", "debug"],
+          "default": "info",
+          "description": "Log level for ByteHot operations"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "14.x",
+    "@typescript-eslint/eslint-plugin": "^4.26.0",
+    "@typescript-eslint/parser": "^4.26.0",
+    "eslint": "^7.27.0",
+    "typescript": "^4.3.2",
+    "vsce": "^1.95.1",
+    "@vscode/test-electron": "^1.6.2"
+  },
+  "dependencies": {
+    "node-addon-api": "^4.2.0"
+  }
+}
+#+END_SRC
+
+*** Main Extension Entry Point
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+import { LiveModeCommand } from './commands/liveModeCommand';
+import { StopLiveModeCommand } from './commands/stopLiveModeCommand';
+import { ConfigureByteHotCommand } from './commands/configureByteHotCommand';
+import { ByteHotView } from './views/byteHotView';
+import { StatusBarManager } from './views/statusBarManager';
+import { OutputChannelManager } from './views/outputChannelManager';
+import { ByteHotTaskProvider } from './tasks/byteHotTaskProvider';
+import { ByteHotDebugConfigurationProvider } from './launch/debugConfigurationProvider';
+import { HotSwapNotificationProvider } from './notifications/hotSwapNotificationProvider';
+import { SettingsManager } from './settings/settingsManager';
+import { VSCodeProjectAnalyzer } from './analysis/vscodeProjectAnalyzer';
+import { JavaRuntimeBridge } from './integration/javaRuntimeBridge';
+
+let extension: ByteHotExtension;
+
+export function activate(context: vscode.ExtensionContext) {
+    console.log('ByteHot extension is now active');
+    
+    extension = new ByteHotExtension(context);
+    return extension.activate();
+}
+
+export function deactivate() {
+    if (extension) {
+        extension.deactivate();
+    }
+}
+
+class ByteHotExtension {
+    private context: vscode.ExtensionContext;
+    private statusBarManager: StatusBarManager;
+    private outputChannelManager: OutputChannelManager;
+    private notificationProvider: HotSwapNotificationProvider;
+    private settingsManager: SettingsManager;
+    private javaRuntimeBridge: JavaRuntimeBridge;
+    private isActive: boolean = false;
+
+    constructor(context: vscode.ExtensionContext) {
+        this.context = context;
+    }
+
+    async activate(): Promise<any> {
+        try {
+            // Initialize core components
+            await this.initializeComponents();
+            
+            // Register commands
+            this.registerCommands();
+            
+            // Register providers
+            this.registerProviders();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Initialize workspace analysis
+            await this.initializeWorkspace();
+            
+            console.log('ByteHot extension activated successfully');
+            
+            return {
+                // Export API for other extensions
+                startLiveMode: () => this.startLiveMode(),
+                stopLiveMode: () => this.stopLiveMode(),
+                isActive: () => this.isActive
+            };
+            
+        } catch (error) {
+            console.error('Failed to activate ByteHot extension:', error);
+            vscode.window.showErrorMessage(`Failed to activate ByteHot: ${error.message}`);
+            throw error;
+        }
+    }
+
+    private async initializeComponents() {
+        this.settingsManager = new SettingsManager();
+        this.outputChannelManager = new OutputChannelManager();
+        this.statusBarManager = new StatusBarManager();
+        this.notificationProvider = new HotSwapNotificationProvider();
+        
+        // Initialize Java runtime bridge
+        this.javaRuntimeBridge = new JavaRuntimeBridge();
+        await this.javaRuntimeBridge.initialize();
+    }
+
+    private registerCommands() {
+        const commands = [
+            new LiveModeCommand(this),
+            new StopLiveModeCommand(this),
+            new ConfigureByteHotCommand(this)
+        ];
+
+        commands.forEach(command => {
+            const disposable = vscode.commands.registerCommand(
+                command.commandId, 
+                command.execute.bind(command)
+            );
+            this.context.subscriptions.push(disposable);
+        });
+
+        // Register select main class command for debug configuration
+        const selectMainClassDisposable = vscode.commands.registerCommand(
+            'bytehot.selectMainClass',
+            this.selectMainClass.bind(this)
+        );
+        this.context.subscriptions.push(selectMainClassDisposable);
+    }
+
+    private registerProviders() {
+        // Task provider
+        const taskProvider = new ByteHotTaskProvider();
+        const taskDisposable = vscode.tasks.registerTaskProvider('bytehot', taskProvider);
+        this.context.subscriptions.push(taskDisposable);
+
+        // Debug configuration provider
+        const debugProvider = new ByteHotDebugConfigurationProvider();
+        const debugDisposable = vscode.debug.registerDebugConfigurationProvider('bytehot', debugProvider);
+        this.context.subscriptions.push(debugDisposable);
+
+        // Custom view provider
+        const viewProvider = new ByteHotView(this.context);
+        const viewDisposable = vscode.window.createTreeView('byteHotView', {
+            treeDataProvider: viewProvider,
+            showCollapseAll: true
+        });
+        this.context.subscriptions.push(viewDisposable);
+    }
+
+    private setupEventListeners() {
+        // Listen for configuration changes
+        const configDisposable = vscode.workspace.onDidChangeConfiguration(event => {
+            if (event.affectsConfiguration('bytehot')) {
+                this.handleConfigurationChange();
+            }
+        });
+        this.context.subscriptions.push(configDisposable);
+
+        // Listen for file system changes
+        const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.java');
+        fileWatcher.onDidChange(this.handleFileChange.bind(this));
+        fileWatcher.onDidCreate(this.handleFileChange.bind(this));
+        fileWatcher.onDidDelete(this.handleFileChange.bind(this));
+        this.context.subscriptions.push(fileWatcher);
+
+        // Listen for workspace folder changes
+        const workspaceDisposable = vscode.workspace.onDidChangeWorkspaceFolders(
+            this.handleWorkspaceChange.bind(this)
+        );
+        this.context.subscriptions.push(workspaceDisposable);
+    }
+
+    private async initializeWorkspace() {
+        // Set context variable for enabling commands
+        const hasJavaFiles = await this.hasJavaFiles();
+        vscode.commands.executeCommand('setContext', 'bytehot.available', hasJavaFiles);
+        
+        // Update status bar
+        this.statusBarManager.updateAvailability(hasJavaFiles);
+    }
+
+    private async hasJavaFiles(): Promise<boolean> {
+        if (!vscode.workspace.workspaceFolders) {
+            return false;
+        }
+
+        const javaFiles = await vscode.workspace.findFiles('**/*.java', '**/node_modules/**', 1);
+        return javaFiles.length > 0;
+    }
+
+    private async selectMainClass(): Promise<string | undefined> {
+        try {
+            const analyzer = new VSCodeProjectAnalyzer();
+            const mainClasses = await analyzer.findMainClasses();
+            
+            if (mainClasses.length === 0) {
+                vscode.window.showWarningMessage('No main classes found in workspace');
+                return undefined;
+            }
+            
+            if (mainClasses.length === 1) {
+                return mainClasses[0];
+            }
+            
+            return await vscode.window.showQuickPick(mainClasses, {
+                placeHolder: 'Select main class to run'
+            });
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to find main classes: ${error.message}`);
+            return undefined;
+        }
+    }
+
+    private handleConfigurationChange() {
+        console.log('ByteHot configuration changed');
+        // Reload settings and update components
+        this.settingsManager.reload();
+    }
+
+    private handleFileChange(uri: vscode.Uri) {
+        if (this.isActive) {
+            // Trigger hot-swap for changed Java files
+            this.processFileChange(uri);
+        }
+    }
+
+    private handleWorkspaceChange() {
+        // Re-initialize workspace when folders change
+        this.initializeWorkspace();
+    }
+
+    private async processFileChange(uri: vscode.Uri) {
+        try {
+            const className = this.extractClassName(uri);
+            this.outputChannelManager.appendLine(`File changed: ${className}`);
+            
+            // Notify Java runtime bridge about the change
+            await this.javaRuntimeBridge.notifyFileChange(uri.fsPath, className);
+            
+        } catch (error) {
+            console.error('Failed to process file change:', error);
+        }
+    }
+
+    private extractClassName(uri: vscode.Uri): string {
+        const fileName = uri.path.split('/').pop() || '';
+        return fileName.replace('.java', '');
+    }
+
+    async startLiveMode(): Promise<void> {
+        try {
+            this.outputChannelManager.appendLine('Starting ByteHot live mode...');
+            
+            // Analyze project
+            const analyzer = new VSCodeProjectAnalyzer();
+            const config = await analyzer.analyzeWorkspace();
+            
+            // Start live mode through Java bridge
+            await this.javaRuntimeBridge.startLiveMode(config);
+            
+            this.isActive = true;
+            this.statusBarManager.setActive(true);
+            vscode.commands.executeCommand('setContext', 'bytehot.active', true);
+            
+            this.outputChannelManager.appendLine('ByteHot live mode started successfully');
+            this.notificationProvider.showSuccess('Live mode started successfully');
+            
+        } catch (error) {
+            console.error('Failed to start live mode:', error);
+            vscode.window.showErrorMessage(`Failed to start live mode: ${error.message}`);
+        }
+    }
+
+    async stopLiveMode(): Promise<void> {
+        try {
+            this.outputChannelManager.appendLine('Stopping ByteHot live mode...');
+            
+            await this.javaRuntimeBridge.stopLiveMode();
+            
+            this.isActive = false;
+            this.statusBarManager.setActive(false);
+            vscode.commands.executeCommand('setContext', 'bytehot.active', false);
+            
+            this.outputChannelManager.appendLine('ByteHot live mode stopped');
+            this.notificationProvider.showInfo('Live mode stopped');
+            
+        } catch (error) {
+            console.error('Failed to stop live mode:', error);
+            vscode.window.showErrorMessage(`Failed to stop live mode: ${error.message}`);
+        }
+    }
+
+    deactivate() {
+        if (this.isActive) {
+            this.stopLiveMode();
+        }
+        
+        if (this.javaRuntimeBridge) {
+            this.javaRuntimeBridge.dispose();
+        }
+        
+        console.log('ByteHot extension deactivated');
+    }
+
+    // Getters for components
+    getStatusBarManager(): StatusBarManager { return this.statusBarManager; }
+    getOutputChannelManager(): OutputChannelManager { return this.outputChannelManager; }
+    getNotificationProvider(): HotSwapNotificationProvider { return this.notificationProvider; }
+    getSettingsManager(): SettingsManager { return this.settingsManager; }
+    getJavaRuntimeBridge(): JavaRuntimeBridge { return this.javaRuntimeBridge; }
+}
+#+END_SRC
+
+*** Live Mode Command Implementation
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+import { VSCodeProjectAnalyzer } from '../analysis/vscodeProjectAnalyzer';
+
+export class LiveModeCommand {
+    readonly commandId = 'bytehot.startLiveMode';
+    
+    constructor(private extension: any) {}
+
+    async execute(): Promise<void> {
+        try {
+            // Check if workspace has Java files
+            if (!vscode.workspace.workspaceFolders) {
+                vscode.window.showErrorMessage('No workspace folder is open');
+                return;
+            }
+
+            // Show progress indicator
+            await vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: 'Starting ByteHot Live Mode',
+                cancellable: false
+            }, async (progress) => {
+                progress.report({ increment: 0, message: 'Analyzing workspace...' });
+                
+                // Analyze workspace for Java projects
+                const analyzer = new VSCodeProjectAnalyzer();
+                const config = await analyzer.analyzeWorkspace();
+                
+                progress.report({ increment: 30, message: 'Validating configuration...' });
+                
+                // Validate configuration
+                if (!config.mainClass) {
+                    const mainClass = await this.promptForMainClass();
+                    if (!mainClass) {
+                        throw new Error('Main class is required to start live mode');
+                    }
+                    config.mainClass = mainClass;
+                }
+                
+                progress.report({ increment: 60, message: 'Starting application with ByteHot agent...' });
+                
+                // Show configuration confirmation
+                const confirmed = await this.confirmConfiguration(config);
+                if (!confirmed) {
+                    return;
+                }
+                
+                progress.report({ increment: 80, message: 'Initializing live mode...' });
+                
+                // Start live mode
+                await this.extension.startLiveMode();
+                
+                progress.report({ increment: 100, message: 'Live mode started successfully' });
+            });
+
+        } catch (error) {
+            console.error('Failed to start live mode:', error);
+            vscode.window.showErrorMessage(`Failed to start live mode: ${error.message}`);
+        }
+    }
+
+    private async promptForMainClass(): Promise<string | undefined> {
+        const analyzer = new VSCodeProjectAnalyzer();
+        const mainClasses = await analyzer.findMainClasses();
+        
+        if (mainClasses.length === 0) {
+            // Allow manual input
+            return await vscode.window.showInputBox({
+                prompt: 'Enter the main class name (e.g., com.example.Application)',
+                placeHolder: 'com.example.Application',
+                validateInput: (value) => {
+                    if (!value || value.trim().length === 0) {
+                        return 'Main class cannot be empty';
+                    }
+                    if (!/^[a-zA-Z_$][a-zA-Z\d_$]*(\.[a-zA-Z_$][a-zA-Z\d_$]*)*$/.test(value)) {
+                        return 'Invalid Java class name format';
+                    }
+                    return null;
+                }
+            });
+        }
+        
+        if (mainClasses.length === 1) {
+            return mainClasses[0];
+        }
+        
+        return await vscode.window.showQuickPick(mainClasses, {
+            placeHolder: 'Select main class to run in live mode'
+        });
+    }
+
+    private async confirmConfiguration(config: any): Promise<boolean> {
+        const message = [
+            'ByteHot Live Mode Configuration:',
+            '',
+            `Main Class: ${config.mainClass}`,
+            `Watch Paths: ${config.watchPaths.join(', ')}`,
+            `JVM Args: ${config.jvmArgs.join(' ') || 'None'}`,
+            '',
+            'Start live mode with this configuration?'
+        ].join('\n');
+
+        const choice = await vscode.window.showInformationMessage(
+            message,
+            { modal: true },
+            'Start Live Mode',
+            'Cancel'
+        );
+
+        return choice === 'Start Live Mode';
+    }
+}
+#+END_SRC
+
+*** VS Code Project Analyzer
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+
+export interface ProjectConfiguration {
+    mainClass?: string;
+    watchPaths: string[];
+    jvmArgs: string[];
+    classpath: string[];
+}
+
+export class VSCodeProjectAnalyzer {
+    
+    async analyzeWorkspace(): Promise<ProjectConfiguration> {
+        const config: ProjectConfiguration = {
+            watchPaths: [],
+            jvmArgs: [],
+            classpath: []
+        };
+
+        if (!vscode.workspace.workspaceFolders) {
+            throw new Error('No workspace folders are open');
+        }
+
+        // Analyze each workspace folder
+        for (const folder of vscode.workspace.workspaceFolders) {
+            await this.analyzeWorkspaceFolder(folder, config);
+        }
+
+        // Auto-detect main class if not specified
+        if (!config.mainClass) {
+            const mainClasses = await this.findMainClasses();
+            if (mainClasses.length === 1) {
+                config.mainClass = mainClasses[0];
+            }
+        }
+
+        // Add default JVM arguments
+        config.jvmArgs.push(...this.getDefaultJvmArgs());
+
+        return config;
+    }
+
+    private async analyzeWorkspaceFolder(folder: vscode.WorkspaceFolder, config: ProjectConfiguration) {
+        const folderPath = folder.uri.fsPath;
+        
+        // Check for Maven project
+        if (await this.isMavenProject(folderPath)) {
+            await this.analyzeMavenProject(folderPath, config);
+        }
+        // Check for Gradle project  
+        else if (await this.isGradleProject(folderPath)) {
+            await this.analyzeGradleProject(folderPath, config);
+        }
+        // Default Java project structure
+        else {
+            await this.analyzeDefaultJavaProject(folderPath, config);
+        }
+    }
+
+    private async isMavenProject(folderPath: string): Promise<boolean> {
+        const pomPath = path.join(folderPath, 'pom.xml');
+        return this.fileExists(pomPath);
+    }
+
+    private async isGradleProject(folderPath: string): Promise<boolean> {
+        const buildGradlePath = path.join(folderPath, 'build.gradle');
+        const buildGradleKtsPath = path.join(folderPath, 'build.gradle.kts');
+        return await this.fileExists(buildGradlePath) || await this.fileExists(buildGradleKtsPath);
+    }
+
+    private async analyzeMavenProject(folderPath: string, config: ProjectConfiguration) {
+        // Add Maven source directories
+        const srcMainJava = path.join(folderPath, 'src', 'main', 'java');
+        const srcMainResources = path.join(folderPath, 'src', 'main', 'resources');
+        
+        if (await this.directoryExists(srcMainJava)) {
+            config.watchPaths.push(srcMainJava);
+        }
+        if (await this.directoryExists(srcMainResources)) {
+            config.watchPaths.push(srcMainResources);
+        }
+
+        // Add Maven target directory to classpath
+        const targetClasses = path.join(folderPath, 'target', 'classes');
+        if (await this.directoryExists(targetClasses)) {
+            config.classpath.push(targetClasses);
+        }
+
+        // Try to parse pom.xml for main class configuration
+        await this.parseMainClassFromPom(folderPath, config);
+    }
+
+    private async analyzeGradleProject(folderPath: string, config: ProjectConfiguration) {
+        // Add Gradle source directories
+        const srcMainJava = path.join(folderPath, 'src', 'main', 'java');
+        const srcMainResources = path.join(folderPath, 'src', 'main', 'resources');
+        
+        if (await this.directoryExists(srcMainJava)) {
+            config.watchPaths.push(srcMainJava);
+        }
+        if (await this.directoryExists(srcMainResources)) {
+            config.watchPaths.push(srcMainResources);
+        }
+
+        // Add Gradle build directory to classpath
+        const buildClasses = path.join(folderPath, 'build', 'classes', 'java', 'main');
+        if (await this.directoryExists(buildClasses)) {
+            config.classpath.push(buildClasses);
+        }
+    }
+
+    private async analyzeDefaultJavaProject(folderPath: string, config: ProjectConfiguration) {
+        // Find Java source directories
+        const javaFiles = await vscode.workspace.findFiles(
+            new vscode.RelativePattern(folderPath, '**/*.java'),
+            '**/node_modules/**'
+        );
+
+        // Extract unique source directories
+        const sourceDirs = new Set<string>();
+        javaFiles.forEach(file => {
+            const dir = path.dirname(file.fsPath);
+            sourceDirs.add(dir);
+        });
+
+        config.watchPaths.push(...Array.from(sourceDirs));
+        
+        // Add bin/classes directories if they exist
+        const binPath = path.join(folderPath, 'bin');
+        const classesPath = path.join(folderPath, 'classes');
+        
+        if (await this.directoryExists(binPath)) {
+            config.classpath.push(binPath);
+        }
+        if (await this.directoryExists(classesPath)) {
+            config.classpath.push(classesPath);
+        }
+    }
+
+    async findMainClasses(): Promise<string[]> {
+        const mainClasses: string[] = [];
+
+        if (!vscode.workspace.workspaceFolders) {
+            return mainClasses;
+        }
+
+        // Search for Java files containing main methods
+        const javaFiles = await vscode.workspace.findFiles('**/*.java', '**/node_modules/**');
+
+        for (const file of javaFiles) {
+            const mainClass = await this.extractMainClassFromFile(file);
+            if (mainClass) {
+                mainClasses.push(mainClass);
+            }
+        }
+
+        return mainClasses;
+    }
+
+    private async extractMainClassFromFile(file: vscode.Uri): Promise<string | null> {
+        try {
+            const content = await vscode.workspace.fs.readFile(file);
+            const text = content.toString();
+
+            // Simple regex to find main method
+            const mainMethodRegex = /public\s+static\s+void\s+main\s*\(\s*String\s*\[\s*\]\s*\w+\s*\)/;
+            if (!mainMethodRegex.test(text)) {
+                return null;
+            }
+
+            // Extract package name
+            const packageMatch = text.match(/package\s+([a-zA-Z_$][a-zA-Z\d_$.]*);/);
+            const packageName = packageMatch ? packageMatch[1] : '';
+
+            // Extract class name from file name
+            const fileName = path.basename(file.fsPath, '.java');
+
+            return packageName ? `${packageName}.${fileName}` : fileName;
+
+        } catch (error) {
+            console.error(`Failed to read file ${file.fsPath}:`, error);
+            return null;
+        }
+    }
+
+    private async parseMainClassFromPom(folderPath: string, config: ProjectConfiguration) {
+        try {
+            const pomPath = path.join(folderPath, 'pom.xml');
+            const content = await fs.promises.readFile(pomPath, 'utf8');
+
+            // Simple regex to find exec plugin configuration
+            const execMainClassMatch = content.match(/<mainClass>([^<]+)<\/mainClass>/);
+            if (execMainClassMatch) {
+                config.mainClass = execMainClassMatch[1];
+                return;
+            }
+
+            // Check for Spring Boot plugin
+            const springBootMatch = content.match(/<start-class>([^<]+)<\/start-class>/);
+            if (springBootMatch) {
+                config.mainClass = springBootMatch[1];
+            }
+
+        } catch (error) {
+            console.warn('Failed to parse pom.xml:', error);
+        }
+    }
+
+    private getDefaultJvmArgs(): string[] {
+        const settings = vscode.workspace.getConfiguration('bytehot');
+        return settings.get<string[]>('defaultJvmArgs') || [];
+    }
+
+    private async fileExists(filePath: string): Promise<boolean> {
+        try {
+            await fs.promises.access(filePath);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private async directoryExists(dirPath: string): Promise<boolean> {
+        try {
+            const stat = await fs.promises.stat(dirPath);
+            return stat.isDirectory();
+        } catch {
+            return false;
+        }
+    }
+}
+#+END_SRC
+
+*** Status Bar Manager
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+
+export class StatusBarManager {
+    private statusBarItem: vscode.StatusBarItem;
+    private isActive: boolean = false;
+    private isAvailable: boolean = false;
+
+    constructor() {
+        this.statusBarItem = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Left,
+            100
+        );
+        this.updateStatusBar();
+    }
+
+    setActive(active: boolean) {
+        this.isActive = active;
+        this.updateStatusBar();
+    }
+
+    updateAvailability(available: boolean) {
+        this.isAvailable = available;
+        this.updateStatusBar();
+    }
+
+    private updateStatusBar() {
+        if (!this.isAvailable) {
+            this.statusBarItem.hide();
+            return;
+        }
+
+        if (this.isActive) {
+            this.statusBarItem.text = '$(debug-stop) ByteHot: Active';
+            this.statusBarItem.tooltip = 'ByteHot live mode is active. Click to stop.';
+            this.statusBarItem.command = 'bytehot.stopLiveMode';
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        } else {
+            this.statusBarItem.text = '$(play) ByteHot: Inactive';
+            this.statusBarItem.tooltip = 'ByteHot live mode is inactive. Click to start.';
+            this.statusBarItem.command = 'bytehot.startLiveMode';
+            this.statusBarItem.backgroundColor = undefined;
+        }
+
+        this.statusBarItem.show();
+    }
+
+    dispose() {
+        this.statusBarItem.dispose();
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Core Extension Infrastructure
+1. Create VS Code extension with proper package.json and TypeScript configuration
+2. Implement main extension class with lifecycle management
+3. Create command implementations with comprehensive workspace integration
+4. Build Java runtime bridge for communicating with bytehot-plugin-commons
+
+*** Workspace Integration
+1. Implement VSCodeProjectAnalyzer for automatic project detection
+2. Create comprehensive task and launch configuration providers
+3. Build status bar management and output channel integration
+4. Add settings management with VS Code configuration API
+
+*** User Experience Features
+1. Create intuitive command palette integration
+2. Implement real-time notifications for hot-swap events
+3. Build comprehensive view provider for monitoring
+4. Add file watcher integration for automatic change detection
+
+** Acceptance Criteria
+
+- [ ] Extension installs correctly in VS Code 1.60+
+- [ ] Command palette "ByteHot: Start Live Mode" starts applications with zero configuration
+- [ ] Automatic project analysis works for >90% of Java projects (Maven, Gradle, standard)
+- [ ] Status bar provides clear indication of live mode state
+- [ ] Task and launch configurations integrate seamlessly with VS Code workflows
+- [ ] Real-time notifications show hot-swap events
+- [ ] Extension initialization time <2 seconds for typical workspaces
+
+* Phase 2: Advanced VS Code Integration Features
+
+** Objective
+Enhance the basic extension with sophisticated VS Code integration, including advanced editor decorations, terminal integration, and comprehensive workspace management for a production-ready development experience.
+
+** Advanced Editor Integration
+
+*** Hot-Swap Editor Decorations
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+
+export class HotSwapDecorationProvider {
+    private successDecorationType: vscode.TextEditorDecorationType;
+    private errorDecorationType: vscode.TextEditorDecorationType;
+    private inProgressDecorationType: vscode.TextEditorDecorationType;
+    private activeDecorations = new Map<string, vscode.TextEditorDecorationType>();
+
+    constructor() {
+        this.createDecorationTypes();
+    }
+
+    private createDecorationTypes() {
+        this.successDecorationType = vscode.window.createTextEditorDecorationType({
+            backgroundColor: new vscode.ThemeColor('editorInfo.background'),
+            border: '1px solid',
+            borderColor: new vscode.ThemeColor('editorInfo.foreground'),
+            overviewRulerColor: new vscode.ThemeColor('editorInfo.foreground'),
+            overviewRulerLane: vscode.OverviewRulerLane.Right,
+            after: {
+                contentText: ' ✓ Hot-swapped',
+                color: new vscode.ThemeColor('editorInfo.foreground'),
+                fontWeight: 'bold'
+            }
+        });
+
+        this.errorDecorationType = vscode.window.createTextEditorDecorationType({
+            backgroundColor: new vscode.ThemeColor('editorError.background'),
+            border: '1px solid',
+            borderColor: new vscode.ThemeColor('editorError.foreground'),
+            overviewRulerColor: new vscode.ThemeColor('editorError.foreground'),
+            overviewRulerLane: vscode.OverviewRulerLane.Right,
+            after: {
+                contentText: ' ✗ Hot-swap failed',
+                color: new vscode.ThemeColor('editorError.foreground'),
+                fontWeight: 'bold'
+            }
+        });
+
+        this.inProgressDecorationType = vscode.window.createTextEditorDecorationType({
+            backgroundColor: new vscode.ThemeColor('editorWarning.background'),
+            border: '1px solid',
+            borderColor: new vscode.ThemeColor('editorWarning.foreground'),
+            overviewRulerColor: new vscode.ThemeColor('editorWarning.foreground'),
+            overviewRulerLane: vscode.OverviewRulerLane.Right,
+            after: {
+                contentText: ' ⏳ Hot-swapping...',
+                color: new vscode.ThemeColor('editorWarning.foreground'),
+                fontWeight: 'bold'
+            }
+        });
+    }
+
+    addHotSwapDecoration(
+        editor: vscode.TextEditor, 
+        line: number, 
+        status: 'success' | 'error' | 'inProgress',
+        message?: string
+    ) {
+        const range = new vscode.Range(line, 0, line, 0);
+        let decorationType: vscode.TextEditorDecorationType;
+
+        switch (status) {
+            case 'success':
+                decorationType = this.successDecorationType;
+                break;
+            case 'error':
+                decorationType = this.errorDecorationType;
+                break;
+            case 'inProgress':
+                decorationType = this.inProgressDecorationType;
+                break;
+        }
+
+        // Remove existing decoration for this line
+        this.removeDecorationForLine(editor, line);
+
+        // Add new decoration
+        editor.setDecorations(decorationType, [{ 
+            range, 
+            hoverMessage: message ? new vscode.MarkdownString(message) : undefined 
+        }]);
+
+        // Store reference for cleanup
+        const key = `${editor.document.uri.toString()}:${line}`;
+        this.activeDecorations.set(key, decorationType);
+
+        // Auto-remove success decorations after delay
+        if (status === 'success') {
+            setTimeout(() => {
+                this.removeDecorationForLine(editor, line);
+            }, 3000);
+        }
+    }
+
+    private removeDecorationForLine(editor: vscode.TextEditor, line: number) {
+        const key = `${editor.document.uri.toString()}:${line}`;
+        const existingDecoration = this.activeDecorations.get(key);
+        
+        if (existingDecoration) {
+            editor.setDecorations(existingDecoration, []);
+            this.activeDecorations.delete(key);
+        }
+    }
+
+    dispose() {
+        this.successDecorationType.dispose();
+        this.errorDecorationType.dispose();
+        this.inProgressDecorationType.dispose();
+    }
+}
+#+END_SRC
+
+*** Integrated Terminal Management
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+
+export class ByteHotTerminalManager {
+    private terminal: vscode.Terminal | undefined;
+    private readonly terminalName = 'ByteHot Live Mode';
+
+    async createOrGetTerminal(): Promise<vscode.Terminal> {
+        // Check if existing terminal is still alive
+        if (this.terminal && this.isTerminalAlive(this.terminal)) {
+            return this.terminal;
+        }
+
+        // Create new terminal
+        this.terminal = vscode.window.createTerminal({
+            name: this.terminalName,
+            iconPath: new vscode.ThemeIcon('debug-play'),
+            color: new vscode.ThemeColor('terminal.ansiGreen')
+        });
+
+        // Register disposal listener
+        const disposable = vscode.window.onDidCloseTerminal(closedTerminal => {
+            if (closedTerminal === this.terminal) {
+                this.terminal = undefined;
+                disposable.dispose();
+            }
+        });
+
+        return this.terminal;
+    }
+
+    async startApplicationInTerminal(config: any): Promise<void> {
+        const terminal = await this.createOrGetTerminal();
+        
+        // Build Java command
+        const javaCommand = this.buildJavaCommand(config);
+        
+        // Show terminal and execute command
+        terminal.show();
+        terminal.sendText(`echo "Starting ByteHot Live Mode..."`);
+        terminal.sendText(javaCommand);
+    }
+
+    private buildJavaCommand(config: any): string {
+        const parts: string[] = ['java'];
+        
+        // Add JVM arguments
+        if (config.jvmArgs && config.jvmArgs.length > 0) {
+            parts.push(...config.jvmArgs);
+        }
+
+        // Add classpath
+        if (config.classpath && config.classpath.length > 0) {
+            parts.push('-cp');
+            parts.push(config.classpath.join(process.platform === 'win32' ? ';' : ':'));
+        }
+
+        // Add main class
+        parts.push(config.mainClass);
+
+        // Escape arguments for shell
+        return parts.map(part => this.escapeShellArg(part)).join(' ');
+    }
+
+    private escapeShellArg(arg: string): string {
+        // Simple shell escaping for cross-platform compatibility
+        if (arg.includes(' ') || arg.includes('"') || arg.includes("'")) {
+            return `"${arg.replace(/"/g, '\\"')}"`;
+        }
+        return arg;
+    }
+
+    private isTerminalAlive(terminal: vscode.Terminal): boolean {
+        // Check if terminal still exists in the active terminals
+        return vscode.window.terminals.includes(terminal);
+    }
+
+    async sendCommand(command: string): Promise<void> {
+        if (this.terminal && this.isTerminalAlive(this.terminal)) {
+            this.terminal.sendText(command);
+        }
+    }
+
+    async showTerminal(): Promise<void> {
+        if (this.terminal && this.isTerminalAlive(this.terminal)) {
+            this.terminal.show();
+        }
+    }
+
+    dispose() {
+        if (this.terminal) {
+            this.terminal.dispose();
+            this.terminal = undefined;
+        }
+    }
+}
+#+END_SRC
+
+** Comprehensive Settings Management
+
+*** Advanced Settings Panel
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+
+export class SettingsManager {
+    private readonly configSection = 'bytehot';
+
+    reload() {
+        // Trigger reload of settings-dependent components
+        vscode.commands.executeCommand('bytehot.reloadSettings');
+    }
+
+    isEnabled(): boolean {
+        return this.getConfig().get<boolean>('enabled', true);
+    }
+
+    getAgentPath(): string | undefined {
+        return this.getConfig().get<string>('agentPath');
+    }
+
+    getDefaultJvmArgs(): string[] {
+        return this.getConfig().get<string[]>('defaultJvmArgs', []);
+    }
+
+    shouldAutoDetectMainClass(): boolean {
+        return this.getConfig().get<boolean>('autoDetectMainClass', true);
+    }
+
+    shouldShowNotifications(): boolean {
+        return this.getConfig().get<boolean>('showNotifications', true);
+    }
+
+    getLogLevel(): string {
+        return this.getConfig().get<string>('logLevel', 'info');
+    }
+
+    async setAgentPath(path: string): Promise<void> {
+        await this.getConfig().update('agentPath', path, vscode.ConfigurationTarget.Workspace);
+    }
+
+    async addJvmArg(arg: string): Promise<void> {
+        const currentArgs = this.getDefaultJvmArgs();
+        if (!currentArgs.includes(arg)) {
+            currentArgs.push(arg);
+            await this.getConfig().update('defaultJvmArgs', currentArgs, vscode.ConfigurationTarget.Workspace);
+        }
+    }
+
+    async removeJvmArg(arg: string): Promise<void> {
+        const currentArgs = this.getDefaultJvmArgs();
+        const filtered = currentArgs.filter(existing => existing !== arg);
+        await this.getConfig().update('defaultJvmArgs', filtered, vscode.ConfigurationTarget.Workspace);
+    }
+
+    async openSettings(): Promise<void> {
+        await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:bytehot-team.bytehot-live-coding');
+    }
+
+    private getConfig(): vscode.WorkspaceConfiguration {
+        return vscode.workspace.getConfiguration(this.configSection);
+    }
+}
+#+END_SRC
+
+** WebView-based Configuration Panel
+
+*** Interactive Configuration WebView
+#+BEGIN_SRC typescript
+import * as vscode from 'vscode';
+import * as path from 'path';
+
+export class ByteHotConfigurationWebView {
+    private panel: vscode.WebviewPanel | undefined;
+    private readonly extensionPath: string;
+
+    constructor(extensionPath: string) {
+        this.extensionPath = extensionPath;
+    }
+
+    async show(): Promise<void> {
+        if (this.panel) {
+            this.panel.reveal();
+            return;
+        }
+
+        this.panel = vscode.window.createWebviewPanel(
+            'bytehotConfig',
+            'ByteHot Configuration',
+            vscode.ViewColumn.Two,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                localResourceRoots: [
+                    vscode.Uri.file(path.join(this.extensionPath, 'resources'))
+                ]
+            }
+        );
+
+        this.panel.webview.html = await this.getWebviewContent();
+        this.setupMessageHandling();
+
+        this.panel.onDidDispose(() => {
+            this.panel = undefined;
+        });
+    }
+
+    private async getWebviewContent(): Promise<string> {
+        const config = vscode.workspace.getConfiguration('bytehot');
+        const webviewUri = this.panel!.webview.asWebviewUri(
+            vscode.Uri.file(path.join(this.extensionPath, 'resources', 'config-webview.html'))
+        );
+
+        return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>ByteHot Configuration</title>
+            <style>
+                body {
+                    font-family: var(--vscode-font-family);
+                    font-size: var(--vscode-font-size);
+                    color: var(--vscode-foreground);
+                    background-color: var(--vscode-editor-background);
+                    padding: 20px;
+                }
+                .config-section {
+                    margin-bottom: 30px;
+                    padding: 15px;
+                    border: 1px solid var(--vscode-panel-border);
+                    border-radius: 5px;
+                }
+                .config-title {
+                    font-size: 18px;
+                    font-weight: bold;
+                    margin-bottom: 15px;
+                    color: var(--vscode-textLink-foreground);
+                }
+                .config-item {
+                    margin-bottom: 15px;
+                }
+                .config-label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: 500;
+                }
+                input, select, textarea {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid var(--vscode-input-border);
+                    background-color: var(--vscode-input-background);
+                    color: var(--vscode-input-foreground);
+                    border-radius: 3px;
+                }
+                button {
+                    background-color: var(--vscode-button-background);
+                    color: var(--vscode-button-foreground);
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    margin-right: 10px;
+                }
+                button:hover {
+                    background-color: var(--vscode-button-hoverBackground);
+                }
+                .jvm-args-list {
+                    border: 1px solid var(--vscode-input-border);
+                    border-radius: 3px;
+                    min-height: 100px;
+                    padding: 10px;
+                    background-color: var(--vscode-input-background);
+                }
+                .jvm-arg-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 5px 0;
+                    border-bottom: 1px solid var(--vscode-panel-border);
+                }
+                .remove-btn {
+                    background-color: var(--vscode-errorForeground);
+                    color: white;
+                    border: none;
+                    padding: 2px 8px;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 12px;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>ByteHot Configuration</h1>
+            
+            <div class="config-section">
+                <div class="config-title">General Settings</div>
+                
+                <div class="config-item">
+                    <label class="config-label" for="enabled">Enable ByteHot</label>
+                    <input type="checkbox" id="enabled" ${config.get('enabled') ? 'checked' : ''}>
+                </div>
+                
+                <div class="config-item">
+                    <label class="config-label" for="autoDetectMainClass">Auto-detect Main Class</label>
+                    <input type="checkbox" id="autoDetectMainClass" ${config.get('autoDetectMainClass') ? 'checked' : ''}>
+                </div>
+                
+                <div class="config-item">
+                    <label class="config-label" for="showNotifications">Show Notifications</label>
+                    <input type="checkbox" id="showNotifications" ${config.get('showNotifications') ? 'checked' : ''}>
+                </div>
+                
+                <div class="config-item">
+                    <label class="config-label" for="logLevel">Log Level</label>
+                    <select id="logLevel">
+                        <option value="error" ${config.get('logLevel') === 'error' ? 'selected' : ''}>Error</option>
+                        <option value="warn" ${config.get('logLevel') === 'warn' ? 'selected' : ''}>Warning</option>
+                        <option value="info" ${config.get('logLevel') === 'info' ? 'selected' : ''}>Info</option>
+                        <option value="debug" ${config.get('logLevel') === 'debug' ? 'selected' : ''}>Debug</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <div class="config-title">Agent Configuration</div>
+                
+                <div class="config-item">
+                    <label class="config-label" for="agentPath">Agent JAR Path (optional)</label>
+                    <input type="text" id="agentPath" value="${config.get('agentPath') || ''}" placeholder="Auto-discovered if not specified">
+                    <button onclick="browseForAgent()">Browse...</button>
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <div class="config-title">JVM Arguments</div>
+                
+                <div class="config-item">
+                    <label class="config-label">Default JVM Arguments</label>
+                    <div class="jvm-args-list" id="jvmArgsList">
+                        <!-- JVM args will be populated by JavaScript -->
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <input type="text" id="newJvmArg" placeholder="Enter JVM argument (e.g., -Xmx512m)">
+                        <button onclick="addJvmArg()">Add</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <button onclick="saveConfiguration()">Save Configuration</button>
+                <button onclick="resetToDefaults()">Reset to Defaults</button>
+            </div>
+            
+            <script>
+                const vscode = acquireVsCodeApi();
+                
+                // Initialize JVM args list
+                const jvmArgs = ${JSON.stringify(config.get('defaultJvmArgs', []))};
+                updateJvmArgsList();
+                
+                function updateJvmArgsList() {
+                    const container = document.getElementById('jvmArgsList');
+                    container.innerHTML = '';
+                    
+                    jvmArgs.forEach((arg, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'jvm-arg-item';
+                        item.innerHTML = \`
+                            <span>\${arg}</span>
+                            <button class="remove-btn" onclick="removeJvmArg(\${index})">Remove</button>
+                        \`;
+                        container.appendChild(item);
+                    });
+                }
+                
+                function addJvmArg() {
+                    const input = document.getElementById('newJvmArg');
+                    const value = input.value.trim();
+                    
+                    if (value && !jvmArgs.includes(value)) {
+                        jvmArgs.push(value);
+                        input.value = '';
+                        updateJvmArgsList();
+                    }
+                }
+                
+                function removeJvmArg(index) {
+                    jvmArgs.splice(index, 1);
+                    updateJvmArgsList();
+                }
+                
+                function browseForAgent() {
+                    vscode.postMessage({
+                        command: 'browseForAgent'
+                    });
+                }
+                
+                function saveConfiguration() {
+                    const config = {
+                        enabled: document.getElementById('enabled').checked,
+                        autoDetectMainClass: document.getElementById('autoDetectMainClass').checked,
+                        showNotifications: document.getElementById('showNotifications').checked,
+                        logLevel: document.getElementById('logLevel').value,
+                        agentPath: document.getElementById('agentPath').value,
+                        defaultJvmArgs: jvmArgs
+                    };
+                    
+                    vscode.postMessage({
+                        command: 'saveConfiguration',
+                        config: config
+                    });
+                }
+                
+                function resetToDefaults() {
+                    if (confirm('Reset all ByteHot settings to defaults?')) {
+                        vscode.postMessage({
+                            command: 'resetToDefaults'
+                        });
+                    }
+                }
+                
+                // Handle Enter key in new JVM arg input
+                document.getElementById('newJvmArg').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        addJvmArg();
+                    }
+                });
+            </script>
+        </body>
+        </html>
+        `;
+    }
+
+    private setupMessageHandling() {
+        this.panel!.webview.onDidReceiveMessage(async (message) => {
+            switch (message.command) {
+                case 'browseForAgent':
+                    await this.browseForAgentPath();
+                    break;
+                case 'saveConfiguration':
+                    await this.saveConfiguration(message.config);
+                    break;
+                case 'resetToDefaults':
+                    await this.resetToDefaults();
+                    break;
+            }
+        });
+    }
+
+    private async browseForAgentPath() {
+        const options: vscode.OpenDialogOptions = {
+            canSelectMany: false,
+            openLabel: 'Select ByteHot Agent JAR',
+            filters: {
+                'JAR files': ['jar']
+            }
+        };
+
+        const fileUri = await vscode.window.showOpenDialog(options);
+        if (fileUri && fileUri[0]) {
+            // Send path back to webview
+            this.panel!.webview.postMessage({
+                command: 'setAgentPath',
+                path: fileUri[0].fsPath
+            });
+        }
+    }
+
+    private async saveConfiguration(config: any) {
+        const bythotConfig = vscode.workspace.getConfiguration('bytehot');
+        
+        try {
+            await Promise.all([
+                bythotConfig.update('enabled', config.enabled),
+                bythotConfig.update('autoDetectMainClass', config.autoDetectMainClass),
+                bythotConfig.update('showNotifications', config.showNotifications),
+                bythotConfig.update('logLevel', config.logLevel),
+                bythotConfig.update('agentPath', config.agentPath || undefined),
+                bythotConfig.update('defaultJvmArgs', config.defaultJvmArgs)
+            ]);
+
+            vscode.window.showInformationMessage('ByteHot configuration saved successfully');
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to save configuration: ${error.message}`);
+        }
+    }
+
+    private async resetToDefaults() {
+        const bythotConfig = vscode.workspace.getConfiguration('bytehot');
+        
+        try {
+            await Promise.all([
+                bythotConfig.update('enabled', undefined),
+                bythotConfig.update('autoDetectMainClass', undefined),
+                bythotConfig.update('showNotifications', undefined),
+                bythotConfig.update('logLevel', undefined),
+                bythotConfig.update('agentPath', undefined),
+                bythotConfig.update('defaultJvmArgs', undefined)
+            ]);
+
+            vscode.window.showInformationMessage('ByteHot configuration reset to defaults');
+            
+            // Refresh the webview
+            this.panel!.webview.html = await this.getWebviewContent();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to reset configuration: ${error.message}`);
+        }
+    }
+
+    dispose() {
+        if (this.panel) {
+            this.panel.dispose();
+        }
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Advanced Editor Integration
+1. Implement real-time hot-swap decorations with customizable styles
+2. Create comprehensive editor contribution with problem markers
+3. Build smart editor features that understand hot-swap context
+4. Add integrated terminal management for seamless process control
+
+*** Configuration Management Enhancement
+1. Create comprehensive settings management with validation
+2. Implement interactive WebView-based configuration panel
+3. Build workspace-specific configuration support
+4. Add configuration import/export functionality
+
+*** Advanced Workspace Features
+1. Create multi-root workspace support with per-folder configuration
+2. Implement workspace templates for ByteHot-enabled projects
+3. Build integration with VS Code's task and problem systems
+4. Add comprehensive workspace analysis and validation
+
+** Acceptance Criteria
+
+- [ ] Advanced editor integration provides real-time visual feedback with customizable decorations
+- [ ] Comprehensive configuration panel allows full control over all settings
+- [ ] Terminal integration provides seamless process management
+- [ ] WebView-based settings offer intuitive configuration experience
+- [ ] Multi-root workspace support works correctly with complex project structures
+- [ ] Performance remains excellent even with extensive monitoring enabled
+- [ ] Extension works correctly with VS Code 1.60 through latest versions
+
+* Testing Strategy
+
+** Unit Testing
+- Extension lifecycle and command registration
+- Project analysis algorithms with various workspace types
+- Configuration management and persistence
+- WebView message handling and state management
+
+** Integration Testing
+- End-to-end extension functionality with real VS Code workspaces
+- Task and launch configuration execution
+- Terminal integration and process management
+- Cross-extension compatibility with Java and build tool extensions
+
+** UI Testing
+- Command palette integration and command execution
+- WebView configuration panel functionality
+- Status bar behavior and visual feedback
+- Editor decoration behavior with various themes
+
+** Performance Testing
+- Extension activation time and memory usage
+- Workspace analysis performance with large projects
+- WebView rendering performance and responsiveness
+- File watcher performance with high-frequency changes
+
+* Dependencies & Prerequisites
+
+** VS Code API Dependencies
+- VS Code API 1.60+ for extension development
+- Node.js 14+ for extension runtime
+- TypeScript 4+ for extension implementation
+- Webpack for extension bundling and optimization
+
+** Build Environment
+- VS Code Extension Development toolkit
+- VSCE (Visual Studio Code Extension) for packaging
+- bytehot-plugin-commons bridge for shared functionality
+- Jest for testing framework
+
+** External Requirements
+- ByteHot agent JAR available and functional
+- Java runtime environment for agent execution
+- Properly configured VS Code development environment
+
+* Success Metrics
+
+** Technical Success Criteria
+- Extension activation time: <2 seconds in typical workspaces
+- Project analysis accuracy: >95% for standard Java projects
+- Live mode startup time: <5 seconds for typical projects
+- Memory overhead: <50MB during active development
+
+** User Experience Metrics
+- Extension installation success rate: >95%
+- Zero-configuration success rate: >85% of Java projects
+- User satisfaction rating: >4.6/5 for ease of use
+- Support ticket volume: <2% of active installations
+
+* Future Enhancements
+
+** Planned Phase 3 Features
+- Integration with VS Code's notebook interface for interactive development
+- Advanced code lens support for hot-swap status
+- Integration with VS Code's testing framework
+- Enhanced multi-language support beyond Java
+
+** Community Contributions
+- VS Code workspace templates for ByteHot-enabled projects
+- Integration with popular Java extensions (Extension Pack for Java, Spring Boot Tools)
+- Enhanced debugging integration with hot-swap history
+- Plugin API for third-party extensions
+
+This VS Code extension provides comprehensive integration with the popular lightweight editor, making ByteHot live coding accessible to the large VS Code Java development community while maintaining VS Code's philosophy of simplicity and performance.

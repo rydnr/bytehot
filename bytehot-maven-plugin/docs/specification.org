@@ -1,0 +1,712 @@
+#+TITLE: Milestone 9: Maven Plugin (Walking Skeleton)
+#+AUTHOR: ByteHot Development Team  
+#+DATE: 2025-06-27
+
+* Overview
+
+Milestone 9 creates the first concrete plugin implementation using the foundation established in Milestone 8. The Maven plugin serves as the walking skeleton that proves the entire plugin architecture works end-to-end. The goal is ultimate simplicity: developers add the plugin to their `pom.xml` and immediately get "live mode" capabilities.
+
+** Goals
+
+- Create the simplest possible Maven integration for ByteHot
+- Implement automatic main class detection and agent attachment  
+- Provide zero-configuration "live mode" activation
+- Establish patterns and practices for all subsequent plugins
+- Validate the plugin foundation architecture in a real-world scenario
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I add one plugin declaration to my pom.xml, run `mvn bytehot:live`, and my application starts in live mode. Code changes are immediately reflected without restarts. I don't need to know anything about Java agents or JVM arguments."
+#+END_QUOTE
+
+* Architecture Overview
+
+** Maven Plugin Integration Architecture
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                  Developer Experience               │
+│  $ mvn bytehot:live                                │
+│  [INFO] Starting application in live mode...       │
+│  [INFO] ByteHot agent attached successfully        │  
+│  [INFO] Watching: src/main/java/**/*.java          │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│               bytehot-maven-plugin                  │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │   LiveGoal      │  │   ConfigurationMojo     │   │
+│  │  - Auto-detect  │  │  - Project analysis     │   │
+│  │  - Agent attach │  │  - JVM configuration    │   │
+│  │  - Process start│  │  - Classpath setup      │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              Plugin Foundation Layer                │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │        bytehot-plugin-commons                   │ │
+│  │  • Agent Discovery    • Communication Protocol │ │  
+│  │  • Configuration Mgmt • Health Monitoring      │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│        ByteHot Agent (Auto-discovered)             │
+│  bytehot-application-latest-SNAPSHOT-agent.jar     │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Plugin Structure
+
+#+BEGIN_SRC
+bytehot-maven-plugin/
+├── pom.xml                              # Maven plugin configuration
+├── src/main/java/org/acmsl/bytehot/maven/
+│   ├── LiveMojo.java                    # Main goal implementation
+│   ├── ConfigurationMojo.java           # Configuration and analysis
+│   ├── MavenProjectAnalyzer.java        # Project introspection
+│   ├── MavenConfigurationAdapter.java   # Maven-specific config
+│   └── MavenPluginBase.java            # Base class for all mojos
+├── src/main/resources/
+│   └── META-INF/maven/
+│       └── plugin.xml                   # Maven plugin descriptor
+├── src/test/java/
+│   ├── integration/                     # Integration tests
+│   └── unit/                           # Unit tests
+└── src/test/resources/
+    └── test-projects/                   # Sample projects for testing
+        ├── simple-app/
+        ├── multi-module/
+        └── spring-boot/
+#+END_SRC
+
+* Phase 1: Basic Maven Plugin Structure
+
+** Objective
+Create the minimal viable Maven plugin that can start any Java application with ByteHot agent attached, using automatic main class detection and zero configuration.
+
+** Walking Skeleton Implementation
+
+*** Core Plugin Descriptor
+#+BEGIN_SRC xml
+<!-- src/main/resources/META-INF/maven/plugin.xml -->
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <goalPrefix>bytehot</goalPrefix>
+  
+  <mojos>
+    <mojo>
+      <goal>live</goal>
+      <implementation>org.acmsl.bytehot.maven.LiveMojo</implementation>
+      <language>java</language>
+      <phase>none</phase>
+      <executePhase>none</executePhase>
+      <requiresProject>true</requiresProject>
+      <requiresDirectInvocation>true</requiresDirectInvocation>
+    </mojo>
+  </mojos>
+</plugin>
+#+END_SRC
+
+*** LiveMojo Implementation
+#+BEGIN_SRC java
+@Mojo(name = "live", 
+      requiresProject = true,
+      requiresDirectInvocation = true)
+public class LiveMojo extends MavenPluginBase {
+    
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
+    private MavenProject project;
+    
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
+    private MavenSession session;
+    
+    @Parameter(property = "bytehot.mainClass")
+    private String mainClass;
+    
+    @Parameter(property = "bytehot.watchPaths")
+    private List<String> watchPaths;
+    
+    @Parameter(property = "bytehot.jvmArgs")
+    private List<String> jvmArgs;
+    
+    @Override
+    public void execute() throws MojoExecutionException, MojoFailureException {
+        try {
+            getLog().info("Starting application in ByteHot live mode...");
+            
+            // Initialize plugin foundation
+            if (!initializePlugin()) {
+                throw new MojoExecutionException("Failed to initialize ByteHot plugin");
+            }
+            
+            // Analyze project to detect configuration
+            ProjectConfiguration config = analyzeProject();
+            
+            // Start application with ByteHot agent
+            startApplicationWithAgent(config);
+            
+        } catch (Exception e) {
+            throw new MojoExecutionException("Failed to start application in live mode", e);
+        }
+    }
+    
+    private ProjectConfiguration analyzeProject() throws MojoExecutionException {
+        MavenProjectAnalyzer analyzer = new MavenProjectAnalyzer(project, session);
+        
+        ProjectConfiguration config = new ProjectConfiguration();
+        
+        // Auto-detect main class if not specified
+        if (mainClass == null) {
+            config.setMainClass(analyzer.detectMainClass());
+            getLog().info("Auto-detected main class: " + config.getMainClass());
+        } else {
+            config.setMainClass(mainClass);
+        }
+        
+        // Auto-detect watch paths if not specified  
+        if (watchPaths == null || watchPaths.isEmpty()) {
+            config.setWatchPaths(analyzer.detectSourceDirectories());
+            getLog().info("Auto-detected watch paths: " + config.getWatchPaths());
+        } else {
+            config.setWatchPaths(watchPaths);
+        }
+        
+        // Build classpath from Maven dependencies
+        config.setClasspath(analyzer.buildClasspath());
+        
+        // Set up JVM arguments
+        List<String> allJvmArgs = new ArrayList<>();
+        if (jvmArgs != null) {
+            allJvmArgs.addAll(jvmArgs);
+        }
+        allJvmArgs.add("-javaagent:" + getAgentDiscovery().getAgentPath().orElseThrow());
+        config.setJvmArgs(allJvmArgs);
+        
+        return config;
+    }
+    
+    private void startApplicationWithAgent(ProjectConfiguration config) 
+            throws MojoExecutionException {
+        try {
+            getLog().info("Starting " + config.getMainClass() + " with ByteHot agent...");
+            
+            ProcessBuilder processBuilder = new ProcessBuilder();
+            List<String> command = new ArrayList<>();
+            
+            // Java executable
+            command.add(System.getProperty("java.home") + "/bin/java");
+            
+            // JVM arguments (including agent)
+            command.addAll(config.getJvmArgs());
+            
+            // Classpath
+            command.add("-cp");
+            command.add(String.join(File.pathSeparator, config.getClasspath()));
+            
+            // Main class
+            command.add(config.getMainClass());
+            
+            processBuilder.command(command);
+            processBuilder.inheritIO();
+            
+            getLog().info("Executing: " + String.join(" ", command));
+            
+            Process process = processBuilder.start();
+            
+            // Register shutdown hook to cleanup process
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if (process.isAlive()) {
+                    getLog().info("Stopping ByteHot live mode...");
+                    process.destroyForcibly();
+                }
+            }));
+            
+            // Wait for process to complete
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new MojoExecutionException("Application exited with code: " + exitCode);
+            }
+            
+        } catch (IOException | InterruptedException e) {
+            throw new MojoExecutionException("Failed to start application process", e);
+        }
+    }
+}
+#+END_SRC
+
+*** MavenProjectAnalyzer Implementation
+#+BEGIN_SRC java
+public class MavenProjectAnalyzer {
+    private final MavenProject project;
+    private final MavenSession session;
+    
+    public MavenProjectAnalyzer(MavenProject project, MavenSession session) {
+        this.project = project;
+        this.session = session;
+    }
+    
+    public String detectMainClass() throws MojoExecutionException {
+        // Strategy 1: Check Maven exec plugin configuration
+        String mainClass = findMainClassInExecPlugin();
+        if (mainClass != null) return mainClass;
+        
+        // Strategy 2: Check Spring Boot plugin configuration
+        mainClass = findMainClassInSpringBootPlugin();
+        if (mainClass != null) return mainClass;
+        
+        // Strategy 3: Scan compiled classes for main methods
+        mainClass = scanForMainClass();
+        if (mainClass != null) return mainClass;
+        
+        throw new MojoExecutionException(
+            "Could not detect main class. Please specify using -Dbytehot.mainClass=...");
+    }
+    
+    public List<String> detectSourceDirectories() {
+        List<String> sourceDirs = new ArrayList<>();
+        
+        // Add main source directories
+        sourceDirs.add(project.getBuild().getSourceDirectory());
+        
+        // Add test source directories if running tests
+        sourceDirs.add(project.getBuild().getTestSourceDirectory());
+        
+        // Add additional source roots
+        sourceDirs.addAll(project.getCompileSourceRoots());
+        sourceDirs.addAll(project.getTestCompileSourceRoots());
+        
+        return sourceDirs.stream()
+            .filter(Objects::nonNull)
+            .filter(dir -> new File(dir).exists())
+            .collect(Collectors.toList());
+    }
+    
+    public List<String> buildClasspath() throws MojoExecutionException {
+        try {
+            List<String> classpathElements = new ArrayList<>();
+            
+            // Add project's compiled classes
+            classpathElements.add(project.getBuild().getOutputDirectory());
+            classpathElements.add(project.getBuild().getTestOutputDirectory());
+            
+            // Add project dependencies
+            for (Artifact artifact : project.getArtifacts()) {
+                if (artifact.getFile() != null) {
+                    classpathElements.add(artifact.getFile().getAbsolutePath());
+                }
+            }
+            
+            return classpathElements;
+            
+        } catch (Exception e) {
+            throw new MojoExecutionException("Failed to build classpath", e);
+        }
+    }
+    
+    private String findMainClassInExecPlugin() {
+        Plugin execPlugin = project.getPlugin("org.codehaus.mojo:exec-maven-plugin");
+        if (execPlugin != null) {
+            Xpp3Dom configuration = (Xpp3Dom) execPlugin.getConfiguration();
+            if (configuration != null) {
+                Xpp3Dom mainClassNode = configuration.getChild("mainClass");
+                if (mainClassNode != null) {
+                    return mainClassNode.getValue();
+                }
+            }
+        }
+        return null;
+    }
+    
+    private String findMainClassInSpringBootPlugin() {
+        Plugin springBootPlugin = project.getPlugin("org.springframework.boot:spring-boot-maven-plugin");
+        if (springBootPlugin != null) {
+            Xpp3Dom configuration = (Xpp3Dom) springBootPlugin.getConfiguration();
+            if (configuration != null) {
+                Xpp3Dom mainClassNode = configuration.getChild("mainClass");
+                if (mainClassNode != null) {
+                    return mainClassNode.getValue();
+                }
+            }
+        }
+        return null;
+    }
+    
+    private String scanForMainClass() {
+        try {
+            String outputDirectory = project.getBuild().getOutputDirectory();
+            Path classesDir = Paths.get(outputDirectory);
+            
+            if (!Files.exists(classesDir)) {
+                return null;
+            }
+            
+            return Files.walk(classesDir)
+                .filter(path -> path.toString().endsWith(".class"))
+                .map(this::loadClassAndCheckForMain)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+                
+        } catch (IOException e) {
+            return null;
+        }
+    }
+    
+    private String loadClassAndCheckForMain(Path classFile) {
+        try {
+            String className = classPathToClassName(classFile);
+            Class<?> clazz = Class.forName(className);
+            
+            // Check for main method
+            Method mainMethod = clazz.getMethod("main", String[].class);
+            if (Modifier.isStatic(mainMethod.getModifiers()) && 
+                Modifier.isPublic(mainMethod.getModifiers())) {
+                return className;
+            }
+            
+        } catch (Exception e) {
+            // Ignore classes that can't be loaded or don't have main method
+        }
+        return null;
+    }
+    
+    private String classPathToClassName(Path classFile) {
+        String relativePath = Paths.get(project.getBuild().getOutputDirectory())
+            .relativize(classFile).toString();
+        return relativePath.substring(0, relativePath.length() - 6) // Remove .class
+            .replace(File.separatorChar, '.');
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Plugin Infrastructure
+1. Create Maven plugin project structure with correct POM configuration
+2. Implement LiveMojo with basic goal execution
+3. Create MavenProjectAnalyzer for automatic detection
+4. Integrate with bytehot-plugin-commons for shared functionality
+
+*** Auto-detection Logic
+1. Implement main class detection from multiple sources
+2. Create source directory discovery for watch paths
+3. Build Maven classpath resolution logic
+4. Add JVM argument configuration and merging
+
+*** Process Management
+1. Implement application process launching with agent
+2. Create process lifecycle management (start/stop/monitor)
+3. Add shutdown hooks for clean process termination
+4. Implement process output streaming and logging
+
+** Acceptance Criteria
+
+- [ ] Plugin can be installed from Maven Central or local repository
+- [ ] `mvn bytehot:live` starts any Java application in live mode with zero configuration
+- [ ] Automatic main class detection works for >90% of standard Java projects
+- [ ] Support for Spring Boot, exec plugin, and standard Java projects
+- [ ] Clean process shutdown on Ctrl+C or Maven interruption
+- [ ] Clear error messages when auto-detection fails
+- [ ] Plugin initialization time <2 seconds for typical projects
+
+* Phase 2: Maven Integration Features
+
+** Objective
+Enhance the basic plugin with Maven ecosystem integration, advanced configuration options, and IDE compatibility for a production-ready experience.
+
+** Enhanced Configuration Support
+
+*** POM-based Configuration
+#+BEGIN_SRC xml
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <version>1.0.0</version>
+  <configuration>
+    <mainClass>com.example.Application</mainClass>
+    <watchPaths>
+      <watchPath>src/main/java</watchPath>
+      <watchPath>src/main/resources</watchPath>
+    </watchPaths>
+    <jvmArgs>
+      <jvmArg>-Xmx512m</jvmArg>
+      <jvmArg>-Dspring.profiles.active=dev</jvmArg>
+    </jvmArgs>
+    <excludePatterns>
+      <excludePattern>**/*Test.java</excludePattern>
+      <excludePattern>**/package-info.java</excludePattern>
+    </excludePatterns>
+    <enableHotReload>true</enableHotReload>
+    <enableFileMonitoring>true</enableFileMonitoring>
+  </configuration>
+</plugin>
+#+END_SRC
+
+*** Property-based Configuration
+#+BEGIN_SRC bash
+# Command line properties
+mvn bytehot:live -Dbytehot.mainClass=com.example.App
+mvn bytehot:live -Dbytehot.jvmArgs="-Xmx1g -Dspring.profiles.active=dev"
+mvn bytehot:live -Dbytehot.watchPaths="src/main/java,src/main/resources"
+
+# Properties file (bytehot.properties)
+bytehot.mainClass=com.example.Application
+bytehot.jvmArgs=-Xmx512m -Dspring.profiles.active=dev
+bytehot.watchPaths=src/main/java,src/main/resources
+bytehot.excludePatterns=**/*Test.java,**/package-info.java
+#+END_SRC
+
+** Maven Lifecycle Integration
+
+*** Automatic Compilation Integration
+#+BEGIN_SRC java
+@Mojo(name = "live",
+      defaultPhase = LifecyclePhase.COMPILE,
+      requiresDependencyResolution = ResolutionScope.RUNTIME)
+public class LiveMojo extends MavenPluginBase {
+    
+    @Component
+    private MavenProjectHelper projectHelper;
+    
+    @Override
+    public void execute() throws MojoExecutionException {
+        // Ensure project is compiled before starting live mode
+        ensureProjectCompiled();
+        
+        // Continue with live mode execution
+        super.execute();
+    }
+    
+    private void ensureProjectCompiled() throws MojoExecutionException {
+        try {
+            getLog().info("Ensuring project is compiled...");
+            
+            // Check if compilation is needed
+            if (isCompilationNeeded()) {
+                getLog().info("Compiling project...");
+                invokeCompilerPlugin();
+            }
+            
+        } catch (Exception e) {
+            throw new MojoExecutionException("Failed to compile project", e);
+        }
+    }
+    
+    private boolean isCompilationNeeded() {
+        // Check if any source files are newer than compiled classes
+        File outputDir = new File(project.getBuild().getOutputDirectory());
+        if (!outputDir.exists()) return true;
+        
+        long lastCompiled = outputDir.lastModified();
+        
+        return project.getCompileSourceRoots().stream()
+            .map(File::new)
+            .filter(File::exists)
+            .anyMatch(sourceDir -> isDirectoryNewerThan(sourceDir, lastCompiled));
+    }
+    
+    private void invokeCompilerPlugin() throws Exception {
+        // Invoke Maven compiler plugin programmatically
+        executeMojo(
+            plugin(
+                groupId("org.apache.maven.plugins"),
+                artifactId("maven-compiler-plugin"),
+                version("3.8.1")
+            ),
+            goal("compile"),
+            configuration(),
+            executionEnvironment(project, session, pluginManager)
+        );
+    }
+}
+#+END_SRC
+
+*** Multi-module Project Support
+#+BEGIN_SRC java
+public class MultiModuleSupport {
+    
+    public List<MavenProject> getReactorProjects(MavenSession session) {
+        return session.getProjects();
+    }
+    
+    public void startMultiModuleLiveMode(List<MavenProject> projects) throws MojoExecutionException {
+        for (MavenProject project : projects) {
+            if (hasMainClass(project)) {
+                getLog().info("Starting live mode for module: " + project.getArtifactId());
+                startLiveModeForProject(project);
+            }
+        }
+    }
+    
+    private boolean hasMainClass(MavenProject project) {
+        try {
+            MavenProjectAnalyzer analyzer = new MavenProjectAnalyzer(project, session);
+            analyzer.detectMainClass();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+#+END_SRC
+
+** IDE Integration Features
+
+*** IntelliJ IDEA Integration
+#+BEGIN_SRC xml
+<!-- Integration with IntelliJ IDEA Maven runner -->
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <configuration>
+    <ideIntegration>
+      <intellij>
+        <createRunConfiguration>true</createRunConfiguration>
+        <runConfigurationName>ByteHot Live Mode</runConfigurationName>
+      </intellij>
+    </ideIntegration>
+  </configuration>
+</plugin>
+#+END_SRC
+
+*** Eclipse Integration
+#+BEGIN_SRC java
+public class EclipseIntegration {
+    
+    public void generateEclipseLaunchConfiguration() {
+        // Generate .launch file for Eclipse
+        String launchConfig = generateLaunchConfigurationXml();
+        Path launchFile = Paths.get(".launches", "ByteHot-Live.launch");
+        
+        try {
+            Files.createDirectories(launchFile.getParent());
+            Files.write(launchFile, launchConfig.getBytes());
+            getLog().info("Generated Eclipse launch configuration: " + launchFile);
+        } catch (IOException e) {
+            getLog().warn("Failed to generate Eclipse launch configuration", e);
+        }
+    }
+    
+    private String generateLaunchConfigurationXml() {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+               "<launchConfiguration type=\"org.eclipse.jdt.launching.localJavaApplication\">\n" +
+               "  <stringAttribute key=\"org.eclipse.jdt.launching.MAIN_TYPE\" value=\"" + mainClass + "\"/>\n" +
+               "  <stringAttribute key=\"org.eclipse.jdt.launching.VM_ARGUMENTS\" value=\"" + 
+               String.join(" ", jvmArgs) + "\"/>\n" +
+               "</launchConfiguration>";
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Enhanced Configuration
+1. Implement comprehensive POM-based configuration support
+2. Add property-based configuration with validation
+3. Create configuration file support (bytehot.properties)
+4. Build configuration inheritance and merging logic
+
+*** Maven Lifecycle Integration  
+1. Integrate with Maven compiler plugin for automatic compilation
+2. Add support for multi-module projects
+3. Implement dependency resolution and classpath building
+4. Create Maven property and profile integration
+
+*** IDE Integration
+1. Generate IntelliJ IDEA run configurations
+2. Create Eclipse launch configurations
+3. Add VS Code task configuration generation
+4. Implement IDE-specific documentation and setup guides
+
+** Acceptance Criteria
+
+- [ ] Full POM-based configuration with XML schema validation
+- [ ] Property-based configuration overrides POM settings correctly
+- [ ] Automatic compilation integration works seamlessly
+- [ ] Multi-module project support with selective module execution
+- [ ] IDE integration generates correct run/launch configurations
+- [ ] Configuration validation provides clear error messages
+- [ ] Plugin works correctly with Maven profiles and properties
+
+* Testing Strategy
+
+** Unit Testing
+- Mojo execution logic with mock Maven projects
+- Project analysis and main class detection algorithms
+- Configuration parsing and validation
+- Process launching and lifecycle management
+
+** Integration Testing
+- End-to-end plugin execution with real Maven projects
+- Multi-module project support validation
+- IDE integration verification
+- Cross-platform compatibility testing
+
+** Test Projects
+- Simple Java application with main method
+- Spring Boot application with auto-configuration
+- Multi-module Maven project with multiple applications
+- Complex enterprise application with custom configuration
+
+** Performance Testing
+- Plugin initialization and startup time measurement
+- Memory usage profiling during live mode operation
+- Process cleanup and resource management validation
+- Concurrent execution testing with multiple modules
+
+* Dependencies & Prerequisites
+
+** Maven Dependencies
+- Maven Plugin API 3.6+
+- Maven Core for project analysis
+- bytehot-plugin-commons for shared functionality
+- Maven Plugin Annotations for mojo configuration
+
+** Build Environment
+- Java 8+ compatibility for broad adoption
+- Maven 3.6+ for plugin development
+- JUnit 5 for testing framework
+- Maven Plugin Testing Harness for integration tests
+
+** External Requirements
+- ByteHot agent JAR must be available in local/central repository
+- Project must have compiled classes for main class detection
+- JVM must support -javaagent parameter for agent attachment
+
+* Success Metrics
+
+** Technical Success Criteria
+- Zero-configuration success rate: >80% of typical Maven projects
+- Plugin startup time: <3 seconds for average projects
+- Main class detection accuracy: >95% for standard Java projects
+- Memory overhead: <50MB additional RAM usage
+
+** User Experience Metrics
+- Installation completion time: <5 minutes including documentation
+- User satisfaction survey: >4.5/5 rating for ease of use
+- Support ticket volume: <5% of active plugin installations
+- Plugin adoption rate: >30% of ByteHot users within 6 months
+
+* Future Enhancements
+
+** Planned Phase 3 Features
+- Integration with Maven Surefire for test hot-reloading
+- Support for Maven resource filtering and processing
+- Advanced classpath manipulation and dependency exclusion
+- Plugin configuration profiles for different environments
+
+** Community Contributions
+- Maven archetype for ByteHot-enabled projects  
+- Integration with popular Maven plugins (Spring Boot, Quarkus, etc.)
+- Enhanced IDE support with live compilation status
+- Plugin extension points for custom behavior
+
+This Maven plugin serves as the foundation and proof-of-concept for the entire ByteHot plugin ecosystem, demonstrating that complex Java agent functionality can be made invisible to developers through thoughtful tool integration.

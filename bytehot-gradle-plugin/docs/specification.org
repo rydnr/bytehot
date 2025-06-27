@@ -1,0 +1,1021 @@
+#+TITLE: Milestone 10: Gradle Plugin (Walking Skeleton)
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+Milestone 10 creates the Gradle equivalent of the Maven plugin, providing the same seamless "live mode" experience for Gradle-based projects. The plugin leverages Gradle's powerful task system and configuration DSL to make ByteHot completely invisible to developers while providing rich integration with the Gradle ecosystem.
+
+** Goals
+
+- Create zero-configuration "live mode" for Gradle projects
+- Implement Gradle-idiomatic task and extension design
+- Provide automatic main class detection using Gradle's application plugin
+- Establish seamless integration with Gradle build lifecycle
+- Validate plugin foundation architecture with a different build tool
+
+** User Value Proposition  
+
+#+BEGIN_QUOTE
+"I apply the ByteHot plugin to my build.gradle, run `gradle liveRun`, and my application starts in live mode. Code changes are reflected immediately without restarts. The plugin integrates naturally with my existing Gradle setup and requires no additional configuration."
+#+END_QUOTE
+
+* Architecture Overview
+
+** Gradle Plugin Integration Architecture
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                Developer Experience                 │
+│  $ gradle liveRun                                   │
+│  > Task :liveRun                                    │
+│  Starting application in live mode...               │
+│  ByteHot agent attached successfully                │
+│  Watching: src/main/java/**/*.java                  │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              bytehot-gradle-plugin                  │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │   LiveRunTask   │  │  ByteHotExtension       │   │
+│  │  - Auto-detect  │  │  - DSL configuration    │   │
+│  │  - Agent attach │  │  - Gradle integration   │   │
+│  │  - Process mgmt │  │  - Task configuration   │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+│  ┌─────────────────┐  ┌─────────────────────────┐   │
+│  │GradleProjectAna │  │  GradleConfigAdapter    │   │
+│  │  - Main class   │  │  - Build script config  │   │
+│  │  - Classpath    │  │  - Property integration │   │
+│  │  - Source dirs  │  │  - Task dependencies    │   │
+│  └─────────────────┘  └─────────────────────────┘   │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│              Plugin Foundation Layer                │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │        bytehot-plugin-commons                   │ │
+│  │  • Agent Discovery    • Communication Protocol │ │
+│  │  • Configuration Mgmt • Health Monitoring      │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────┐
+│        ByteHot Agent (Auto-discovered)             │
+│  bytehot-application-latest-SNAPSHOT-agent.jar     │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Plugin Structure
+
+#+BEGIN_SRC
+bytehot-gradle-plugin/
+├── build.gradle.kts                     # Gradle plugin build configuration
+├── src/main/kotlin/org/acmsl/bytehot/gradle/
+│   ├── ByteHotPlugin.kt                 # Main plugin class
+│   ├── ByteHotExtension.kt             # DSL extension
+│   ├── tasks/
+│   │   ├── LiveRunTask.kt              # Main live mode task
+│   │   ├── LiveTestTask.kt             # Live testing task
+│   │   └── ConfigureByteHotTask.kt     # Configuration task
+│   ├── internal/
+│   │   ├── GradleProjectAnalyzer.kt    # Project analysis
+│   │   ├── GradleConfigurationAdapter.kt
+│   │   └── GradleProcessLauncher.kt    # Process management
+│   └── dsl/
+│       └── ByteHotDsl.kt               # DSL definitions
+├── src/main/resources/
+│   └── META-INF/gradle-plugins/
+│       └── org.acmsl.bytehot.properties # Plugin descriptor
+├── src/test/kotlin/
+│   ├── functional/                      # Functional tests
+│   └── unit/                           # Unit tests
+└── src/test/resources/
+    └── test-projects/                   # Sample projects
+        ├── java-application/
+        ├── kotlin-application/
+        ├── spring-boot/
+        └── multi-project/
+#+END_SRC
+
+* Phase 1: Basic Gradle Plugin Structure
+
+** Objective
+Create the minimal viable Gradle plugin that provides seamless "live mode" activation for any Gradle project with automatic detection and zero configuration requirements.
+
+** Walking Skeleton Implementation
+
+*** Plugin Descriptor
+#+BEGIN_SRC properties
+# src/main/resources/META-INF/gradle-plugins/org.acmsl.bytehot.properties
+implementation-class=org.acmsl.bytehot.gradle.ByteHotPlugin
+#+END_SRC
+
+*** Main Plugin Class
+#+BEGIN_SRC kotlin
+class ByteHotPlugin : Plugin<Project> {
+    
+    override fun apply(project: Project) {
+        // Create extension for DSL configuration
+        val extension = project.extensions.create<ByteHotExtension>("bytehot")
+        
+        // Apply required plugins if not already applied
+        project.pluginManager.apply("java")
+        
+        // Register tasks
+        registerTasks(project, extension)
+        
+        // Configure after evaluation
+        project.afterEvaluate {
+            configureTasks(project, extension)
+        }
+    }
+    
+    private fun registerTasks(project: Project, extension: ByteHotExtension) {
+        // Main live run task
+        project.tasks.register<LiveRunTask>("liveRun") {
+            group = "bytehot"
+            description = "Runs the application in ByteHot live mode"
+            extension = extension
+        }
+        
+        // Live test task
+        project.tasks.register<LiveTestTask>("liveTest") {
+            group = "bytehot"
+            description = "Runs tests in ByteHot live mode"
+            extension = extension
+        }
+        
+        // Configuration task
+        project.tasks.register<ConfigureByteHotTask>("configureByteHot") {
+            group = "bytehot"
+            description = "Configures ByteHot for this project"
+            extension = extension
+        }
+    }
+    
+    private fun configureTasks(project: Project, extension: ByteHotExtension) {
+        // Configure task dependencies
+        project.tasks.named("liveRun") {
+            dependsOn("classes")
+        }
+        
+        project.tasks.named("liveTest") {
+            dependsOn("testClasses")
+        }
+        
+        // Auto-configure if application plugin is present
+        project.plugins.withId("application") {
+            configureApplicationPlugin(project, extension)
+        }
+    }
+    
+    private fun configureApplicationPlugin(project: Project, extension: ByteHotExtension) {
+        val applicationExtension = project.extensions.getByType<JavaApplication>()
+        
+        // Use application plugin's main class if not configured
+        if (extension.mainClass.orNull == null) {
+            extension.mainClass.set(applicationExtension.mainClass)
+        }
+    }
+}
+#+END_SRC
+
+*** ByteHot Extension (DSL)
+#+BEGIN_SRC kotlin
+open class ByteHotExtension @Inject constructor(
+    private val project: Project
+) {
+    
+    /**
+     * Main class to run in live mode
+     */
+    val mainClass: Property<String> = project.objects.property()
+    
+    /**
+     * Additional JVM arguments
+     */
+    val jvmArgs: ListProperty<String> = project.objects.listProperty()
+    
+    /**
+     * Source directories to watch for changes
+     */
+    val watchPaths: ListProperty<String> = project.objects.listProperty()
+    
+    /**
+     * File patterns to exclude from watching
+     */
+    val excludePatterns: ListProperty<String> = project.objects.listProperty()
+    
+    /**
+     * Whether to enable hot reloading
+     */
+    val enableHotReload: Property<Boolean> = project.objects.property<Boolean>()
+        .convention(true)
+    
+    /**
+     * Whether to enable file monitoring
+     */
+    val enableFileMonitoring: Property<Boolean> = project.objects.property<Boolean>()
+        .convention(true)
+    
+    /**
+     * Agent JAR path (auto-discovered if not specified)
+     */
+    val agentPath: Property<String> = project.objects.property()
+    
+    /**
+     * Configure watch paths using a closure
+     */
+    fun watchPaths(action: Action<in MutableList<String>>) {
+        val paths = mutableListOf<String>()
+        action.execute(paths)
+        watchPaths.addAll(paths)
+    }
+    
+    /**
+     * Configure JVM arguments using a closure
+     */
+    fun jvmArgs(action: Action<in MutableList<String>>) {
+        val args = mutableListOf<String>()
+        action.execute(args)
+        jvmArgs.addAll(args)
+    }
+    
+    /**
+     * Configure exclude patterns using a closure
+     */
+    fun excludePatterns(action: Action<in MutableList<String>>) {
+        val patterns = mutableListOf<String>()
+        action.execute(patterns)
+        excludePatterns.addAll(patterns)
+    }
+}
+#+END_SRC
+
+*** LiveRunTask Implementation
+#+BEGIN_SRC kotlin
+abstract class LiveRunTask : DefaultTask(), GradlePluginBase {
+    
+    @get:Nested
+    abstract var extension: ByteHotExtension
+    
+    @get:InputFile
+    @get:Optional
+    abstract val agentJar: RegularFileProperty
+    
+    @get:Input
+    @get:Optional
+    abstract val mainClass: Property<String>
+    
+    @get:Input
+    abstract val jvmArgs: ListProperty<String>
+    
+    @get:InputFiles
+    abstract val classpath: ConfigurableFileCollection
+    
+    @get:InputDirectories
+    abstract val watchPaths: ConfigurableFileCollection
+    
+    @TaskAction
+    fun execute() {
+        try {
+            logger.lifecycle("Starting application in ByteHot live mode...")
+            
+            // Initialize plugin foundation
+            if (!initializePlugin()) {
+                throw GradleException("Failed to initialize ByteHot plugin")
+            }
+            
+            // Analyze project and build configuration
+            val config = analyzeProject()
+            
+            // Start application with ByteHot agent
+            startApplicationWithAgent(config)
+            
+        } catch (e: Exception) {
+            throw GradleException("Failed to start application in live mode", e)
+        }
+    }
+    
+    private fun analyzeProject(): ProjectConfiguration {
+        val analyzer = GradleProjectAnalyzer(project)
+        
+        val config = ProjectConfiguration()
+        
+        // Determine main class
+        config.mainClass = determineMainClass(analyzer)
+        logger.lifecycle("Using main class: ${config.mainClass}")
+        
+        // Determine watch paths
+        config.watchPaths = determineWatchPaths(analyzer)
+        logger.lifecycle("Watching paths: ${config.watchPaths}")
+        
+        // Build classpath
+        config.classpath = buildClasspath()
+        
+        // Configure JVM arguments
+        config.jvmArgs = buildJvmArgs()
+        
+        return config
+    }
+    
+    private fun determineMainClass(analyzer: GradleProjectAnalyzer): String {
+        // Priority 1: Explicit extension configuration
+        extension.mainClass.orNull?.let { return it }
+        
+        // Priority 2: Application plugin configuration
+        project.plugins.withId("application") {
+            val appExtension = project.extensions.getByType<JavaApplication>()
+            appExtension.mainClass.orNull?.let { return it }
+        }
+        
+        // Priority 3: Auto-detection
+        return analyzer.detectMainClass()
+            ?: throw GradleException("Could not detect main class. Please configure using bytehot.mainClass")
+    }
+    
+    private fun determineWatchPaths(analyzer: GradleProjectAnalyzer): List<String> {
+        // Use explicit configuration if provided
+        val explicitPaths = extension.watchPaths.orNull
+        if (!explicitPaths.isNullOrEmpty()) {
+            return explicitPaths
+        }
+        
+        // Auto-detect source directories
+        return analyzer.detectSourceDirectories()
+    }
+    
+    private fun buildClasspath(): List<String> {
+        val classpathFiles = mutableListOf<File>()
+        
+        // Add main source set output
+        project.convention.getPlugin<JavaPluginConvention>()
+            .sourceSets.getByName("main").output.files.forEach { file ->
+                classpathFiles.add(file)
+            }
+        
+        // Add runtime classpath
+        project.configurations.getByName("runtimeClasspath").files.forEach { file ->
+            classpathFiles.add(file)
+        }
+        
+        return classpathFiles.map { it.absolutePath }
+    }
+    
+    private fun buildJvmArgs(): List<String> {
+        val allJvmArgs = mutableListOf<String>()
+        
+        // Add extension-configured JVM args
+        extension.jvmArgs.orNull?.let { allJvmArgs.addAll(it) }
+        
+        // Add ByteHot agent argument
+        val agentPath = getAgentDiscovery().agentPath.orElseThrow {
+            GradleException("ByteHot agent not found")
+        }
+        allJvmArgs.add("-javaagent:$agentPath")
+        
+        return allJvmArgs
+    }
+    
+    private fun startApplicationWithAgent(config: ProjectConfiguration) {
+        logger.lifecycle("Starting ${config.mainClass} with ByteHot agent...")
+        
+        val processLauncher = GradleProcessLauncher(project)
+        
+        val processBuilder = processLauncher.createProcessBuilder(
+            mainClass = config.mainClass,
+            classpath = config.classpath,
+            jvmArgs = config.jvmArgs,
+            workingDirectory = project.projectDir
+        )
+        
+        logger.lifecycle("Executing: ${processBuilder.command().joinToString(" ")}")
+        
+        val process = processBuilder.start()
+        
+        // Handle process output
+        processLauncher.handleProcessOutput(process) { line ->
+            logger.lifecycle(line)
+        }
+        
+        // Register shutdown hook for cleanup
+        Runtime.getRuntime().addShutdownHook(Thread {
+            if (process.isAlive) {
+                logger.lifecycle("Stopping ByteHot live mode...")
+                process.destroyForcibly()
+            }
+        })
+        
+        // Wait for process completion
+        val exitCode = process.waitFor()
+        if (exitCode != 0) {
+            throw GradleException("Application exited with code: $exitCode")
+        }
+    }
+}
+#+END_SRC
+
+*** Gradle Project Analyzer
+#+BEGIN_SRC kotlin
+class GradleProjectAnalyzer(private val project: Project) {
+    
+    fun detectMainClass(): String? {
+        // Strategy 1: Check application plugin
+        project.plugins.withId("application") {
+            val appExtension = project.extensions.getByType<JavaApplication>()
+            appExtension.mainClass.orNull?.let { return it }
+        }
+        
+        // Strategy 2: Check Spring Boot plugin
+        project.plugins.withId("org.springframework.boot") {
+            return detectSpringBootMainClass()
+        }
+        
+        // Strategy 3: Scan compiled classes
+        return scanForMainClass()
+    }
+    
+    fun detectSourceDirectories(): List<String> {
+        val sourceDirs = mutableListOf<String>()
+        
+        val javaConvention = project.convention.getPlugin<JavaPluginConvention>()
+        
+        // Add main source directories
+        javaConvention.sourceSets.getByName("main").java.srcDirs.forEach { dir ->
+            if (dir.exists()) {
+                sourceDirs.add(dir.absolutePath)
+            }
+        }
+        
+        // Add main resource directories
+        javaConvention.sourceSets.getByName("main").resources.srcDirs.forEach { dir ->
+            if (dir.exists()) {
+                sourceDirs.add(dir.absolutePath)
+            }
+        }
+        
+        return sourceDirs
+    }
+    
+    private fun detectSpringBootMainClass(): String? {
+        // Check Spring Boot plugin configuration
+        try {
+            val bootExtension = project.extensions.findByName("springBoot")
+            if (bootExtension != null) {
+                val mainClassProperty = bootExtension::class.members
+                    .find { it.name == "mainClass" }
+                if (mainClassProperty != null) {
+                    val value = mainClassProperty.call(bootExtension)
+                    if (value is Property<*>) {
+                        return value.orNull as? String
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore reflection errors
+        }
+        return null
+    }
+    
+    private fun scanForMainClass(): String? {
+        val javaConvention = project.convention.getPlugin<JavaPluginConvention>()
+        val mainSourceSet = javaConvention.sourceSets.getByName("main")
+        
+        val outputDir = mainSourceSet.output.classesDirs.files.firstOrNull()
+            ?: return null
+        
+        if (!outputDir.exists()) {
+            return null
+        }
+        
+        return outputDir.walkTopDown()
+            .filter { it.isFile && it.extension == "class" }
+            .mapNotNull { loadClassAndCheckForMain(it, outputDir) }
+            .firstOrNull()
+    }
+    
+    private fun loadClassAndCheckForMain(classFile: File, outputDir: File): String? {
+        try {
+            val relativePath = classFile.relativeTo(outputDir).path
+            val className = relativePath.substringBeforeLast(".class")
+                .replace(File.separatorChar, '.')
+            
+            val clazz = Class.forName(className)
+            
+            // Check for main method
+            val mainMethod = clazz.getMethod("main", Array<String>::class.java)
+            if (Modifier.isStatic(mainMethod.modifiers) && 
+                Modifier.isPublic(mainMethod.modifiers)) {
+                return className
+            }
+            
+        } catch (e: Exception) {
+            // Ignore classes that can't be loaded or don't have main method
+        }
+        return null
+    }
+}
+#+END_SRC
+
+*** Gradle Process Launcher
+#+BEGIN_SRC kotlin
+class GradleProcessLauncher(private val project: Project) {
+    
+    fun createProcessBuilder(
+        mainClass: String,
+        classpath: List<String>,
+        jvmArgs: List<String>,
+        workingDirectory: File
+    ): ProcessBuilder {
+        
+        val command = mutableListOf<String>()
+        
+        // Java executable
+        val javaHome = System.getProperty("java.home")
+        command.add("$javaHome/bin/java")
+        
+        // JVM arguments
+        command.addAll(jvmArgs)
+        
+        // Classpath
+        command.add("-cp")
+        command.add(classpath.joinToString(File.pathSeparator))
+        
+        // Main class
+        command.add(mainClass)
+        
+        return ProcessBuilder(command).apply {
+            directory(workingDirectory)
+            redirectErrorStream(true)
+        }
+    }
+    
+    fun handleProcessOutput(process: Process, outputHandler: (String) -> Unit) {
+        Thread {
+            process.inputStream.bufferedReader().useLines { lines ->
+                lines.forEach(outputHandler)
+            }
+        }.start()
+    }
+}
+#+END_SRC
+
+** Usage Examples
+
+*** Basic Usage (Zero Configuration)
+#+BEGIN_SRC gradle
+// build.gradle
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.acmsl.bytehot' version '1.0.0'
+}
+
+application {
+    mainClass = 'com.example.Application'
+}
+
+// Run with: gradle liveRun
+#+END_SRC
+
+*** Advanced Configuration
+#+BEGIN_SRC gradle
+// build.gradle
+plugins {
+    id 'java'
+    id 'org.acmsl.bytehot' version '1.0.0'
+}
+
+bytehot {
+    mainClass = 'com.example.Application'
+    
+    jvmArgs {
+        add('-Xmx512m')
+        add('-Dspring.profiles.active=dev')
+    }
+    
+    watchPaths {
+        add('src/main/java')
+        add('src/main/resources')
+    }
+    
+    excludePatterns {
+        add('**/*Test.java')
+        add('**/package-info.java')
+    }
+    
+    enableHotReload = true
+    enableFileMonitoring = true
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Plugin Infrastructure
+1. Create Gradle plugin project with Kotlin DSL
+2. Implement ByteHotPlugin with proper Gradle plugin lifecycle
+3. Create ByteHotExtension with rich DSL configuration
+4. Integrate with bytehot-plugin-commons for shared functionality
+
+*** Task Implementation
+1. Implement LiveRunTask with auto-detection capabilities
+2. Create GradleProjectAnalyzer for project introspection
+3. Build GradleProcessLauncher for process management
+4. Add configuration validation and error handling
+
+*** Gradle Integration
+1. Integrate with Gradle's application plugin
+2. Add support for Java, Kotlin, and Scala projects
+3. Implement proper task dependencies and lifecycle
+4. Create Gradle-specific configuration adapters
+
+** Acceptance Criteria
+
+- [ ] Plugin can be applied to any Gradle project with `id 'org.acmsl.bytehot'`
+- [ ] `gradle liveRun` starts applications in live mode with zero configuration
+- [ ] Automatic main class detection works with application and Spring Boot plugins
+- [ ] Rich DSL configuration provides comprehensive customization options
+- [ ] Integration with Gradle task dependencies and build lifecycle
+- [ ] Support for multi-project builds with selective task execution
+- [ ] Plugin initialization and startup time <3 seconds
+
+* Phase 2: Gradle Integration Features
+
+** Objective
+Enhance the basic plugin with deep Gradle ecosystem integration, multi-project support, and advanced configuration management for production-ready development workflows.
+
+** Multi-Project Build Support
+
+*** Root Project Configuration
+#+BEGIN_SRC gradle
+// settings.gradle
+include 'app', 'lib', 'service'
+
+// build.gradle (root)
+plugins {
+    id 'org.acmsl.bytehot' version '1.0.0' apply false
+}
+
+subprojects {
+    apply plugin: 'org.acmsl.bytehot'
+    
+    bytehot {
+        // Shared configuration
+        jvmArgs = ['-Xmx512m']
+        enableHotReload = true
+    }
+}
+#+END_SRC
+
+*** Per-Project Configuration
+#+BEGIN_SRC gradle
+// app/build.gradle
+plugins {
+    id 'java'
+    id 'application'
+}
+
+application {
+    mainClass = 'com.example.app.Application'
+}
+
+bytehot {
+    watchPaths {
+        add('../lib/src/main/java')  // Watch dependency project
+    }
+}
+
+// service/build.gradle
+plugins {
+    id 'java'
+    id 'org.springframework.boot'
+}
+
+bytehot {
+    mainClass = 'com.example.service.ServiceApplication'
+    jvmArgs.add('-Dspring.profiles.active=dev')
+}
+#+END_SRC
+
+*** Multi-Project Task Coordination
+#+BEGIN_SRC kotlin
+class MultiProjectSupport {
+    
+    fun configureMutliProjectTasks(rootProject: Project) {
+        rootProject.subprojects.forEach { subproject ->
+            subproject.tasks.withType<LiveRunTask> { task ->
+                configureTaskForSubproject(task, subproject)
+            }
+        }
+        
+        // Create root-level tasks
+        rootProject.tasks.register<Task>("liveRunAll") {
+            group = "bytehot"
+            description = "Runs all subprojects in live mode"
+            
+            dependsOn(rootProject.subprojects.mapNotNull { subproject ->
+                subproject.tasks.findByName("liveRun")
+            })
+        }
+    }
+    
+    private fun configureTaskForSubproject(task: LiveRunTask, subproject: Project) {
+        // Configure dependencies
+        val dependentProjects = findDependentProjects(subproject)
+        dependentProjects.forEach { depProject ->
+            task.dependsOn("${depProject.path}:classes")
+            
+            // Add dependent project sources to watch paths
+            task.extension.watchPaths.add("${depProject.projectDir}/src/main/java")
+        }
+    }
+    
+    private fun findDependentProjects(project: Project): Set<Project> {
+        val dependentProjects = mutableSetOf<Project>()
+        
+        project.configurations.getByName("implementation").dependencies
+            .filterIsInstance<ProjectDependency>()
+            .forEach { dependency ->
+                dependentProjects.add(dependency.dependencyProject)
+            }
+        
+        return dependentProjects
+    }
+}
+#+END_SRC
+
+** Build Cache Integration
+
+*** Cache Configuration
+#+BEGIN_SRC kotlin
+abstract class LiveRunTask : DefaultTask() {
+    
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    @get:InputFiles
+    abstract val sourceFiles: ConfigurableFileCollection
+    
+    @get:Classpath
+    abstract val runtimeClasspath: ConfigurableFileCollection
+    
+    @get:Internal
+    abstract val processHandle: Property<Process>
+    
+    init {
+        // Configure caching behavior
+        outputs.upToDateWhen { false } // Always run live mode
+        notCompatibleWithConfigurationCache("Live mode creates external processes")
+    }
+    
+    @TaskAction
+    fun execute() {
+        // Check if incremental compilation is available
+        val incrementalCompilation = checkIncrementalCompilation()
+        if (incrementalCompilation) {
+            logger.lifecycle("Using incremental compilation for faster startup")
+        }
+        
+        // Continue with execution...
+    }
+    
+    private fun checkIncrementalCompilation(): Boolean {
+        return project.tasks.withType<JavaCompile>().any { task ->
+            task.options.isIncremental
+        }
+    }
+}
+#+END_SRC
+
+** IDE Integration and Build Script Generation
+
+*** IntelliJ IDEA Integration
+#+BEGIN_SRC kotlin
+class IdeaIntegration(private val project: Project) {
+    
+    fun configureIdeaPlugin() {
+        project.plugins.withId("idea") {
+            val ideaExtension = project.extensions.getByType<IdeaModel>()
+            configureIdeaModel(ideaExtension)
+        }
+    }
+    
+    private fun configureIdeaModel(idea: IdeaModel) {
+        idea.workspace?.let { workspace ->
+            workspace.iws?.let { iws ->
+                // Configure run configurations
+                val runConfigurations = iws.withXml { provider ->
+                    addByteHotRunConfiguration(provider.asNode())
+                }
+            }
+        }
+    }
+    
+    private fun addByteHotRunConfiguration(workspace: Node) {
+        val runManager = workspace.get("component")
+            .find { (it as Node).attribute("name") == "RunManager" } as? Node
+            ?: workspace.appendNode("component", mapOf("name" to "RunManager"))
+        
+        val configuration = runManager.appendNode("configuration", mapOf(
+            "default" to "false",
+            "name" to "ByteHot Live Mode",
+            "type" to "GradleRunConfiguration"
+        ))
+        
+        configuration.appendNode("option", mapOf(
+            "name" to "tasks",
+            "value" to "liveRun"
+        ))
+    }
+}
+#+END_SRC
+
+*** Eclipse Integration
+#+BEGIN_SRC kotlin
+class EclipseIntegration(private val project: Project) {
+    
+    fun configureEclipsePlugin() {
+        project.plugins.withId("eclipse") {
+            project.tasks.register("generateEclipseLaunchConfig") {
+                group = "ide"
+                description = "Generates Eclipse launch configuration for ByteHot"
+                
+                doLast {
+                    generateLaunchConfiguration()
+                }
+            }
+        }
+    }
+    
+    private fun generateLaunchConfiguration() {
+        val launchConfig = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <launchConfiguration type="org.eclipse.buildship.core.launch.gradlelaunchconfig">
+                <stringAttribute key="org.eclipse.buildship.core.launch.GRADLE_TASKS" value="liveRun"/>
+                <stringAttribute key="org.eclipse.buildship.core.launch.WORKING_DIRECTORY" value="${project.projectDir}"/>
+                <booleanAttribute key="org.eclipse.buildship.core.launch.SHOW_CONSOLE_VIEW" value="true"/>
+            </launchConfiguration>
+        """.trimIndent()
+        
+        val launchFile = project.file(".launches/ByteHot-Live.launch")
+        launchFile.parentFile.mkdirs()
+        launchFile.writeText(launchConfig)
+        
+        project.logger.lifecycle("Generated Eclipse launch configuration: ${launchFile.relativeTo(project.projectDir)}")
+    }
+}
+#+END_SRC
+
+** Gradle Enterprise Integration
+
+*** Build Scan Enhancement
+#+BEGIN_SRC kotlin
+class GradleEnterpriseIntegration(private val project: Project) {
+    
+    fun configureBuildScanIntegration() {
+        project.plugins.withId("com.gradle.build-scan") {
+            val buildScanExtension = project.extensions.getByType<BuildScanExtension>()
+            
+            buildScanExtension.buildFinished { result ->
+                // Tag builds that used ByteHot live mode
+                if (project.gradle.taskGraph.hasTask(":liveRun")) {
+                    buildScanExtension.tag("bytehot-live-mode")
+                    buildScanExtension.value("bytehot.agent.version", detectAgentVersion())
+                }
+            }
+        }
+    }
+    
+    private fun detectAgentVersion(): String {
+        return try {
+            val agentPath = project.extensions.getByType<ByteHotExtension>()
+                .agentPath.orNull
+            if (agentPath != null) {
+                extractVersionFromJar(File(agentPath))
+            } else {
+                "auto-discovered"
+            }
+        } catch (e: Exception) {
+            "unknown"
+        }
+    }
+    
+    private fun extractVersionFromJar(jarFile: File): String {
+        return try {
+            JarFile(jarFile).use { jar ->
+                val manifest = jar.manifest
+                manifest?.mainAttributes?.getValue("Implementation-Version") ?: "unknown"
+            }
+        } catch (e: Exception) {
+            "unknown"
+        }
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Multi-Project Support
+1. Implement cross-project dependency detection and watching
+2. Create root-level tasks for coordinated multi-project execution
+3. Add support for composite builds and included builds
+4. Build project dependency graph analysis
+
+*** Build Tool Integration
+1. Integrate with Gradle build cache for faster startup
+2. Add support for incremental compilation detection
+3. Create integration with Gradle Enterprise build scans
+4. Implement configuration cache compatibility where possible
+
+*** IDE Integration
+1. Generate IntelliJ IDEA run configurations automatically
+2. Create Eclipse launch configurations with proper classpath
+3. Add VS Code task configuration generation
+4. Implement IDE-specific setup documentation and guides
+
+** Acceptance Criteria
+
+- [ ] Multi-project builds support with dependency-aware watching
+- [ ] Root-level `liveRunAll` task coordinates all subprojects
+- [ ] Build cache integration provides faster startup times
+- [ ] IDE integration generates correct run/launch configurations automatically
+- [ ] Gradle Enterprise build scans include ByteHot usage metrics
+- [ ] Configuration cache compatibility where technically possible
+- [ ] Plugin works correctly with Gradle 6.0+ through latest versions
+
+* Testing Strategy
+
+** Unit Testing
+- Plugin application and extension configuration
+- Task registration and dependency setup
+- Project analysis and main class detection algorithms
+- Process launching and lifecycle management
+
+** Functional Testing
+- End-to-end plugin execution with TestKit
+- Multi-project build scenarios
+- Integration with various Gradle plugins (application, Spring Boot, etc.)
+- Cross-platform compatibility testing
+
+** Integration Testing  
+- Real-world project testing with sample applications
+- IDE integration verification with generated configurations
+- Build cache behavior validation
+- Performance testing with large multi-project builds
+
+** Test Projects
+- Simple Java application with main method
+- Kotlin application with application plugin  
+- Spring Boot application with auto-configuration
+- Multi-project build with inter-project dependencies
+- Composite build with included builds
+
+* Dependencies & Prerequisites
+
+** Gradle Dependencies
+- Gradle 6.0+ for plugin development and execution
+- Kotlin/Groovy DSL support for rich configuration
+- bytehot-plugin-commons for shared functionality
+- Gradle TestKit for comprehensive testing
+
+** Build Environment
+- Java 8+ compatibility for broad adoption
+- Kotlin 1.4+ for plugin implementation
+- JUnit 5 + TestKit for testing framework
+- Sample projects for validation
+
+** External Requirements
+- ByteHot agent JAR available in repositories
+- Project must have compiled classes for main class detection
+- JVM must support -javaagent for agent attachment
+
+* Success Metrics
+
+** Technical Success Criteria
+- Zero-configuration success rate: >85% of typical Gradle projects
+- Plugin application and task registration time: <1 second
+- Main class detection accuracy: >95% for standard Java/Kotlin projects
+- Memory overhead: <50MB additional RAM during live mode
+
+** User Experience Metrics
+- Installation completion time: <3 minutes including documentation
+- User satisfaction survey: >4.6/5 rating for Gradle integration
+- Support ticket volume: <3% of active plugin installations
+- Plugin adoption rate: >40% of ByteHot users within 6 months
+
+* Future Enhancements
+
+** Planned Phase 3 Features
+- Integration with Gradle's test watching capabilities
+- Support for Gradle's continuous build mode
+- Advanced dependency management and exclusion rules
+- Plugin configuration profiles for different environments
+
+** Community Contributions
+- Gradle init templates for ByteHot-enabled projects
+- Integration with popular Gradle plugins (Quarkus, Micronaut, etc.)
+- Enhanced multi-language support (Scala, Groovy)
+- Plugin extension points for custom behavior
+
+This Gradle plugin complements the Maven plugin perfectly, providing the same seamless "live mode" experience while leveraging Gradle's unique features and ecosystem, demonstrating the plugin foundation's adaptability across different build tools.

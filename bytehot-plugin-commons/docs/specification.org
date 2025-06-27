@@ -1,0 +1,500 @@
+#+TITLE: Milestone 8: Plugin Foundation & Protocol
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+Milestone 8 establishes the foundational architecture and communication protocol that enables all ByteHot plugins to seamlessly integrate with different development environments. The primary goal is to make ByteHot invisible to users - they should simply experience "live mode" without knowing about Java agents, JVM arguments, or complex configurations.
+
+** Goals
+
+- Create a unified plugin communication protocol for all development tools
+- Establish shared infrastructure that eliminates code duplication across plugins
+- Design agent discovery mechanisms that work reliably across environments
+- Implement a robust configuration system that adapts to different tool ecosystems
+- Build comprehensive testing framework for plugin validation
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want to enable live coding in my favorite development environment with a single click, without needing to understand ByteHot's internal architecture or Java agent mechanics."
+#+END_QUOTE
+
+* Architecture Overview
+
+** Plugin Ecosystem Architecture
+
+#+BEGIN_SRC
+                    ┌─────────────────────────────────────┐
+                    │           User Experience          │
+                    │   "Just Works" - No Agent Visible  │
+                    └─────────────────────────────────────┘
+                                      │
+              ┌───────────────────────┼───────────────────────┐
+              │                       │                       │
+        ┌──────────┐            ┌──────────┐            ┌──────────┐
+        │  Maven   │            │   IDE    │            │ Gradle   │
+        │ Plugin   │            │ Plugins  │            │ Plugin   │
+        └──────────┘            └──────────┘            └──────────┘
+              │                       │                       │
+              └───────────────────────┼───────────────────────┘
+                                      │
+                    ┌─────────────────────────────────────┐
+                    │      Plugin Foundation Layer       │
+                    │  • Communication Protocol          │
+                    │  • Agent Discovery                  │
+                    │  • Configuration Management        │
+                    │  • Health Monitoring               │
+                    └─────────────────────────────────────┘
+                                      │
+                    ┌─────────────────────────────────────┐
+                    │         ByteHot Core Agent          │
+                    │  bytehot-application-*-agent.jar   │
+                    └─────────────────────────────────────┘
+#+END_SRC
+
+** Component Relationships
+
+- *Plugin Foundation Layer*: Shared infrastructure used by all plugins
+- *Communication Protocol*: Standard JSON-based API for plugin-agent communication  
+- *Agent Discovery*: Automatic location and validation of ByteHot agent JAR
+- *Configuration Management*: Unified config format with tool-specific adaptations
+- *Health Monitoring*: Real-time status and error reporting across all plugins
+
+* Phase 1: Plugin Communication Protocol
+
+** Objective
+Design and implement a robust, extensible communication protocol that enables plugins to interact with the ByteHot agent regardless of the hosting development environment.
+
+** Technical Specifications
+
+*** Protocol Design Principles
+- *Simplicity*: JSON-based messages for maximum compatibility
+- *Extensibility*: Versioned protocol supporting future enhancements
+- *Reliability*: Built-in retry mechanisms and error handling
+- *Performance*: Minimal overhead for real-time development workflows
+
+*** Core Message Types
+
+**** Agent Status Messages
+#+BEGIN_SRC json
+{
+  "type": "agent_status_request",
+  "version": "1.0",
+  "timestamp": "2025-06-27T10:30:00Z",
+  "request_id": "plugin-001"
+}
+
+{
+  "type": "agent_status_response", 
+  "version": "1.0",
+  "timestamp": "2025-06-27T10:30:01Z",
+  "request_id": "plugin-001",
+  "status": "active",
+  "agent_version": "1.0.0-SNAPSHOT",
+  "capabilities": ["hot_swap", "file_monitoring", "documentation"]
+}
+#+END_SRC
+
+**** Live Mode Control Messages
+#+BEGIN_SRC json
+{
+  "type": "live_mode_enable",
+  "version": "1.0", 
+  "timestamp": "2025-06-27T10:30:00Z",
+  "request_id": "plugin-002",
+  "config": {
+    "watch_paths": ["/src/main/java"],
+    "file_patterns": ["*.java"],
+    "recursive": true
+  }
+}
+
+{
+  "type": "live_mode_response",
+  "version": "1.0",
+  "timestamp": "2025-06-27T10:30:01Z", 
+  "request_id": "plugin-002",
+  "status": "enabled",
+  "watch_session_id": "session-12345"
+}
+#+END_SRC
+
+**** Hot-Swap Notification Messages
+#+BEGIN_SRC json
+{
+  "type": "hot_swap_notification",
+  "version": "1.0",
+  "timestamp": "2025-06-27T10:35:00Z",
+  "session_id": "session-12345",
+  "class_name": "com.example.MyClass",
+  "status": "success",
+  "affected_instances": 3,
+  "execution_time_ms": 45
+}
+#+END_SRC
+
+*** Communication Channels
+
+**** Local Socket Communication
+- Default communication method for local development
+- High performance with minimal latency
+- Automatic socket cleanup and reconnection
+
+**** HTTP-based Communication  
+- Fallback for environments where sockets are restricted
+- RESTful API design for easy debugging
+- Support for authentication and security headers
+
+**** File-based Communication
+- Ultra-reliable fallback for restricted environments
+- JSON files in temporary directory with file watching
+- Automatic cleanup and rotation
+
+*** Protocol Implementation
+
+**** Message Serialization
+#+BEGIN_SRC java
+public interface PluginMessage {
+    String getType();
+    String getVersion(); 
+    Instant getTimestamp();
+    String getRequestId();
+}
+
+public class AgentStatusRequest implements PluginMessage {
+    private final String type = "agent_status_request";
+    private final String version = "1.0";
+    private final Instant timestamp;
+    private final String requestId;
+    
+    // Implementation...
+}
+#+END_SRC
+
+**** Communication Handler
+#+BEGIN_SRC java
+public interface PluginCommunicationHandler {
+    CompletableFuture<PluginMessage> sendMessage(PluginMessage message);
+    void registerMessageHandler(String messageType, MessageHandler handler);
+    void startListening();
+    void stopListening();
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Protocol Design
+1. Define complete message schema with JSON Schema validation
+2. Implement versioning strategy for backward compatibility
+3. Create protocol documentation with examples
+4. Design error handling and retry mechanisms
+
+*** Communication Infrastructure
+1. Implement socket-based communication handler
+2. Create HTTP fallback communication handler  
+3. Build file-based communication handler
+4. Implement automatic channel selection and failover
+
+*** Testing & Validation
+1. Create protocol compliance test suite
+2. Implement message serialization/deserialization tests
+3. Build communication reliability tests
+4. Create performance benchmarking tests
+
+** Acceptance Criteria
+
+- [ ] Protocol supports all core message types with JSON Schema validation
+- [ ] Multiple communication channels implemented with automatic failover
+- [ ] Comprehensive test suite with >95% code coverage
+- [ ] Protocol documentation includes examples and error scenarios
+- [ ] Performance meets requirements: <10ms message round-trip time
+- [ ] Backward compatibility strategy defined and tested
+
+* Phase 2: Shared Plugin Infrastructure
+
+** Objective
+Create the `bytehot-plugin-commons` module that provides shared utilities, configuration management, and testing framework for all ByteHot plugins.
+
+** Module Structure
+
+#+BEGIN_SRC
+bytehot-plugin-commons/
+├── src/main/java/org/acmsl/bytehot/plugin/
+│   ├── core/
+│   │   ├── PluginBase.java              # Abstract base for all plugins
+│   │   ├── AgentDiscovery.java          # Agent JAR location and validation
+│   │   ├── ConfigurationManager.java   # Unified config management
+│   │   └── HealthMonitor.java          # Status monitoring and reporting
+│   ├── communication/
+│   │   ├── PluginCommunicationHandler.java
+│   │   ├── MessageSerializer.java
+│   │   └── ProtocolVersion.java
+│   ├── config/
+│   │   ├── PluginConfiguration.java
+│   │   ├── ConfigurationValidator.java
+│   │   └── ConfigurationAdapter.java
+│   └── testing/
+│       ├── PluginTestFramework.java
+│       ├── MockAgent.java
+│       └── TestConfiguration.java
+└── src/test/java/
+    └── org/acmsl/bytehot/plugin/
+        ├── core/
+        ├── communication/
+        ├── config/
+        └── testing/
+#+END_SRC
+
+** Core Components
+
+*** PluginBase Abstract Class
+#+BEGIN_SRC java
+public abstract class PluginBase {
+    protected final AgentDiscovery agentDiscovery;
+    protected final ConfigurationManager configManager;
+    protected final PluginCommunicationHandler communicationHandler;
+    protected final HealthMonitor healthMonitor;
+    
+    protected PluginBase() {
+        this.agentDiscovery = new AgentDiscovery();
+        this.configManager = new ConfigurationManager();
+        this.communicationHandler = createCommunicationHandler();
+        this.healthMonitor = new HealthMonitor();
+    }
+    
+    public abstract String getPluginName();
+    public abstract String getPluginVersion();
+    public abstract PluginConfiguration getDefaultConfiguration();
+    
+    public final boolean initialize() {
+        try {
+            if (!agentDiscovery.discoverAgent()) {
+                return false;
+            }
+            
+            if (!configManager.loadConfiguration()) {
+                return false;
+            }
+            
+            if (!communicationHandler.connect()) {
+                return false;
+            }
+            
+            healthMonitor.start();
+            return onInitialize();
+            
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    protected abstract boolean onInitialize();
+    protected abstract PluginCommunicationHandler createCommunicationHandler();
+}
+#+END_SRC
+
+*** AgentDiscovery Implementation
+#+BEGIN_SRC java
+public class AgentDiscovery {
+    private static final String AGENT_JAR_PATTERN = "bytehot-application-*-agent.jar";
+    private Optional<Path> agentPath = Optional.empty();
+    
+    public boolean discoverAgent() {
+        // Strategy 1: Check system property
+        agentPath = checkSystemProperty();
+        if (agentPath.isPresent()) return true;
+        
+        // Strategy 2: Check Maven local repository
+        agentPath = checkMavenRepository();
+        if (agentPath.isPresent()) return true;
+        
+        // Strategy 3: Check Gradle cache
+        agentPath = checkGradleCache();
+        if (agentPath.isPresent()) return true;
+        
+        // Strategy 4: Check project target/build directories
+        agentPath = checkProjectDirectories();
+        if (agentPath.isPresent()) return true;
+        
+        // Strategy 5: Check PATH and common locations
+        agentPath = checkCommonLocations();
+        return agentPath.isPresent();
+    }
+    
+    public Optional<Path> getAgentPath() {
+        return agentPath;
+    }
+    
+    public boolean validateAgent(Path agentJar) {
+        try {
+            // Verify it's a valid JAR
+            try (JarFile jar = new JarFile(agentJar.toFile())) {
+                // Check for required manifest entries
+                Manifest manifest = jar.getManifest();
+                return manifest != null && 
+                       manifest.getMainAttributes().getValue("Agent-Class") != null;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    private Optional<Path> checkSystemProperty() {
+        String agentPath = System.getProperty("bytehot.agent.path");
+        if (agentPath != null) {
+            Path path = Paths.get(agentPath);
+            if (Files.exists(path) && validateAgent(path)) {
+                return Optional.of(path);
+            }
+        }
+        return Optional.empty();
+    }
+    
+    // Additional discovery strategy implementations...
+}
+#+END_SRC
+
+*** Configuration Management
+#+BEGIN_SRC java
+public class ConfigurationManager {
+    private PluginConfiguration configuration;
+    private final List<ConfigurationAdapter> adapters = new ArrayList<>();
+    
+    public void registerAdapter(ConfigurationAdapter adapter) {
+        adapters.add(adapter);
+    }
+    
+    public boolean loadConfiguration() {
+        for (ConfigurationAdapter adapter : adapters) {
+            Optional<PluginConfiguration> config = adapter.loadConfiguration();
+            if (config.isPresent()) {
+                configuration = config.get();
+                return validateConfiguration(configuration);
+            }
+        }
+        return false;
+    }
+    
+    public PluginConfiguration getConfiguration() {
+        return configuration;
+    }
+    
+    private boolean validateConfiguration(PluginConfiguration config) {
+        ConfigurationValidator validator = new ConfigurationValidator();
+        return validator.validate(config).isEmpty();
+    }
+}
+
+public interface ConfigurationAdapter {
+    Optional<PluginConfiguration> loadConfiguration();
+    boolean saveConfiguration(PluginConfiguration config);
+    String getAdapterName();
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Core Infrastructure
+1. Create bytehot-plugin-commons Maven module
+2. Implement PluginBase abstract class with lifecycle management
+3. Build AgentDiscovery with multiple discovery strategies
+4. Create ConfigurationManager with adapter pattern
+
+*** Configuration System
+1. Design unified PluginConfiguration schema
+2. Implement configuration validation framework
+3. Create tool-specific configuration adapters
+4. Build configuration migration and versioning support
+
+*** Testing Framework
+1. Create PluginTestFramework for automated plugin testing
+2. Implement MockAgent for isolated testing
+3. Build test configuration utilities
+4. Create integration test helpers
+
+** Acceptance Criteria
+
+- [ ] bytehot-plugin-commons module builds and deploys to Maven Central
+- [ ] PluginBase provides complete lifecycle management for all plugin types
+- [ ] AgentDiscovery successfully locates ByteHot agent in >95% of scenarios  
+- [ ] ConfigurationManager supports tool-specific adapters with validation
+- [ ] Testing framework enables comprehensive automated testing
+- [ ] Documentation includes usage examples for all plugin types
+- [ ] Performance meets requirements: <100ms plugin initialization time
+
+* Dependencies & Integration
+
+** ByteHot Core Integration
+- Requires ByteHot agent JAR to be available and functional
+- Depends on ByteHot domain events for status reporting
+- Integrates with ByteHot configuration system
+
+** Development Tool Requirements
+- Maven 3.6+ for build tool plugins
+- Gradle 6.0+ for Gradle plugin
+- IntelliJ IDEA 2020.3+ for IDE plugin
+- Eclipse 2020-12+ for Eclipse plugin
+- VS Code 1.50+ for extension
+
+** External Dependencies
+- Jackson for JSON serialization
+- SLF4J for logging across all plugins
+- JUnit 5 for testing framework
+- Testcontainers for integration testing
+
+* Testing Strategy
+
+** Unit Testing
+- Individual component testing with mocks
+- Protocol message serialization/deserialization
+- Configuration validation and transformation
+- Agent discovery algorithm verification
+
+** Integration Testing  
+- Plugin communication with real ByteHot agent
+- Cross-platform agent discovery testing
+- Configuration loading from various sources
+- Error handling and recovery scenarios
+
+** Performance Testing
+- Plugin initialization time benchmarking
+- Communication protocol latency measurement
+- Memory usage profiling for long-running operations
+- Stress testing with multiple concurrent plugins
+
+** Compatibility Testing
+- Testing across different Java versions (8, 11, 17, 21)
+- Validation on different operating systems
+- Integration with various development tool versions
+- Backward compatibility with previous ByteHot versions
+
+* Success Metrics
+
+** Technical Metrics
+- Plugin initialization time: <100ms
+- Communication latency: <10ms round-trip
+- Agent discovery success rate: >95%
+- Test coverage: >90% for commons module
+
+** User Experience Metrics  
+- Zero-configuration success rate: >80%
+- Plugin installation time: <2 minutes
+- User support tickets: <10% of active installations
+- Plugin adoption rate: >50% of ByteHot users
+
+* Risk Analysis & Mitigation
+
+** Technical Risks
+- *Agent Discovery Failures*: Multiple fallback strategies implemented
+- *Communication Protocol Breaking Changes*: Versioning and compatibility layer
+- *Performance Degradation*: Comprehensive benchmarking and optimization
+- *Platform Compatibility Issues*: Extensive cross-platform testing
+
+** Adoption Risks
+- *Complex Installation*: Automated installation and clear documentation
+- *Tool Integration Conflicts*: Thorough compatibility testing
+- *User Learning Curve*: Intuitive "just works" design principles
+- *Maintenance Overhead*: Shared commons module reduces duplication
+
+This milestone establishes the solid foundation needed for all subsequent plugin development, ensuring consistent user experience and maintainable code across the entire ByteHot plugin ecosystem.
