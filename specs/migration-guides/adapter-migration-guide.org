@@ -1,0 +1,742 @@
+#+TITLE: Adapter Migration Guide: Moving to java-commons-infrastructure
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This migration guide provides step-by-step instructions for migrating existing adapters to use the new `java-commons-infrastructure` module. The guide covers assessment, planning, implementation, and validation phases to ensure smooth transitions from project-specific adapters to reusable base infrastructure patterns.
+
+** Migration Benefits
+
+- **Reduced Code Duplication**: Eliminate repetitive infrastructure code across projects
+- **Improved Maintainability**: Centralized infrastructure patterns reduce maintenance burden
+- **Enhanced Testing**: Leverage common testing infrastructure and mock frameworks
+- **Faster Development**: Reuse proven patterns instead of implementing from scratch
+- **Consistency**: Uniform infrastructure patterns across all projects
+- **Better Error Handling**: Standardized error handling and retry mechanisms
+
+** Migration Scope
+
+This guide covers migration of:
+- Configuration adapters (YAML, properties, environment variables)
+- Event emission adapters (multi-target, serialization)
+- File system monitoring adapters (cross-platform, pattern matching)
+- Communication adapters (HTTP, WebSocket, messaging)
+- Health check and monitoring adapters
+- Testing infrastructure and mock adapters
+
+* Migration Process Overview
+
+** Four-Phase Migration Approach
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                   Phase 1: Assessment              │
+│   • Inventory existing adapters                   │
+│   • Identify migration candidates                 │
+│   • Analyze dependencies and patterns             │
+│   • Create migration plan                         │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│                   Phase 2: Preparation             │
+│   • Set up java-commons-infrastructure             │
+│   • Create base adapter extensions                 │
+│   • Implement project-specific customizations     │
+│   • Set up testing infrastructure                 │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│                   Phase 3: Implementation          │
+│   • Migrate adapters one by one                   │
+│   • Update dependency injection                   │
+│   • Migrate tests to new infrastructure           │
+│   • Validate functionality                        │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│                   Phase 4: Validation              │
+│   • Run comprehensive test suites                 │
+│   • Perform integration testing                   │
+│   • Validate performance characteristics          │
+│   • Document changes and cleanup                  │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+* Phase 1: Assessment and Planning
+
+** Adapter Inventory Checklist
+
+Create an inventory of all adapters in your project:
+
+#+BEGIN_SRC
+Project: ___________________
+Assessment Date: ___________
+
+Configuration Adapters:
+□ YAML configuration loading
+□ Properties file handling
+□ Environment variable processing
+□ Command-line argument parsing
+□ Database configuration storage
+
+Event Adapters:
+□ Event emission to files
+□ Event emission to message queues
+□ Event emission to HTTP endpoints
+□ Event serialization (JSON, XML, Protobuf)
+□ Event filtering and routing
+
+File System Adapters:
+□ Directory monitoring
+□ File change detection
+□ Pattern-based file filtering
+□ Cross-platform path handling
+□ File system operations
+
+Communication Adapters:
+□ HTTP client/server operations
+□ WebSocket connections
+□ Message queue integration
+□ gRPC communication
+□ Database connectivity
+
+Monitoring Adapters:
+□ Health check endpoints
+□ Metrics collection
+□ Log aggregation
+□ Performance monitoring
+□ Error reporting
+
+Testing Infrastructure:
+□ Mock adapters
+□ Test data generation
+□ Integration test helpers
+□ Performance test utilities
+#+END_SRC
+
+** Migration Candidate Assessment
+
+For each adapter, evaluate migration suitability:
+
+*** High Priority Migration Candidates:
+- Adapters with standard patterns (configuration loading, event emission)
+- Adapters duplicated across multiple projects
+- Adapters with known reliability or maintenance issues
+- Adapters that would benefit from improved testing infrastructure
+
+*** Medium Priority Migration Candidates:
+- Adapters with some customization but standard core functionality
+- Adapters that could be standardized with minor refactoring
+- Adapters where base patterns would improve maintainability
+
+*** Low Priority Migration Candidates:
+- Highly specialized adapters with unique domain requirements
+- Performance-critical adapters with specific optimizations
+- Legacy adapters with complex integration requirements
+
+** Dependency Analysis Template
+
+#+BEGIN_SRC
+Adapter: _____________________
+Current Dependencies:
+- External libraries: _______________
+- Internal utilities: ______________
+- Configuration requirements: ______
+
+Base Infrastructure Compatibility:
+□ Can use BaseConfigurationAdapter
+□ Can use BaseEventEmitterAdapter  
+□ Can use BaseFileWatcherAdapter
+□ Can use BaseMessageAdapter
+□ Can use BaseMonitoringAdapter
+
+Custom Extensions Needed:
+- Domain-specific logic: ___________
+- Performance optimizations: _______
+- Integration requirements: ________
+
+Migration Complexity: □ Low □ Medium □ High
+Estimated Effort: _________ hours/days
+Dependencies on other migrations: __________
+#+END_SRC
+
+* Phase 2: Preparation and Setup
+
+** Setting Up java-commons-infrastructure Dependency
+
+Add the dependency to your project's `pom.xml`:
+
+#+BEGIN_SRC xml
+<dependency>
+    <groupId>org.acmsl</groupId>
+    <artifactId>java-commons-infrastructure</artifactId>
+    <version>${java-commons-infrastructure.version}</version>
+</dependency>
+#+END_SRC
+
+** Base Adapter Extension Strategy
+
+*** Strategy 1: Direct Extension (Recommended for Simple Cases)
+
+#+BEGIN_SRC java
+package com.yourproject.infrastructure.config;
+
+import org.acmsl.commons.infrastructure.config.BaseConfigurationAdapter;
+import com.yourproject.domain.ProjectConfigurationPort;
+
+public class ProjectConfigurationAdapter 
+    extends BaseConfigurationAdapter<ProjectConfiguration>
+    implements ProjectConfigurationPort {
+    
+    @Override
+    protected Class<ProjectConfiguration> getConfigurationClass() {
+        return ProjectConfiguration.class;
+    }
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            new YamlConfigurationSource("project-config.yml"),
+            new PropertiesConfigurationSource("project.properties")
+        );
+    }
+    
+    @Override
+    public Class<ProjectConfigurationPort> adapts() {
+        return ProjectConfigurationPort.class;
+    }
+}
+#+END_SRC
+
+*** Strategy 2: Composition Pattern (Recommended for Complex Cases)
+
+#+BEGIN_SRC java
+package com.yourproject.infrastructure.config;
+
+import org.acmsl.commons.infrastructure.config.BaseConfigurationAdapter;
+import com.yourproject.domain.ProjectConfigurationPort;
+
+public class ProjectConfigurationAdapter implements ProjectConfigurationPort {
+    
+    private final BaseConfigurationAdapter<ProjectConfiguration> baseAdapter;
+    private final ProjectSpecificConfigurationHandler customHandler;
+    
+    public ProjectConfigurationAdapter() {
+        this.baseAdapter = new BaseConfigurationAdapter<ProjectConfiguration>() {
+            @Override
+            protected Class<ProjectConfiguration> getConfigurationClass() {
+                return ProjectConfiguration.class;
+            }
+        };
+        this.customHandler = new ProjectSpecificConfigurationHandler();
+    }
+    
+    @Override
+    public ProjectConfiguration loadConfiguration() throws ConfigurationException {
+        final ProjectConfiguration baseConfig = baseAdapter.loadConfiguration();
+        return customHandler.enhanceConfiguration(baseConfig);
+    }
+    
+    @Override
+    public Class<ProjectConfigurationPort> adapts() {
+        return ProjectConfigurationPort.class;
+    }
+}
+#+END_SRC
+
+** Test Infrastructure Setup
+
+Create test base classes for your project:
+
+#+BEGIN_SRC java
+package com.yourproject.infrastructure.test;
+
+import org.acmsl.commons.infrastructure.test.BaseAdapterTest;
+import org.acmsl.commons.infrastructure.test.MockInfrastructureProvider;
+
+public abstract class ProjectAdapterTest<T extends Adapter<?>> 
+    extends BaseAdapterTest<T> {
+    
+    protected MockInfrastructureProvider mockProvider;
+    
+    @BeforeEach
+    protected void setUpProjectInfrastructure() {
+        mockProvider = new MockInfrastructureProvider();
+        configureMockProvider(mockProvider);
+    }
+    
+    protected abstract void configureMockProvider(MockInfrastructureProvider provider);
+    
+    protected <P extends Port> void registerMockAdapter(Class<P> portClass, P mockImplementation) {
+        mockProvider.registerMockAdapter(portClass, mockImplementation);
+    }
+}
+#+END_SRC
+
+* Phase 3: Step-by-Step Migration Implementation
+
+** Configuration Adapter Migration Example
+
+*** Before Migration (ByteHot ConfigurationAdapter):
+
+#+BEGIN_SRC java
+// Current implementation - complex, project-specific
+public class ConfigurationAdapter implements ConfigurationPort {
+    private static final String[] DEFAULT_CONFIG_FILES = {
+        "bytehot.yml", "bytehot.yaml", "application.yml", "application.yaml"
+    };
+    
+    @Override
+    public WatchConfiguration loadWatchConfiguration() throws Exception {
+        // Try system properties first
+        WatchConfiguration systemPropsConfig = loadFromSystemProperties();
+        if (systemPropsConfig != null) return systemPropsConfig;
+        
+        // Try environment variables
+        WatchConfiguration envConfig = loadFromEnvironment();
+        if (envConfig != null) return envConfig;
+        
+        // Try configuration files
+        for (String configFile : DEFAULT_CONFIG_FILES) {
+            WatchConfiguration fileConfig = loadFromFile(configFile);
+            if (fileConfig != null) return fileConfig;
+        }
+        
+        return createDefaultConfiguration();
+    }
+    
+    // ... 300+ lines of implementation details
+}
+#+END_SRC
+
+*** After Migration (Using Base Infrastructure):
+
+#+BEGIN_SRC java
+// New implementation - clean, focused on domain specifics
+public class ByteHotConfigurationAdapter 
+    extends BaseConfigurationAdapter<WatchConfiguration>
+    implements ConfigurationPort {
+    
+    @Override
+    protected Class<WatchConfiguration> getConfigurationClass() {
+        return WatchConfiguration.class;
+    }
+    
+    @Override
+    protected List<ConfigurationSource> getProjectSpecificSources() {
+        return Arrays.asList(
+            new YamlConfigurationSource("bytehot.yml"),
+            new YamlConfigurationSource("bytehot.yaml"),
+            new YamlConfigurationSource("application.yml"),
+            new YamlConfigurationSource("application.yaml")
+        );
+    }
+    
+    @Override
+    protected String getEnvironmentPrefix() {
+        return "BYTEHOT_";
+    }
+    
+    @Override
+    protected String getSystemPropertyPrefix() {
+        return "bytehot.";
+    }
+    
+    @Override
+    protected WatchConfiguration createDefaultConfiguration() {
+        List<FolderWatch> defaultFolders = Arrays.asList(
+            new FolderWatch(Paths.get("target/classes"), 1000),
+            new FolderWatch(Paths.get("build/classes"), 1000)
+        );
+        return new WatchConfiguration(8080, defaultFolders);
+    }
+    
+    @Override
+    public Class<ConfigurationPort> adapts() {
+        return ConfigurationPort.class;
+    }
+}
+#+END_SRC
+
+** Event Adapter Migration Example
+
+*** Before Migration:
+
+#+BEGIN_SRC java
+public class EventEmitterAdapter implements EventEmitterPort {
+    private final List<EventTarget> targets = new ArrayList<>();
+    
+    @Override
+    public void emitEvent(DomainEvent event) {
+        String json = serializeToJson(event);
+        for (EventTarget target : targets) {
+            try {
+                switch (target.getType()) {
+                    case FILE:
+                        writeToFile(target.getLocation(), json);
+                        break;
+                    case HTTP:
+                        sendHttpPost(target.getUrl(), json);
+                        break;
+                    // ... more cases
+                }
+            } catch (Exception e) {
+                // Handle errors
+            }
+        }
+    }
+    
+    // ... implementation details
+}
+#+END_SRC
+
+*** After Migration:
+
+#+BEGIN_SRC java
+public class ByteHotEventEmitterAdapter 
+    extends BaseEventEmitterAdapter<DomainEvent>
+    implements EventEmitterPort {
+    
+    @Override
+    protected List<EventTarget> getDefaultTargets() {
+        return Arrays.asList(
+            new FileEventTarget(Paths.get("logs/bytehot-events.log")),
+            new HttpEventTarget("http://localhost:8080/events")
+        );
+    }
+    
+    @Override
+    protected EventSerializer<DomainEvent> createEventSerializer() {
+        return new JsonEventSerializer<>(DomainEvent.class);
+    }
+    
+    @Override
+    protected void handleDomainSpecificEvent(DomainEvent event) {
+        // Handle ByteHot-specific event processing if needed
+        if (event instanceof ClassReloadEvent) {
+            logReloadMetrics((ClassReloadEvent) event);
+        }
+    }
+    
+    @Override
+    public Class<EventEmitterPort> adapts() {
+        return EventEmitterPort.class;
+    }
+}
+#+END_SRC
+
+** Testing Migration
+
+*** Before Migration Test:
+
+#+BEGIN_SRC java
+public class ConfigurationAdapterTest {
+    private ConfigurationAdapter adapter;
+    
+    @BeforeEach
+    void setUp() {
+        adapter = new ConfigurationAdapter();
+    }
+    
+    @Test
+    void testLoadFromSystemProperties() {
+        System.setProperty("bytehot.watch.paths", "/tmp/test");
+        WatchConfiguration config = adapter.loadFromSystemProperties();
+        assertNotNull(config);
+        // ... more assertions
+    }
+    
+    // ... many more test methods
+}
+#+END_SRC
+
+*** After Migration Test:
+
+#+BEGIN_SRC java
+public class ByteHotConfigurationAdapterTest 
+    extends ProjectAdapterTest<ByteHotConfigurationAdapter> {
+    
+    @Override
+    protected ByteHotConfigurationAdapter createAdapter() {
+        return new ByteHotConfigurationAdapter();
+    }
+    
+    @Override
+    protected void configureMockProvider(MockInfrastructureProvider provider) {
+        provider.withMockFileSystem()
+               .withMockEnvironmentVariables()
+               .withMockSystemProperties();
+    }
+    
+    @Test
+    void testByteHotSpecificConfiguration() {
+        // Test only ByteHot-specific behavior
+        givenConfigurationFile("bytehot.yml", 
+            "bytehot:\n" +
+            "  watch:\n" +
+            "    - path: /tmp/classes\n" +
+            "      interval: 2000");
+        
+        WatchConfiguration config = adapter.loadConfiguration();
+        
+        assertEquals(1, config.getFolders().size());
+        assertEquals(2000, config.getFolders().get(0).getInterval());
+    }
+}
+#+END_SRC
+
+* Phase 4: Migration Validation and Best Practices
+
+** Validation Checklist
+
+After each adapter migration, verify:
+
+#+BEGIN_SRC
+□ Functionality Validation
+  □ All original functionality preserved
+  □ Configuration loading works correctly
+  □ Error handling behaves as expected
+  □ Performance characteristics maintained
+
+□ Integration Testing
+  □ Adapter works with existing domain logic
+  □ Dependency injection functions correctly
+  □ Inter-adapter communication unaffected
+  □ External system integrations operational
+
+□ Test Coverage
+  □ All test cases migrated successfully
+  □ New base infrastructure features tested
+  □ Edge cases and error conditions covered
+  □ Performance tests validate requirements
+
+□ Code Quality
+  □ Code complexity reduced
+  □ Duplication eliminated
+  □ Consistent patterns followed
+  □ Documentation updated
+#+END_SRC
+
+** Common Migration Pitfalls and Solutions
+
+*** Pitfall 1: Over-Abstraction
+
+*Problem*: Trying to force complex domain-specific logic into base patterns.
+
+*Solution*: Use composition pattern to combine base infrastructure with domain-specific handlers.
+
+#+BEGIN_SRC java
+// DON'T: Force complex domain logic into base adapter
+public class ComplexAdapter extends BaseAdapter {
+    @Override
+    protected void processComplexDomainLogic() {
+        // 200 lines of complex domain-specific code
+    }
+}
+
+// DO: Use composition to separate concerns
+public class ComplexAdapter implements DomainPort {
+    private final BaseInfrastructureAdapter baseAdapter;
+    private final DomainSpecificProcessor domainProcessor;
+    
+    // Delegate infrastructure concerns to base adapter
+    // Handle domain logic in dedicated processor
+}
+#+END_SRC
+
+*** Pitfall 2: Configuration Mismatch
+
+*Problem*: Base adapter configuration doesn't match existing configuration format.
+
+*Solution*: Create configuration adapters or transformation layers.
+
+#+BEGIN_SRC java
+public class LegacyConfigurationAdapter extends BaseConfigurationAdapter<ModernConfig> {
+    
+    @Override
+    protected ModernConfig transformConfiguration(RawConfiguration raw) {
+        return new LegacyToModernConfigurationTransformer().transform(raw);
+    }
+}
+#+END_SRC
+
+*** Pitfall 3: Test Infrastructure Conflicts
+
+*Problem*: Existing test infrastructure conflicts with base testing patterns.
+
+*Solution*: Create adapter-specific test base classes that bridge the gap.
+
+#+BEGIN_SRC java
+public abstract class LegacyCompatibleAdapterTest<T extends Adapter<?>> 
+    extends BaseAdapterTest<T> {
+    
+    protected LegacyTestDataProvider legacyProvider;
+    
+    @BeforeEach
+    void setUpLegacyCompatibility() {
+        legacyProvider = new LegacyTestDataProvider();
+        bridgeLegacyToModernTestInfrastructure();
+    }
+    
+    private void bridgeLegacyToModernTestInfrastructure() {
+        // Bridge legacy test data to modern mock infrastructure
+    }
+}
+#+END_SRC
+
+** Performance Validation
+
+Monitor these metrics during migration:
+
+#+BEGIN_SRC
+Configuration Loading Performance:
+- Baseline: _______ ms
+- Post-migration: _______ ms
+- Difference: _______ ms (±___%)
+
+Event Emission Performance:
+- Baseline throughput: _______ events/sec
+- Post-migration throughput: _______ events/sec
+- Difference: _______ events/sec (±___%)
+
+Memory Usage:
+- Baseline heap usage: _______ MB
+- Post-migration heap usage: _______ MB
+- Difference: _______ MB (±___%)
+
+Startup Time:
+- Baseline: _______ ms
+- Post-migration: _______ ms
+- Difference: _______ ms (±___%)
+#+END_SRC
+
+* Migration Templates and Checklists
+
+** Adapter Migration Template
+
+Use this template for each adapter migration:
+
+#+BEGIN_SRC java
+package ${package}.infrastructure.${category};
+
+import org.acmsl.commons.infrastructure.${category}.Base${AdapterType}Adapter;
+import ${package}.domain.${PortName};
+
+/**
+ * ${ProjectName} implementation of ${PortName} using base infrastructure patterns.
+ * 
+ * Migration Notes:
+ * - Migrated from: ${OriginalAdapterClass}
+ * - Migration date: ${MigrationDate}
+ * - Base pattern: Base${AdapterType}Adapter
+ * - Custom extensions: ${CustomExtensions}
+ */
+public class ${ProjectName}${AdapterType}Adapter 
+    extends Base${AdapterType}Adapter<${DomainType}>
+    implements ${PortName} {
+    
+    @Override
+    protected Class<${DomainType}> get${DomainType}Class() {
+        return ${DomainType}.class;
+    }
+    
+    // Project-specific customizations
+    ${ProjectSpecificMethods}
+    
+    @Override
+    public Class<${PortName}> adapts() {
+        return ${PortName}.class;
+    }
+}
+#+END_SRC
+
+** Migration Completion Checklist
+
+#+BEGIN_SRC
+Adapter: _____________________
+Migration Date: ______________
+
+Pre-Migration:
+□ Adapter assessment completed
+□ Migration strategy selected
+□ Dependencies analyzed
+□ Test plan created
+□ Performance baseline established
+
+Implementation:
+□ Base infrastructure dependency added
+□ New adapter implementation created
+□ Project-specific extensions implemented
+□ Dependency injection updated
+□ Tests migrated and enhanced
+
+Validation:
+□ Functionality tests pass
+□ Integration tests pass
+□ Performance validation completed
+□ Code review completed
+□ Documentation updated
+
+Post-Migration:
+□ Old adapter code removed
+□ Dependencies cleaned up
+□ Migration notes documented
+□ Team notification sent
+□ Monitoring alerts updated
+
+Migration Success Criteria Met:
+□ No functionality regression
+□ Performance within acceptable range
+□ Code complexity reduced
+□ Test coverage maintained/improved
+□ Documentation complete
+#+END_SRC
+
+* Troubleshooting Guide
+
+** Common Issues and Solutions
+
+*** Issue: ClassNotFoundException for Base Infrastructure Classes
+
+*Solution*: Verify java-commons-infrastructure dependency is correctly added and version is compatible.
+
+*** Issue: Configuration Format Incompatibility
+
+*Solution*: Implement configuration transformation layer or extend base configuration sources.
+
+*** Issue: Performance Degradation
+
+*Solution*: Profile application, identify bottlenecks, consider custom optimizations or caching strategies.
+
+*** Issue: Test Failures After Migration
+
+*Solution*: Check mock configuration, verify test data compatibility, update assertions for new behavior.
+
+*** Issue: Integration Problems with Existing Code
+
+*Solution*: Verify port interfaces match, check dependency injection configuration, validate adapter registration.
+
+** Support and Resources
+
+- Technical Specification: `specs/technical-specs/infrastructure-patterns-guide.org`
+- Base Infrastructure Documentation: `java-commons-infrastructure/README.org`
+- Migration Examples: `examples/adapter-migrations/`
+- Community Support: ByteHot Discussions Forum
+- Issue Tracking: ByteHot GitHub Issues
+
+* Conclusion
+
+This migration guide provides a comprehensive approach to adopting `java-commons-infrastructure` patterns in existing projects. The four-phase migration process ensures systematic, low-risk transitions while maximizing the benefits of reusable infrastructure components.
+
+Key success factors:
+- Thorough assessment and planning
+- Incremental migration approach
+- Comprehensive validation at each step
+- Continuous monitoring and adjustment
+- Clear documentation and communication
+
+By following this guide, teams can successfully migrate their infrastructure adapters to leverage common patterns, reduce maintenance overhead, and accelerate future development.
