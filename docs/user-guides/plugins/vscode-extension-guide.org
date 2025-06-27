@@ -1,0 +1,749 @@
+#+TITLE: ByteHot VS Code Extension User Guide
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-27
+
+* Overview
+
+The ByteHot VS Code Extension brings hot-swapping capabilities to Visual Studio Code for Java development. This extension integrates with the Java Extension Pack and provides real-time bytecode updates with a modern, user-friendly interface.
+
+** Key Features
+
+- Seamless integration with VS Code's Java support
+- Interactive status bar with hot-swap indicators
+- Command palette integration for all ByteHot operations
+- Real-time notifications and output panel logging
+- Workspace and folder-level configuration
+- Multi-root workspace support
+- Integration with VS Code's task system
+
+* Installation
+
+** Prerequisites
+
+- Visual Studio Code 1.80.0 or higher
+- Java Extension Pack (Microsoft)
+- Java 17 or higher
+- ByteHot agent JAR file
+
+** Installation Methods
+
+*** Method 1: VS Code Marketplace
+
+1. Open VS Code
+2. Open Extensions view (Ctrl+Shift+X / Cmd+Shift+X)
+3. Search for "ByteHot"
+4. Click =Install= on the ByteHot extension
+5. Reload VS Code when prompted
+
+*** Method 2: Command Line
+
+#+BEGIN_SRC bash
+code --install-extension acmsl.bytehot
+#+END_SRC
+
+*** Method 3: VSIX Package
+
+1. Download the .vsix file from [[https://github.com/rydnr/bytehot/releases][ByteHot Releases]]
+2. Open VS Code
+3. Open Command Palette (Ctrl+Shift+P / Cmd+Shift+P)
+4. Run =Extensions: Install from VSIX=
+5. Select the downloaded .vsix file
+
+** Initial Setup
+
+After installation, you'll see:
+- ByteHot status in the status bar
+- ByteHot commands in Command Palette
+- New configuration options in settings
+
+* Getting Started
+
+** Quick Start Tutorial
+
+1. **Open a Java project**:
+   #+BEGIN_SRC bash
+   mkdir bytehot-demo
+   cd bytehot-demo
+   code .
+   #+END_SRC
+
+2. **Create a simple Java file**:
+   #+BEGIN_SRC java
+   // HelloWorld.java
+   public class HelloWorld {
+       public static void main(String[] args) {
+           HelloWorld hello = new HelloWorld();
+           while (true) {
+               System.out.println(hello.getMessage());
+               try {
+                   Thread.sleep(2000);
+               } catch (InterruptedException e) {
+                   break;
+               }
+           }
+       }
+       
+       public String getMessage() {
+           return "Hello, World!";
+       }
+   }
+   #+END_SRC
+
+3. **Configure launch with ByteHot agent**:
+   Create =.vscode/launch.json=:
+   #+BEGIN_SRC json
+   {
+       "version": "0.2.0",
+       "configurations": [
+           {
+               "type": "java",
+               "name": "HelloWorld with ByteHot",
+               "request": "launch",
+               "mainClass": "HelloWorld",
+               "vmArgs": "-javaagent:path/to/bytehot-agent.jar"
+           }
+       ]
+   }
+   #+END_SRC
+
+4. **Start the application**:
+   - Press F5 or click "Run and Debug"
+   - Select "HelloWorld with ByteHot"
+   - Application starts with ByteHot agent
+
+5. **Connect ByteHot extension**:
+   - Click the ByteHot icon in status bar
+   - Or use Command Palette: =ByteHot: Connect to Agent=
+   - Status should show "Connected"
+
+6. **Make a change and watch the magic**:
+   #+BEGIN_SRC java
+   public String getMessage() {
+       return "Hello, ByteHot!"; // Change this line
+   }
+   #+END_SRC
+   - Save the file (Ctrl+S / Cmd+S)
+   - Watch the console output change immediately!
+
+* User Interface
+
+** Status Bar Integration
+
+The ByteHot status bar item (bottom of VS Code) shows:
+
+- **🔗 Connected**: Agent connected and monitoring
+- **🔌 Disconnected**: No agent connection
+- **⚠️ Error**: Connection or hot-swap error
+- **📡 Monitoring**: File watching active
+- **🔄 Hot-swapping**: Currently performing hot-swap
+
+Click the status bar item for quick actions:
+- Connect/Disconnect
+- Start/Stop monitoring
+- Open ByteHot settings
+- View logs
+
+** Command Palette
+
+Access all ByteHot commands via Ctrl+Shift+P / Cmd+Shift+P:
+
+- =ByteHot: Connect to Agent= - Connect to running agent
+- =ByteHot: Disconnect from Agent= - Disconnect from agent
+- =ByteHot: Start Monitoring= - Begin file monitoring
+- =ByteHot: Stop Monitoring= - Stop file monitoring
+- =ByteHot: Hot-swap Current File= - Manual hot-swap for active file
+- =ByteHot: Hot-swap All Changed Files= - Hot-swap all modified files
+- =ByteHot: Show Logs= - Open ByteHot output panel
+- =ByteHot: Open Settings= - Open extension settings
+- =ByteHot: Restart Agent Connection= - Reconnect to agent
+
+** Output Panel
+
+View ByteHot logs and activity:
+
+1. Open =View → Output=
+2. Select "ByteHot" from the dropdown
+3. View real-time hot-swap operations, errors, and debug info
+
+** Notifications
+
+ByteHot shows notifications for:
+- Successful hot-swaps
+- Hot-swap errors
+- Connection status changes
+- Configuration issues
+
+Configure notification behavior in settings.
+
+* Configuration
+
+** User Settings
+
+Configure ByteHot globally via =File → Preferences → Settings= (or Code → Preferences on macOS):
+
+*** Connection Settings
+#+BEGIN_SRC json
+{
+    "bytehot.agent.host": "localhost",
+    "bytehot.agent.port": 8080,
+    "bytehot.agent.timeout": 5000,
+    "bytehot.agent.retryAttempts": 3,
+    "bytehot.agent.autoConnect": true
+}
+#+END_SRC
+
+*** Monitoring Settings
+#+BEGIN_SRC json
+{
+    "bytehot.monitoring.autoStart": true,
+    "bytehot.monitoring.watchPaths": ["src/main/java"],
+    "bytehot.monitoring.includePatterns": ["**/*.java"],
+    "bytehot.monitoring.excludePatterns": ["**/test/**", "**/build/**"],
+    "bytehot.monitoring.watchInterval": 1000
+}
+#+END_SRC
+
+*** Compilation Settings
+#+BEGIN_SRC json
+{
+    "bytehot.compilation.autoCompile": true,
+    "bytehot.compilation.compileOnSave": true,
+    "bytehot.compilation.useLanguageServer": true,
+    "bytehot.compilation.parallelCompilation": true
+}
+#+END_SRC
+
+*** UI Settings
+#+BEGIN_SRC json
+{
+    "bytehot.ui.showStatusBar": true,
+    "bytehot.ui.showNotifications": true,
+    "bytehot.ui.notificationDuration": 3000,
+    "bytehot.ui.enableSounds": false,
+    "bytehot.ui.logLevel": "info"
+}
+#+END_SRC
+
+** Workspace Settings
+
+Configure per-workspace via =.vscode/settings.json=:
+
+#+BEGIN_SRC json
+{
+    "bytehot.agent.port": 8080,
+    "bytehot.monitoring.watchPaths": [
+        "src/main/java",
+        "src/main/resources"
+    ],
+    "bytehot.monitoring.includePatterns": [
+        "**/*.java",
+        "**/*.properties",
+        "**/*.yml"
+    ],
+    "bytehot.monitoring.excludePatterns": [
+        "**/test/**",
+        "**/target/**",
+        "**/build/**"
+    ],
+    "bytehot.hotswap.strategy": "incremental",
+    "bytehot.hotswap.conditions": {
+        "**/controller/**/*.java": "context-refresh",
+        "**/service/**/*.java": "hot-swap",
+        "**/entity/**/*.java": "full-restart"
+    }
+}
+#+END_SRC
+
+** Project Configuration
+
+Create =.bytehot/config.json= in project root for project-specific settings:
+
+#+BEGIN_SRC json
+{
+    "agent": {
+        "host": "localhost",
+        "port": 8080,
+        "autoStart": false
+    },
+    "monitoring": {
+        "watchPaths": ["src/main/java", "src/main/kotlin"],
+        "filePatterns": {
+            "include": ["**/*.java", "**/*.kt"],
+            "exclude": ["**/test/**", "**/build/**"]
+        },
+        "watchInterval": 500
+    },
+    "hotswap": {
+        "strategy": "aggressive",
+        "rules": [
+            {
+                "pattern": "**/controller/**",
+                "action": "context-refresh"
+            },
+            {
+                "pattern": "**/config/**",
+                "action": "full-restart"
+            }
+        ]
+    },
+    "build": {
+        "autoCompile": true,
+        "compileOnSave": true,
+        "parallelCompilation": true
+    }
+}
+#+END_SRC
+
+* Usage Scenarios
+
+** Spring Boot Development
+
+For Spring Boot applications:
+
+1. **Configure launch.json**:
+   #+BEGIN_SRC json
+   {
+       "type": "java",
+       "name": "Spring Boot with ByteHot",
+       "request": "launch",
+       "mainClass": "com.example.Application",
+       "vmArgs": [
+           "-javaagent:bytehot-agent.jar",
+           "-Dspring.devtools.restart.enabled=false"
+       ],
+       "env": {
+           "SPRING_PROFILES_ACTIVE": "dev"
+       }
+   }
+   #+END_SRC
+
+2. **Configure settings.json**:
+   #+BEGIN_SRC json
+   {
+       "bytehot.monitoring.watchPaths": [
+           "src/main/java",
+           "src/main/resources"
+       ],
+       "bytehot.monitoring.includePatterns": [
+           "**/*.java",
+           "**/*.properties",
+           "**/*.yml",
+           "**/*.html",
+           "**/*.js"
+       ],
+       "bytehot.hotswap.conditions": {
+           "**/controller/**/*.java": "context-refresh",
+           "**/service/**/*.java": "hot-swap",
+           "**/config/**/*.java": "full-restart"
+       }
+   }
+   #+END_SRC
+
+3. **Development workflow**:
+   - Start application with F5
+   - Edit controllers, services, or templates
+   - Changes appear immediately in browser
+   - No need to restart server
+
+** Microservices Development
+
+For multiple microservices:
+
+1. **Multi-root workspace setup**:
+   Create =workspace.code-workspace=:
+   #+BEGIN_SRC json
+   {
+       "folders": [
+           {"path": "./user-service"},
+           {"path": "./order-service"},
+           {"path": "./payment-service"}
+       ],
+       "settings": {
+           "bytehot.agent.multiService": true,
+           "bytehot.agent.portRange": [8080, 8090]
+       }
+   }
+   #+END_SRC
+
+2. **Service-specific configuration**:
+   Each service can have its own =.bytehot/config.json= with different ports
+
+3. **Compound launch configuration**:
+   #+BEGIN_SRC json
+   {
+       "version": "0.2.0",
+       "configurations": [
+           {
+               "name": "User Service",
+               "type": "java",
+               "request": "launch",
+               "mainClass": "com.example.UserService",
+               "vmArgs": "-javaagent:bytehot-agent.jar",
+               "env": {"SERVER_PORT": "8081"}
+           },
+           {
+               "name": "Order Service", 
+               "type": "java",
+               "request": "launch",
+               "mainClass": "com.example.OrderService",
+               "vmArgs": "-javaagent:bytehot-agent.jar",
+               "env": {"SERVER_PORT": "8082"}
+           }
+       ],
+       "compounds": [
+           {
+               "name": "All Services",
+               "configurations": ["User Service", "Order Service"]
+           }
+       ]
+   }
+   #+END_SRC
+
+** Maven/Gradle Projects
+
+*** Maven Integration
+
+1. **Configure tasks.json**:
+   #+BEGIN_SRC json
+   {
+       "version": "2.0.0",
+       "tasks": [
+           {
+               "label": "maven-compile-with-bytehot",
+               "type": "shell",
+               "command": "mvn",
+               "args": ["compile", "exec:java"],
+               "options": {
+                   "env": {
+                       "MAVEN_OPTS": "-javaagent:bytehot-agent.jar"
+                   }
+               },
+               "group": "build",
+               "presentation": {
+                   "echo": true,
+                   "reveal": "always",
+                   "focus": false,
+                   "panel": "shared"
+               }
+           }
+       ]
+   }
+   #+END_SRC
+
+2. **Configure pom.xml**:
+   #+BEGIN_SRC xml
+   <plugin>
+       <groupId>org.codehaus.mojo</groupId>
+       <artifactId>exec-maven-plugin</artifactId>
+       <configuration>
+           <mainClass>com.example.Main</mainClass>
+           <options>
+               <option>-javaagent:bytehot-agent.jar</option>
+           </options>
+       </configuration>
+   </plugin>
+   #+END_SRC
+
+*** Gradle Integration
+
+1. **Configure tasks.json**:
+   #+BEGIN_SRC json
+   {
+       "version": "2.0.0",
+       "tasks": [
+           {
+               "label": "gradle-run-with-bytehot",
+               "type": "shell",
+               "command": "./gradlew",
+               "args": ["run"],
+               "options": {
+                   "env": {
+                       "JAVA_OPTS": "-javaagent:bytehot-agent.jar"
+                   }
+               },
+               "group": "build"
+           }
+       ]
+   }
+   #+END_SRC
+
+2. **Configure build.gradle**:
+   #+BEGIN_SRC groovy
+   application {
+       mainClass = 'com.example.Main'
+       applicationDefaultJvmArgs = ['-javaagent:bytehot-agent.jar']
+   }
+   #+END_SRC
+
+* Advanced Features
+
+** Custom Commands
+
+Create custom commands for common workflows:
+
+1. **Add to keybindings.json**:
+   #+BEGIN_SRC json
+   [
+       {
+           "key": "ctrl+shift+h",
+           "command": "bytehot.hotswapCurrentFile",
+           "when": "editorTextFocus && resourceExtname == '.java'"
+       },
+       {
+           "key": "ctrl+shift+r",
+           "command": "bytehot.restartAgent"
+       }
+   ]
+   #+END_SRC
+
+2. **Create custom tasks** for complex workflows:
+   #+BEGIN_SRC json
+   {
+       "label": "build-and-hotswap",
+       "type": "shell",
+       "command": "mvn",
+       "args": ["compile"],
+       "group": "build",
+       "dependsOrder": "sequence",
+       "dependsOn": "maven-compile-with-bytehot"
+   }
+   #+END_SRC
+
+** Snippets Integration
+
+Create ByteHot-aware code snippets in =.vscode/snippets.json=:
+
+#+BEGIN_SRC json
+{
+    "Hot-swappable method": {
+        "prefix": "hsmethod",
+        "body": [
+            "/**",
+            " * Hot-swappable method - changes will be applied immediately",
+            " */",
+            "public ${1:String} ${2:methodName}(${3:parameters}) {",
+            "    ${4:// Implementation}",
+            "    return ${5:result};",
+            "}"
+        ],
+        "description": "Create a method that supports hot-swapping"
+    }
+}
+#+END_SRC
+
+** Extension API
+
+For extension developers, ByteHot provides an API:
+
+#+BEGIN_SRC javascript
+// Extension code
+const bytehot = vscode.extensions.getExtension('acmsl.bytehot');
+if (bytehot && bytehot.isActive) {
+    const api = bytehot.exports;
+    
+    // Listen to hot-swap events
+    api.onHotSwapSuccess((event) => {
+        console.log('Hot-swap successful:', event.fileName);
+    });
+    
+    // Trigger hot-swap programmatically
+    api.triggerHotSwap(['src/main/java/MyClass.java']);
+    
+    // Get connection status
+    const status = api.getConnectionStatus();
+}
+#+END_SRC
+
+** Remote Development
+
+For remote development with SSH or containers:
+
+1. **SSH Remote Development**:
+   - Install "Remote - SSH" extension
+   - Connect to remote server
+   - Install ByteHot extension on remote
+   - Configure agent connection to remote host
+
+2. **Container Development**:
+   - Use "Remote - Containers" extension
+   - Configure =.devcontainer/devcontainer.json=:
+   #+BEGIN_SRC json
+   {
+       "image": "openjdk:17",
+       "extensions": ["acmsl.bytehot"],
+       "forwardPorts": [8080],
+       "postCreateCommand": "wget -O bytehot-agent.jar https://releases.bytehot.org/agent.jar"
+   }
+   #+END_SRC
+
+* Troubleshooting
+
+** Common Issues
+
+*** Extension Not Loading
+
+*Problem*: ByteHot extension doesn't appear in VS Code
+
+*Solutions*:
+1. Check VS Code version (1.80.0+)
+2. Verify Java Extension Pack is installed
+3. Check =Help → Toggle Developer Tools → Console= for errors
+4. Disable and re-enable the extension
+5. Reload VS Code window (Ctrl+Shift+P → "Developer: Reload Window")
+
+*** Java Language Server Issues
+
+*Problem*: Hot-swap not working with Java compilation
+
+*Solutions*:
+1. **Check Java Language Server status**:
+   - Open Command Palette
+   - Run =Java: Rebuild Projects=
+
+2. **Verify Java runtime**:
+   - Check =File → Preferences → Settings → Java=
+   - Ensure =java.configuration.runtimes= is configured
+
+3. **Clear workspace cache**:
+   - Close VS Code
+   - Delete =.vscode= folder
+   - Reopen project
+
+*** Agent Connection Problems
+
+*Problem*: Cannot connect to ByteHot agent
+
+*Solutions*:
+1. **Verify agent is running**:
+   #+BEGIN_SRC bash
+   curl http://localhost:8080/health
+   #+END_SRC
+
+2. **Check firewall/proxy**:
+   - Ensure port 8080 is accessible
+   - Check corporate proxy settings
+
+3. **Debug connection**:
+   - Open ByteHot output panel
+   - Look for connection error details
+   - Try different ports
+
+*** File Watching Issues
+
+*Problem*: Changes not detected automatically
+
+*Solutions*:
+1. **Check file watcher limits** (Linux/macOS):
+   #+BEGIN_SRC bash
+   # Increase inotify limits
+   echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+   sudo sysctl -p
+   #+END_SRC
+
+2. **Verify file patterns**:
+   - Check include/exclude patterns in settings
+   - Ensure files are in monitored directories
+
+3. **Manual hot-swap**:
+   - Use Command Palette: =ByteHot: Hot-swap Current File=
+
+** Debug Mode
+
+Enable detailed logging:
+
+1. **Settings configuration**:
+   #+BEGIN_SRC json
+   {
+       "bytehot.ui.logLevel": "debug",
+       "bytehot.debug.enabled": true,
+       "bytehot.debug.verbose": true
+   }
+   #+END_SRC
+
+2. **Developer Tools**:
+   - =Help → Toggle Developer Tools=
+   - Check Console for detailed logs
+
+3. **Output panel**:
+   - =View → Output → ByteHot=
+   - Monitor real-time debug information
+
+** Performance Issues
+
+*Problem*: VS Code becomes slow with ByteHot
+
+*Solutions*:
+1. **Reduce monitoring scope**:
+   #+BEGIN_SRC json
+   {
+       "bytehot.monitoring.watchPaths": ["src/main/java"],
+       "bytehot.monitoring.excludePatterns": [
+           "**/node_modules/**",
+           "**/target/**", 
+           "**/build/**",
+           "**/.git/**"
+       ]
+   }
+   #+END_SRC
+
+2. **Adjust watch interval**:
+   #+BEGIN_SRC json
+   {
+       "bytehot.monitoring.watchInterval": 2000
+   }
+   #+END_SRC
+
+3. **Memory optimization**:
+   - Close unused folders in workspace
+   - Disable unused extensions
+   - Restart VS Code periodically
+
+* Best Practices
+
+** Project Setup
+
+1. **Version control**:
+   - Add =.bytehot/= to =.gitignore=
+   - Commit =.vscode/= configuration for team sharing
+   - Document ByteHot setup in README
+
+2. **Team configuration**:
+   - Use workspace settings for shared configuration
+   - Document agent setup procedures
+   - Provide setup scripts for new team members
+
+** Development Workflow
+
+1. **Incremental development**:
+   - Make small, focused changes
+   - Test hot-swapped changes immediately
+   - Use version control for checkpoints
+
+2. **Testing strategy**:
+   - Write tests that work with hot-swap
+   - Use hot-swap for test-driven development
+   - Restart application periodically for full testing
+
+3. **Debugging workflow**:
+   - Use VS Code debugger with ByteHot
+   - Set breakpoints in hot-swapped code
+   - Verify behavior with full restart
+
+** Performance Tips
+
+1. **Scope optimization**:
+   - Monitor only active development directories
+   - Use specific file patterns
+   - Exclude large directories (node_modules, build outputs)
+
+2. **Resource management**:
+   - Close unused workspace folders
+   - Limit number of concurrent hot-swaps
+   - Monitor system resources
+
+3. **Network optimization**:
+   - Use localhost for agent connection
+   - Configure appropriate timeouts
+   - Use compression for remote connections
+
+For more information, see the [[../../technical-specs/plugin-communication-protocol.org][Plugin Communication Protocol]] and [[../../milestone-13-vscode-extension.org][VS Code Extension Specification]].

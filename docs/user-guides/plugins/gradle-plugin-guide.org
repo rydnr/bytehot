@@ -1,0 +1,665 @@
+#+TITLE: ByteHot Gradle Plugin User Guide
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-27
+
+* Overview
+
+The ByteHot Gradle Plugin brings hot-swapping capabilities to your Gradle-based Java projects. This plugin integrates seamlessly with Gradle's build system to provide real-time bytecode updates without application restarts.
+
+** Key Features
+
+- Native Gradle task integration
+- Kotlin DSL and Groovy DSL support
+- Multi-project build support
+- Incremental compilation integration
+- Android project support
+- Build cache compatibility
+
+* Installation
+
+** Prerequisites
+
+- Java 17 or higher
+- Gradle 7.6 or higher
+- A running Java application with ByteHot agent attached
+
+** Using the Plugins Block (Recommended)
+
+Add to your =build.gradle= (Groovy DSL):
+
+#+BEGIN_SRC groovy
+plugins {
+    id 'org.acmsl.bytehot' version 'latest-SNAPSHOT'
+}
+#+END_SRC
+
+Or =build.gradle.kts= (Kotlin DSL):
+
+#+BEGIN_SRC kotlin
+plugins {
+    id("org.acmsl.bytehot") version "latest-SNAPSHOT"
+}
+#+END_SRC
+
+** Legacy Plugin Application
+
+For older Gradle versions, use the legacy syntax:
+
+#+BEGIN_SRC groovy
+buildscript {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.acmsl:bytehot-gradle-plugin:latest-SNAPSHOT'
+    }
+}
+
+apply plugin: 'org.acmsl.bytehot'
+#+END_SRC
+
+* Configuration
+
+** Basic Configuration (Groovy DSL)
+
+#+BEGIN_SRC groovy
+bytehot {
+    // Agent connection settings
+    agentHost = 'localhost'
+    agentPort = 8080
+    
+    // Monitoring configuration
+    watchPaths = ['src/main/java', 'src/main/kotlin', 'src/main/resources']
+    watchInterval = 1000
+    
+    // File patterns
+    includes = ['**/*.java', '**/*.kt', '**/*.class']
+    excludes = ['**/test/**', '**/build/**']
+    
+    // Hot-swap behavior
+    hotSwapEnabled = true
+    autoRecompile = true
+    
+    // Build integration
+    incrementalCompilation = true
+    parallelExecution = true
+}
+#+END_SRC
+
+** Basic Configuration (Kotlin DSL)
+
+#+BEGIN_SRC kotlin
+bytehot {
+    // Agent connection settings
+    agentHost.set("localhost")
+    agentPort.set(8080)
+    
+    // Monitoring configuration
+    watchPaths.set(listOf("src/main/java", "src/main/kotlin", "src/main/resources"))
+    watchInterval.set(1000)
+    
+    // File patterns
+    includes.set(listOf("**/*.java", "**/*.kt", "**/*.class"))
+    excludes.set(listOf("**/test/**", "**/build/**"))
+    
+    // Hot-swap behavior
+    hotSwapEnabled.set(true)
+    autoRecompile.set(true)
+    
+    // Build integration
+    incrementalCompilation.set(true)
+    parallelExecution.set(true)
+}
+#+END_SRC
+
+** Advanced Configuration
+
+#+BEGIN_SRC groovy
+bytehot {
+    // Connection settings
+    agent {
+        host = 'localhost'
+        port = 8080
+        timeout = 5000
+        retryAttempts = 3
+        retryDelay = 1000
+    }
+    
+    // File monitoring
+    fileWatcher {
+        paths = ['src/main/java', 'src/main/kotlin']
+        interval = 500
+        useNativeWatcher = true
+        
+        includes = ['**/*.java', '**/*.kt']
+        excludes = ['**/test/**', '**/*Test*']
+    }
+    
+    // Compilation settings
+    compilation {
+        auto = true
+        incremental = true
+        parallel = true
+        maxWorkers = Runtime.runtime.availableProcessors()
+        
+        // Custom compiler options
+        javaCompilerArgs = ['-parameters', '-Xlint:unchecked']
+        kotlinCompilerArgs = ['-Xjsr305=strict']
+    }
+    
+    // Hot-swap behavior
+    hotSwap {
+        enabled = true
+        strategy = 'incremental' // 'incremental' or 'full'
+        
+        // Conditions for different actions
+        conditions {
+            pattern('**/Controller*.java') {
+                action = 'restart-context'
+            }
+            pattern('**/Service*.java') {
+                action = 'hot-swap'
+            }
+            pattern('**/Entity*.java') {
+                action = 'full-restart'
+            }
+        }
+    }
+    
+    // Build hooks
+    hooks {
+        beforeHotSwap {
+            // Custom logic before hot-swap
+            println "Preparing for hot-swap..."
+        }
+        afterHotSwap { success ->
+            if (success) {
+                println "Hot-swap successful!"
+            } else {
+                println "Hot-swap failed!"
+            }
+        }
+    }
+}
+#+END_SRC
+
+** Configuration Properties
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| =agentHost= | =localhost= | ByteHot agent hostname |
+| =agentPort= | =8080= | ByteHot agent port |
+| =watchPaths= | =[src/main/java]= | Directories to monitor |
+| =watchInterval= | =1000= | File monitoring interval (ms) |
+| =includes= | =[**/*.java, **/*.kt]= | File patterns to include |
+| =excludes= | =[**/test/**]= | File patterns to exclude |
+| =hotSwapEnabled= | =true= | Enable/disable hot-swapping |
+| =autoRecompile= | =true= | Auto-recompile changed files |
+| =incrementalCompilation= | =true= | Use incremental compilation |
+| =parallelExecution= | =true= | Enable parallel processing |
+
+* Usage
+
+** Available Tasks
+
+The ByteHot plugin adds several tasks to your project:
+
+#+BEGIN_SRC bash
+# Start watching for changes
+./gradlew bytehotWatch
+
+# Watch with custom configuration
+./gradlew bytehotWatch --agent-port=9090
+
+# Watch in daemon mode
+./gradlew bytehotWatch --daemon
+
+# Stop watching
+./gradlew bytehotStop
+
+# Check agent connection
+./gradlew bytehotStatus
+
+# Hot-swap specific files
+./gradlew bytehotSwap --files=src/main/java/MyClass.java
+#+END_SRC
+
+** Development Workflow
+
+*** Quick Start
+
+1. **Start your application** with ByteHot agent:
+   #+BEGIN_SRC bash
+   java -javaagent:bytehot-agent.jar -jar build/libs/your-app.jar
+   #+END_SRC
+
+2. **Start Gradle monitoring**:
+   #+BEGIN_SRC bash
+   ./gradlew bytehotWatch
+   #+END_SRC
+
+3. **Edit your source files** - hot-swap happens automatically!
+
+*** IDE Integration
+
+**** IntelliJ IDEA
+Configure Gradle to work with IntelliJ's auto-build:
+
+#+BEGIN_SRC groovy
+bytehot {
+    // Detect IntelliJ builds
+    ideIntegration {
+        intellij {
+            enabled = true
+            autoImport = true
+            buildOnChange = true
+        }
+    }
+}
+#+END_SRC
+
+**** Android Studio
+For Android projects:
+
+#+BEGIN_SRC groovy
+bytehot {
+    android {
+        enabled = true
+        watchVariants = ['debug']
+        instantRun = false // Disable to use ByteHot
+    }
+}
+#+END_SRC
+
+**** VS Code
+Configure for VS Code Java extension:
+
+#+BEGIN_SRC groovy
+bytehot {
+    vscode {
+        enabled = true
+        languageServer = true
+    }
+}
+#+END_SRC
+
+** Multi-Project Builds
+
+For multi-project Gradle builds, configure in the root =build.gradle=:
+
+#+BEGIN_SRC groovy
+// Root build.gradle
+subprojects {
+    apply plugin: 'org.acmsl.bytehot'
+    
+    bytehot {
+        multiProject = true
+        sharedAgent = true
+        agentPort = 8080 + project.name.hashCode() % 100
+    }
+}
+
+// Or configure specific projects
+project(':app') {
+    bytehot {
+        agentPort = 8080
+    }
+}
+
+project(':lib') {
+    bytehot {
+        agentPort = 8081
+    }
+}
+#+END_SRC
+
+Run monitoring for all projects:
+#+BEGIN_SRC bash
+./gradlew bytehotWatchAll
+#+END_SRC
+
+** Kotlin Support
+
+ByteHot fully supports Kotlin projects:
+
+#+BEGIN_SRC kotlin
+// build.gradle.kts
+bytehot {
+    kotlin {
+        enabled.set(true)
+        
+        // Kotlin-specific settings
+        watchKotlinFiles.set(true)
+        compileKotlin.set(true)
+        
+        // Kotlin compiler options
+        kotlinOptions {
+            jvmTarget = "17"
+            freeCompilerArgs = listOf("-Xjsr305=strict")
+        }
+    }
+}
+#+END_SRC
+
+* Advanced Usage
+
+** Custom Tasks
+
+Create custom tasks that integrate with ByteHot:
+
+#+BEGIN_SRC groovy
+task myCustomHotSwap(type: org.acmsl.bytehot.gradle.tasks.HotSwapTask) {
+    description = 'Custom hot-swap with preprocessing'
+    
+    doFirst {
+        // Pre-processing logic
+        println "Running custom preprocessing..."
+    }
+    
+    // Configure specific files
+    sourceFiles = fileTree('src/main/java') {
+        include '**/*Service.java'
+    }
+    
+    doLast {
+        // Post-processing logic
+        println "Custom hot-swap completed!"
+    }
+}
+#+END_SRC
+
+** Build Cache Integration
+
+ByteHot works with Gradle's build cache:
+
+#+BEGIN_SRC groovy
+bytehot {
+    buildCache {
+        enabled = true
+        // Cache hot-swap artifacts
+        cacheHotSwapArtifacts = true
+        // Use local cache for faster rebuilds
+        useLocalCache = true
+    }
+}
+#+END_SRC
+
+** Composite Builds
+
+For composite builds with included builds:
+
+#+BEGIN_SRC groovy
+// settings.gradle
+includeBuild '../shared-library'
+
+// build.gradle
+bytehot {
+    compositeBuild {
+        enabled = true
+        // Watch included builds
+        watchIncludedBuilds = true
+        // Share agent across builds
+        sharedAgent = true
+    }
+}
+#+END_SRC
+
+** Docker Integration
+
+Dockerfile for containerized development:
+
+#+BEGIN_SRC dockerfile
+FROM gradle:7.6-jdk17 AS builder
+WORKDIR /app
+COPY . .
+RUN gradle build --no-daemon
+
+FROM openjdk:17-jdk
+COPY --from=builder /app/build/libs/app.jar /app/
+COPY --from=builder /app/build/libs/bytehot-agent.jar /app/
+WORKDIR /app
+EXPOSE 8080
+CMD ["java", "-javaagent:bytehot-agent.jar", "-jar", "app.jar"]
+#+END_SRC
+
+Docker Compose for development:
+
+#+BEGIN_SRC yaml
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./src:/workspace/src:ro
+      - ./build:/workspace/build
+    environment:
+      - BYTEHOT_WATCH_ENABLED=true
+      
+  gradle-watch:
+    image: gradle:7.6-jdk17
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: ["gradle", "bytehotWatch", "--continuous"]
+    depends_on:
+      - app
+#+END_SRC
+
+* Spring Boot Integration
+
+Special configuration for Spring Boot projects:
+
+#+BEGIN_SRC groovy
+bytehot {
+    springBoot {
+        enabled = true
+        devtools = false // Disable Spring Boot DevTools
+        
+        // Spring-specific patterns
+        watchPatterns = [
+            '**/controller/**/*.java',
+            '**/service/**/*.java',
+            '**/config/**/*.java',
+            '**/component/**/*.java'
+        ]
+        
+        // Spring context refresh
+        contextRefresh {
+            enabled = true
+            patterns = ['**/config/**/*.java']
+        }
+    }
+}
+#+END_SRC
+
+Run Spring Boot with ByteHot:
+#+BEGIN_SRC bash
+./gradlew bootRun -Dspring.devtools.restart.enabled=false
+#+END_SRC
+
+* Android Support
+
+For Android projects using ByteHot:
+
+#+BEGIN_SRC groovy
+android {
+    compileSdk 34
+    
+    buildTypes {
+        debug {
+            debuggable true
+            // Enable ByteHot for debug builds
+            buildConfigField "boolean", "BYTEHOT_ENABLED", "true"
+        }
+    }
+}
+
+bytehot {
+    android {
+        enabled = true
+        
+        // Android-specific settings
+        watchVariants = ['debug']
+        dexEnabled = true
+        
+        // ADB integration
+        adb {
+            enabled = true
+            deviceId = 'auto' // or specific device ID
+            pushAgent = true
+        }
+        
+        // Watch Android-specific directories
+        watchPaths = [
+            'src/main/java',
+            'src/debug/java',
+            'src/main/res'
+        ]
+    }
+}
+#+END_SRC
+
+* Troubleshooting
+
+** Common Issues
+
+*** Task Not Found
+
+*Problem*: =Task 'bytehotWatch' not found=
+
+*Solutions*:
+1. Verify plugin is applied:
+   #+BEGIN_SRC bash
+   ./gradlew tasks --all | grep bytehot
+   #+END_SRC
+
+2. Check plugin version:
+   #+BEGIN_SRC groovy
+   plugins {
+       id 'org.acmsl.bytehot' version 'latest-SNAPSHOT'
+   }
+   #+END_SRC
+
+3. Refresh Gradle project:
+   #+BEGIN_SRC bash
+   ./gradlew --refresh-dependencies
+   #+END_SRC
+
+*** Agent Connection Failed
+
+*Problem*: Cannot connect to ByteHot agent
+
+*Solutions*:
+1. Check agent status:
+   #+BEGIN_SRC bash
+   ./gradlew bytehotStatus
+   #+END_SRC
+
+2. Verify agent is running:
+   #+BEGIN_SRC bash
+   curl http://localhost:8080/health
+   #+END_SRC
+
+3. Check configuration:
+   #+BEGIN_SRC groovy
+   bytehot {
+       agentHost = 'localhost'
+       agentPort = 8080
+   }
+   #+END_SRC
+
+*** Incremental Compilation Issues
+
+*Problem*: Changes not detected or compilation fails
+
+*Solutions*:
+1. Clean and rebuild:
+   #+BEGIN_SRC bash
+   ./gradlew clean build
+   #+END_SRC
+
+2. Disable incremental compilation temporarily:
+   #+BEGIN_SRC groovy
+   bytehot {
+       incrementalCompilation = false
+   }
+   #+END_SRC
+
+3. Check file permissions:
+   #+BEGIN_SRC bash
+   ls -la src/main/java/
+   #+END_SRC
+
+** Debug Mode
+
+Enable debug logging:
+
+#+BEGIN_SRC bash
+./gradlew bytehotWatch --debug --info
+#+END_SRC
+
+Or in =gradle.properties=:
+#+BEGIN_SRC properties
+org.gradle.logging.level=debug
+bytehot.debug=true
+#+END_SRC
+
+** Performance Optimization
+
+For large projects:
+
+#+BEGIN_SRC groovy
+bytehot {
+    performance {
+        // Reduce file system overhead
+        watchInterval = 2000
+        useNativeWatcher = true
+        
+        // Limit scope
+        watchPaths = ['src/main/java/com/yourpackage']
+        
+        // Parallel processing
+        parallelExecution = true
+        maxWorkers = 8
+        
+        // Build cache
+        buildCache.enabled = true
+    }
+}
+#+END_SRC
+
+* Best Practices
+
+** Project Setup
+
+1. **Use specific watch paths** - monitor only relevant directories
+2. **Configure appropriate excludes** - skip test and build directories
+3. **Enable incremental compilation** - faster rebuild times
+4. **Use build profiles** - different configurations for dev/prod
+
+** Development Workflow
+
+1. **Start with clean build** - ensure consistent state
+2. **Use daemon mode** - faster Gradle startup
+3. **Monitor console output** - watch for hot-swap notifications
+4. **Test incrementally** - verify changes work before major modifications
+
+** Performance Tips
+
+1. **Use SSD storage** - faster file I/O operations
+2. **Increase JVM heap** - handle large projects better
+3. **Use parallel execution** - leverage multi-core systems
+4. **Configure build cache** - reuse compilation artifacts
+
+Example =gradle.properties= for performance:
+#+BEGIN_SRC properties
+org.gradle.daemon=true
+org.gradle.parallel=true
+org.gradle.caching=true
+org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g
+#+END_SRC
+
+For more information, see the [[../../technical-specs/plugin-communication-protocol.org][Plugin Communication Protocol]] and [[../../milestone-10-gradle-plugin.org][Gradle Plugin Specification]].
