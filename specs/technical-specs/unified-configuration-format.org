@@ -1,0 +1,1171 @@
+#+TITLE: Technical Specification: Unified Configuration Format
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This technical specification defines the unified configuration format that enables consistent configuration management across all ByteHot plugins while respecting the conventions and patterns of each development tool. The configuration system provides a flexible, hierarchical approach that allows tool-specific customization while maintaining a common core configuration model.
+
+** Design Principles
+
+- **Consistency**: Common configuration structure across all plugins
+- **Flexibility**: Tool-specific extensions and customizations
+- **Inheritance**: Hierarchical configuration with override capabilities
+- **Validation**: Comprehensive validation with clear error messages
+- **Convenience**: Zero-configuration defaults with optional fine-tuning
+- **Extensibility**: Plugin-specific configuration sections
+
+* Configuration Architecture
+
+** Hierarchical Configuration System
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│              Configuration Hierarchy               │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Global Defaults                       │
+│  • Built-in sensible defaults for all settings    │
+│  • Platform-specific defaults                     │
+│  • JVM version-specific defaults                  │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              User Global Configuration             │
+│  ~/.bytehot/config.json                           │
+│  • User-wide preferences and defaults             │
+│  • Custom agent discovery paths                   │
+│  • Global performance settings                    │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Project Configuration                 │
+│  .bytehot/config.json                             │
+│  • Project-specific settings                      │
+│  • Custom classpath configurations                │
+│  • Project-wide exclusion patterns               │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Tool-Specific Configuration          │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Maven: pom.xml <plugin><configuration>        │ │
+│  │  Gradle: build.gradle bytehot { }              │ │
+│  │  IntelliJ: .idea/bytehot.xml                   │ │
+│  │  Eclipse: .metadata/.plugins/bytehot.prefs     │ │
+│  │  VS Code: .vscode/bytehot.json                 │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Runtime Configuration                 │
+│  • System properties (-Dbytehot.*)                │
+│  • Environment variables (BYTEHOT_*)              │
+│  • Command-line arguments                         │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Configuration Merge Strategy
+
+Configuration sources are merged in priority order (higher priority overrides lower):
+
+1. **Runtime Configuration** (highest priority): System properties, environment variables
+2. **Tool-Specific Configuration**: Plugin-specific settings in build files or IDE settings
+3. **Project Configuration**: `.bytehot/config.json` in project root
+4. **User Global Configuration**: `~/.bytehot/config.json`
+5. **Global Defaults** (lowest priority): Built-in defaults
+
+* Core Configuration Schema
+
+** Base Configuration Structure
+
+#+BEGIN_SRC json
+{
+  "$schema": "https://bytehot.org/schemas/config/v1.0.json",
+  "version": "1.0",
+  "extends": ["base", "java11"],
+  "agent": {
+    "discovery": {
+      "strategies": ["system-property", "maven-repository", "gradle-cache"],
+      "custom_paths": ["/opt/bytehot/agent.jar"],
+      "cache_ttl_ms": 300000,
+      "timeout_ms": 30000
+    },
+    "validation": {
+      "strict_mode": true,
+      "verify_signature": false,
+      "minimum_version": "1.0.0",
+      "allowed_versions": ["1.0.0", "1.1.0"]
+    }
+  },
+  "live_mode": {
+    "auto_start": false,
+    "hot_swap": {
+      "strategy": "aggressive",
+      "validation_level": "strict",
+      "batch_changes": true,
+      "max_batch_size": 10,
+      "batch_timeout_ms": 500
+    },
+    "file_monitoring": {
+      "enabled": true,
+      "watch_patterns": ["**/*.java", "**/*.class"],
+      "exclude_patterns": ["**/*Test.java", "**/package-info.java"],
+      "polling_interval_ms": 1000,
+      "debounce_delay_ms": 250
+    },
+    "performance": {
+      "max_memory_mb": 512,
+      "gc_frequency": "normal",
+      "optimization_level": "balanced"
+    }
+  },
+  "project": {
+    "analysis": {
+      "auto_detect_main_class": true,
+      "main_class": "com.example.Application",
+      "source_directories": ["src/main/java"],
+      "resource_directories": ["src/main/resources"],
+      "test_directories": ["src/test/java"],
+      "output_directory": "target/classes"
+    },
+    "classpath": {
+      "include_dependencies": true,
+      "include_test_dependencies": false,
+      "custom_entries": ["/custom/lib/my-library.jar"],
+      "exclude_patterns": ["**/slf4j-simple-*.jar"]
+    },
+    "jvm": {
+      "arguments": ["-Xmx1g", "-Dspring.profiles.active=dev"],
+      "system_properties": {
+        "app.environment": "development",
+        "logging.level.root": "INFO"
+      },
+      "environment_variables": {
+        "DATABASE_URL": "jdbc:h2:mem:testdb"
+      }
+    }
+  },
+  "communication": {
+    "protocol": {
+      "preferred_channels": ["socket", "http"],
+      "socket": {
+        "path_pattern": "/tmp/bytehot-{pid}.sock",
+        "permissions": "0600"
+      },
+      "http": {
+        "port": 8765,
+        "host": "localhost",
+        "tls": {
+          "enabled": false,
+          "cert_path": null,
+          "key_path": null
+        }
+      },
+      "timeouts": {
+        "connection_timeout_ms": 5000,
+        "read_timeout_ms": 30000,
+        "write_timeout_ms": 10000
+      },
+      "retry_policy": {
+        "max_attempts": 3,
+        "base_delay_ms": 100,
+        "backoff_strategy": "exponential"
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "file": {
+      "enabled": true,
+      "path": ".bytehot/logs/bytehot.log",
+      "max_size_mb": 10,
+      "max_files": 5
+    },
+    "console": {
+      "enabled": true,
+      "format": "simple"
+    },
+    "categories": {
+      "agent.discovery": "DEBUG",
+      "communication.protocol": "INFO",
+      "hot_swap.operations": "DEBUG"
+    }
+  },
+  "security": {
+    "agent_verification": {
+      "verify_manifest": true,
+      "verify_signature": false,
+      "trusted_issuers": []
+    },
+    "communication": {
+      "authentication_required": false,
+      "encryption_required": false,
+      "allowed_hosts": ["localhost", "127.0.0.1"]
+    }
+  },
+  "debugging": {
+    "enable_debug_output": false,
+    "save_debug_artifacts": false,
+    "debug_output_directory": ".bytehot/debug",
+    "performance_profiling": false,
+    "memory_monitoring": false
+  },
+  "plugins": {
+    "discovery": {
+      "scan_classpath": true,
+      "custom_plugin_paths": [],
+      "auto_enable": true
+    },
+    "configuration": {
+      "validate_on_load": true,
+      "fail_on_validation_error": false
+    }
+  }
+}
+#+END_SRC
+
+** Configuration Schema Definitions
+
+#+BEGIN_SRC typescript
+// TypeScript definitions for better IDE support and validation
+
+interface ByteHotConfiguration {
+  $schema?: string;
+  version: string;
+  extends?: string[];
+  agent: AgentConfiguration;
+  live_mode: LiveModeConfiguration;
+  project: ProjectConfiguration;
+  communication: CommunicationConfiguration;
+  logging: LoggingConfiguration;
+  security: SecurityConfiguration;
+  debugging: DebuggingConfiguration;
+  plugins: PluginsConfiguration;
+}
+
+interface AgentConfiguration {
+  discovery: AgentDiscoveryConfiguration;
+  validation: AgentValidationConfiguration;
+}
+
+interface AgentDiscoveryConfiguration {
+  strategies: string[];
+  custom_paths: string[];
+  cache_ttl_ms: number;
+  timeout_ms: number;
+}
+
+interface AgentValidationConfiguration {
+  strict_mode: boolean;
+  verify_signature: boolean;
+  minimum_version: string;
+  allowed_versions: string[];
+}
+
+interface LiveModeConfiguration {
+  auto_start: boolean;
+  hot_swap: HotSwapConfiguration;
+  file_monitoring: FileMonitoringConfiguration;
+  performance: PerformanceConfiguration;
+}
+
+interface HotSwapConfiguration {
+  strategy: "aggressive" | "conservative";
+  validation_level: "strict" | "permissive";
+  batch_changes: boolean;
+  max_batch_size: number;
+  batch_timeout_ms: number;
+}
+
+interface FileMonitoringConfiguration {
+  enabled: boolean;
+  watch_patterns: string[];
+  exclude_patterns: string[];
+  polling_interval_ms: number;
+  debounce_delay_ms: number;
+}
+
+interface ProjectConfiguration {
+  analysis: ProjectAnalysisConfiguration;
+  classpath: ClasspathConfiguration;
+  jvm: JvmConfiguration;
+}
+
+interface CommunicationConfiguration {
+  protocol: ProtocolConfiguration;
+}
+#+END_SRC
+
+* Tool-Specific Configuration Adapters
+
+** Maven Plugin Configuration
+
+#+BEGIN_SRC xml
+<!-- Maven pom.xml configuration -->
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <version>1.0.0</version>
+  <configuration>
+    <!-- Simplified Maven-specific configuration -->
+    <autoStart>false</autoStart>
+    <mainClass>com.example.Application</mainClass>
+    <jvmArgs>
+      <arg>-Xmx1g</arg>
+      <arg>-Dspring.profiles.active=dev</arg>
+    </jvmArgs>
+    <watchIncludes>
+      <include>**/*.java</include>
+      <include>**/*.properties</include>
+    </watchIncludes>
+    <watchExcludes>
+      <exclude>**/*Test.java</exclude>
+    </watchExcludes>
+    <hotSwapStrategy>aggressive</hotSwapStrategy>
+    <debugOutput>false</debugOutput>
+    
+    <!-- Advanced configuration (maps to unified format) -->
+    <bytehotConfig>
+      <configFile>.bytehot/maven-config.json</configFile>
+      <overrides>
+        <live_mode.performance.max_memory_mb>1024</live_mode.performance.max_memory_mb>
+        <logging.level>DEBUG</logging.level>
+      </overrides>
+    </bytehotConfig>
+  </configuration>
+</plugin>
+#+END_SRC
+
+#+BEGIN_SRC java
+/**
+ * Maven configuration adapter that converts Maven plugin configuration
+ * to unified ByteHot configuration format
+ */
+public class MavenConfigurationAdapter implements ConfigurationAdapter {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(MavenConfigurationAdapter.class);
+    
+    private final MavenProject mavenProject;
+    private final MavenSession mavenSession;
+    private final PluginDescriptor pluginDescriptor;
+    
+    public MavenConfigurationAdapter(MavenProject project, MavenSession session, 
+                                   PluginDescriptor descriptor) {
+        this.mavenProject = project;
+        this.mavenSession = session;
+        this.pluginDescriptor = descriptor;
+    }
+    
+    @Override
+    public PluginConfiguration createConfiguration() throws ConfigurationException {
+        try {
+            PluginConfiguration.Builder builder = PluginConfiguration.builder();
+            
+            // Load base configuration
+            loadBaseConfiguration(builder);
+            
+            // Apply Maven-specific configuration
+            applyMavenConfiguration(builder);
+            
+            // Apply Maven plugin configuration
+            applyPluginConfiguration(builder);
+            
+            // Apply project-specific overrides
+            applyProjectOverrides(builder);
+            
+            return builder.build();
+            
+        } catch (Exception e) {
+            throw new ConfigurationException("Failed to create Maven configuration", e);
+        }
+    }
+    
+    private void loadBaseConfiguration(PluginConfiguration.Builder builder) {
+        // Load global user configuration
+        Path userConfigPath = Paths.get(System.getProperty("user.home"), 
+                                       ".bytehot", "config.json");
+        if (Files.exists(userConfigPath)) {
+            try {
+                PluginConfiguration userConfig = loadConfigurationFile(userConfigPath);
+                builder.mergeFrom(userConfig);
+            } catch (Exception e) {
+                LOG.warn("Failed to load user configuration: {}", userConfigPath, e);
+            }
+        }
+        
+        // Load project configuration
+        Path projectConfigPath = Paths.get(mavenProject.getBasedir().getAbsolutePath(),
+                                          ".bytehot", "config.json");
+        if (Files.exists(projectConfigPath)) {
+            try {
+                PluginConfiguration projectConfig = loadConfigurationFile(projectConfigPath);
+                builder.mergeFrom(projectConfig);
+            } catch (Exception e) {
+                LOG.warn("Failed to load project configuration: {}", projectConfigPath, e);
+            }
+        }
+    }
+    
+    private void applyMavenConfiguration(PluginConfiguration.Builder builder) {
+        // Auto-detect main class from Maven configuration
+        String mainClass = detectMainClass();
+        if (mainClass != null) {
+            builder.setMainClass(mainClass);
+        }
+        
+        // Configure source directories
+        List<String> sourceDirectories = mavenProject.getCompileSourceRoots();
+        builder.setSourceDirectories(sourceDirectories);
+        
+        // Configure resource directories
+        List<String> resourceDirectories = mavenProject.getResources().stream()
+            .map(Resource::getDirectory)
+            .collect(Collectors.toList());
+        builder.setResourceDirectories(resourceDirectories);
+        
+        // Configure output directory
+        String outputDirectory = mavenProject.getBuild().getOutputDirectory();
+        builder.setOutputDirectory(outputDirectory);
+        
+        // Configure classpath from Maven dependencies
+        configureClasspath(builder);
+        
+        // Configure JVM arguments from Maven properties
+        configureJvmFromMaven(builder);
+    }
+    
+    private void applyPluginConfiguration(PluginConfiguration.Builder builder) {
+        // Get plugin configuration from Maven
+        Xpp3Dom pluginConfig = getPluginConfiguration();
+        if (pluginConfig == null) {
+            return;
+        }
+        
+        // Map simple configuration values
+        mapSimpleValues(pluginConfig, builder);
+        
+        // Handle advanced configuration
+        handleAdvancedConfiguration(pluginConfig, builder);
+    }
+    
+    private void mapSimpleValues(Xpp3Dom config, PluginConfiguration.Builder builder) {
+        // Auto start
+        String autoStart = getConfigValue(config, "autoStart");
+        if (autoStart != null) {
+            builder.setAutoStart(Boolean.parseBoolean(autoStart));
+        }
+        
+        // Main class
+        String mainClass = getConfigValue(config, "mainClass");
+        if (mainClass != null) {
+            builder.setMainClass(mainClass);
+        }
+        
+        // Hot swap strategy
+        String hotSwapStrategy = getConfigValue(config, "hotSwapStrategy");
+        if (hotSwapStrategy != null) {
+            builder.setHotSwapStrategy(HotSwapStrategy.valueOf(hotSwapStrategy.toUpperCase()));
+        }
+        
+        // Debug output
+        String debugOutput = getConfigValue(config, "debugOutput");
+        if (debugOutput != null) {
+            builder.setDebugOutput(Boolean.parseBoolean(debugOutput));
+        }
+        
+        // JVM arguments
+        Xpp3Dom jvmArgs = config.getChild("jvmArgs");
+        if (jvmArgs != null) {
+            List<String> args = Arrays.stream(jvmArgs.getChildren("arg"))
+                .map(Xpp3Dom::getValue)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            builder.addJvmArguments(args);
+        }
+        
+        // Watch includes
+        Xpp3Dom watchIncludes = config.getChild("watchIncludes");
+        if (watchIncludes != null) {
+            List<String> includes = Arrays.stream(watchIncludes.getChildren("include"))
+                .map(Xpp3Dom::getValue)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            builder.addWatchPatterns(includes);
+        }
+        
+        // Watch excludes
+        Xpp3Dom watchExcludes = config.getChild("watchExcludes");
+        if (watchExcludes != null) {
+            List<String> excludes = Arrays.stream(watchExcludes.getChildren("exclude"))
+                .map(Xpp3Dom::getValue)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+            builder.addExcludePatterns(excludes);
+        }
+    }
+    
+    private void handleAdvancedConfiguration(Xpp3Dom config, PluginConfiguration.Builder builder) {
+        Xpp3Dom bytehotConfig = config.getChild("bytehotConfig");
+        if (bytehotConfig == null) {
+            return;
+        }
+        
+        // External configuration file
+        String configFile = getConfigValue(bytehotConfig, "configFile");
+        if (configFile != null) {
+            Path configPath = mavenProject.getBasedir().toPath().resolve(configFile);
+            if (Files.exists(configPath)) {
+                try {
+                    PluginConfiguration externalConfig = loadConfigurationFile(configPath);
+                    builder.mergeFrom(externalConfig);
+                } catch (Exception e) {
+                    LOG.warn("Failed to load external configuration: {}", configPath, e);
+                }
+            }
+        }
+        
+        // Configuration overrides
+        Xpp3Dom overrides = bytehotConfig.getChild("overrides");
+        if (overrides != null) {
+            applyConfigurationOverrides(overrides, builder);
+        }
+    }
+    
+    private void applyConfigurationOverrides(Xpp3Dom overrides, PluginConfiguration.Builder builder) {
+        for (Xpp3Dom override : overrides.getChildren()) {
+            String key = override.getName();
+            String value = override.getValue();
+            
+            if (value != null) {
+                // Parse dot-notation keys and apply overrides
+                applyDotNotationOverride(key, value, builder);
+            }
+        }
+    }
+    
+    private void applyDotNotationOverride(String key, String value, PluginConfiguration.Builder builder) {
+        // Handle dot notation like "live_mode.performance.max_memory_mb"
+        String[] parts = key.split("\\.");
+        
+        try {
+            switch (parts[0]) {
+                case "live_mode":
+                    applyLiveModeOverride(parts, value, builder);
+                    break;
+                case "logging":
+                    applyLoggingOverride(parts, value, builder);
+                    break;
+                case "agent":
+                    applyAgentOverride(parts, value, builder);
+                    break;
+                case "project":
+                    applyProjectOverride(parts, value, builder);
+                    break;
+                default:
+                    LOG.warn("Unknown configuration override: {}", key);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to apply configuration override {}: {}", key, e.getMessage());
+        }
+    }
+    
+    private String detectMainClass() {
+        // Try exec plugin configuration
+        Plugin execPlugin = mavenProject.getPlugin("org.codehaus.mojo:exec-maven-plugin");
+        if (execPlugin != null) {
+            Xpp3Dom execConfig = (Xpp3Dom) execPlugin.getConfiguration();
+            if (execConfig != null) {
+                String mainClass = getConfigValue(execConfig, "mainClass");
+                if (mainClass != null) {
+                    return mainClass;
+                }
+            }
+        }
+        
+        // Try application plugin configuration
+        Plugin appPlugin = mavenProject.getPlugin("org.springframework.boot:spring-boot-maven-plugin");
+        if (appPlugin != null) {
+            Xpp3Dom appConfig = (Xpp3Dom) appPlugin.getConfiguration();
+            if (appConfig != null) {
+                String mainClass = getConfigValue(appConfig, "mainClass");
+                if (mainClass != null) {
+                    return mainClass;
+                }
+            }
+        }
+        
+        // Try manifest configuration
+        Plugin jarPlugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-jar-plugin");
+        if (jarPlugin != null) {
+            Xpp3Dom jarConfig = (Xpp3Dom) jarPlugin.getConfiguration();
+            if (jarConfig != null) {
+                Xpp3Dom archive = jarConfig.getChild("archive");
+                if (archive != null) {
+                    Xpp3Dom manifest = archive.getChild("manifest");
+                    if (manifest != null) {
+                        String mainClass = getConfigValue(manifest, "mainClass");
+                        if (mainClass != null) {
+                            return mainClass;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    private void configureClasspath(PluginConfiguration.Builder builder) {
+        try {
+            // Get project dependencies
+            Set<Artifact> artifacts = mavenProject.getArtifacts();
+            
+            List<String> classpathEntries = artifacts.stream()
+                .filter(artifact -> artifact.getScope() == null || 
+                              "compile".equals(artifact.getScope()) ||
+                              "runtime".equals(artifact.getScope()))
+                .map(artifact -> artifact.getFile().getAbsolutePath())
+                .collect(Collectors.toList());
+                
+            builder.addClasspathEntries(classpathEntries);
+            
+            // Add project output directory
+            builder.addClasspathEntry(mavenProject.getBuild().getOutputDirectory());
+            
+        } catch (Exception e) {
+            LOG.warn("Failed to configure classpath from Maven dependencies", e);
+        }
+    }
+    
+    // Helper methods
+    private Xpp3Dom getPluginConfiguration() {
+        for (Plugin plugin : mavenProject.getBuildPlugins()) {
+            if ("org.acmsl".equals(plugin.getGroupId()) && 
+                "bytehot-maven-plugin".equals(plugin.getArtifactId())) {
+                return (Xpp3Dom) plugin.getConfiguration();
+            }
+        }
+        return null;
+    }
+    
+    private String getConfigValue(Xpp3Dom config, String childName) {
+        Xpp3Dom child = config.getChild(childName);
+        return child != null ? child.getValue() : null;
+    }
+}
+#+END_SRC
+
+** Gradle Plugin Configuration
+
+#+BEGIN_SRC groovy
+// Gradle build.gradle configuration
+plugins {
+    id 'org.acmsl.bytehot' version '1.0.0'
+}
+
+bytehot {
+    // Simple configuration
+    autoStart = false
+    mainClass = 'com.example.Application'
+    hotSwapStrategy = 'aggressive'
+    debugOutput = false
+    
+    // JVM configuration
+    jvmArgs = ['-Xmx1g', '-Dspring.profiles.active=dev']
+    systemProperties = [
+        'app.environment': 'development',
+        'logging.level.root': 'INFO'
+    ]
+    
+    // File monitoring
+    watchIncludes = ['**/*.java', '**/*.properties']
+    watchExcludes = ['**/*Test.java']
+    
+    // Advanced configuration
+    agent {
+        discoveryPaths = ['/opt/bytehot/agent.jar']
+        validationStrict = true
+    }
+    
+    performance {
+        maxMemoryMb = 1024
+        optimizationLevel = 'balanced'
+    }
+    
+    communication {
+        preferredChannels = ['socket', 'http']
+        timeouts {
+            connectionTimeoutMs = 5000
+            readTimeoutMs = 30000
+        }
+    }
+    
+    // External configuration file
+    configFile = '.bytehot/gradle-config.json'
+    
+    // Configuration overrides
+    overrides = [
+        'live_mode.file_monitoring.polling_interval_ms': 500,
+        'logging.level': 'DEBUG'
+    ]
+}
+#+END_SRC
+
+#+BEGIN_SRC java
+/**
+ * Gradle configuration adapter using Gradle's configuration API
+ */
+public class GradleConfigurationAdapter implements ConfigurationAdapter {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(GradleConfigurationAdapter.class);
+    
+    private final Project gradleProject;
+    private final ByteHotExtension bytehotExtension;
+    
+    public GradleConfigurationAdapter(Project project, ByteHotExtension extension) {
+        this.gradleProject = project;
+        this.bytehotExtension = extension;
+    }
+    
+    @Override
+    public PluginConfiguration createConfiguration() throws ConfigurationException {
+        try {
+            PluginConfiguration.Builder builder = PluginConfiguration.builder();
+            
+            // Load base configuration
+            loadBaseConfiguration(builder);
+            
+            // Apply Gradle-specific configuration
+            applyGradleConfiguration(builder);
+            
+            // Apply ByteHot extension configuration
+            applyExtensionConfiguration(builder);
+            
+            return builder.build();
+            
+        } catch (Exception e) {
+            throw new ConfigurationException("Failed to create Gradle configuration", e);
+        }
+    }
+    
+    private void applyGradleConfiguration(PluginConfiguration.Builder builder) {
+        // Auto-detect main class from application plugin
+        String mainClass = detectMainClass();
+        if (mainClass != null) {
+            builder.setMainClass(mainClass);
+        }
+        
+        // Configure source sets
+        configureSourceSets(builder);
+        
+        // Configure classpath from Gradle dependencies
+        configureClasspath(builder);
+        
+        // Configure JVM from Gradle configuration
+        configureJvmFromGradle(builder);
+    }
+    
+    private void applyExtensionConfiguration(PluginConfiguration.Builder builder) {
+        // Simple properties
+        if (bytehotExtension.getAutoStart().isPresent()) {
+            builder.setAutoStart(bytehotExtension.getAutoStart().get());
+        }
+        
+        if (bytehotExtension.getMainClass().isPresent()) {
+            builder.setMainClass(bytehotExtension.getMainClass().get());
+        }
+        
+        if (bytehotExtension.getHotSwapStrategy().isPresent()) {
+            builder.setHotSwapStrategy(bytehotExtension.getHotSwapStrategy().get());
+        }
+        
+        if (bytehotExtension.getDebugOutput().isPresent()) {
+            builder.setDebugOutput(bytehotExtension.getDebugOutput().get());
+        }
+        
+        // JVM configuration
+        builder.addJvmArguments(bytehotExtension.getJvmArgs().get());
+        builder.addSystemProperties(bytehotExtension.getSystemProperties().get());
+        
+        // File monitoring
+        builder.addWatchPatterns(bytehotExtension.getWatchIncludes().get());
+        builder.addExcludePatterns(bytehotExtension.getWatchExcludes().get());
+        
+        // Advanced configuration from nested objects
+        applyAdvancedExtensionConfiguration(builder);
+        
+        // External configuration file
+        if (bytehotExtension.getConfigFile().isPresent()) {
+            String configFile = bytehotExtension.getConfigFile().get();
+            Path configPath = gradleProject.getProjectDir().toPath().resolve(configFile);
+            if (Files.exists(configPath)) {
+                try {
+                    PluginConfiguration externalConfig = loadConfigurationFile(configPath);
+                    builder.mergeFrom(externalConfig);
+                } catch (Exception e) {
+                    LOG.warn("Failed to load external configuration: {}", configPath, e);
+                }
+            }
+        }
+        
+        // Configuration overrides
+        Map<String, Object> overrides = bytehotExtension.getOverrides().get();
+        applyConfigurationOverrides(overrides, builder);
+    }
+    
+    private String detectMainClass() {
+        // Check application plugin
+        if (gradleProject.getPlugins().hasPlugin("application")) {
+            ApplicationPluginConvention appConvention = 
+                gradleProject.getConvention().getPlugin(ApplicationPluginConvention.class);
+            if (appConvention != null && appConvention.getMainClassName() != null) {
+                return appConvention.getMainClassName();
+            }
+        }
+        
+        // Check Spring Boot plugin
+        if (gradleProject.getPlugins().hasPlugin("org.springframework.boot")) {
+            SpringBootExtension springBoot = gradleProject.getExtensions()
+                .findByType(SpringBootExtension.class);
+            if (springBoot != null && springBoot.getMainClassName() != null) {
+                return springBoot.getMainClassName();
+            }
+        }
+        
+        return null;
+    }
+    
+    private void configureSourceSets(PluginConfiguration.Builder builder) {
+        SourceSetContainer sourceSets = gradleProject.getExtensions()
+            .getByType(SourceSetContainer.class);
+            
+        SourceSet mainSourceSet = sourceSets.getByName("main");
+        
+        // Source directories
+        List<String> sourceDirectories = mainSourceSet.getJava().getSrcDirs().stream()
+            .map(File::getAbsolutePath)
+            .collect(Collectors.toList());
+        builder.setSourceDirectories(sourceDirectories);
+        
+        // Resource directories
+        List<String> resourceDirectories = mainSourceSet.getResources().getSrcDirs().stream()
+            .map(File::getAbsolutePath)
+            .collect(Collectors.toList());
+        builder.setResourceDirectories(resourceDirectories);
+        
+        // Output directory
+        builder.setOutputDirectory(mainSourceSet.getOutput().getClassesDirs()
+            .getSingleFile().getAbsolutePath());
+    }
+    
+    private void configureClasspath(PluginConfiguration.Builder builder) {
+        SourceSetContainer sourceSets = gradleProject.getExtensions()
+            .getByType(SourceSetContainer.class);
+            
+        SourceSet mainSourceSet = sourceSets.getByName("main");
+        
+        // Runtime classpath
+        List<String> classpathEntries = mainSourceSet.getRuntimeClasspath().getFiles().stream()
+            .map(File::getAbsolutePath)
+            .collect(Collectors.toList());
+            
+        builder.addClasspathEntries(classpathEntries);
+    }
+}
+#+END_SRC
+
+* Configuration Validation System
+
+** Configuration Validator
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive configuration validation with detailed error reporting
+ */
+public class ConfigurationValidator {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigurationValidator.class);
+    
+    private final List<ConfigurationValidationRule> validationRules;
+    private final JsonSchemaValidator schemaValidator;
+    
+    public ConfigurationValidator() {
+        this.validationRules = createDefaultValidationRules();
+        this.schemaValidator = new JsonSchemaValidator();
+    }
+    
+    public ConfigurationValidationResult validate(PluginConfiguration config) {
+        List<ValidationIssue> issues = new ArrayList<>();
+        
+        try {
+            // Schema validation
+            ValidationResult schemaResult = schemaValidator.validate(config);
+            issues.addAll(schemaResult.getIssues());
+            
+            // Custom validation rules
+            for (ConfigurationValidationRule rule : validationRules) {
+                try {
+                    ValidationResult ruleResult = rule.validate(config);
+                    issues.addAll(ruleResult.getIssues());
+                } catch (Exception e) {
+                    LOG.warn("Validation rule {} failed: {}", rule.getRuleName(), e.getMessage());
+                    issues.add(ValidationIssue.error("Validation rule failed: " + rule.getRuleName(), e));
+                }
+            }
+            
+            // Determine overall result
+            boolean isValid = issues.stream().noneMatch(issue -> 
+                issue.getSeverity() == ValidationSeverity.ERROR ||
+                issue.getSeverity() == ValidationSeverity.CRITICAL);
+                
+            return new ConfigurationValidationResult(config, isValid, issues);
+            
+        } catch (Exception e) {
+            LOG.error("Configuration validation failed", e);
+            issues.add(ValidationIssue.critical("Configuration validation failed", e));
+            return new ConfigurationValidationResult(config, false, issues);
+        }
+    }
+    
+    private List<ConfigurationValidationRule> createDefaultValidationRules() {
+        return Arrays.asList(
+            new MainClassValidationRule(),
+            new ClasspathValidationRule(),
+            new SourceDirectoryValidationRule(),
+            new JvmArgumentsValidationRule(),
+            new FilePatternValidationRule(),
+            new PerformanceSettingsValidationRule(),
+            new SecuritySettingsValidationRule(),
+            new CommunicationSettingsValidationRule()
+        );
+    }
+}
+
+/**
+ * Validation rule for main class configuration
+ */
+public class MainClassValidationRule implements ConfigurationValidationRule {
+    
+    @Override
+    public ValidationResult validate(PluginConfiguration config) {
+        List<ValidationIssue> issues = new ArrayList<>();
+        
+        String mainClass = config.getMainClass();
+        if (mainClass == null || mainClass.trim().isEmpty()) {
+            issues.add(ValidationIssue.warning("No main class specified", 
+                "Consider specifying a main class for faster startup"));
+            return ValidationResult.withIssues(issues);
+        }
+        
+        // Validate main class format
+        if (!isValidClassName(mainClass)) {
+            issues.add(ValidationIssue.error("Invalid main class format: " + mainClass,
+                "Main class must be a valid Java class name"));
+        }
+        
+        // Check if main class exists in source directories
+        if (!mainClassExists(config, mainClass)) {
+            issues.add(ValidationIssue.warning("Main class not found in source directories: " + mainClass,
+                "Main class may not be available during live mode"));
+        }
+        
+        return ValidationResult.withIssues(issues);
+    }
+    
+    private boolean isValidClassName(String className) {
+        return className.matches("^([a-zA-Z_$][a-zA-Z\\d_$]*\\.)*[a-zA-Z_$][a-zA-Z\\d_$]*$");
+    }
+    
+    private boolean mainClassExists(PluginConfiguration config, String mainClass) {
+        String classPath = mainClass.replace('.', '/') + ".java";
+        
+        return config.getSourceDirectories().stream()
+            .map(dir -> Paths.get(dir, classPath))
+            .anyMatch(Files::exists);
+    }
+    
+    @Override
+    public String getRuleName() {
+        return "MainClassValidation";
+    }
+}
+#+END_SRC
+
+* Configuration Management API
+
+** Configuration Manager
+
+#+BEGIN_SRC java
+/**
+ * Central configuration management system for ByteHot plugins
+ */
+public class ConfigurationManager {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(ConfigurationManager.class);
+    
+    private final ConfigurationAdapter adapter;
+    private final ConfigurationValidator validator;
+    private final ConfigurationCache cache;
+    private final List<ConfigurationChangeListener> listeners;
+    
+    private volatile PluginConfiguration currentConfiguration;
+    private volatile boolean loaded = false;
+    
+    public ConfigurationManager(ConfigurationAdapter adapter) {
+        this.adapter = adapter;
+        this.validator = new ConfigurationValidator();
+        this.cache = new ConfigurationCache();
+        this.listeners = new CopyOnWriteArrayList<>();
+    }
+    
+    /**
+     * Load configuration with comprehensive error handling
+     */
+    public synchronized boolean loadConfiguration() {
+        try {
+            LOG.info("Loading ByteHot configuration...");
+            
+            // Create configuration through adapter
+            PluginConfiguration config = adapter.createConfiguration();
+            
+            // Validate configuration
+            ConfigurationValidationResult validationResult = validator.validate(config);
+            if (!validationResult.isValid()) {
+                LOG.error("Configuration validation failed:");
+                for (ValidationIssue issue : validationResult.getErrorIssues()) {
+                    LOG.error("  - {}: {}", issue.getSeverity(), issue.getMessage());
+                }
+                return false;
+            }
+            
+            // Log validation warnings
+            for (ValidationIssue issue : validationResult.getWarningIssues()) {
+                LOG.warn("Configuration warning: {}", issue.getMessage());
+            }
+            
+            // Update current configuration
+            PluginConfiguration oldConfig = currentConfiguration;
+            currentConfiguration = config;
+            loaded = true;
+            
+            // Cache configuration
+            cache.cacheConfiguration(config);
+            
+            // Notify listeners
+            notifyConfigurationChanged(oldConfig, config);
+            
+            LOG.info("Configuration loaded successfully");
+            return true;
+            
+        } catch (Exception e) {
+            LOG.error("Failed to load configuration", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Reload configuration if source has changed
+     */
+    public boolean reloadConfigurationIfChanged() {
+        if (!loaded) {
+            return loadConfiguration();
+        }
+        
+        try {
+            if (adapter.hasConfigurationChanged()) {
+                LOG.info("Configuration change detected, reloading...");
+                return loadConfiguration();
+            }
+            return true;
+        } catch (Exception e) {
+            LOG.warn("Failed to check for configuration changes", e);
+            return true; // Continue with current configuration
+        }
+    }
+    
+    /**
+     * Get current configuration with lazy loading
+     */
+    public PluginConfiguration getConfiguration() {
+        if (!loaded) {
+            loadConfiguration();
+        }
+        return currentConfiguration;
+    }
+    
+    /**
+     * Update configuration at runtime
+     */
+    public synchronized boolean updateConfiguration(PluginConfiguration newConfig) {
+        try {
+            // Validate new configuration
+            ConfigurationValidationResult validationResult = validator.validate(newConfig);
+            if (!validationResult.isValid()) {
+                LOG.error("Invalid configuration update rejected");
+                return false;
+            }
+            
+            PluginConfiguration oldConfig = currentConfiguration;
+            currentConfiguration = newConfig;
+            
+            // Update cache
+            cache.cacheConfiguration(newConfig);
+            
+            // Notify listeners
+            notifyConfigurationChanged(oldConfig, newConfig);
+            
+            LOG.info("Configuration updated successfully");
+            return true;
+            
+        } catch (Exception e) {
+            LOG.error("Failed to update configuration", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Add configuration change listener
+     */
+    public void addConfigurationChangeListener(ConfigurationChangeListener listener) {
+        listeners.add(listener);
+    }
+    
+    /**
+     * Remove configuration change listener
+     */
+    public void removeConfigurationChangeListener(ConfigurationChangeListener listener) {
+        listeners.remove(listener);
+    }
+    
+    private void notifyConfigurationChanged(PluginConfiguration oldConfig, PluginConfiguration newConfig) {
+        ConfigurationChangeEvent event = new ConfigurationChangeEvent(oldConfig, newConfig);
+        
+        for (ConfigurationChangeListener listener : listeners) {
+            try {
+                listener.onConfigurationChanged(event);
+            } catch (Exception e) {
+                LOG.warn("Configuration change listener failed", e);
+            }
+        }
+    }
+    
+    /**
+     * Cleanup resources
+     */
+    public void cleanup() {
+        listeners.clear();
+        cache.clear();
+        loaded = false;
+        currentConfiguration = null;
+    }
+}
+#+END_SRC
+
+This unified configuration format provides a robust, flexible system that maintains consistency across all ByteHot plugins while respecting the unique conventions of each development tool. The hierarchical merge strategy and comprehensive validation ensure reliable configuration management in all supported environments.

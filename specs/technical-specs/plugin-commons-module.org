@@ -1,0 +1,1000 @@
+#+TITLE: Technical Specification: Plugin Commons Module
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This technical specification defines the `bytehot-plugin-commons` module, which provides the foundational infrastructure, utilities, and shared services that all ByteHot plugins depend on. The module eliminates code duplication, ensures consistency across plugins, and provides a stable API for plugin development.
+
+** Design Principles
+
+- **Consistency**: Unified interfaces and behaviors across all plugin types
+- **Extensibility**: Plugin-specific adaptations through well-defined extension points
+- **Reliability**: Robust error handling and recovery mechanisms
+- **Performance**: Minimal overhead with efficient resource management
+- **Testing**: Comprehensive testing utilities for plugin validation
+
+* Module Architecture
+
+** Package Structure
+
+#+BEGIN_SRC
+org.acmsl.bytehot.plugin/
+├── core/                          # Core plugin infrastructure
+│   ├── PluginBase.java            # Abstract base for all plugins
+│   ├── PluginContext.java         # Runtime context and state
+│   ├── PluginLifecycle.java       # Lifecycle management interface
+│   └── PluginRegistry.java        # Plugin registration and discovery
+├── communication/                 # Communication protocol implementation
+│   ├── ProtocolHandler.java       # Protocol message handling
+│   ├── MessageSerializer.java     # Message serialization utilities
+│   ├── ConnectionManager.java     # Connection lifecycle management
+│   └── RetryPolicy.java          # Retry and error recovery
+├── discovery/                     # Agent discovery mechanisms
+│   ├── AgentDiscovery.java        # Main discovery coordinator
+│   ├── DiscoveryStrategy.java     # Strategy interface
+│   ├── strategies/                # Concrete discovery strategies
+│   │   ├── SystemPropertyStrategy.java
+│   │   ├── MavenRepositoryStrategy.java
+│   │   ├── GradleCacheStrategy.java
+│   │   ├── ProjectDirectoryStrategy.java
+│   │   └── PathScanStrategy.java
+│   └── AgentValidator.java        # Agent JAR validation
+├── config/                        # Configuration management
+│   ├── PluginConfiguration.java  # Configuration data model
+│   ├── ConfigurationManager.java # Configuration lifecycle
+│   ├── ConfigurationAdapter.java # Tool-specific adapters
+│   ├── ConfigurationValidator.java # Validation framework
+│   └── adapters/                  # Concrete configuration adapters
+│       ├── MavenConfigAdapter.java
+│       ├── GradleConfigAdapter.java
+│       ├── IntellijConfigAdapter.java
+│       ├── EclipseConfigAdapter.java
+│       └── VSCodeConfigAdapter.java
+├── analysis/                      # Project analysis utilities
+│   ├── ProjectAnalyzer.java      # Base project analysis interface
+│   ├── ProjectConfiguration.java # Analysis results model
+│   ├── MainClassDetector.java    # Main class detection utilities
+│   ├── SourceDirectoryScanner.java # Source directory discovery
+│   └── ClasspathBuilder.java     # Classpath construction utilities
+├── monitoring/                    # Health monitoring and metrics
+│   ├── HealthMonitor.java         # Health monitoring coordinator
+│   ├── MetricsCollector.java     # Performance metrics collection
+│   ├── PerformanceTracker.java   # Performance tracking utilities
+│   └── DiagnosticsReporter.java  # Diagnostic information reporting
+├── testing/                       # Testing framework and utilities
+│   ├── PluginTestFramework.java  # Main testing framework
+│   ├── MockAgent.java            # Mock agent for testing
+│   ├── TestConfiguration.java    # Test configuration utilities
+│   ├── PluginTestRunner.java     # Test execution framework
+│   └── assertions/                # Custom assertions for plugin testing
+│       ├── PluginAssertions.java
+│       ├── ConfigurationAssertions.java
+│       └── CommunicationAssertions.java
+└── util/                          # General utilities
+    ├── VersionUtils.java          # Version comparison and validation
+    ├── PlatformUtils.java         # Platform detection utilities
+    ├── FileUtils.java             # File operation utilities
+    ├── ProcessUtils.java          # Process management utilities
+    └── StringUtils.java           # String manipulation utilities
+#+END_SRC
+
+* Core Plugin Infrastructure
+
+** PluginBase Abstract Class
+
+#+BEGIN_SRC java
+/**
+ * Abstract base class that all ByteHot plugins must extend.
+ * Provides common functionality and enforces consistent plugin architecture.
+ */
+public abstract class PluginBase implements PluginLifecycle {
+    
+    protected final Logger logger;
+    protected final PluginContext context;
+    protected final AgentDiscovery agentDiscovery;
+    protected final ConfigurationManager configurationManager;
+    protected final ProtocolHandler protocolHandler;
+    protected final HealthMonitor healthMonitor;
+    
+    private volatile PluginState state = PluginState.UNINITIALIZED;
+    private final Object stateLock = new Object();
+    
+    protected PluginBase() {
+        this.logger = LoggerFactory.getLogger(getClass());
+        this.context = new PluginContext(this);
+        this.agentDiscovery = createAgentDiscovery();
+        this.configurationManager = createConfigurationManager();
+        this.protocolHandler = createProtocolHandler();
+        this.healthMonitor = createHealthMonitor();
+    }
+    
+    /**
+     * Plugin identification and metadata
+     */
+    public abstract String getPluginId();
+    public abstract String getPluginName();
+    public abstract String getPluginVersion();
+    public abstract PluginType getPluginType();
+    public abstract PluginConfiguration getDefaultConfiguration();
+    
+    /**
+     * Plugin-specific factory methods for customization
+     */
+    protected abstract AgentDiscovery createAgentDiscovery();
+    protected abstract ConfigurationManager createConfigurationManager();
+    protected abstract ProtocolHandler createProtocolHandler();
+    protected abstract HealthMonitor createHealthMonitor();
+    
+    /**
+     * Main plugin initialization method with comprehensive error handling
+     */
+    @Override
+    public final boolean initializePlugin() {
+        synchronized (stateLock) {
+            if (state != PluginState.UNINITIALIZED) {
+                logger.warn("Plugin {} already initialized in state: {}", getPluginId(), state);
+                return state == PluginState.INITIALIZED;
+            }
+            
+            try {
+                setState(PluginState.INITIALIZING);
+                logger.info("Initializing plugin: {} v{}", getPluginName(), getPluginVersion());
+                
+                // Step 1: Discover ByteHot agent
+                if (!initializeAgentDiscovery()) {
+                    logger.error("Failed to discover ByteHot agent");
+                    setState(PluginState.FAILED);
+                    return false;
+                }
+                
+                // Step 2: Load and validate configuration
+                if (!initializeConfiguration()) {
+                    logger.error("Failed to initialize configuration");
+                    setState(PluginState.FAILED);
+                    return false;
+                }
+                
+                // Step 3: Establish communication with agent
+                if (!initializeCommunication()) {
+                    logger.error("Failed to establish communication with agent");
+                    setState(PluginState.FAILED);
+                    return false;
+                }
+                
+                // Step 4: Start health monitoring
+                if (!initializeMonitoring()) {
+                    logger.error("Failed to initialize health monitoring");
+                    setState(PluginState.FAILED);
+                    return false;
+                }
+                
+                // Step 5: Plugin-specific initialization
+                if (!onInitialize()) {
+                    logger.error("Plugin-specific initialization failed");
+                    setState(PluginState.FAILED);
+                    return false;
+                }
+                
+                setState(PluginState.INITIALIZED);
+                logger.info("Plugin {} initialized successfully", getPluginId());
+                return true;
+                
+            } catch (Exception e) {
+                logger.error("Unexpected error during plugin initialization", e);
+                setState(PluginState.FAILED);
+                return false;
+            }
+        }
+    }
+    
+    /**
+     * Plugin cleanup and resource deallocation
+     */
+    @Override
+    public final void disposePlugin() {
+        synchronized (stateLock) {
+            if (state == PluginState.DISPOSED || state == PluginState.UNINITIALIZED) {
+                return;
+            }
+            
+            try {
+                setState(PluginState.DISPOSING);
+                logger.info("Disposing plugin: {}", getPluginId());
+                
+                // Plugin-specific cleanup
+                onDispose();
+                
+                // Cleanup core components
+                if (healthMonitor != null) {
+                    healthMonitor.stop();
+                }
+                
+                if (protocolHandler != null) {
+                    protocolHandler.disconnect();
+                }
+                
+                if (configurationManager != null) {
+                    configurationManager.cleanup();
+                }
+                
+                setState(PluginState.DISPOSED);
+                logger.info("Plugin {} disposed successfully", getPluginId());
+                
+            } catch (Exception e) {
+                logger.error("Error during plugin disposal", e);
+                setState(PluginState.FAILED);
+            }
+        }
+    }
+    
+    /**
+     * Get current plugin state
+     */
+    public PluginState getState() {
+        return state;
+    }
+    
+    /**
+     * Check if plugin is ready for operations
+     */
+    public boolean isReady() {
+        return state == PluginState.INITIALIZED && 
+               agentDiscovery.hasValidAgent() &&
+               protocolHandler.isConnected();
+    }
+    
+    /**
+     * Plugin-specific initialization hook
+     */
+    protected abstract boolean onInitialize();
+    
+    /**
+     * Plugin-specific disposal hook
+     */
+    protected abstract void onDispose();
+    
+    // Helper methods for initialization steps
+    private boolean initializeAgentDiscovery() {
+        try {
+            return agentDiscovery.discoverAgent();
+        } catch (Exception e) {
+            logger.error("Agent discovery failed", e);
+            return false;
+        }
+    }
+    
+    private boolean initializeConfiguration() {
+        try {
+            return configurationManager.loadConfiguration();
+        } catch (Exception e) {
+            logger.error("Configuration initialization failed", e);
+            return false;
+        }
+    }
+    
+    private boolean initializeCommunication() {
+        try {
+            return protocolHandler.connect();
+        } catch (Exception e) {
+            logger.error("Communication initialization failed", e);
+            return false;
+        }
+    }
+    
+    private boolean initializeMonitoring() {
+        try {
+            healthMonitor.start();
+            return true;
+        } catch (Exception e) {
+            logger.error("Health monitoring initialization failed", e);
+            return false;
+        }
+    }
+    
+    private void setState(PluginState newState) {
+        PluginState oldState = this.state;
+        this.state = newState;
+        context.notifyStateChange(oldState, newState);
+    }
+    
+    // Convenient access methods for subclasses
+    protected AgentDiscovery getAgentDiscovery() { return agentDiscovery; }
+    protected ConfigurationManager getConfigurationManager() { return configurationManager; }
+    protected ProtocolHandler getProtocolHandler() { return protocolHandler; }
+    protected HealthMonitor getHealthMonitor() { return healthMonitor; }
+    protected PluginContext getContext() { return context; }
+}
+#+END_SRC
+
+** Plugin Context and State Management
+
+#+BEGIN_SRC java
+/**
+ * Runtime context for plugin operations, maintaining state and providing
+ * access to shared resources and services.
+ */
+public class PluginContext {
+    
+    private final PluginBase plugin;
+    private final Map<String, Object> attributes;
+    private final List<PluginStateListener> stateListeners;
+    private final ExecutorService executorService;
+    private final ScheduledExecutorService scheduledExecutorService;
+    
+    public PluginContext(PluginBase plugin) {
+        this.plugin = plugin;
+        this.attributes = new ConcurrentHashMap<>();
+        this.stateListeners = new CopyOnWriteArrayList<>();
+        this.executorService = Executors.newCachedThreadPool(
+            new NamedThreadFactory("ByteHot-Plugin-" + plugin.getPluginId()));
+        this.scheduledExecutorService = Executors.newScheduledThreadPool(2,
+            new NamedThreadFactory("ByteHot-Plugin-Scheduled-" + plugin.getPluginId()));
+    }
+    
+    /**
+     * Store and retrieve context attributes
+     */
+    public void setAttribute(String key, Object value) {
+        attributes.put(key, value);
+    }
+    
+    @SuppressWarnings("unchecked")
+    public <T> T getAttribute(String key, Class<T> type) {
+        Object value = attributes.get(key);
+        return type.isInstance(value) ? (T) value : null;
+    }
+    
+    public <T> T getAttribute(String key, Class<T> type, T defaultValue) {
+        T value = getAttribute(key, type);
+        return value != null ? value : defaultValue;
+    }
+    
+    /**
+     * Execute tasks asynchronously
+     */
+    public CompletableFuture<Void> executeAsync(Runnable task) {
+        return CompletableFuture.runAsync(task, executorService);
+    }
+    
+    public <T> CompletableFuture<T> executeAsync(Supplier<T> task) {
+        return CompletableFuture.supplyAsync(task, executorService);
+    }
+    
+    /**
+     * Schedule periodic tasks
+     */
+    public ScheduledFuture<?> scheduleAtFixedRate(Runnable task, long initialDelay, 
+                                                  long period, TimeUnit unit) {
+        return scheduledExecutorService.scheduleAtFixedRate(task, initialDelay, period, unit);
+    }
+    
+    /**
+     * State change notification
+     */
+    public void addStateListener(PluginStateListener listener) {
+        stateListeners.add(listener);
+    }
+    
+    public void removeStateListener(PluginStateListener listener) {
+        stateListeners.remove(listener);
+    }
+    
+    protected void notifyStateChange(PluginState oldState, PluginState newState) {
+        PluginStateChangeEvent event = new PluginStateChangeEvent(plugin, oldState, newState);
+        stateListeners.forEach(listener -> {
+            try {
+                listener.onStateChange(event);
+            } catch (Exception e) {
+                plugin.logger.warn("State listener failed", e);
+            }
+        });
+    }
+    
+    /**
+     * Resource cleanup
+     */
+    protected void cleanup() {
+        try {
+            executorService.shutdown();
+            if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+            
+            scheduledExecutorService.shutdown();
+            if (!scheduledExecutorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduledExecutorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+/**
+ * Plugin state enumeration
+ */
+public enum PluginState {
+    UNINITIALIZED("Plugin has not been initialized"),
+    INITIALIZING("Plugin is currently initializing"),
+    INITIALIZED("Plugin is ready for operations"),
+    DISPOSING("Plugin is being disposed"),
+    DISPOSED("Plugin has been disposed"),
+    FAILED("Plugin initialization or operation failed");
+    
+    private final String description;
+    
+    PluginState(String description) {
+        this.description = description;
+    }
+    
+    public String getDescription() {
+        return description;
+    }
+}
+#+END_SRC
+
+* Agent Discovery System
+
+** AgentDiscovery Coordinator
+
+#+BEGIN_SRC java
+/**
+ * Coordinates multiple discovery strategies to locate the ByteHot agent JAR.
+ * Implements a priority-based strategy pattern with caching and validation.
+ */
+public class AgentDiscovery {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(AgentDiscovery.class);
+    
+    private final List<DiscoveryStrategy> strategies;
+    private final AgentValidator validator;
+    private volatile Optional<Path> cachedAgentPath = Optional.empty();
+    private volatile long lastDiscoveryTime = 0;
+    private static final long CACHE_TTL_MS = 300_000; // 5 minutes
+    
+    public AgentDiscovery() {
+        this.strategies = createDefaultStrategies();
+        this.validator = new AgentValidator();
+    }
+    
+    public AgentDiscovery(List<DiscoveryStrategy> customStrategies) {
+        this.strategies = new ArrayList<>(customStrategies);
+        this.validator = new AgentValidator();
+    }
+    
+    /**
+     * Discover ByteHot agent using configured strategies
+     */
+    public boolean discoverAgent() {
+        if (isCacheValid()) {
+            return cachedAgentPath.isPresent();
+        }
+        
+        LOG.info("Starting ByteHot agent discovery...");
+        
+        for (DiscoveryStrategy strategy : strategies) {
+            try {
+                LOG.debug("Trying discovery strategy: {}", strategy.getClass().getSimpleName());
+                
+                Optional<Path> agentPath = strategy.discoverAgent();
+                if (agentPath.isPresent()) {
+                    Path path = agentPath.get();
+                    LOG.debug("Strategy {} found potential agent at: {}", 
+                             strategy.getClass().getSimpleName(), path);
+                    
+                    if (validator.validateAgent(path)) {
+                        LOG.info("Valid ByteHot agent discovered at: {}", path);
+                        updateCache(Optional.of(path));
+                        return true;
+                    } else {
+                        LOG.warn("Invalid agent found by strategy {}: {}", 
+                                strategy.getClass().getSimpleName(), path);
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Discovery strategy {} failed: {}", 
+                        strategy.getClass().getSimpleName(), e.getMessage());
+            }
+        }
+        
+        LOG.error("Failed to discover valid ByteHot agent using any strategy");
+        updateCache(Optional.empty());
+        return false;
+    }
+    
+    /**
+     * Get the discovered agent path
+     */
+    public Optional<Path> getAgentPath() {
+        if (!isCacheValid()) {
+            discoverAgent();
+        }
+        return cachedAgentPath;
+    }
+    
+    /**
+     * Check if a valid agent is available
+     */
+    public boolean hasValidAgent() {
+        return getAgentPath().isPresent();
+    }
+    
+    /**
+     * Force rediscovery by clearing cache
+     */
+    public void clearCache() {
+        cachedAgentPath = Optional.empty();
+        lastDiscoveryTime = 0;
+    }
+    
+    /**
+     * Add custom discovery strategy
+     */
+    public void addStrategy(DiscoveryStrategy strategy) {
+        strategies.add(strategy);
+    }
+    
+    /**
+     * Add custom discovery strategy with priority
+     */
+    public void addStrategy(int index, DiscoveryStrategy strategy) {
+        strategies.add(index, strategy);
+    }
+    
+    private List<DiscoveryStrategy> createDefaultStrategies() {
+        return Arrays.asList(
+            new SystemPropertyStrategy(),
+            new MavenRepositoryStrategy(),
+            new GradleCacheStrategy(),
+            new ProjectDirectoryStrategy(),
+            new PathScanStrategy()
+        );
+    }
+    
+    private boolean isCacheValid() {
+        return cachedAgentPath.isPresent() && 
+               (System.currentTimeMillis() - lastDiscoveryTime) < CACHE_TTL_MS;
+    }
+    
+    private void updateCache(Optional<Path> agentPath) {
+        this.cachedAgentPath = agentPath;
+        this.lastDiscoveryTime = System.currentTimeMillis();
+    }
+}
+#+END_SRC
+
+** Discovery Strategy Interface
+
+#+BEGIN_SRC java
+/**
+ * Strategy interface for different agent discovery mechanisms.
+ * Each strategy implements a specific approach to locating the ByteHot agent.
+ */
+public interface DiscoveryStrategy {
+    
+    /**
+     * Attempt to discover the ByteHot agent JAR
+     * @return Optional path to agent JAR if found
+     */
+    Optional<Path> discoverAgent();
+    
+    /**
+     * Get strategy name for logging and identification
+     */
+    default String getStrategyName() {
+        return getClass().getSimpleName();
+    }
+    
+    /**
+     * Get strategy priority (lower numbers = higher priority)
+     */
+    default int getPriority() {
+        return 100;
+    }
+    
+    /**
+     * Check if strategy is applicable in current environment
+     */
+    default boolean isApplicable() {
+        return true;
+    }
+}
+
+/**
+ * System property discovery strategy - highest priority
+ */
+public class SystemPropertyStrategy implements DiscoveryStrategy {
+    
+    private static final String AGENT_PATH_PROPERTY = "bytehot.agent.path";
+    private static final String AGENT_JAR_PROPERTY = "bytehot.agent.jar";
+    
+    @Override
+    public Optional<Path> discoverAgent() {
+        // Check explicit agent path property
+        String agentPath = System.getProperty(AGENT_PATH_PROPERTY);
+        if (agentPath != null && !agentPath.isEmpty()) {
+            Path path = Paths.get(agentPath);
+            if (Files.exists(path)) {
+                return Optional.of(path);
+            }
+        }
+        
+        // Check agent JAR property
+        String agentJar = System.getProperty(AGENT_JAR_PROPERTY);
+        if (agentJar != null && !agentJar.isEmpty()) {
+            Path path = Paths.get(agentJar);
+            if (Files.exists(path)) {
+                return Optional.of(path);
+            }
+        }
+        
+        return Optional.empty();
+    }
+    
+    @Override
+    public int getPriority() {
+        return 10; // Highest priority
+    }
+}
+
+/**
+ * Maven local repository discovery strategy
+ */
+public class MavenRepositoryStrategy implements DiscoveryStrategy {
+    
+    private static final String DEFAULT_MAVEN_REPO = ".m2/repository";
+    private static final String AGENT_GROUP_PATH = "org/acmsl";
+    private static final String AGENT_ARTIFACT = "bytehot-application";
+    private static final String AGENT_JAR_PATTERN = "*-agent.jar";
+    
+    @Override
+    public Optional<Path> discoverAgent() {
+        Path mavenRepo = getMavenRepositoryPath();
+        if (!Files.exists(mavenRepo)) {
+            return Optional.empty();
+        }
+        
+        Path artifactPath = mavenRepo.resolve(AGENT_GROUP_PATH).resolve(AGENT_ARTIFACT);
+        if (!Files.exists(artifactPath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            // Find latest version directory
+            Optional<Path> latestVersion = Files.list(artifactPath)
+                .filter(Files::isDirectory)
+                .filter(path -> !path.getFileName().toString().startsWith("."))
+                .max(Comparator.comparing(path -> parseVersion(path.getFileName().toString())));
+                
+            if (latestVersion.isPresent()) {
+                // Find agent JAR in version directory
+                return findAgentJarInDirectory(latestVersion.get());
+            }
+            
+        } catch (IOException e) {
+            // Ignore and return empty
+        }
+        
+        return Optional.empty();
+    }
+    
+    private Path getMavenRepositoryPath() {
+        // Check M2_REPO environment variable
+        String m2Repo = System.getenv("M2_REPO");
+        if (m2Repo != null && !m2Repo.isEmpty()) {
+            return Paths.get(m2Repo);
+        }
+        
+        // Check maven.repo.local system property
+        String repoLocal = System.getProperty("maven.repo.local");
+        if (repoLocal != null && !repoLocal.isEmpty()) {
+            return Paths.get(repoLocal);
+        }
+        
+        // Default to ~/.m2/repository
+        return Paths.get(System.getProperty("user.home"), DEFAULT_MAVEN_REPO);
+    }
+    
+    private Optional<Path> findAgentJarInDirectory(Path directory) {
+        try {
+            return Files.list(directory)
+                .filter(path -> path.getFileName().toString().endsWith("-agent.jar"))
+                .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+    
+    private Version parseVersion(String versionString) {
+        try {
+            return Version.parse(versionString);
+        } catch (Exception e) {
+            return Version.parse("0.0.0");
+        }
+    }
+    
+    @Override
+    public int getPriority() {
+        return 20;
+    }
+}
+#+END_SRC
+
+** Agent Validator
+
+#+BEGIN_SRC java
+/**
+ * Validates that a discovered JAR file is a valid ByteHot agent
+ */
+public class AgentValidator {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(AgentValidator.class);
+    
+    private static final String REQUIRED_MANIFEST_ATTRIBUTE = "Agent-Class";
+    private static final String EXPECTED_AGENT_CLASS = "org.acmsl.bytehot.infrastructure.ByteHotAgent";
+    private static final String BYTEHOT_MARKER_FILE = "META-INF/bytehot.marker";
+    
+    /**
+     * Validate that the given path points to a valid ByteHot agent JAR
+     */
+    public boolean validateAgent(Path agentPath) {
+        if (!Files.exists(agentPath)) {
+            LOG.debug("Agent path does not exist: {}", agentPath);
+            return false;
+        }
+        
+        if (!agentPath.toString().toLowerCase().endsWith(".jar")) {
+            LOG.debug("Agent path is not a JAR file: {}", agentPath);
+            return false;
+        }
+        
+        try (JarFile jarFile = new JarFile(agentPath.toFile())) {
+            return validateManifest(jarFile) && 
+                   validateByteHotMarker(jarFile) &&
+                   validateAgentClass(jarFile);
+        } catch (IOException e) {
+            LOG.debug("Failed to read JAR file: {}", agentPath, e);
+            return false;
+        }
+    }
+    
+    private boolean validateManifest(JarFile jarFile) throws IOException {
+        Manifest manifest = jarFile.getManifest();
+        if (manifest == null) {
+            LOG.debug("JAR file has no manifest");
+            return false;
+        }
+        
+        Attributes mainAttributes = manifest.getMainAttributes();
+        String agentClass = mainAttributes.getValue(REQUIRED_MANIFEST_ATTRIBUTE);
+        
+        if (agentClass == null || agentClass.isEmpty()) {
+            LOG.debug("JAR file missing {} manifest attribute", REQUIRED_MANIFEST_ATTRIBUTE);
+            return false;
+        }
+        
+        if (!EXPECTED_AGENT_CLASS.equals(agentClass)) {
+            LOG.debug("Unexpected agent class: expected {} but found {}", 
+                     EXPECTED_AGENT_CLASS, agentClass);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private boolean validateByteHotMarker(JarFile jarFile) {
+        JarEntry markerEntry = jarFile.getJarEntry(BYTEHOT_MARKER_FILE);
+        if (markerEntry == null) {
+            LOG.debug("JAR file missing ByteHot marker file: {}", BYTEHOT_MARKER_FILE);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private boolean validateAgentClass(JarFile jarFile) {
+        String agentClassPath = EXPECTED_AGENT_CLASS.replace('.', '/') + ".class";
+        JarEntry agentClassEntry = jarFile.getJarEntry(agentClassPath);
+        
+        if (agentClassEntry == null) {
+            LOG.debug("JAR file missing expected agent class: {}", EXPECTED_AGENT_CLASS);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Extract agent version from JAR manifest
+     */
+    public Optional<String> extractAgentVersion(Path agentPath) {
+        try (JarFile jarFile = new JarFile(agentPath.toFile())) {
+            Manifest manifest = jarFile.getManifest();
+            if (manifest != null) {
+                Attributes mainAttributes = manifest.getMainAttributes();
+                String version = mainAttributes.getValue("Implementation-Version");
+                if (version != null && !version.isEmpty()) {
+                    return Optional.of(version);
+                }
+            }
+        } catch (IOException e) {
+            LOG.debug("Failed to extract version from JAR: {}", agentPath, e);
+        }
+        
+        return Optional.empty();
+    }
+    
+    /**
+     * Check agent compatibility with plugin requirements
+     */
+    public boolean isCompatibleAgent(Path agentPath, String requiredVersion) {
+        Optional<String> agentVersion = extractAgentVersion(agentPath);
+        if (agentVersion.isEmpty()) {
+            return false;
+        }
+        
+        return VersionUtils.isCompatible(agentVersion.get(), requiredVersion);
+    }
+}
+#+END_SRC
+
+* Testing Framework
+
+** PluginTestFramework
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive testing framework for ByteHot plugins
+ */
+public class PluginTestFramework {
+    
+    private final MockAgent mockAgent;
+    private final TestConfiguration testConfig;
+    private final List<PluginBase> testPlugins;
+    
+    public PluginTestFramework() {
+        this.mockAgent = new MockAgent();
+        this.testConfig = new TestConfiguration();
+        this.testPlugins = new ArrayList<>();
+    }
+    
+    /**
+     * Create a test environment for plugin testing
+     */
+    public PluginTestEnvironment createTestEnvironment() {
+        return new PluginTestEnvironment(mockAgent, testConfig);
+    }
+    
+    /**
+     * Register a plugin for testing
+     */
+    public void registerTestPlugin(PluginBase plugin) {
+        testPlugins.add(plugin);
+        plugin.getContext().addStateListener(new TestStateListener());
+    }
+    
+    /**
+     * Run comprehensive plugin validation
+     */
+    public PluginValidationResult validatePlugin(PluginBase plugin) {
+        PluginValidationResult result = new PluginValidationResult(plugin.getPluginId());
+        
+        // Test plugin initialization
+        result.addTest("Initialization", testPluginInitialization(plugin));
+        
+        // Test configuration management
+        result.addTest("Configuration", testConfigurationManagement(plugin));
+        
+        // Test agent discovery
+        result.addTest("Agent Discovery", testAgentDiscovery(plugin));
+        
+        // Test communication protocol
+        result.addTest("Communication", testCommunicationProtocol(plugin));
+        
+        // Test error handling
+        result.addTest("Error Handling", testErrorHandling(plugin));
+        
+        // Test resource cleanup
+        result.addTest("Resource Cleanup", testResourceCleanup(plugin));
+        
+        return result;
+    }
+    
+    private TestResult testPluginInitialization(PluginBase plugin) {
+        try {
+            boolean initialized = plugin.initializePlugin();
+            if (!initialized) {
+                return TestResult.failure("Plugin failed to initialize");
+            }
+            
+            if (plugin.getState() != PluginState.INITIALIZED) {
+                return TestResult.failure("Plugin not in INITIALIZED state after initialization");
+            }
+            
+            return TestResult.success("Plugin initialized successfully");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Plugin initialization threw exception", e);
+        }
+    }
+    
+    private TestResult testConfigurationManagement(PluginBase plugin) {
+        try {
+            ConfigurationManager configManager = plugin.getConfigurationManager();
+            
+            // Test default configuration
+            PluginConfiguration defaultConfig = plugin.getDefaultConfiguration();
+            if (defaultConfig == null) {
+                return TestResult.failure("Plugin does not provide default configuration");
+            }
+            
+            // Test configuration validation
+            ConfigurationValidator validator = new ConfigurationValidator();
+            List<ValidationError> errors = validator.validate(defaultConfig);
+            if (!errors.isEmpty()) {
+                return TestResult.failure("Default configuration is invalid: " + errors);
+            }
+            
+            return TestResult.success("Configuration management working correctly");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Configuration management test failed", e);
+        }
+    }
+    
+    // Additional test methods...
+}
+
+/**
+ * Mock agent for testing plugin communication
+ */
+public class MockAgent implements AgentInterface {
+    
+    private final Map<String, Object> state = new ConcurrentHashMap<>();
+    private final List<ProtocolMessage> receivedMessages = new ArrayList<>();
+    private boolean connected = false;
+    
+    @Override
+    public boolean connect() {
+        connected = true;
+        return true;
+    }
+    
+    @Override
+    public void disconnect() {
+        connected = false;
+    }
+    
+    @Override
+    public boolean isConnected() {
+        return connected;
+    }
+    
+    @Override
+    public CompletableFuture<ProtocolMessage> sendMessage(ProtocolMessage message) {
+        receivedMessages.add(message);
+        return CompletableFuture.completedFuture(createMockResponse(message));
+    }
+    
+    public List<ProtocolMessage> getReceivedMessages() {
+        return new ArrayList<>(receivedMessages);
+    }
+    
+    public void clearReceivedMessages() {
+        receivedMessages.clear();
+    }
+    
+    private ProtocolMessage createMockResponse(ProtocolMessage request) {
+        // Create appropriate mock responses based on request type
+        return switch (request.getMessageType()) {
+            case HANDSHAKE_REQUEST -> createHandshakeResponse(request);
+            case LIVE_MODE_START_REQUEST -> createLiveModeStartResponse(request);
+            case AGENT_STATUS_REQUEST -> createAgentStatusResponse(request);
+            default -> createGenericResponse(request);
+        };
+    }
+}
+#+END_SRC
+
+This plugin commons module provides the robust foundation that all ByteHot plugins depend on, ensuring consistency, reliability, and ease of development across the entire plugin ecosystem.

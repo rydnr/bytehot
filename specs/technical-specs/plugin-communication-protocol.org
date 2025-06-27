@@ -1,0 +1,733 @@
+#+TITLE: Technical Specification: Plugin Communication Protocol
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This technical specification defines the comprehensive communication protocol between ByteHot plugins and the ByteHot agent. The protocol ensures reliable, efficient, and secure communication across all plugin types while maintaining backward compatibility and extensibility for future enhancements.
+
+** Design Principles
+
+- **Simplicity**: JSON-based messages for maximum compatibility and ease of debugging
+- **Extensibility**: Versioned protocol supporting future enhancements without breaking changes
+- **Reliability**: Built-in retry mechanisms, error handling, and connection recovery
+- **Performance**: Minimal overhead for real-time development workflows
+- **Security**: Authentication and encryption for production environments
+
+* Protocol Architecture
+
+** Communication Channels
+
+*** Primary Channel: Local Socket Communication
+#+BEGIN_SRC
+┌─────────────┐    Unix Domain Socket    ┌─────────────┐
+│   Plugin    │ ←─────────────────────→ │ ByteHot     │
+│             │  /tmp/bytehot-{pid}.sock │ Agent       │
+└─────────────┘                          └─────────────┘
+#+END_SRC
+
+- **Usage**: Default for local development
+- **Performance**: High throughput, low latency (<1ms)
+- **Security**: Filesystem permissions-based access control
+- **Platform**: Unix/Linux/macOS primary, Windows named pipes
+
+*** Secondary Channel: HTTP-based Communication
+#+BEGIN_SRC
+┌─────────────┐    HTTP/WebSocket     ┌─────────────┐
+│   Plugin    │ ←─────────────────→ │ ByteHot     │
+│             │  localhost:8765      │ Agent       │
+└─────────────┘                      └─────────────┘
+#+END_SRC
+
+- **Usage**: Fallback for restricted environments
+- **Performance**: Moderate latency (5-20ms)
+- **Security**: Optional TLS with client certificates
+- **Platform**: Cross-platform compatibility
+
+*** Tertiary Channel: File-based Communication
+#+BEGIN_SRC
+┌─────────────┐    File Exchange     ┌─────────────┐
+│   Plugin    │ ←─────────────────→ │ ByteHot     │
+│             │ ~/.bytehot/messages/ │ Agent       │
+└─────────────┘                      └─────────────┘
+#+END_SRC
+
+- **Usage**: Ultra-restricted environments or debugging
+- **Performance**: Low throughput (100-500ms)
+- **Security**: Filesystem permissions
+- **Reliability**: Guaranteed delivery with file system atomicity
+
+** Message Format Specification
+
+*** Base Message Structure
+#+BEGIN_SRC json
+{
+  "protocol_version": "1.0",
+  "message_id": "uuid-v4-string",
+  "timestamp": "2025-06-27T10:30:00.123Z",
+  "sender": {
+    "type": "plugin|agent",
+    "id": "unique-sender-identifier",
+    "version": "semantic-version"
+  },
+  "recipient": {
+    "type": "plugin|agent", 
+    "id": "unique-recipient-identifier"
+  },
+  "message_type": "enum-value",
+  "correlation_id": "uuid-for-request-response-matching",
+  "payload": {
+    // Message-specific content
+  },
+  "metadata": {
+    "priority": "low|normal|high|critical",
+    "ttl": 30000,
+    "retry_policy": {
+      "max_attempts": 3,
+      "backoff_strategy": "exponential",
+      "base_delay_ms": 100
+    }
+  }
+}
+#+END_SRC
+
+*** Message Types Enumeration
+#+BEGIN_SRC java
+public enum MessageType {
+    // Handshake and Connection
+    HANDSHAKE_REQUEST,
+    HANDSHAKE_RESPONSE,
+    HEARTBEAT,
+    DISCONNECT,
+    
+    // Agent Status and Control
+    AGENT_STATUS_REQUEST,
+    AGENT_STATUS_RESPONSE,
+    AGENT_CAPABILITIES_REQUEST,
+    AGENT_CAPABILITIES_RESPONSE,
+    
+    // Live Mode Lifecycle
+    LIVE_MODE_START_REQUEST,
+    LIVE_MODE_START_RESPONSE,
+    LIVE_MODE_STOP_REQUEST,
+    LIVE_MODE_STOP_RESPONSE,
+    LIVE_MODE_STATUS_UPDATE,
+    
+    // Hot-Swap Operations
+    HOT_SWAP_REQUEST,
+    HOT_SWAP_RESPONSE,
+    HOT_SWAP_NOTIFICATION,
+    HOT_SWAP_BATCH_REQUEST,
+    HOT_SWAP_BATCH_RESPONSE,
+    
+    // File Monitoring
+    FILE_WATCH_START_REQUEST,
+    FILE_WATCH_START_RESPONSE,
+    FILE_WATCH_STOP_REQUEST,
+    FILE_WATCH_STOP_RESPONSE,
+    FILE_CHANGE_NOTIFICATION,
+    
+    // Configuration Management
+    CONFIGURATION_UPDATE,
+    CONFIGURATION_REQUEST,
+    CONFIGURATION_RESPONSE,
+    
+    // Error and Diagnostics
+    ERROR_NOTIFICATION,
+    WARNING_NOTIFICATION,
+    INFO_NOTIFICATION,
+    DEBUG_TRACE,
+    
+    // Plugin Management
+    PLUGIN_REGISTRATION,
+    PLUGIN_DEREGISTRATION,
+    PLUGIN_DISCOVERY_REQUEST,
+    PLUGIN_DISCOVERY_RESPONSE
+}
+#+END_SRC
+
+** Detailed Message Specifications
+
+*** Handshake and Connection Management
+
+**** Handshake Request
+#+BEGIN_SRC json
+{
+  "protocol_version": "1.0",
+  "message_id": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2025-06-27T10:30:00.123Z",
+  "sender": {
+    "type": "plugin",
+    "id": "org.acmsl.bytehot.maven-plugin",
+    "version": "1.0.0"
+  },
+  "recipient": {
+    "type": "agent",
+    "id": "bytehot-agent"
+  },
+  "message_type": "HANDSHAKE_REQUEST",
+  "payload": {
+    "plugin_type": "build-tool",
+    "capabilities": [
+      "project_analysis",
+      "process_management",
+      "configuration_management"
+    ],
+    "supported_protocols": ["socket", "http"],
+    "authentication": {
+      "method": "none|token|certificate",
+      "credentials": "optional-auth-data"
+    },
+    "environment": {
+      "os": "linux",
+      "java_version": "11.0.16",
+      "tool_version": "maven-3.8.6",
+      "project_path": "/path/to/project"
+    }
+  }
+}
+#+END_SRC
+
+**** Handshake Response
+#+BEGIN_SRC json
+{
+  "protocol_version": "1.0",
+  "message_id": "550e8400-e29b-41d4-a716-446655440001",
+  "timestamp": "2025-06-27T10:30:00.456Z",
+  "sender": {
+    "type": "agent",
+    "id": "bytehot-agent",
+    "version": "1.0.0"
+  },
+  "recipient": {
+    "type": "plugin",
+    "id": "org.acmsl.bytehot.maven-plugin"
+  },
+  "message_type": "HANDSHAKE_RESPONSE",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000",
+  "payload": {
+    "status": "accepted|rejected",
+    "session_id": "session-uuid",
+    "agent_capabilities": [
+      "bytecode_validation",
+      "hot_swap",
+      "file_monitoring",
+      "instrumentation"
+    ],
+    "communication_preferences": {
+      "primary_channel": "socket",
+      "heartbeat_interval_ms": 30000,
+      "message_buffer_size": 1024
+    },
+    "authentication_result": {
+      "authenticated": true,
+      "session_token": "optional-session-token",
+      "permissions": ["read", "write", "execute"]
+    }
+  }
+}
+#+END_SRC
+
+*** Live Mode Operations
+
+**** Live Mode Start Request
+#+BEGIN_SRC json
+{
+  "protocol_version": "1.0",
+  "message_id": "550e8400-e29b-41d4-a716-446655440002",
+  "timestamp": "2025-06-27T10:31:00.000Z",
+  "sender": {
+    "type": "plugin",
+    "id": "org.acmsl.bytehot.maven-plugin",
+    "version": "1.0.0"
+  },
+  "recipient": {
+    "type": "agent",
+    "id": "bytehot-agent"
+  },
+  "message_type": "LIVE_MODE_START_REQUEST",
+  "payload": {
+    "project_configuration": {
+      "main_class": "com.example.Application",
+      "classpath": [
+        "/project/target/classes",
+        "/home/.m2/repository/junit/junit/4.13.2/junit-4.13.2.jar"
+      ],
+      "jvm_arguments": [
+        "-Xmx512m",
+        "-Dspring.profiles.active=dev"
+      ],
+      "watch_paths": [
+        "/project/src/main/java",
+        "/project/src/main/resources"
+      ],
+      "exclude_patterns": [
+        "**/*Test.java",
+        "**/package-info.java"
+      ]
+    },
+    "live_mode_options": {
+      "enable_hot_reload": true,
+      "enable_file_monitoring": true,
+      "hot_swap_strategy": "aggressive|conservative",
+      "validation_level": "strict|permissive",
+      "performance_mode": "development|production"
+    }
+  }
+}
+#+END_SRC
+
+**** Hot-Swap Notification
+#+BEGIN_SRC json
+{
+  "protocol_version": "1.0",
+  "message_id": "550e8400-e29b-41d4-a716-446655440003",
+  "timestamp": "2025-06-27T10:35:00.789Z",
+  "sender": {
+    "type": "agent",
+    "id": "bytehot-agent",
+    "version": "1.0.0"
+  },
+  "recipient": {
+    "type": "plugin",
+    "id": "org.acmsl.bytehot.maven-plugin"
+  },
+  "message_type": "HOT_SWAP_NOTIFICATION",
+  "payload": {
+    "operation_id": "hotswap-uuid",
+    "class_name": "com.example.UserService",
+    "status": "success|failed|in_progress",
+    "affected_instances": 3,
+    "execution_time_ms": 45,
+    "bytecode_size": 2048,
+    "error_details": {
+      "error_code": "VALIDATION_FAILED",
+      "error_message": "Class hierarchy changed",
+      "stack_trace": "optional-stack-trace",
+      "recovery_suggestions": [
+        "Restart application",
+        "Revert changes"
+      ]
+    },
+    "performance_metrics": {
+      "validation_time_ms": 12,
+      "instrumentation_time_ms": 8,
+      "redefinition_time_ms": 25,
+      "memory_usage_kb": 156
+    }
+  }
+}
+#+END_SRC
+
+** Protocol Implementation
+
+*** Java Protocol Handler
+#+BEGIN_SRC java
+public class ByteHotProtocolHandler implements ProtocolHandler {
+    
+    private static final String PROTOCOL_VERSION = "1.0";
+    private final MessageSerializer messageSerializer;
+    private final ConnectionManager connectionManager;
+    private final MessageRouter messageRouter;
+    private final RetryPolicy retryPolicy;
+    
+    public ByteHotProtocolHandler() {
+        this.messageSerializer = new JsonMessageSerializer();
+        this.connectionManager = new ConnectionManager();
+        this.messageRouter = new MessageRouter();
+        this.retryPolicy = RetryPolicy.defaultPolicy();
+    }
+    
+    @Override
+    public CompletableFuture<ProtocolMessage> sendMessage(ProtocolMessage message) {
+        return sendMessage(message, retryPolicy);
+    }
+    
+    @Override
+    public CompletableFuture<ProtocolMessage> sendMessage(ProtocolMessage message, RetryPolicy retry) {
+        String messageId = message.getMessageId();
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Validate message format
+                validateMessage(message);
+                
+                // Serialize message
+                byte[] serializedMessage = messageSerializer.serialize(message);
+                
+                // Send through connection manager
+                Connection connection = connectionManager.getConnection();
+                connection.send(serializedMessage);
+                
+                // Handle response if correlation ID is present
+                if (message.getCorrelationId() != null) {
+                    return awaitResponse(message.getCorrelationId(), retry.getTimeoutMs());
+                }
+                
+                return null;
+                
+            } catch (Exception e) {
+                throw new ProtocolException("Failed to send message: " + messageId, e);
+            }
+        });
+    }
+    
+    @Override
+    public void registerMessageHandler(MessageType messageType, MessageHandler handler) {
+        messageRouter.registerHandler(messageType, handler);
+    }
+    
+    @Override
+    public void startListening() {
+        connectionManager.startListening((rawMessage) -> {
+            try {
+                ProtocolMessage message = messageSerializer.deserialize(rawMessage);
+                messageRouter.route(message);
+            } catch (Exception e) {
+                LOG.error("Failed to process incoming message", e);
+            }
+        });
+    }
+    
+    private void validateMessage(ProtocolMessage message) {
+        if (!PROTOCOL_VERSION.equals(message.getProtocolVersion())) {
+            throw new ProtocolException("Unsupported protocol version: " + message.getProtocolVersion());
+        }
+        
+        if (message.getMessageId() == null || message.getMessageId().isEmpty()) {
+            throw new ProtocolException("Message ID is required");
+        }
+        
+        if (message.getMessageType() == null) {
+            throw new ProtocolException("Message type is required");
+        }
+        
+        if (message.getSender() == null) {
+            throw new ProtocolException("Sender information is required");
+        }
+    }
+    
+    private ProtocolMessage awaitResponse(String correlationId, long timeoutMs) {
+        CompletableFuture<ProtocolMessage> responseFuture = new CompletableFuture<>();
+        
+        // Register temporary handler for response
+        MessageHandler responseHandler = (message) -> {
+            if (correlationId.equals(message.getCorrelationId())) {
+                responseFuture.complete(message);
+                return true; // Remove handler after processing
+            }
+            return false; // Keep handler active
+        };
+        
+        messageRouter.registerTemporaryHandler(correlationId, responseHandler);
+        
+        try {
+            return responseFuture.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            throw new ProtocolException("Response timeout for correlation ID: " + correlationId);
+        } catch (Exception e) {
+            throw new ProtocolException("Failed to await response", e);
+        }
+    }
+}
+#+END_SRC
+
+*** Message Serialization
+#+BEGIN_SRC java
+public class JsonMessageSerializer implements MessageSerializer {
+    
+    private final ObjectMapper objectMapper;
+    
+    public JsonMessageSerializer() {
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        this.objectMapper.registerModule(new JavaTimeModule());
+    }
+    
+    @Override
+    public byte[] serialize(ProtocolMessage message) throws SerializationException {
+        try {
+            String json = objectMapper.writeValueAsString(message);
+            return json.getBytes(StandardCharsets.UTF_8);
+        } catch (JsonProcessingException e) {
+            throw new SerializationException("Failed to serialize message", e);
+        }
+    }
+    
+    @Override
+    public ProtocolMessage deserialize(byte[] data) throws SerializationException {
+        try {
+            String json = new String(data, StandardCharsets.UTF_8);
+            
+            // First, deserialize to determine message type
+            JsonNode jsonNode = objectMapper.readTree(json);
+            String messageType = jsonNode.get("message_type").asText();
+            
+            // Deserialize to specific message class based on type
+            Class<? extends ProtocolMessage> messageClass = getMessageClass(messageType);
+            return objectMapper.readValue(json, messageClass);
+            
+        } catch (IOException e) {
+            throw new SerializationException("Failed to deserialize message", e);
+        }
+    }
+    
+    private Class<? extends ProtocolMessage> getMessageClass(String messageType) {
+        return switch (MessageType.valueOf(messageType)) {
+            case HANDSHAKE_REQUEST -> HandshakeRequestMessage.class;
+            case HANDSHAKE_RESPONSE -> HandshakeResponseMessage.class;
+            case LIVE_MODE_START_REQUEST -> LiveModeStartRequestMessage.class;
+            case LIVE_MODE_START_RESPONSE -> LiveModeStartResponseMessage.class;
+            case HOT_SWAP_NOTIFICATION -> HotSwapNotificationMessage.class;
+            // ... other message types
+            default -> GenericProtocolMessage.class;
+        };
+    }
+}
+#+END_SRC
+
+** Error Handling and Recovery
+
+*** Error Classification
+#+BEGIN_SRC java
+public enum ProtocolErrorCode {
+    // Connection Errors
+    CONNECTION_FAILED(1000, "Failed to establish connection"),
+    CONNECTION_TIMEOUT(1001, "Connection timeout"),
+    CONNECTION_LOST(1002, "Connection lost unexpectedly"),
+    
+    // Protocol Errors  
+    INVALID_MESSAGE_FORMAT(2000, "Invalid message format"),
+    UNSUPPORTED_PROTOCOL_VERSION(2001, "Unsupported protocol version"),
+    MESSAGE_TOO_LARGE(2002, "Message exceeds size limit"),
+    
+    // Authentication Errors
+    AUTHENTICATION_FAILED(3000, "Authentication failed"),
+    AUTHORIZATION_DENIED(3001, "Insufficient permissions"),
+    SESSION_EXPIRED(3002, "Session has expired"),
+    
+    // Agent Errors
+    AGENT_NOT_AVAILABLE(4000, "ByteHot agent not available"),
+    AGENT_BUSY(4001, "Agent is busy with another operation"),
+    AGENT_VERSION_INCOMPATIBLE(4002, "Agent version incompatible"),
+    
+    // Operation Errors
+    OPERATION_FAILED(5000, "Operation failed"),
+    OPERATION_TIMEOUT(5001, "Operation timeout"),
+    OPERATION_CANCELLED(5002, "Operation was cancelled");
+    
+    private final int code;
+    private final String description;
+    
+    ProtocolErrorCode(int code, String description) {
+        this.code = code;
+        this.description = description;
+    }
+}
+#+END_SRC
+
+*** Retry Policy Implementation
+#+BEGIN_SRC java
+public class RetryPolicy {
+    
+    public static final RetryPolicy DEFAULT = new RetryPolicy(3, 100, BackoffStrategy.EXPONENTIAL);
+    public static final RetryPolicy AGGRESSIVE = new RetryPolicy(5, 50, BackoffStrategy.LINEAR);
+    public static final RetryPolicy CONSERVATIVE = new RetryPolicy(2, 1000, BackoffStrategy.FIXED);
+    
+    private final int maxAttempts;
+    private final long baseDelayMs;
+    private final BackoffStrategy backoffStrategy;
+    
+    public RetryPolicy(int maxAttempts, long baseDelayMs, BackoffStrategy backoffStrategy) {
+        this.maxAttempts = maxAttempts;
+        this.baseDelayMs = baseDelayMs;
+        this.backoffStrategy = backoffStrategy;
+    }
+    
+    public <T> CompletableFuture<T> execute(Supplier<CompletableFuture<T>> operation) {
+        return executeWithRetry(operation, 1);
+    }
+    
+    private <T> CompletableFuture<T> executeWithRetry(Supplier<CompletableFuture<T>> operation, int attempt) {
+        return operation.get()
+            .handle((result, throwable) -> {
+                if (throwable == null) {
+                    return CompletableFuture.completedFuture(result);
+                }
+                
+                if (attempt >= maxAttempts || !isRetryableException(throwable)) {
+                    return CompletableFuture.<T>failedFuture(throwable);
+                }
+                
+                long delay = calculateDelay(attempt);
+                return CompletableFuture.delayedExecutor(delay, TimeUnit.MILLISECONDS)
+                    .supplyAsync(() -> executeWithRetry(operation, attempt + 1))
+                    .thenCompose(Function.identity());
+            })
+            .thenCompose(Function.identity());
+    }
+    
+    private boolean isRetryableException(Throwable throwable) {
+        return throwable instanceof ConnectionException ||
+               throwable instanceof TimeoutException ||
+               (throwable instanceof ProtocolException && 
+                ((ProtocolException) throwable).isRetryable());
+    }
+    
+    private long calculateDelay(int attempt) {
+        return switch (backoffStrategy) {
+            case FIXED -> baseDelayMs;
+            case LINEAR -> baseDelayMs * attempt;
+            case EXPONENTIAL -> baseDelayMs * (long) Math.pow(2, attempt - 1);
+        };
+    }
+}
+#+END_SRC
+
+** Security Considerations
+
+*** Authentication Mechanisms
+- **Development Mode**: No authentication (localhost only)
+- **Production Mode**: Mutual TLS with client certificates
+- **Enterprise Mode**: Integration with corporate identity providers
+
+*** Message Encryption
+- **Local Communication**: Filesystem permissions-based security
+- **Network Communication**: TLS 1.3 encryption
+- **Sensitive Data**: Additional payload encryption for credentials
+
+*** Authorization Framework
+- **Permission Model**: Read/Write/Execute permissions per operation type
+- **Scope Limitation**: Plugins limited to specific project directories
+- **Audit Logging**: All security-related events logged for compliance
+
+** Performance Optimization
+
+*** Message Batching
+#+BEGIN_SRC java
+public class MessageBatcher {
+    
+    private final int maxBatchSize;
+    private final long maxBatchDelayMs;
+    private final Map<MessageType, List<ProtocolMessage>> pendingMessages;
+    private final ScheduledExecutorService batchExecutor;
+    
+    public void addMessage(ProtocolMessage message) {
+        if (isBatchableMessage(message.getMessageType())) {
+            addToBatch(message);
+        } else {
+            sendImmediately(message);
+        }
+    }
+    
+    private void addToBatch(ProtocolMessage message) {
+        MessageType type = message.getMessageType();
+        pendingMessages.computeIfAbsent(type, k -> new ArrayList<>()).add(message);
+        
+        List<ProtocolMessage> batch = pendingMessages.get(type);
+        if (batch.size() >= maxBatchSize) {
+            flushBatch(type);
+        }
+    }
+    
+    private boolean isBatchableMessage(MessageType messageType) {
+        return Set.of(
+            MessageType.FILE_CHANGE_NOTIFICATION,
+            MessageType.HOT_SWAP_NOTIFICATION,
+            MessageType.DEBUG_TRACE
+        ).contains(messageType);
+    }
+}
+#+END_SRC
+
+*** Connection Pooling
+#+BEGIN_SRC java
+public class ConnectionPool {
+    
+    private final BlockingQueue<Connection> availableConnections;
+    private final Set<Connection> allConnections;
+    private final int maxConnections;
+    
+    public Connection acquireConnection() throws InterruptedException {
+        Connection connection = availableConnections.poll(5, TimeUnit.SECONDS);
+        if (connection == null || !connection.isHealthy()) {
+            connection = createNewConnection();
+        }
+        return connection;
+    }
+    
+    public void releaseConnection(Connection connection) {
+        if (connection.isHealthy() && availableConnections.size() < maxConnections) {
+            availableConnections.offer(connection);
+        } else {
+            connection.close();
+            allConnections.remove(connection);
+        }
+    }
+}
+#+END_SRC
+
+** Testing and Validation
+
+*** Protocol Compliance Testing
+#+BEGIN_SRC java
+@TestSuite("Protocol Compliance")
+public class ProtocolComplianceTests {
+    
+    @Test
+    public void testMessageFormatValidation() {
+        // Test all message types conform to schema
+        for (MessageType type : MessageType.values()) {
+            ProtocolMessage message = createSampleMessage(type);
+            assertThat(validateMessageFormat(message)).isTrue();
+        }
+    }
+    
+    @Test
+    public void testBackwardCompatibility() {
+        // Test that newer protocol versions can handle older messages
+        ProtocolMessage oldVersionMessage = createLegacyMessage("0.9");
+        ProtocolHandler handler = new ByteHotProtocolHandler();
+        
+        assertThatNoException().isThrownBy(() -> {
+            handler.processMessage(oldVersionMessage);
+        });
+    }
+    
+    @Test
+    public void testErrorRecovery() {
+        // Test that protocol handles various error conditions gracefully
+        ProtocolHandler handler = new ByteHotProtocolHandler();
+        
+        // Test malformed messages
+        assertThatThrownBy(() -> {
+            handler.processMessage(createMalformedMessage());
+        }).isInstanceOf(ProtocolException.class);
+        
+        // Test connection failures
+        simulateConnectionFailure();
+        assertThat(handler.isConnectionHealthy()).isFalse();
+        
+        // Test automatic reconnection
+        awaitConnectionRecovery();
+        assertThat(handler.isConnectionHealthy()).isTrue();
+    }
+}
+#+END_SRC
+
+** Future Protocol Enhancements
+
+*** Planned Version 2.0 Features
+- Binary message format for improved performance
+- Streaming support for large file transfers
+- Distributed agent coordination for multi-instance scenarios
+- Advanced compression algorithms for network efficiency
+
+*** Extension Points
+- Custom message types for third-party plugins
+- Pluggable authentication mechanisms
+- Custom serialization formats
+- Protocol middleware for logging, metrics, and debugging
+
+This communication protocol specification provides the foundation for reliable, secure, and efficient communication between all ByteHot plugins and the core agent, ensuring a consistent developer experience across all development environments.

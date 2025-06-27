@@ -1,0 +1,1520 @@
+#+TITLE: Technical Specification: Plugin Testing Framework
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This technical specification defines the comprehensive testing framework for ByteHot plugins, providing standardized testing utilities, mock infrastructure, and validation tools that ensure all plugins meet quality, reliability, and compatibility standards. The framework supports unit testing, integration testing, performance testing, and ecosystem validation.
+
+** Design Principles
+
+- **Consistency**: Standardized testing patterns across all plugin types
+- **Completeness**: Comprehensive test coverage for all plugin functionality
+- **Automation**: Automated test execution and validation in CI/CD pipelines
+- **Isolation**: Independent test execution with proper cleanup
+- **Performance**: Efficient test execution with parallel testing capabilities
+- **Realism**: Realistic test environments that mirror production scenarios
+
+* Testing Framework Architecture
+
+** Multi-Level Testing Strategy
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│              ByteHot Plugin Testing                │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Testing Framework Layers              │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Unit Testing Framework                         │ │
+│  │  • Plugin Component Testing                    │ │
+│  │  • Configuration Testing                       │ │
+│  │  • Mock Agent Integration                      │ │
+│  │  • Utility Function Testing                    │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Integration Testing Framework                  │ │
+│  │  • Plugin Lifecycle Testing                    │ │
+│  │  • Agent Communication Testing                 │ │
+│  │  • File System Integration Testing             │ │
+│  │  • Tool Integration Testing                    │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  System Testing Framework                      │ │
+│  │  • End-to-End Workflow Testing                 │ │
+│  │  • Cross-Plugin Compatibility Testing          │ │
+│  │  • Performance and Load Testing                │ │
+│  │  • Security and Compliance Testing             │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Ecosystem Testing Framework                   │ │
+│  │  • Multi-Plugin Integration Testing            │ │
+│  │  • Platform Compatibility Testing              │ │
+│  │  • Regression Testing Suite                    │ │
+│  │  • User Acceptance Testing                     │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Testing Infrastructure                │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Mock and Stub Components                      │ │
+│  │  • MockAgent Implementation                    │ │
+│  │  • Test Environment Builders                   │ │
+│  │  • Fake File System Support                    │ │
+│  │  • Network Simulation Tools                    │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Test Utilities and Assertions                 │ │
+│  │  • Plugin-Specific Assertions                  │ │
+│  │  • Configuration Validation Utilities          │ │
+│  │  • Performance Measurement Tools               │ │
+│  │  • Test Data Generators                        │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  Test Execution Environment                    │ │
+│  │  • Containerized Test Environments             │ │
+│  │  • Parallel Test Execution                     │ │
+│  │  • Test Resource Management                    │ │
+│  │  • CI/CD Integration                           │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Testing Framework Components
+
+- *Test Foundation*: Core testing utilities and base classes
+- *Mock Infrastructure*: Realistic mock implementations for testing
+- *Test Environment Management*: Isolated test environment creation and cleanup
+- *Assertion Libraries*: Specialized assertions for plugin testing
+- *Performance Testing*: Load testing and performance validation
+- *Compatibility Testing*: Cross-platform and cross-version testing
+
+* Core Testing Framework
+
+** PluginTestFramework Base Class
+
+#+BEGIN_SRC java
+/**
+ * Central testing framework providing comprehensive testing utilities
+ * for ByteHot plugins
+ */
+public class PluginTestFramework {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(PluginTestFramework.class);
+    
+    private final TestEnvironmentManager environmentManager;
+    private final MockAgentFactory mockAgentFactory;
+    private final TestConfigurationBuilder configBuilder;
+    private final PluginTestMetrics metrics;
+    
+    public PluginTestFramework() {
+        this.environmentManager = new TestEnvironmentManager();
+        this.mockAgentFactory = new MockAgentFactory();
+        this.configBuilder = new TestConfigurationBuilder();
+        this.metrics = new PluginTestMetrics();
+    }
+    
+    /**
+     * Create isolated test environment for plugin testing
+     */
+    public PluginTestEnvironment createTestEnvironment() {
+        return createTestEnvironment(TestEnvironmentConfiguration.defaultConfig());
+    }
+    
+    public PluginTestEnvironment createTestEnvironment(TestEnvironmentConfiguration config) {
+        try {
+            // Create isolated test directory
+            Path testDirectory = environmentManager.createTestDirectory();
+            
+            // Set up mock agent
+            MockAgent mockAgent = mockAgentFactory.createMockAgent(config.getMockAgentConfiguration());
+            
+            // Create test configuration
+            PluginConfiguration testConfig = configBuilder.buildTestConfiguration(config);
+            
+            // Create test environment
+            PluginTestEnvironment environment = new PluginTestEnvironment(
+                testDirectory, mockAgent, testConfig, metrics);
+                
+            LOG.debug("Created test environment: {}", testDirectory);
+            return environment;
+            
+        } catch (Exception e) {
+            throw new TestFrameworkException("Failed to create test environment", e);
+        }
+    }
+    
+    /**
+     * Run comprehensive plugin validation test suite
+     */
+    public PluginTestResult runPluginValidation(PluginBase plugin) {
+        return runPluginValidation(plugin, PluginTestConfiguration.standard());
+    }
+    
+    public PluginTestResult runPluginValidation(PluginBase plugin, PluginTestConfiguration config) {
+        PluginTestResult.Builder resultBuilder = PluginTestResult.builder(plugin.getPluginId());
+        
+        try (PluginTestEnvironment environment = createTestEnvironment(config.getEnvironmentConfig())) {
+            
+            // Initialize test environment
+            environment.initializeForPlugin(plugin);
+            
+            // Run test suites based on configuration
+            if (config.shouldRunUnitTests()) {
+                PluginTestSuiteResult unitResult = runUnitTestSuite(plugin, environment);
+                resultBuilder.addTestSuiteResult("unit", unitResult);
+            }
+            
+            if (config.shouldRunIntegrationTests()) {
+                PluginTestSuiteResult integrationResult = runIntegrationTestSuite(plugin, environment);
+                resultBuilder.addTestSuiteResult("integration", integrationResult);
+            }
+            
+            if (config.shouldRunPerformanceTests()) {
+                PluginTestSuiteResult performanceResult = runPerformanceTestSuite(plugin, environment);
+                resultBuilder.addTestSuiteResult("performance", performanceResult);
+            }
+            
+            if (config.shouldRunCompatibilityTests()) {
+                PluginTestSuiteResult compatibilityResult = runCompatibilityTestSuite(plugin, environment);
+                resultBuilder.addTestSuiteResult("compatibility", compatibilityResult);
+            }
+            
+            return resultBuilder.build();
+            
+        } catch (Exception e) {
+            LOG.error("Plugin validation failed for {}", plugin.getPluginId(), e);
+            return PluginTestResult.failure(plugin.getPluginId(), "Validation failed: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Run unit test suite for plugin components
+     */
+    private PluginTestSuiteResult runUnitTestSuite(PluginBase plugin, PluginTestEnvironment environment) {
+        PluginTestSuiteResult.Builder builder = PluginTestSuiteResult.builder("unit");
+        
+        // Test plugin initialization
+        TestResult initTest = testPluginInitialization(plugin, environment);
+        builder.addTestResult("initialization", initTest);
+        
+        // Test configuration management
+        TestResult configTest = testConfigurationManagement(plugin, environment);
+        builder.addTestResult("configuration", configTest);
+        
+        // Test agent discovery
+        TestResult discoveryTest = testAgentDiscovery(plugin, environment);
+        builder.addTestResult("agent_discovery", discoveryTest);
+        
+        // Test communication
+        TestResult commTest = testCommunication(plugin, environment);
+        builder.addTestResult("communication", commTest);
+        
+        // Test error handling
+        TestResult errorTest = testErrorHandling(plugin, environment);
+        builder.addTestResult("error_handling", errorTest);
+        
+        // Test resource cleanup
+        TestResult cleanupTest = testResourceCleanup(plugin, environment);
+        builder.addTestResult("resource_cleanup", cleanupTest);
+        
+        return builder.build();
+    }
+    
+    /**
+     * Test plugin initialization with various scenarios
+     */
+    private TestResult testPluginInitialization(PluginBase plugin, PluginTestEnvironment environment) {
+        try {
+            // Test normal initialization
+            boolean initResult = plugin.initializePlugin();
+            if (!initResult) {
+                return TestResult.failure("Plugin failed to initialize");
+            }
+            
+            // Verify plugin state
+            if (plugin.getState() != PluginState.INITIALIZED) {
+                return TestResult.failure("Plugin not in INITIALIZED state after initialization");
+            }
+            
+            // Verify plugin is ready
+            if (!plugin.isReady()) {
+                return TestResult.failure("Plugin not ready after initialization");
+            }
+            
+            // Test double initialization (should be safe)
+            boolean secondInit = plugin.initializePlugin();
+            if (!secondInit) {
+                return TestResult.failure("Plugin failed second initialization attempt");
+            }
+            
+            return TestResult.success("Plugin initialization successful");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Plugin initialization threw exception", e);
+        }
+    }
+    
+    /**
+     * Test configuration management functionality
+     */
+    private TestResult testConfigurationManagement(PluginBase plugin, PluginTestEnvironment environment) {
+        try {
+            ConfigurationManager configManager = plugin.getConfigurationManager();
+            
+            // Test default configuration
+            PluginConfiguration defaultConfig = plugin.getDefaultConfiguration();
+            if (defaultConfig == null) {
+                return TestResult.failure("Plugin does not provide default configuration");
+            }
+            
+            // Test configuration validation
+            ConfigurationValidator validator = new ConfigurationValidator();
+            ConfigurationValidationResult validationResult = validator.validate(defaultConfig);
+            if (!validationResult.isValid()) {
+                List<String> errors = validationResult.getErrorIssues().stream()
+                    .map(ValidationIssue::getMessage)
+                    .collect(Collectors.toList());
+                return TestResult.failure("Default configuration is invalid: " + String.join(", ", errors));
+            }
+            
+            // Test configuration loading
+            boolean loadResult = configManager.loadConfiguration();
+            if (!loadResult) {
+                return TestResult.failure("Failed to load configuration");
+            }
+            
+            // Test configuration updates
+            PluginConfiguration updatedConfig = PluginConfiguration.builder()
+                .from(defaultConfig)
+                .setDebugOutput(true)
+                .build();
+                
+            boolean updateResult = configManager.updateConfiguration(updatedConfig);
+            if (!updateResult) {
+                return TestResult.failure("Failed to update configuration");
+            }
+            
+            return TestResult.success("Configuration management working correctly");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Configuration management test failed", e);
+        }
+    }
+    
+    /**
+     * Test agent discovery functionality
+     */
+    private TestResult testAgentDiscovery(PluginBase plugin, PluginTestEnvironment environment) {
+        try {
+            AgentDiscovery discovery = plugin.getAgentDiscovery();
+            
+            // Test basic discovery
+            boolean discoveryResult = discovery.discoverAgent();
+            if (!discoveryResult) {
+                return TestResult.failure("Agent discovery failed");
+            }
+            
+            // Test agent validation
+            if (!discovery.hasValidAgent()) {
+                return TestResult.failure("No valid agent found after discovery");
+            }
+            
+            // Test agent path retrieval
+            Optional<Path> agentPath = discovery.getAgentPath();
+            if (agentPath.isEmpty()) {
+                return TestResult.failure("Agent path not available after successful discovery");
+            }
+            
+            // Test cache functionality
+            discovery.clearCache();
+            boolean rediscoveryResult = discovery.discoverAgent();
+            if (!rediscoveryResult) {
+                return TestResult.failure("Agent rediscovery failed after cache clear");
+            }
+            
+            return TestResult.success("Agent discovery working correctly");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Agent discovery test failed", e);
+        }
+    }
+    
+    /**
+     * Test communication with mock agent
+     */
+    private TestResult testCommunication(PluginBase plugin, PluginTestEnvironment environment) {
+        try {
+            ProtocolHandler protocolHandler = plugin.getProtocolHandler();
+            MockAgent mockAgent = environment.getMockAgent();
+            
+            // Test connection establishment
+            boolean connectionResult = protocolHandler.connect();
+            if (!connectionResult) {
+                return TestResult.failure("Failed to establish connection with mock agent");
+            }
+            
+            // Test basic message exchange
+            ProtocolMessage handshakeRequest = createHandshakeRequest(plugin);
+            CompletableFuture<ProtocolMessage> responseFuture = protocolHandler.sendMessage(handshakeRequest);
+            
+            ProtocolMessage response = responseFuture.get(5, TimeUnit.SECONDS);
+            if (response == null) {
+                return TestResult.failure("No response received from mock agent");
+            }
+            
+            if (response.getMessageType() != MessageType.HANDSHAKE_RESPONSE) {
+                return TestResult.failure("Unexpected response type: " + response.getMessageType());
+            }
+            
+            // Test message validation
+            List<ProtocolMessage> receivedMessages = mockAgent.getReceivedMessages();
+            if (receivedMessages.isEmpty()) {
+                return TestResult.failure("Mock agent received no messages");
+            }
+            
+            ProtocolMessage receivedHandshake = receivedMessages.get(0);
+            if (!handshakeRequest.getMessageId().equals(receivedHandshake.getMessageId())) {
+                return TestResult.failure("Message ID mismatch in received message");
+            }
+            
+            // Test connection cleanup
+            protocolHandler.disconnect();
+            if (protocolHandler.isConnected()) {
+                return TestResult.failure("Connection not properly closed");
+            }
+            
+            return TestResult.success("Communication test successful");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Communication test failed", e);
+        }
+    }
+    
+    /**
+     * Test error handling and recovery scenarios
+     */
+    private TestResult testErrorHandling(PluginBase plugin, PluginTestEnvironment environment) {
+        try {
+            List<String> errorScenarios = new ArrayList<>();
+            
+            // Test invalid configuration handling
+            try {
+                PluginConfiguration invalidConfig = PluginConfiguration.builder()
+                    .setMainClass("invalid.class.name.that.does.not.exist")
+                    .build();
+                    
+                ConfigurationManager configManager = plugin.getConfigurationManager();
+                boolean updateResult = configManager.updateConfiguration(invalidConfig);
+                
+                if (updateResult) {
+                    errorScenarios.add("Invalid configuration was accepted");
+                }
+            } catch (Exception e) {
+                // Expected behavior - invalid configuration should be rejected
+            }
+            
+            // Test agent communication failure handling
+            try {
+                environment.getMockAgent().simulateConnectionFailure();
+                
+                ProtocolHandler protocolHandler = plugin.getProtocolHandler();
+                boolean reconnectResult = protocolHandler.connect();
+                
+                if (!reconnectResult) {
+                    // This is expected - check if plugin handles it gracefully
+                    if (plugin.getState() == PluginState.FAILED) {
+                        // Plugin should remain functional even with communication issues
+                        errorScenarios.add("Plugin failed completely due to communication issue");
+                    }
+                }
+                
+                environment.getMockAgent().restoreConnection();
+            } catch (Exception e) {
+                // Check if exception was handled gracefully
+                if (plugin.getState() == PluginState.FAILED) {
+                    errorScenarios.add("Plugin failed due to communication exception");
+                }
+            }
+            
+            // Test resource exhaustion scenarios
+            // ... additional error scenarios
+            
+            if (!errorScenarios.isEmpty()) {
+                return TestResult.failure("Error handling issues: " + String.join(", ", errorScenarios));
+            }
+            
+            return TestResult.success("Error handling test successful");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Error handling test failed", e);
+        }
+    }
+    
+    /**
+     * Test resource cleanup and disposal
+     */
+    private TestResult testResourceCleanup(PluginBase plugin, PluginTestEnvironment environment) {
+        try {
+            // Record initial resource state
+            ResourceSnapshot initialSnapshot = environment.captureResourceSnapshot();
+            
+            // Ensure plugin is initialized
+            if (plugin.getState() != PluginState.INITIALIZED) {
+                plugin.initializePlugin();
+            }
+            
+            // Perform operations that allocate resources
+            performResourceIntensiveOperations(plugin, environment);
+            
+            // Capture resource state after operations
+            ResourceSnapshot operationSnapshot = environment.captureResourceSnapshot();
+            
+            // Dispose plugin
+            plugin.disposePlugin();
+            
+            // Verify plugin state
+            if (plugin.getState() != PluginState.DISPOSED) {
+                return TestResult.failure("Plugin not in DISPOSED state after disposal");
+            }
+            
+            // Capture resource state after disposal
+            ResourceSnapshot finalSnapshot = environment.captureResourceSnapshot();
+            
+            // Verify resource cleanup
+            ResourceCleanupValidation validation = new ResourceCleanupValidation();
+            ValidationResult cleanupResult = validation.validateCleanup(
+                initialSnapshot, operationSnapshot, finalSnapshot);
+                
+            if (!cleanupResult.isValid()) {
+                List<String> issues = cleanupResult.getIssues().stream()
+                    .map(ValidationIssue::getMessage)
+                    .collect(Collectors.toList());
+                return TestResult.failure("Resource cleanup issues: " + String.join(", ", issues));
+            }
+            
+            return TestResult.success("Resource cleanup test successful");
+            
+        } catch (Exception e) {
+            return TestResult.failure("Resource cleanup test failed", e);
+        }
+    }
+    
+    // Additional test suite methods...
+    private PluginTestSuiteResult runIntegrationTestSuite(PluginBase plugin, PluginTestEnvironment environment) {
+        // Implementation for integration tests
+        return PluginTestSuiteResult.builder("integration").build();
+    }
+    
+    private PluginTestSuiteResult runPerformanceTestSuite(PluginBase plugin, PluginTestEnvironment environment) {
+        // Implementation for performance tests
+        return PluginTestSuiteResult.builder("performance").build();
+    }
+    
+    private PluginTestSuiteResult runCompatibilityTestSuite(PluginBase plugin, PluginTestEnvironment environment) {
+        // Implementation for compatibility tests
+        return PluginTestSuiteResult.builder("compatibility").build();
+    }
+    
+    // Helper methods
+    private ProtocolMessage createHandshakeRequest(PluginBase plugin) {
+        return HandshakeRequestMessage.builder()
+            .setMessageId(UUID.randomUUID().toString())
+            .setSender(PluginIdentifier.create(plugin.getPluginId(), plugin.getPluginVersion()))
+            .setRecipient(AgentIdentifier.create("test-agent", "1.0.0"))
+            .setPluginCapabilities(Arrays.asList("test", "mock"))
+            .build();
+    }
+    
+    private void performResourceIntensiveOperations(PluginBase plugin, PluginTestEnvironment environment) {
+        // Simulate resource-intensive operations for cleanup testing
+        // This could include creating threads, opening connections, allocating memory, etc.
+    }
+}
+#+END_SRC
+
+** Mock Infrastructure
+
+*** MockAgent Implementation
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive mock agent implementation for plugin testing
+ */
+public class MockAgent implements AgentInterface {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(MockAgent.class);
+    
+    private final Map<String, Object> state;
+    private final List<ProtocolMessage> receivedMessages;
+    private final Queue<ProtocolMessage> responseQueue;
+    private final MockAgentConfiguration configuration;
+    private final AtomicBoolean connected;
+    private volatile boolean connectionFailureSimulated;
+    
+    public MockAgent() {
+        this(MockAgentConfiguration.defaultConfig());
+    }
+    
+    public MockAgent(MockAgentConfiguration config) {
+        this.configuration = config;
+        this.state = new ConcurrentHashMap<>();
+        this.receivedMessages = Collections.synchronizedList(new ArrayList<>());
+        this.responseQueue = new ConcurrentLinkedQueue<>();
+        this.connected = new AtomicBoolean(false);
+        this.connectionFailureSimulated = false;
+        
+        initializeDefaultResponses();
+    }
+    
+    @Override
+    public boolean connect() {
+        if (connectionFailureSimulated) {
+            return false;
+        }
+        
+        connected.set(true);
+        LOG.debug("Mock agent connected");
+        return true;
+    }
+    
+    @Override
+    public void disconnect() {
+        connected.set(false);
+        LOG.debug("Mock agent disconnected");
+    }
+    
+    @Override
+    public boolean isConnected() {
+        return connected.get() && !connectionFailureSimulated;
+    }
+    
+    @Override
+    public CompletableFuture<ProtocolMessage> sendMessage(ProtocolMessage message) {
+        if (!isConnected()) {
+            return CompletableFuture.failedFuture(
+                new CommunicationException("Mock agent not connected"));
+        }
+        
+        // Record received message
+        receivedMessages.add(message);
+        LOG.debug("Mock agent received message: {}", message.getMessageType());
+        
+        // Simulate processing delay if configured
+        if (configuration.getSimulatedLatencyMs() > 0) {
+            try {
+                Thread.sleep(configuration.getSimulatedLatencyMs());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return CompletableFuture.failedFuture(e);
+            }
+        }
+        
+        // Generate response
+        ProtocolMessage response = generateResponse(message);
+        return CompletableFuture.completedFuture(response);
+    }
+    
+    /**
+     * Generate appropriate response based on message type
+     */
+    private ProtocolMessage generateResponse(ProtocolMessage request) {
+        return switch (request.getMessageType()) {
+            case HANDSHAKE_REQUEST -> generateHandshakeResponse(request);
+            case LIVE_MODE_START_REQUEST -> generateLiveModeStartResponse(request);
+            case LIVE_MODE_STOP_REQUEST -> generateLiveModeStopResponse(request);
+            case AGENT_STATUS_REQUEST -> generateAgentStatusResponse(request);
+            case HOT_SWAP_REQUEST -> generateHotSwapResponse(request);
+            case FILE_WATCH_START_REQUEST -> generateFileWatchStartResponse(request);
+            case FILE_WATCH_STOP_REQUEST -> generateFileWatchStopResponse(request);
+            default -> generateGenericResponse(request);
+        };
+    }
+    
+    private ProtocolMessage generateHandshakeResponse(ProtocolMessage request) {
+        return HandshakeResponseMessage.builder()
+            .setMessageId(UUID.randomUUID().toString())
+            .setCorrelationId(request.getMessageId())
+            .setSender(AgentIdentifier.create("mock-agent", configuration.getAgentVersion()))
+            .setRecipient(request.getSender())
+            .setStatus("accepted")
+            .setSessionId(UUID.randomUUID().toString())
+            .setAgentCapabilities(configuration.getAgentCapabilities())
+            .setAuthenticationResult(AuthenticationResult.success())
+            .build();
+    }
+    
+    private ProtocolMessage generateLiveModeStartResponse(ProtocolMessage request) {
+        // Update mock agent state
+        state.put("live_mode_active", true);
+        state.put("live_mode_session_id", UUID.randomUUID().toString());
+        
+        return LiveModeStartResponseMessage.builder()
+            .setMessageId(UUID.randomUUID().toString())
+            .setCorrelationId(request.getMessageId())
+            .setSender(AgentIdentifier.create("mock-agent", configuration.getAgentVersion()))
+            .setRecipient(request.getSender())
+            .setStatus("success")
+            .setSessionId((String) state.get("live_mode_session_id"))
+            .setAgentPid(ProcessHandle.current().pid())
+            .setStartTime(System.currentTimeMillis())
+            .build();
+    }
+    
+    private ProtocolMessage generateHotSwapResponse(ProtocolMessage request) {
+        HotSwapRequestMessage hotSwapRequest = (HotSwapRequestMessage) request;
+        
+        // Simulate hot-swap processing
+        boolean success = configuration.shouldSimulateHotSwapSuccess();
+        
+        return HotSwapResponseMessage.builder()
+            .setMessageId(UUID.randomUUID().toString())
+            .setCorrelationId(request.getMessageId())
+            .setSender(AgentIdentifier.create("mock-agent", configuration.getAgentVersion()))
+            .setRecipient(request.getSender())
+            .setOperationId(hotSwapRequest.getOperationId())
+            .setStatus(success ? "success" : "failed")
+            .setClassName(hotSwapRequest.getClassName())
+            .setAffectedInstances(success ? 3 : 0)
+            .setExecutionTimeMs(configuration.getSimulatedHotSwapTimeMs())
+            .setErrorMessage(success ? null : "Simulated hot-swap failure")
+            .build();
+    }
+    
+    /**
+     * Simulate connection failure for testing error handling
+     */
+    public void simulateConnectionFailure() {
+        connectionFailureSimulated = true;
+        connected.set(false);
+        LOG.debug("Mock agent simulating connection failure");
+    }
+    
+    /**
+     * Restore connection after simulated failure
+     */
+    public void restoreConnection() {
+        connectionFailureSimulated = false;
+        LOG.debug("Mock agent connection restored");
+    }
+    
+    /**
+     * Get all messages received by this mock agent
+     */
+    public List<ProtocolMessage> getReceivedMessages() {
+        return new ArrayList<>(receivedMessages);
+    }
+    
+    /**
+     * Get messages of specific type
+     */
+    public List<ProtocolMessage> getReceivedMessages(MessageType messageType) {
+        return receivedMessages.stream()
+            .filter(msg -> msg.getMessageType() == messageType)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Clear received message history
+     */
+    public void clearReceivedMessages() {
+        receivedMessages.clear();
+    }
+    
+    /**
+     * Add custom response to response queue
+     */
+    public void addResponse(ProtocolMessage response) {
+        responseQueue.offer(response);
+    }
+    
+    /**
+     * Simulate agent events (for testing event handling)
+     */
+    public void simulateAgentEvent(AgentEvent event) {
+        // Convert agent event to protocol message and simulate sending
+        ProtocolMessage eventMessage = convertEventToMessage(event);
+        
+        // In a real implementation, this would be sent to connected plugins
+        LOG.debug("Mock agent simulating event: {}", event.getEventType());
+    }
+    
+    /**
+     * Set mock agent state for testing
+     */
+    public void setState(String key, Object value) {
+        state.put(key, value);
+    }
+    
+    /**
+     * Get mock agent state
+     */
+    public Object getState(String key) {
+        return state.get(key);
+    }
+    
+    /**
+     * Reset mock agent to initial state
+     */
+    public void reset() {
+        state.clear();
+        receivedMessages.clear();
+        responseQueue.clear();
+        connected.set(false);
+        connectionFailureSimulated = false;
+        initializeDefaultResponses();
+    }
+    
+    private void initializeDefaultResponses() {
+        // Initialize any default state or responses
+        state.put("agent_version", configuration.getAgentVersion());
+        state.put("startup_time", System.currentTimeMillis());
+    }
+    
+    private ProtocolMessage convertEventToMessage(AgentEvent event) {
+        // Convert agent events to appropriate protocol messages
+        return switch (event.getEventType()) {
+            case HOT_SWAP_COMPLETED -> createHotSwapNotification(event);
+            case FILE_CHANGED -> createFileChangeNotification(event);
+            case AGENT_STATUS_CHANGED -> createAgentStatusNotification(event);
+            default -> createGenericNotification(event);
+        };
+    }
+    
+    // Additional helper methods for message generation...
+    private ProtocolMessage createHotSwapNotification(AgentEvent event) {
+        return HotSwapNotificationMessage.builder()
+            .setMessageId(UUID.randomUUID().toString())
+            .setSender(AgentIdentifier.create("mock-agent", configuration.getAgentVersion()))
+            .setOperationId(UUID.randomUUID().toString())
+            .setClassName(event.getClassName())
+            .setStatus("success")
+            .setAffectedInstances(1)
+            .setExecutionTimeMs(45)
+            .build();
+    }
+}
+#+END_SRC
+
+*** Test Environment Management
+
+#+BEGIN_SRC java
+/**
+ * Manages isolated test environments for plugin testing
+ */
+public class PluginTestEnvironment implements AutoCloseable {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(PluginTestEnvironment.class);
+    
+    private final Path testDirectory;
+    private final MockAgent mockAgent;
+    private final PluginConfiguration testConfiguration;
+    private final PluginTestMetrics metrics;
+    private final List<AutoCloseable> resources;
+    private final Map<String, Object> environmentState;
+    
+    private volatile boolean initialized = false;
+    private volatile boolean closed = false;
+    
+    public PluginTestEnvironment(Path testDirectory, MockAgent mockAgent,
+                               PluginConfiguration testConfiguration, PluginTestMetrics metrics) {
+        this.testDirectory = testDirectory;
+        this.mockAgent = mockAgent;
+        this.testConfiguration = testConfiguration;
+        this.metrics = metrics;
+        this.resources = new ArrayList<>();
+        this.environmentState = new ConcurrentHashMap<>();
+    }
+    
+    /**
+     * Initialize test environment for specific plugin
+     */
+    public void initializeForPlugin(PluginBase plugin) throws TestEnvironmentException {
+        if (initialized) {
+            return;
+        }
+        
+        try {
+            LOG.debug("Initializing test environment for plugin: {}", plugin.getPluginId());
+            
+            // Set up test file system
+            setupTestFileSystem();
+            
+            // Configure mock agent for plugin
+            configureMockAgent(plugin);
+            
+            // Set up test configuration
+            setupTestConfiguration(plugin);
+            
+            // Initialize plugin context
+            initializePluginContext(plugin);
+            
+            initialized = true;
+            LOG.debug("Test environment initialized successfully");
+            
+        } catch (Exception e) {
+            throw new TestEnvironmentException("Failed to initialize test environment", e);
+        }
+    }
+    
+    /**
+     * Set up isolated test file system
+     */
+    private void setupTestFileSystem() throws IOException {
+        // Create test directory structure
+        Files.createDirectories(testDirectory);
+        Files.createDirectories(testDirectory.resolve("src/main/java"));
+        Files.createDirectories(testDirectory.resolve("src/test/java"));
+        Files.createDirectories(testDirectory.resolve("src/main/resources"));
+        Files.createDirectories(testDirectory.resolve("target/classes"));
+        Files.createDirectories(testDirectory.resolve(".bytehot/logs"));
+        
+        // Create test source files
+        createTestSourceFiles();
+        
+        // Create test configuration files
+        createTestConfigurationFiles();
+        
+        LOG.debug("Test file system created: {}", testDirectory);
+    }
+    
+    private void createTestSourceFiles() throws IOException {
+        // Create a simple test application
+        String testAppSource = """
+            package com.example.test;
+            
+            public class TestApplication {
+                private String message = "Hello from test application";
+                
+                public static void main(String[] args) {
+                    TestApplication app = new TestApplication();
+                    System.out.println(app.getMessage());
+                }
+                
+                public String getMessage() {
+                    return message;
+                }
+                
+                public void setMessage(String message) {
+                    this.message = message;
+                }
+            }
+            """;
+            
+        Path testAppPath = testDirectory.resolve("src/main/java/com/example/test/TestApplication.java");
+        Files.createDirectories(testAppPath.getParent());
+        Files.writeString(testAppPath, testAppSource);
+        
+        // Create compiled class file
+        compileTestSources();
+    }
+    
+    private void compileTestSources() throws IOException {
+        // Simplified compilation for testing
+        // In a real implementation, this would use the Java compiler API
+        Path classFile = testDirectory.resolve("target/classes/com/example/test/TestApplication.class");
+        Files.createDirectories(classFile.getParent());
+        
+        // Create a mock class file (empty for testing purposes)
+        Files.createFile(classFile);
+    }
+    
+    private void createTestConfigurationFiles() throws IOException {
+        // Create project configuration
+        String projectConfig = """
+            {
+              "version": "1.0",
+              "project": {
+                "analysis": {
+                  "main_class": "com.example.test.TestApplication"
+                }
+              },
+              "live_mode": {
+                "auto_start": false
+              },
+              "logging": {
+                "level": "DEBUG"
+              }
+            }
+            """;
+            
+        Path configPath = testDirectory.resolve(".bytehot/config.json");
+        Files.writeString(configPath, projectConfig);
+    }
+    
+    /**
+     * Configure mock agent for plugin testing
+     */
+    private void configureMockAgent(PluginBase plugin) {
+        mockAgent.reset();
+        
+        // Set up agent state for plugin
+        mockAgent.setState("plugin_id", plugin.getPluginId());
+        mockAgent.setState("plugin_version", plugin.getPluginVersion());
+        
+        // Configure responses based on plugin type
+        configureMockAgentForPluginType(plugin);
+    }
+    
+    private void configureMockAgentForPluginType(PluginBase plugin) {
+        PluginType pluginType = plugin.getPluginType();
+        
+        switch (pluginType) {
+            case BUILD_TOOL:
+                configureMockAgentForBuildTool(plugin);
+                break;
+            case IDE:
+                configureMockAgentForIDE(plugin);
+                break;
+            case EDITOR:
+                configureMockAgentForEditor(plugin);
+                break;
+            default:
+                configureMockAgentDefault(plugin);
+        }
+    }
+    
+    /**
+     * Capture current resource snapshot for cleanup testing
+     */
+    public ResourceSnapshot captureResourceSnapshot() {
+        return ResourceSnapshot.builder()
+            .setMemoryUsage(getMemoryUsage())
+            .setThreadCount(getThreadCount())
+            .setOpenFileDescriptors(getOpenFileDescriptors())
+            .setNetworkConnections(getNetworkConnections())
+            .setTempFileCount(getTempFileCount())
+            .setTimestamp(System.currentTimeMillis())
+            .build();
+    }
+    
+    /**
+     * Create test data for specific scenarios
+     */
+    public TestDataBuilder createTestData() {
+        return new TestDataBuilder(testDirectory);
+    }
+    
+    /**
+     * Get mock agent for testing
+     */
+    public MockAgent getMockAgent() {
+        return mockAgent;
+    }
+    
+    /**
+     * Get test configuration
+     */
+    public PluginConfiguration getTestConfiguration() {
+        return testConfiguration;
+    }
+    
+    /**
+     * Get test directory
+     */
+    public Path getTestDirectory() {
+        return testDirectory;
+    }
+    
+    /**
+     * Set environment state for testing
+     */
+    public void setState(String key, Object value) {
+        environmentState.put(key, value);
+    }
+    
+    /**
+     * Get environment state
+     */
+    public Object getState(String key) {
+        return environmentState.get(key);
+    }
+    
+    /**
+     * Add resource to be cleaned up
+     */
+    public void addResource(AutoCloseable resource) {
+        resources.add(resource);
+    }
+    
+    @Override
+    public void close() throws Exception {
+        if (closed) {
+            return;
+        }
+        
+        LOG.debug("Closing test environment: {}", testDirectory);
+        
+        try {
+            // Close all resources
+            for (AutoCloseable resource : resources) {
+                try {
+                    resource.close();
+                } catch (Exception e) {
+                    LOG.warn("Failed to close test resource", e);
+                }
+            }
+            
+            // Disconnect mock agent
+            if (mockAgent.isConnected()) {
+                mockAgent.disconnect();
+            }
+            
+            // Clean up test directory
+            cleanupTestDirectory();
+            
+            closed = true;
+            LOG.debug("Test environment closed successfully");
+            
+        } catch (Exception e) {
+            LOG.error("Failed to close test environment", e);
+            throw e;
+        }
+    }
+    
+    private void cleanupTestDirectory() {
+        try {
+            if (Files.exists(testDirectory)) {
+                Files.walk(testDirectory)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+            }
+        } catch (IOException e) {
+            LOG.warn("Failed to clean up test directory: {}", testDirectory, e);
+        }
+    }
+    
+    // Helper methods for resource monitoring
+    private long getMemoryUsage() {
+        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+        return memoryBean.getHeapMemoryUsage().getUsed();
+    }
+    
+    private int getThreadCount() {
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        return threadBean.getThreadCount();
+    }
+    
+    private int getOpenFileDescriptors() {
+        // Platform-specific implementation would be needed for accurate counts
+        return 0; // Simplified for this example
+    }
+    
+    private int getNetworkConnections() {
+        // Platform-specific implementation would be needed for accurate counts
+        return 0; // Simplified for this example
+    }
+    
+    private int getTempFileCount() {
+        try {
+            Path tempDir = Paths.get(System.getProperty("java.io.tmpdir"));
+            return (int) Files.list(tempDir)
+                .filter(path -> path.getFileName().toString().startsWith("bytehot"))
+                .count();
+        } catch (IOException e) {
+            return 0;
+        }
+    }
+}
+#+END_SRC
+
+* Performance Testing Framework
+
+** Performance Test Suite
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive performance testing framework for ByteHot plugins
+ */
+@BenchmarkMode(Mode.All)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@State(Scope.Benchmark)
+public class PluginPerformanceBenchmarks {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(PluginPerformanceBenchmarks.class);
+    
+    @Param({"maven", "gradle", "intellij", "eclipse", "vscode"})
+    private String pluginType;
+    
+    @Param({"small", "medium", "large"})
+    private String projectSize;
+    
+    private PluginTestFramework testFramework;
+    private PluginBase testPlugin;
+    private PluginTestEnvironment testEnvironment;
+    
+    @Setup(Level.Trial)
+    public void setupBenchmark() throws Exception {
+        testFramework = new PluginTestFramework();
+        testPlugin = createPluginForType(pluginType);
+        
+        TestEnvironmentConfiguration envConfig = TestEnvironmentConfiguration.builder()
+            .setProjectSize(ProjectSize.valueOf(projectSize.toUpperCase()))
+            .setMockAgentLatency(Duration.ofMillis(10))
+            .build();
+            
+        testEnvironment = testFramework.createTestEnvironment(envConfig);
+        testEnvironment.initializeForPlugin(testPlugin);
+    }
+    
+    @TearDown(Level.Trial)
+    public void teardownBenchmark() throws Exception {
+        if (testEnvironment != null) {
+            testEnvironment.close();
+        }
+    }
+    
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @Measurement(iterations = 10, time = 30, timeUnit = TimeUnit.SECONDS)
+    public long benchmarkPluginInitialization(Blackhole bh) {
+        long startTime = System.nanoTime();
+        
+        boolean result = testPlugin.initializePlugin();
+        
+        long endTime = System.nanoTime();
+        long duration = endTime - startTime;
+        
+        bh.consume(result);
+        bh.consume(duration);
+        
+        // Cleanup for next iteration
+        testPlugin.disposePlugin();
+        
+        return duration;
+    }
+    
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @Measurement(iterations = 50, time = 60, timeUnit = TimeUnit.SECONDS)
+    public long benchmarkAgentDiscovery(Blackhole bh) {
+        long startTime = System.nanoTime();
+        
+        AgentDiscovery discovery = testPlugin.getAgentDiscovery();
+        discovery.clearCache(); // Force fresh discovery
+        boolean result = discovery.discoverAgent();
+        
+        long endTime = System.nanoTime();
+        long duration = endTime - startTime;
+        
+        bh.consume(result);
+        bh.consume(duration);
+        
+        return duration;
+    }
+    
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @Measurement(iterations = 100, time = 120, timeUnit = TimeUnit.SECONDS)
+    public long benchmarkConfigurationLoading(Blackhole bh) {
+        long startTime = System.nanoTime();
+        
+        ConfigurationManager configManager = testPlugin.getConfigurationManager();
+        boolean result = configManager.loadConfiguration();
+        
+        long endTime = System.nanoTime();
+        long duration = endTime - startTime;
+        
+        bh.consume(result);
+        bh.consume(duration);
+        
+        return duration;
+    }
+    
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @Measurement(iterations = 200, time = 180, timeUnit = TimeUnit.SECONDS)
+    public long benchmarkMessageRoundTrip(Blackhole bh) {
+        ProtocolHandler protocolHandler = testPlugin.getProtocolHandler();
+        
+        long startTime = System.nanoTime();
+        
+        try {
+            ProtocolMessage request = createTestMessage(testPlugin);
+            CompletableFuture<ProtocolMessage> responseFuture = protocolHandler.sendMessage(request);
+            ProtocolMessage response = responseFuture.get(5, TimeUnit.SECONDS);
+            
+            long endTime = System.nanoTime();
+            long duration = endTime - startTime;
+            
+            bh.consume(response);
+            bh.consume(duration);
+            
+            return duration;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Message benchmark failed", e);
+        }
+    }
+    
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    @Measurement(iterations = 10, time = 60, timeUnit = TimeUnit.SECONDS)
+    public void benchmarkMessageThroughput(Blackhole bh) {
+        ProtocolHandler protocolHandler = testPlugin.getProtocolHandler();
+        
+        try {
+            ProtocolMessage request = createTestMessage(testPlugin);
+            CompletableFuture<ProtocolMessage> responseFuture = protocolHandler.sendMessage(request);
+            ProtocolMessage response = responseFuture.get(1, TimeUnit.SECONDS);
+            
+            bh.consume(response);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Throughput benchmark failed", e);
+        }
+    }
+    
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @Measurement(iterations = 50, time = 120, timeUnit = TimeUnit.SECONDS)
+    public long benchmarkMemoryUsage(Blackhole bh) {
+        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+        
+        long baselineMemory = memoryBean.getHeapMemoryUsage().getUsed();
+        
+        // Perform memory-intensive operations
+        List<ProtocolMessage> messages = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            messages.add(createTestMessage(testPlugin));
+        }
+        
+        long peakMemory = memoryBean.getHeapMemoryUsage().getUsed();
+        long memoryIncrease = peakMemory - baselineMemory;
+        
+        bh.consume(messages);
+        bh.consume(memoryIncrease);
+        
+        // Force garbage collection
+        System.gc();
+        
+        return memoryIncrease;
+    }
+    
+    /**
+     * Stress test for plugin under high load
+     */
+    @Benchmark
+    @BenchmarkMode(Mode.AverageTime)
+    @Measurement(iterations = 10, time = 300, timeUnit = TimeUnit.SECONDS)
+    public long benchmarkStressTest(Blackhole bh) {
+        long startTime = System.nanoTime();
+        
+        try {
+            // Simulate high load scenario
+            List<CompletableFuture<ProtocolMessage>> futures = new ArrayList<>();
+            ProtocolHandler protocolHandler = testPlugin.getProtocolHandler();
+            
+            for (int i = 0; i < 100; i++) {
+                ProtocolMessage request = createTestMessage(testPlugin);
+                CompletableFuture<ProtocolMessage> future = protocolHandler.sendMessage(request);
+                futures.add(future);
+            }
+            
+            // Wait for all responses
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(30, TimeUnit.SECONDS);
+            
+            long endTime = System.nanoTime();
+            long duration = endTime - startTime;
+            
+            bh.consume(futures.size());
+            bh.consume(duration);
+            
+            return duration;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Stress test failed", e);
+        }
+    }
+    
+    private PluginBase createPluginForType(String type) {
+        return switch (type) {
+            case "maven" -> new TestMavenPlugin();
+            case "gradle" -> new TestGradlePlugin();
+            case "intellij" -> new TestIntellijPlugin();
+            case "eclipse" -> new TestEclipsePlugin();
+            case "vscode" -> new TestVSCodePlugin();
+            default -> throw new IllegalArgumentException("Unknown plugin type: " + type);
+        };
+    }
+    
+    private ProtocolMessage createTestMessage(PluginBase plugin) {
+        return HandshakeRequestMessage.builder()
+            .setMessageId(UUID.randomUUID().toString())
+            .setSender(PluginIdentifier.create(plugin.getPluginId(), plugin.getPluginVersion()))
+            .setRecipient(AgentIdentifier.create("test-agent", "1.0.0"))
+            .setPluginCapabilities(Arrays.asList("test"))
+            .build();
+    }
+}
+#+END_SRC
+
+* Test Result and Reporting
+
+** Test Result Model
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive test result model with detailed reporting
+ */
+public class PluginTestResult {
+    
+    private final String pluginId;
+    private final boolean success;
+    private final Map<String, PluginTestSuiteResult> testSuiteResults;
+    private final List<TestIssue> issues;
+    private final TestMetrics metrics;
+    private final long executionTimeMs;
+    private final String summary;
+    
+    private PluginTestResult(String pluginId, boolean success, 
+                           Map<String, PluginTestSuiteResult> testSuiteResults,
+                           List<TestIssue> issues, TestMetrics metrics,
+                           long executionTimeMs, String summary) {
+        this.pluginId = pluginId;
+        this.success = success;
+        this.testSuiteResults = Collections.unmodifiableMap(new HashMap<>(testSuiteResults));
+        this.issues = Collections.unmodifiableList(new ArrayList<>(issues));
+        this.metrics = metrics;
+        this.executionTimeMs = executionTimeMs;
+        this.summary = summary;
+    }
+    
+    public static Builder builder(String pluginId) {
+        return new Builder(pluginId);
+    }
+    
+    public static PluginTestResult failure(String pluginId, String message, Exception exception) {
+        return builder(pluginId)
+            .addIssue(TestIssue.error(message, exception))
+            .build();
+    }
+    
+    // Getters
+    public String getPluginId() { return pluginId; }
+    public boolean isSuccess() { return success; }
+    public Map<String, PluginTestSuiteResult> getTestSuiteResults() { return testSuiteResults; }
+    public List<TestIssue> getIssues() { return issues; }
+    public TestMetrics getMetrics() { return metrics; }
+    public long getExecutionTimeMs() { return executionTimeMs; }
+    public String getSummary() { return summary; }
+    
+    /**
+     * Generate detailed test report
+     */
+    public String generateReport() {
+        StringBuilder report = new StringBuilder();
+        
+        report.append("ByteHot Plugin Test Report\n");
+        report.append("==========================\n");
+        report.append("Plugin ID: ").append(pluginId).append("\n");
+        report.append("Overall Result: ").append(success ? "PASS" : "FAIL").append("\n");
+        report.append("Execution Time: ").append(executionTimeMs).append("ms\n");
+        report.append("\n");
+        
+        // Test suite results
+        report.append("Test Suite Results:\n");
+        report.append("-------------------\n");
+        for (Map.Entry<String, PluginTestSuiteResult> entry : testSuiteResults.entrySet()) {
+            PluginTestSuiteResult suiteResult = entry.getValue();
+            report.append(String.format("  %s: %s (%d/%d tests passed)\n",
+                entry.getKey(),
+                suiteResult.isSuccess() ? "PASS" : "FAIL",
+                suiteResult.getPassedTestCount(),
+                suiteResult.getTotalTestCount()));
+        }
+        report.append("\n");
+        
+        // Issues
+        if (!issues.isEmpty()) {
+            report.append("Issues:\n");
+            report.append("-------\n");
+            for (TestIssue issue : issues) {
+                report.append("  [").append(issue.getSeverity()).append("] ");
+                report.append(issue.getMessage()).append("\n");
+            }
+            report.append("\n");
+        }
+        
+        // Metrics
+        if (metrics != null) {
+            report.append("Performance Metrics:\n");
+            report.append("-------------------\n");
+            report.append(metrics.getSummary());
+            report.append("\n");
+        }
+        
+        // Summary
+        report.append("Summary:\n");
+        report.append("--------\n");
+        report.append(summary != null ? summary : generateDefaultSummary());
+        
+        return report.toString();
+    }
+    
+    private String generateDefaultSummary() {
+        int totalTests = testSuiteResults.values().stream()
+            .mapToInt(PluginTestSuiteResult::getTotalTestCount)
+            .sum();
+            
+        int passedTests = testSuiteResults.values().stream()
+            .mapToInt(PluginTestSuiteResult::getPassedTestCount)
+            .sum();
+            
+        return String.format("Plugin %s: %d/%d tests passed in %dms",
+            pluginId, passedTests, totalTests, executionTimeMs);
+    }
+    
+    public static class Builder {
+        private final String pluginId;
+        private final Map<String, PluginTestSuiteResult> testSuiteResults = new HashMap<>();
+        private final List<TestIssue> issues = new ArrayList<>();
+        private TestMetrics metrics;
+        private final long startTime = System.currentTimeMillis();
+        private String summary;
+        
+        public Builder(String pluginId) {
+            this.pluginId = pluginId;
+        }
+        
+        public Builder addTestSuiteResult(String suiteName, PluginTestSuiteResult result) {
+            testSuiteResults.put(suiteName, result);
+            return this;
+        }
+        
+        public Builder addIssue(TestIssue issue) {
+            issues.add(issue);
+            return this;
+        }
+        
+        public Builder setMetrics(TestMetrics metrics) {
+            this.metrics = metrics;
+            return this;
+        }
+        
+        public Builder setSummary(String summary) {
+            this.summary = summary;
+            return this;
+        }
+        
+        public PluginTestResult build() {
+            long executionTime = System.currentTimeMillis() - startTime;
+            
+            boolean success = issues.stream().noneMatch(issue -> 
+                issue.getSeverity() == TestIssueSeverity.ERROR ||
+                issue.getSeverity() == TestIssueSeverity.CRITICAL) &&
+                testSuiteResults.values().stream().allMatch(PluginTestSuiteResult::isSuccess);
+                
+            return new PluginTestResult(pluginId, success, testSuiteResults, 
+                                       issues, metrics, executionTime, summary);
+        }
+    }
+}
+#+END_SRC
+
+This comprehensive plugin testing framework provides all the tools necessary to ensure ByteHot plugins meet the highest standards of quality, reliability, and performance. The framework supports automated testing in CI/CD pipelines while providing detailed diagnostics and reporting for developers.

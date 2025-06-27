@@ -1,0 +1,1425 @@
+#+TITLE: Technical Specification: Agent Discovery Mechanism
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This technical specification defines the comprehensive agent discovery mechanism used by all ByteHot plugins to locate and validate the ByteHot agent JAR file. The discovery system implements multiple discovery strategies with priority-based selection, caching, and validation to ensure reliable agent detection across all supported platforms and environments.
+
+** Design Principles
+
+- **Reliability**: Multiple fallback strategies ensure agent discovery succeeds in diverse environments
+- **Performance**: Intelligent caching minimizes discovery overhead
+- **Flexibility**: Configurable strategies support custom deployment scenarios
+- **Validation**: Comprehensive validation ensures discovered agents are genuine and compatible
+- **Security**: Secure validation prevents execution of malicious or incompatible agents
+
+* Discovery Architecture
+
+** Multi-Strategy Discovery System
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│              Plugin Agent Discovery                │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│           Discovery Coordinator                    │
+│  • Strategy Management  • Caching System          │
+│  • Priority Ordering    • Validation Pipeline     │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Discovery Strategies                  │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  1. System Property Strategy (Priority: 10)    │ │
+│  │     -Dbytehot.agent.path=/path/to/agent.jar    │ │
+│  │     -Dbytehot.agent.jar=/path/to/agent.jar     │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  2. Maven Repository Strategy (Priority: 20)   │ │
+│  │     ~/.m2/repository/org/acmsl/                 │ │
+│  │     bytehot-application/*-agent.jar             │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  3. Gradle Cache Strategy (Priority: 30)       │ │
+│  │     ~/.gradle/caches/modules-2/                 │ │
+│  │     org.acmsl/bytehot-application/*-agent.jar   │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  4. Project Directory Strategy (Priority: 40)  │ │
+│  │     ./target/*-agent.jar                       │ │
+│  │     ./build/libs/*-agent.jar                   │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  5. Environment Variable Strategy (Priority: 50)│ │
+│  │     $BYTEHOT_AGENT_PATH                        │ │
+│  │     $BYTEHOT_HOME/agent.jar                    │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  6. Path Scan Strategy (Priority: 60)          │ │
+│  │     Scan common installation directories       │ │
+│  │     /usr/local/lib/bytehot/                    │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Validation Pipeline                   │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  1. File Existence and Accessibility Check     │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  2. JAR Format Validation                      │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  3. Manifest Attribute Verification            │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  4. ByteHot Marker Validation                  │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  5. Agent Class Verification                   │ │
+│  └─────────────────────────────────────────────────┘ │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  6. Version Compatibility Check                │ │
+│  └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Discovery Strategy Priority System
+
+Strategies are executed in priority order (lower numbers = higher priority):
+
+1. **System Property Strategy (10)**: Explicit configuration via system properties
+2. **Maven Repository Strategy (20)**: Maven local repository scanning
+3. **Gradle Cache Strategy (30)**: Gradle cache directory scanning
+4. **Project Directory Strategy (40)**: Project build output directories
+5. **Environment Variable Strategy (50)**: Environment variable configuration
+6. **Path Scan Strategy (60)**: System-wide path scanning
+
+* Core Discovery Implementation
+
+** AgentDiscovery Coordinator
+
+#+BEGIN_SRC java
+/**
+ * Main coordinator for ByteHot agent discovery across all supported environments.
+ * Implements a priority-based strategy pattern with intelligent caching and
+ * comprehensive validation.
+ */
+public class AgentDiscovery {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(AgentDiscovery.class);
+    
+    private final List<DiscoveryStrategy> strategies;
+    private final AgentValidator validator;
+    private final DiscoveryCache cache;
+    private final DiscoveryMetrics metrics;
+    
+    // Configuration constants
+    private static final long CACHE_TTL_MS = 300_000; // 5 minutes
+    private static final long DISCOVERY_TIMEOUT_MS = 30_000; // 30 seconds
+    private static final int MAX_PARALLEL_STRATEGIES = 3;
+    
+    public AgentDiscovery() {
+        this.strategies = createDefaultStrategies();
+        this.validator = new AgentValidator();
+        this.cache = new DiscoveryCache(CACHE_TTL_MS);
+        this.metrics = new DiscoveryMetrics();
+    }
+    
+    public AgentDiscovery(DiscoveryConfiguration config) {
+        this.strategies = createConfiguredStrategies(config);
+        this.validator = new AgentValidator(config.getValidationSettings());
+        this.cache = new DiscoveryCache(config.getCacheTtlMs());
+        this.metrics = new DiscoveryMetrics();
+    }
+    
+    /**
+     * Discover ByteHot agent using configured strategies with timeout protection
+     */
+    public CompletableFuture<DiscoveryResult> discoverAgentAsync() {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return discoverAgent();
+            } catch (Exception e) {
+                return DiscoveryResult.failure("Discovery failed: " + e.getMessage(), e);
+            }
+        }).orTimeout(DISCOVERY_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+          .handle((result, throwable) -> {
+              if (throwable instanceof TimeoutException) {
+                  return DiscoveryResult.failure("Discovery timeout after " + 
+                                               DISCOVERY_TIMEOUT_MS + "ms");
+              }
+              return result != null ? result : 
+                     DiscoveryResult.failure("Unexpected discovery failure");
+          });
+    }
+    
+    /**
+     * Synchronous agent discovery with comprehensive error handling
+     */
+    public DiscoveryResult discoverAgent() {
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            // Check cache first
+            Optional<DiscoveryResult> cachedResult = cache.getCachedResult();
+            if (cachedResult.isPresent()) {
+                metrics.recordCacheHit();
+                LOG.debug("Agent discovery cache hit: {}", cachedResult.get().getAgentPath());
+                return cachedResult.get();
+            }
+            
+            metrics.recordCacheMiss();
+            LOG.info("Starting ByteHot agent discovery with {} strategies", strategies.size());
+            
+            // Execute strategies based on configuration
+            DiscoveryResult result = executeDiscoveryStrategies();
+            
+            // Cache successful results
+            if (result.isSuccess()) {
+                cache.cacheResult(result);
+                metrics.recordSuccessfulDiscovery(System.currentTimeMillis() - startTime);
+                LOG.info("Agent discovered successfully: {}", result.getAgentPath());
+            } else {
+                metrics.recordFailedDiscovery(System.currentTimeMillis() - startTime);
+                LOG.error("Agent discovery failed: {}", result.getErrorMessage());
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            metrics.recordDiscoveryException(e);
+            LOG.error("Unexpected error during agent discovery", e);
+            return DiscoveryResult.failure("Discovery failed with exception: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Execute discovery strategies with configurable parallelization
+     */
+    private DiscoveryResult executeDiscoveryStrategies() {
+        // Filter applicable strategies
+        List<DiscoveryStrategy> applicableStrategies = strategies.stream()
+            .filter(DiscoveryStrategy::isApplicable)
+            .sorted(Comparator.comparingInt(DiscoveryStrategy::getPriority))
+            .collect(Collectors.toList());
+            
+        if (applicableStrategies.isEmpty()) {
+            return DiscoveryResult.failure("No applicable discovery strategies found");
+        }
+        
+        LOG.debug("Executing {} applicable discovery strategies", applicableStrategies.size());
+        
+        // Try strategies in priority order
+        for (DiscoveryStrategy strategy : applicableStrategies) {
+            try {
+                DiscoveryResult result = executeStrategy(strategy);
+                if (result.isSuccess()) {
+                    return result;
+                }
+            } catch (Exception e) {
+                LOG.warn("Strategy {} failed with exception: {}", 
+                        strategy.getStrategyName(), e.getMessage());
+                metrics.recordStrategyException(strategy.getStrategyName(), e);
+            }
+        }
+        
+        return DiscoveryResult.failure("All discovery strategies failed");
+    }
+    
+    /**
+     * Execute a single discovery strategy with validation
+     */
+    private DiscoveryResult executeStrategy(DiscoveryStrategy strategy) {
+        long strategyStartTime = System.currentTimeMillis();
+        String strategyName = strategy.getStrategyName();
+        
+        LOG.debug("Executing discovery strategy: {}", strategyName);
+        
+        try {
+            Optional<Path> agentPath = strategy.discoverAgent();
+            
+            if (agentPath.isEmpty()) {
+                metrics.recordStrategyFailure(strategyName, "No agent found");
+                LOG.debug("Strategy {} found no agent", strategyName);
+                return DiscoveryResult.failure("Strategy " + strategyName + " found no agent");
+            }
+            
+            Path path = agentPath.get();
+            LOG.debug("Strategy {} found potential agent at: {}", strategyName, path);
+            
+            // Validate discovered agent
+            AgentValidationResult validationResult = validator.validateAgent(path);
+            
+            if (validationResult.isValid()) {
+                long discoveryTime = System.currentTimeMillis() - strategyStartTime;
+                metrics.recordStrategySuccess(strategyName, discoveryTime);
+                LOG.info("Valid ByteHot agent discovered by {}: {}", strategyName, path);
+                
+                return DiscoveryResult.success(path, strategyName, validationResult);
+            } else {
+                metrics.recordStrategyFailure(strategyName, "Validation failed: " + 
+                                            validationResult.getErrorMessage());
+                LOG.warn("Invalid agent found by {}: {} - {}", 
+                        strategyName, path, validationResult.getErrorMessage());
+                return DiscoveryResult.failure("Invalid agent: " + validationResult.getErrorMessage());
+            }
+            
+        } catch (Exception e) {
+            metrics.recordStrategyException(strategyName, e);
+            LOG.warn("Strategy {} threw exception: {}", strategyName, e.getMessage());
+            return DiscoveryResult.failure("Strategy exception: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Create default discovery strategies in priority order
+     */
+    private List<DiscoveryStrategy> createDefaultStrategies() {
+        return Arrays.asList(
+            new SystemPropertyStrategy(),
+            new MavenRepositoryStrategy(),
+            new GradleCacheStrategy(),
+            new ProjectDirectoryStrategy(),
+            new EnvironmentVariableStrategy(),
+            new PathScanStrategy()
+        );
+    }
+    
+    /**
+     * Create configured discovery strategies based on user configuration
+     */
+    private List<DiscoveryStrategy> createConfiguredStrategies(DiscoveryConfiguration config) {
+        List<DiscoveryStrategy> configuredStrategies = new ArrayList<>();
+        
+        // Add enabled strategies from configuration
+        for (StrategyConfiguration strategyConfig : config.getEnabledStrategies()) {
+            DiscoveryStrategy strategy = createStrategy(strategyConfig);
+            if (strategy != null) {
+                configuredStrategies.add(strategy);
+            }
+        }
+        
+        // Add default strategies if none configured
+        if (configuredStrategies.isEmpty()) {
+            configuredStrategies.addAll(createDefaultStrategies());
+        }
+        
+        return configuredStrategies;
+    }
+    
+    /**
+     * Factory method for creating discovery strategies
+     */
+    private DiscoveryStrategy createStrategy(StrategyConfiguration config) {
+        return switch (config.getType()) {
+            case SYSTEM_PROPERTY -> new SystemPropertyStrategy(config);
+            case MAVEN_REPOSITORY -> new MavenRepositoryStrategy(config);
+            case GRADLE_CACHE -> new GradleCacheStrategy(config);
+            case PROJECT_DIRECTORY -> new ProjectDirectoryStrategy(config);
+            case ENVIRONMENT_VARIABLE -> new EnvironmentVariableStrategy(config);
+            case PATH_SCAN -> new PathScanStrategy(config);
+            case CUSTOM -> createCustomStrategy(config);
+            default -> {
+                LOG.warn("Unknown strategy type: {}", config.getType());
+                yield null;
+            }
+        };
+    }
+    
+    private DiscoveryStrategy createCustomStrategy(StrategyConfiguration config) {
+        try {
+            Class<?> strategyClass = Class.forName(config.getClassName());
+            Constructor<?> constructor = strategyClass.getConstructor(StrategyConfiguration.class);
+            return (DiscoveryStrategy) constructor.newInstance(config);
+        } catch (Exception e) {
+            LOG.error("Failed to create custom strategy: {}", config.getClassName(), e);
+            return null;
+        }
+    }
+    
+    /**
+     * Clear discovery cache and force rediscovery
+     */
+    public void clearCache() {
+        cache.clear();
+        LOG.debug("Discovery cache cleared");
+    }
+    
+    /**
+     * Get discovery metrics for monitoring and debugging
+     */
+    public DiscoveryMetrics getMetrics() {
+        return metrics;
+    }
+    
+    /**
+     * Add custom discovery strategy at runtime
+     */
+    public void addStrategy(DiscoveryStrategy strategy) {
+        strategies.add(strategy);
+        strategies.sort(Comparator.comparingInt(DiscoveryStrategy::getPriority));
+        LOG.info("Added custom discovery strategy: {}", strategy.getStrategyName());
+    }
+    
+    /**
+     * Remove discovery strategy by name
+     */
+    public boolean removeStrategy(String strategyName) {
+        boolean removed = strategies.removeIf(s -> s.getStrategyName().equals(strategyName));
+        if (removed) {
+            LOG.info("Removed discovery strategy: {}", strategyName);
+        }
+        return removed;
+    }
+}
+#+END_SRC
+
+** Discovery Result Model
+
+#+BEGIN_SRC java
+/**
+ * Immutable result object representing the outcome of agent discovery
+ */
+public class DiscoveryResult {
+    
+    private final boolean success;
+    private final Optional<Path> agentPath;
+    private final Optional<String> discoveryStrategy;
+    private final Optional<AgentValidationResult> validationResult;
+    private final Optional<String> errorMessage;
+    private final Optional<Exception> exception;
+    private final long discoveryTimeMs;
+    
+    private DiscoveryResult(boolean success, Path agentPath, String discoveryStrategy,
+                           AgentValidationResult validationResult, String errorMessage,
+                           Exception exception, long discoveryTimeMs) {
+        this.success = success;
+        this.agentPath = Optional.ofNullable(agentPath);
+        this.discoveryStrategy = Optional.ofNullable(discoveryStrategy);
+        this.validationResult = Optional.ofNullable(validationResult);
+        this.errorMessage = Optional.ofNullable(errorMessage);
+        this.exception = Optional.ofNullable(exception);
+        this.discoveryTimeMs = discoveryTimeMs;
+    }
+    
+    public static DiscoveryResult success(Path agentPath, String strategy, 
+                                        AgentValidationResult validationResult) {
+        return new DiscoveryResult(true, agentPath, strategy, validationResult, 
+                                 null, null, System.currentTimeMillis());
+    }
+    
+    public static DiscoveryResult failure(String errorMessage) {
+        return new DiscoveryResult(false, null, null, null, errorMessage, 
+                                 null, System.currentTimeMillis());
+    }
+    
+    public static DiscoveryResult failure(String errorMessage, Exception exception) {
+        return new DiscoveryResult(false, null, null, null, errorMessage, 
+                                 exception, System.currentTimeMillis());
+    }
+    
+    public boolean isSuccess() { return success; }
+    public Optional<Path> getAgentPath() { return agentPath; }
+    public Optional<String> getDiscoveryStrategy() { return discoveryStrategy; }
+    public Optional<AgentValidationResult> getValidationResult() { return validationResult; }
+    public Optional<String> getErrorMessage() { return errorMessage; }
+    public Optional<Exception> getException() { return exception; }
+    public long getDiscoveryTimeMs() { return discoveryTimeMs; }
+    
+    /**
+     * Get agent version if available from validation
+     */
+    public Optional<String> getAgentVersion() {
+        return validationResult.flatMap(AgentValidationResult::getAgentVersion);
+    }
+    
+    /**
+     * Get detailed discovery information for debugging
+     */
+    public String getDetailedInfo() {
+        StringBuilder info = new StringBuilder();
+        info.append("DiscoveryResult{");
+        info.append("success=").append(success);
+        
+        if (agentPath.isPresent()) {
+            info.append(", agentPath=").append(agentPath.get());
+        }
+        
+        if (discoveryStrategy.isPresent()) {
+            info.append(", strategy=").append(discoveryStrategy.get());
+        }
+        
+        if (validationResult.isPresent()) {
+            info.append(", validation=").append(validationResult.get().getSummary());
+        }
+        
+        if (errorMessage.isPresent()) {
+            info.append(", error=").append(errorMessage.get());
+        }
+        
+        info.append(", discoveryTime=").append(discoveryTimeMs).append("ms");
+        info.append("}");
+        
+        return info.toString();
+    }
+}
+#+END_SRC
+
+* Specific Discovery Strategies
+
+** System Property Strategy
+
+#+BEGIN_SRC java
+/**
+ * Highest priority strategy that checks system properties for explicit agent configuration
+ */
+public class SystemPropertyStrategy implements DiscoveryStrategy {
+    
+    private static final String AGENT_PATH_PROPERTY = "bytehot.agent.path";
+    private static final String AGENT_JAR_PROPERTY = "bytehot.agent.jar";
+    private static final String AGENT_HOME_PROPERTY = "bytehot.home";
+    
+    private final StrategyConfiguration config;
+    
+    public SystemPropertyStrategy() {
+        this.config = StrategyConfiguration.defaultConfig();
+    }
+    
+    public SystemPropertyStrategy(StrategyConfiguration config) {
+        this.config = config;
+    }
+    
+    @Override
+    public Optional<Path> discoverAgent() {
+        // Check explicit agent path property
+        Optional<Path> explicitPath = checkSystemProperty(AGENT_PATH_PROPERTY);
+        if (explicitPath.isPresent()) {
+            return explicitPath;
+        }
+        
+        // Check agent JAR property
+        Optional<Path> jarPath = checkSystemProperty(AGENT_JAR_PROPERTY);
+        if (jarPath.isPresent()) {
+            return jarPath;
+        }
+        
+        // Check ByteHot home directory
+        Optional<Path> homePath = checkByteHotHome();
+        if (homePath.isPresent()) {
+            return homePath;
+        }
+        
+        return Optional.empty();
+    }
+    
+    private Optional<Path> checkSystemProperty(String propertyName) {
+        String propertyValue = System.getProperty(propertyName);
+        if (propertyValue == null || propertyValue.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        
+        Path path = Paths.get(propertyValue.trim());
+        if (Files.exists(path) && Files.isRegularFile(path)) {
+            return Optional.of(path);
+        }
+        
+        return Optional.empty();
+    }
+    
+    private Optional<Path> checkByteHotHome() {
+        String bytehotHome = System.getProperty(AGENT_HOME_PROPERTY);
+        if (bytehotHome == null || bytehotHome.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        
+        Path homePath = Paths.get(bytehotHome.trim());
+        if (!Files.exists(homePath) || !Files.isDirectory(homePath)) {
+            return Optional.empty();
+        }
+        
+        // Look for agent JAR in ByteHot home directory
+        try {
+            return Files.list(homePath)
+                .filter(path -> path.getFileName().toString().endsWith("-agent.jar"))
+                .filter(Files::isRegularFile)
+                .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+    
+    @Override
+    public String getStrategyName() {
+        return "SystemProperty";
+    }
+    
+    @Override
+    public int getPriority() {
+        return 10; // Highest priority
+    }
+    
+    @Override
+    public boolean isApplicable() {
+        // Always applicable - system properties available everywhere
+        return true;
+    }
+}
+#+END_SRC
+
+** Maven Repository Strategy
+
+#+BEGIN_SRC java
+/**
+ * Discovery strategy for Maven local repository
+ */
+public class MavenRepositoryStrategy implements DiscoveryStrategy {
+    
+    private static final String DEFAULT_MAVEN_REPO = ".m2/repository";
+    private static final String AGENT_GROUP_PATH = "org/acmsl";
+    private static final String AGENT_ARTIFACT = "bytehot-application";
+    private static final String AGENT_JAR_PATTERN = "*-agent.jar";
+    
+    private final StrategyConfiguration config;
+    
+    public MavenRepositoryStrategy() {
+        this.config = StrategyConfiguration.defaultConfig();
+    }
+    
+    public MavenRepositoryStrategy(StrategyConfiguration config) {
+        this.config = config;
+    }
+    
+    @Override
+    public Optional<Path> discoverAgent() {
+        List<Path> repositoryPaths = getMavenRepositoryPaths();
+        
+        for (Path repoPath : repositoryPaths) {
+            Optional<Path> agentPath = searchRepository(repoPath);
+            if (agentPath.isPresent()) {
+                return agentPath;
+            }
+        }
+        
+        return Optional.empty();
+    }
+    
+    private List<Path> getMavenRepositoryPaths() {
+        List<Path> paths = new ArrayList<>();
+        
+        // Check M2_REPO environment variable
+        String m2Repo = System.getenv("M2_REPO");
+        if (m2Repo != null && !m2Repo.isEmpty()) {
+            paths.add(Paths.get(m2Repo));
+        }
+        
+        // Check maven.repo.local system property
+        String repoLocal = System.getProperty("maven.repo.local");
+        if (repoLocal != null && !repoLocal.isEmpty()) {
+            paths.add(Paths.get(repoLocal));
+        }
+        
+        // Default Maven repository location
+        paths.add(Paths.get(System.getProperty("user.home"), DEFAULT_MAVEN_REPO));
+        
+        // Custom repository paths from configuration
+        paths.addAll(config.getCustomPaths());
+        
+        return paths.stream()
+            .filter(Files::exists)
+            .filter(Files::isDirectory)
+            .collect(Collectors.toList());
+    }
+    
+    private Optional<Path> searchRepository(Path repositoryPath) {
+        Path artifactPath = repositoryPath.resolve(AGENT_GROUP_PATH).resolve(AGENT_ARTIFACT);
+        
+        if (!Files.exists(artifactPath) || !Files.isDirectory(artifactPath)) {
+            return Optional.empty();
+        }
+        
+        try {
+            // Find all version directories
+            List<Path> versionDirs = Files.list(artifactPath)
+                .filter(Files::isDirectory)
+                .filter(path -> !path.getFileName().toString().startsWith("."))
+                .collect(Collectors.toList());
+                
+            if (versionDirs.isEmpty()) {
+                return Optional.empty();
+            }
+            
+            // Sort by version and get the latest
+            Optional<Path> latestVersion = versionDirs.stream()
+                .max(Comparator.comparing(path -> parseVersion(path.getFileName().toString())));
+                
+            if (latestVersion.isPresent()) {
+                return findAgentJarInDirectory(latestVersion.get());
+            }
+            
+        } catch (IOException e) {
+            // Log and continue
+        }
+        
+        return Optional.empty();
+    }
+    
+    private Optional<Path> findAgentJarInDirectory(Path directory) {
+        try {
+            return Files.list(directory)
+                .filter(path -> {
+                    String fileName = path.getFileName().toString();
+                    return fileName.endsWith("-agent.jar") && Files.isRegularFile(path);
+                })
+                .max(Comparator.comparing(path -> Files.getLastModifiedTime(path).toMillis(),
+                                        (a, b) -> {
+                                            try {
+                                                return Long.compare(a, b);
+                                            } catch (Exception e) {
+                                                return 0;
+                                            }
+                                        }));
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+    
+    private Version parseVersion(String versionString) {
+        try {
+            return Version.parse(versionString);
+        } catch (Exception e) {
+            return Version.parse("0.0.0");
+        }
+    }
+    
+    @Override
+    public String getStrategyName() {
+        return "MavenRepository";
+    }
+    
+    @Override
+    public int getPriority() {
+        return 20;
+    }
+    
+    @Override
+    public boolean isApplicable() {
+        // Check if Maven is likely installed/used
+        return Files.exists(Paths.get(System.getProperty("user.home"), ".m2")) ||
+               System.getenv("M2_HOME") != null ||
+               System.getProperty("maven.repo.local") != null;
+    }
+}
+#+END_SRC
+
+** Environment Variable Strategy
+
+#+BEGIN_SRC java
+/**
+ * Discovery strategy using environment variables
+ */
+public class EnvironmentVariableStrategy implements DiscoveryStrategy {
+    
+    private static final String[] AGENT_PATH_VARS = {
+        "BYTEHOT_AGENT_PATH",
+        "BYTEHOT_AGENT_JAR",
+        "BYTEHOT_AGENT"
+    };
+    
+    private static final String[] HOME_VARS = {
+        "BYTEHOT_HOME",
+        "BYTEHOT_ROOT",
+        "BYTEHOT_DIR"
+    };
+    
+    private final StrategyConfiguration config;
+    
+    public EnvironmentVariableStrategy() {
+        this.config = StrategyConfiguration.defaultConfig();
+    }
+    
+    public EnvironmentVariableStrategy(StrategyConfiguration config) {
+        this.config = config;
+    }
+    
+    @Override
+    public Optional<Path> discoverAgent() {
+        // Check direct agent path environment variables
+        Optional<Path> directPath = checkDirectAgentPaths();
+        if (directPath.isPresent()) {
+            return directPath;
+        }
+        
+        // Check ByteHot home environment variables
+        Optional<Path> homePath = checkByteHotHomeVariables();
+        if (homePath.isPresent()) {
+            return homePath;
+        }
+        
+        // Check custom environment variables from configuration
+        Optional<Path> customPath = checkCustomEnvironmentVariables();
+        if (customPath.isPresent()) {
+            return customPath;
+        }
+        
+        return Optional.empty();
+    }
+    
+    private Optional<Path> checkDirectAgentPaths() {
+        for (String varName : AGENT_PATH_VARS) {
+            String agentPath = System.getenv(varName);
+            if (agentPath != null && !agentPath.trim().isEmpty()) {
+                Path path = Paths.get(agentPath.trim());
+                if (Files.exists(path) && Files.isRegularFile(path)) {
+                    return Optional.of(path);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+    
+    private Optional<Path> checkByteHotHomeVariables() {
+        for (String varName : HOME_VARS) {
+            String homePath = System.getenv(varName);
+            if (homePath != null && !homePath.trim().isEmpty()) {
+                Path home = Paths.get(homePath.trim());
+                if (Files.exists(home) && Files.isDirectory(home)) {
+                    Optional<Path> agentPath = findAgentInDirectory(home);
+                    if (agentPath.isPresent()) {
+                        return agentPath;
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+    
+    private Optional<Path> checkCustomEnvironmentVariables() {
+        for (String customVar : config.getCustomEnvironmentVariables()) {
+            String value = System.getenv(customVar);
+            if (value != null && !value.trim().isEmpty()) {
+                Path path = Paths.get(value.trim());
+                if (Files.exists(path)) {
+                    if (Files.isRegularFile(path) && isAgentJar(path)) {
+                        return Optional.of(path);
+                    } else if (Files.isDirectory(path)) {
+                        Optional<Path> agentPath = findAgentInDirectory(path);
+                        if (agentPath.isPresent()) {
+                            return agentPath;
+                        }
+                    }
+                }
+            }
+        }
+        return Optional.empty();
+    }
+    
+    private Optional<Path> findAgentInDirectory(Path directory) {
+        try {
+            return Files.list(directory)
+                .filter(path -> isAgentJar(path))
+                .filter(Files::isRegularFile)
+                .findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
+        }
+    }
+    
+    private boolean isAgentJar(Path path) {
+        String fileName = path.getFileName().toString();
+        return fileName.endsWith("-agent.jar") || 
+               (fileName.endsWith(".jar") && fileName.contains("bytehot"));
+    }
+    
+    @Override
+    public String getStrategyName() {
+        return "EnvironmentVariable";
+    }
+    
+    @Override
+    public int getPriority() {
+        return 50;
+    }
+    
+    @Override
+    public boolean isApplicable() {
+        // Check if any relevant environment variables are set
+        return Arrays.stream(AGENT_PATH_VARS)
+                .anyMatch(var -> System.getenv(var) != null) ||
+               Arrays.stream(HOME_VARS)
+                .anyMatch(var -> System.getenv(var) != null);
+    }
+}
+#+END_SRC
+
+* Discovery Validation System
+
+** Agent Validation Framework
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive validation system for discovered ByteHot agents
+ */
+public class AgentValidator {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(AgentValidator.class);
+    
+    // Expected agent manifest attributes
+    private static final String REQUIRED_MANIFEST_ATTRIBUTE = "Agent-Class";
+    private static final String EXPECTED_AGENT_CLASS = "org.acmsl.bytehot.infrastructure.ByteHotAgent";
+    private static final String IMPLEMENTATION_VERSION_ATTRIBUTE = "Implementation-Version";
+    private static final String BYTEHOT_VERSION_ATTRIBUTE = "ByteHot-Version";
+    
+    // Required JAR contents
+    private static final String BYTEHOT_MARKER_FILE = "META-INF/bytehot.marker";
+    private static final String AGENT_PROPERTIES_FILE = "META-INF/bytehot-agent.properties";
+    
+    private final ValidationConfiguration config;
+    private final List<ValidationRule> validationRules;
+    
+    public AgentValidator() {
+        this.config = ValidationConfiguration.defaultConfig();
+        this.validationRules = createDefaultValidationRules();
+    }
+    
+    public AgentValidator(ValidationConfiguration config) {
+        this.config = config;
+        this.validationRules = createConfiguredValidationRules(config);
+    }
+    
+    /**
+     * Comprehensive agent validation with detailed reporting
+     */
+    public AgentValidationResult validateAgent(Path agentPath) {
+        ValidationContext context = new ValidationContext(agentPath);
+        List<ValidationIssue> issues = new ArrayList<>();
+        
+        LOG.debug("Validating agent at: {}", agentPath);
+        
+        // Execute all validation rules
+        for (ValidationRule rule : validationRules) {
+            try {
+                ValidationRuleResult result = rule.validate(context);
+                if (!result.isValid()) {
+                    issues.addAll(result.getIssues());
+                }
+                
+                // Stop on critical failures if configured
+                if (result.hasCriticalIssues() && config.isFailFastOnCritical()) {
+                    break;
+                }
+                
+            } catch (Exception e) {
+                LOG.warn("Validation rule {} failed with exception: {}", 
+                        rule.getRuleName(), e.getMessage());
+                issues.add(ValidationIssue.error("Rule execution failed: " + rule.getRuleName(), e));
+            }
+        }
+        
+        // Determine overall validation result
+        boolean isValid = issues.stream().noneMatch(issue -> 
+            issue.getSeverity() == ValidationSeverity.ERROR ||
+            issue.getSeverity() == ValidationSeverity.CRITICAL);
+            
+        AgentValidationResult result = new AgentValidationResult(
+            agentPath, isValid, issues, context.getAgentMetadata());
+            
+        LOG.debug("Agent validation result: {} (issues: {})", 
+                 isValid ? "VALID" : "INVALID", issues.size());
+                 
+        return result;
+    }
+    
+    /**
+     * Quick validation for performance-critical scenarios
+     */
+    public boolean isValidAgent(Path agentPath) {
+        try {
+            return validateBasicRequirements(agentPath);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    private boolean validateBasicRequirements(Path agentPath) {
+        // Basic file checks
+        if (!Files.exists(agentPath) || !Files.isRegularFile(agentPath)) {
+            return false;
+        }
+        
+        if (!agentPath.toString().toLowerCase().endsWith(".jar")) {
+            return false;
+        }
+        
+        // Quick JAR format check
+        try (JarFile jarFile = new JarFile(agentPath.toFile())) {
+            Manifest manifest = jarFile.getManifest();
+            if (manifest == null) {
+                return false;
+            }
+            
+            String agentClass = manifest.getMainAttributes().getValue(REQUIRED_MANIFEST_ATTRIBUTE);
+            return EXPECTED_AGENT_CLASS.equals(agentClass);
+            
+        } catch (IOException e) {
+            return false;
+        }
+    }
+    
+    private List<ValidationRule> createDefaultValidationRules() {
+        return Arrays.asList(
+            new FileExistenceRule(),
+            new JarFormatRule(),
+            new ManifestValidationRule(),
+            new ByteHotMarkerRule(),
+            new AgentClassRule(),
+            new VersionCompatibilityRule(),
+            new SecurityValidationRule(),
+            new IntegrityValidationRule()
+        );
+    }
+    
+    private List<ValidationRule> createConfiguredValidationRules(ValidationConfiguration config) {
+        List<ValidationRule> rules = new ArrayList<>();
+        
+        // Add enabled rules from configuration
+        for (ValidationRuleConfig ruleConfig : config.getEnabledRules()) {
+            ValidationRule rule = createValidationRule(ruleConfig);
+            if (rule != null) {
+                rules.add(rule);
+            }
+        }
+        
+        // Add default rules if none configured
+        if (rules.isEmpty()) {
+            rules.addAll(createDefaultValidationRules());
+        }
+        
+        return rules;
+    }
+    
+    private ValidationRule createValidationRule(ValidationRuleConfig config) {
+        return switch (config.getType()) {
+            case FILE_EXISTENCE -> new FileExistenceRule(config);
+            case JAR_FORMAT -> new JarFormatRule(config);
+            case MANIFEST_VALIDATION -> new ManifestValidationRule(config);
+            case BYTEHOT_MARKER -> new ByteHotMarkerRule(config);
+            case AGENT_CLASS -> new AgentClassRule(config);
+            case VERSION_COMPATIBILITY -> new VersionCompatibilityRule(config);
+            case SECURITY_VALIDATION -> new SecurityValidationRule(config);
+            case INTEGRITY_VALIDATION -> new IntegrityValidationRule(config);
+            case CUSTOM -> createCustomValidationRule(config);
+            default -> {
+                LOG.warn("Unknown validation rule type: {}", config.getType());
+                yield null;
+            }
+        };
+    }
+    
+    private ValidationRule createCustomValidationRule(ValidationRuleConfig config) {
+        try {
+            Class<?> ruleClass = Class.forName(config.getClassName());
+            Constructor<?> constructor = ruleClass.getConstructor(ValidationRuleConfig.class);
+            return (ValidationRule) constructor.newInstance(config);
+        } catch (Exception e) {
+            LOG.error("Failed to create custom validation rule: {}", config.getClassName(), e);
+            return null;
+        }
+    }
+}
+#+END_SRC
+
+** Validation Result Model
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive validation result with detailed issue reporting
+ */
+public class AgentValidationResult {
+    
+    private final Path agentPath;
+    private final boolean valid;
+    private final List<ValidationIssue> issues;
+    private final AgentMetadata metadata;
+    private final long validationTimeMs;
+    
+    public AgentValidationResult(Path agentPath, boolean valid, 
+                               List<ValidationIssue> issues, AgentMetadata metadata) {
+        this.agentPath = agentPath;
+        this.valid = valid;
+        this.issues = Collections.unmodifiableList(new ArrayList<>(issues));
+        this.metadata = metadata;
+        this.validationTimeMs = System.currentTimeMillis();
+    }
+    
+    public boolean isValid() { return valid; }
+    public Path getAgentPath() { return agentPath; }
+    public List<ValidationIssue> getIssues() { return issues; }
+    public AgentMetadata getMetadata() { return metadata; }
+    
+    public Optional<String> getAgentVersion() {
+        return metadata.getVersion();
+    }
+    
+    public List<ValidationIssue> getErrorIssues() {
+        return issues.stream()
+            .filter(issue -> issue.getSeverity() == ValidationSeverity.ERROR ||
+                           issue.getSeverity() == ValidationSeverity.CRITICAL)
+            .collect(Collectors.toList());
+    }
+    
+    public List<ValidationIssue> getWarningIssues() {
+        return issues.stream()
+            .filter(issue -> issue.getSeverity() == ValidationSeverity.WARNING)
+            .collect(Collectors.toList());
+    }
+    
+    public String getErrorMessage() {
+        if (valid) {
+            return "Agent is valid";
+        }
+        
+        return getErrorIssues().stream()
+            .map(ValidationIssue::getMessage)
+            .collect(Collectors.joining("; "));
+    }
+    
+    public String getSummary() {
+        StringBuilder summary = new StringBuilder();
+        summary.append("Validation: ").append(valid ? "VALID" : "INVALID");
+        
+        if (!issues.isEmpty()) {
+            Map<ValidationSeverity, Long> severityCounts = issues.stream()
+                .collect(Collectors.groupingBy(ValidationIssue::getSeverity, Collectors.counting()));
+                
+            summary.append(" (");
+            severityCounts.forEach((severity, count) -> 
+                summary.append(severity).append(": ").append(count).append(" "));
+            summary.append(")");
+        }
+        
+        return summary.toString();
+    }
+    
+    public String getDetailedReport() {
+        StringBuilder report = new StringBuilder();
+        report.append("ByteHot Agent Validation Report\n");
+        report.append("================================\n");
+        report.append("Agent Path: ").append(agentPath).append("\n");
+        report.append("Validation Result: ").append(valid ? "VALID" : "INVALID").append("\n");
+        report.append("Validation Time: ").append(validationTimeMs).append("ms\n");
+        
+        if (metadata.getVersion().isPresent()) {
+            report.append("Agent Version: ").append(metadata.getVersion().get()).append("\n");
+        }
+        
+        if (!issues.isEmpty()) {
+            report.append("\nValidation Issues:\n");
+            report.append("------------------\n");
+            
+            for (ValidationIssue issue : issues) {
+                report.append("[").append(issue.getSeverity()).append("] ");
+                report.append(issue.getMessage()).append("\n");
+                
+                if (issue.getDetails().isPresent()) {
+                    report.append("    Details: ").append(issue.getDetails().get()).append("\n");
+                }
+            }
+        }
+        
+        return report.toString();
+    }
+}
+#+END_SRC
+
+* Performance and Monitoring
+
+** Discovery Cache System
+
+#+BEGIN_SRC java
+/**
+ * Intelligent caching system for agent discovery results
+ */
+public class DiscoveryCache {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(DiscoveryCache.class);
+    
+    private final long cacheTtlMs;
+    private final Map<String, CacheEntry> cache;
+    private final ReentrantReadWriteLock lock;
+    
+    public DiscoveryCache(long cacheTtlMs) {
+        this.cacheTtlMs = cacheTtlMs;
+        this.cache = new ConcurrentHashMap<>();
+        this.lock = new ReentrantReadWriteLock();
+    }
+    
+    public Optional<DiscoveryResult> getCachedResult() {
+        lock.readLock().lock();
+        try {
+            String cacheKey = generateCacheKey();
+            CacheEntry entry = cache.get(cacheKey);
+            
+            if (entry != null && !entry.isExpired()) {
+                // Verify cached agent still exists and is valid
+                if (entry.getResult().getAgentPath().isPresent()) {
+                    Path agentPath = entry.getResult().getAgentPath().get();
+                    if (Files.exists(agentPath)) {
+                        LOG.debug("Cache hit for agent discovery: {}", agentPath);
+                        return Optional.of(entry.getResult());
+                    } else {
+                        LOG.debug("Cached agent no longer exists, invalidating cache: {}", agentPath);
+                        invalidateCacheEntry(cacheKey);
+                    }
+                }
+            }
+            
+            return Optional.empty();
+            
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+    
+    public void cacheResult(DiscoveryResult result) {
+        if (!result.isSuccess()) {
+            return; // Don't cache failures
+        }
+        
+        lock.writeLock().lock();
+        try {
+            String cacheKey = generateCacheKey();
+            CacheEntry entry = new CacheEntry(result, System.currentTimeMillis() + cacheTtlMs);
+            cache.put(cacheKey, entry);
+            
+            LOG.debug("Cached discovery result: {}", result.getAgentPath().orElse(null));
+            
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+    
+    public void clear() {
+        lock.writeLock().lock();
+        try {
+            cache.clear();
+            LOG.debug("Discovery cache cleared");
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+    
+    private String generateCacheKey() {
+        // Generate cache key based on environment factors that affect discovery
+        StringBuilder keyBuilder = new StringBuilder();
+        
+        // Include relevant system properties
+        keyBuilder.append(System.getProperty("user.home", ""));
+        keyBuilder.append("|");
+        keyBuilder.append(System.getProperty("java.version", ""));
+        keyBuilder.append("|");
+        keyBuilder.append(System.getProperty("os.name", ""));
+        
+        // Include relevant environment variables
+        keyBuilder.append("|");
+        keyBuilder.append(System.getenv("M2_HOME"));
+        keyBuilder.append("|");
+        keyBuilder.append(System.getenv("GRADLE_HOME"));
+        
+        return Integer.toString(keyBuilder.toString().hashCode());
+    }
+    
+    private void invalidateCacheEntry(String cacheKey) {
+        lock.writeLock().lock();
+        try {
+            cache.remove(cacheKey);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+    
+    private static class CacheEntry {
+        private final DiscoveryResult result;
+        private final long expirationTime;
+        
+        public CacheEntry(DiscoveryResult result, long expirationTime) {
+            this.result = result;
+            this.expirationTime = expirationTime;
+        }
+        
+        public DiscoveryResult getResult() { return result; }
+        
+        public boolean isExpired() {
+            return System.currentTimeMillis() > expirationTime;
+        }
+    }
+}
+#+END_SRC
+
+** Discovery Metrics and Monitoring
+
+#+BEGIN_SRC java
+/**
+ * Comprehensive metrics collection for agent discovery performance monitoring
+ */
+public class DiscoveryMetrics {
+    
+    private final AtomicLong totalDiscoveries = new AtomicLong(0);
+    private final AtomicLong successfulDiscoveries = new AtomicLong(0);
+    private final AtomicLong failedDiscoveries = new AtomicLong(0);
+    private final AtomicLong cacheHits = new AtomicLong(0);
+    private final AtomicLong cacheMisses = new AtomicLong(0);
+    
+    private final Map<String, AtomicLong> strategySuccesses = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> strategyFailures = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> strategyExecutionTimes = new ConcurrentHashMap<>();
+    private final Map<String, AtomicLong> exceptionCounts = new ConcurrentHashMap<>();
+    
+    private volatile long lastDiscoveryTime = 0;
+    private volatile long averageDiscoveryTime = 0;
+    private volatile long minDiscoveryTime = Long.MAX_VALUE;
+    private volatile long maxDiscoveryTime = 0;
+    
+    public void recordSuccessfulDiscovery(long discoveryTimeMs) {
+        totalDiscoveries.incrementAndGet();
+        successfulDiscoveries.incrementAndGet();
+        updateDiscoveryTimes(discoveryTimeMs);
+    }
+    
+    public void recordFailedDiscovery(long discoveryTimeMs) {
+        totalDiscoveries.incrementAndGet();
+        failedDiscoveries.incrementAndGet();
+        updateDiscoveryTimes(discoveryTimeMs);
+    }
+    
+    public void recordCacheHit() {
+        cacheHits.incrementAndGet();
+    }
+    
+    public void recordCacheMiss() {
+        cacheMisses.incrementAndGet();
+    }
+    
+    public void recordStrategySuccess(String strategyName, long executionTimeMs) {
+        strategySuccesses.computeIfAbsent(strategyName, k -> new AtomicLong(0)).incrementAndGet();
+        strategyExecutionTimes.computeIfAbsent(strategyName, k -> new AtomicLong(0))
+            .addAndGet(executionTimeMs);
+    }
+    
+    public void recordStrategyFailure(String strategyName, String reason) {
+        strategyFailures.computeIfAbsent(strategyName, k -> new AtomicLong(0)).incrementAndGet();
+    }
+    
+    public void recordStrategyException(String strategyName, Exception e) {
+        String exceptionType = e.getClass().getSimpleName();
+        exceptionCounts.computeIfAbsent(exceptionType, k -> new AtomicLong(0)).incrementAndGet();
+        recordStrategyFailure(strategyName, "Exception: " + exceptionType);
+    }
+    
+    public void recordDiscoveryException(Exception e) {
+        String exceptionType = e.getClass().getSimpleName();
+        exceptionCounts.computeIfAbsent(exceptionType, k -> new AtomicLong(0)).incrementAndGet();
+    }
+    
+    private synchronized void updateDiscoveryTimes(long discoveryTimeMs) {
+        lastDiscoveryTime = discoveryTimeMs;
+        
+        if (discoveryTimeMs < minDiscoveryTime) {
+            minDiscoveryTime = discoveryTimeMs;
+        }
+        
+        if (discoveryTimeMs > maxDiscoveryTime) {
+            maxDiscoveryTime = discoveryTimeMs;
+        }
+        
+        // Simple moving average calculation
+        long total = totalDiscoveries.get();
+        averageDiscoveryTime = ((averageDiscoveryTime * (total - 1)) + discoveryTimeMs) / total;
+    }
+    
+    /**
+     * Get comprehensive metrics summary
+     */
+    public DiscoveryMetricsSnapshot getSnapshot() {
+        return new DiscoveryMetricsSnapshot(
+            totalDiscoveries.get(),
+            successfulDiscoveries.get(),
+            failedDiscoveries.get(),
+            cacheHits.get(),
+            cacheMisses.get(),
+            averageDiscoveryTime,
+            minDiscoveryTime == Long.MAX_VALUE ? 0 : minDiscoveryTime,
+            maxDiscoveryTime,
+            lastDiscoveryTime,
+            getSuccessRate(),
+            getCacheHitRate(),
+            new HashMap<>(strategySuccesses),
+            new HashMap<>(strategyFailures),
+            new HashMap<>(exceptionCounts)
+        );
+    }
+    
+    public double getSuccessRate() {
+        long total = totalDiscoveries.get();
+        return total > 0 ? (double) successfulDiscoveries.get() / total : 0.0;
+    }
+    
+    public double getCacheHitRate() {
+        long totalCacheAccesses = cacheHits.get() + cacheMisses.get();
+        return totalCacheAccesses > 0 ? (double) cacheHits.get() / totalCacheAccesses : 0.0;
+    }
+    
+    /**
+     * Get strategy performance statistics
+     */
+    public Map<String, StrategyMetrics> getStrategyMetrics() {
+        Map<String, StrategyMetrics> metrics = new HashMap<>();
+        
+        Set<String> allStrategies = new HashSet<>();
+        allStrategies.addAll(strategySuccesses.keySet());
+        allStrategies.addAll(strategyFailures.keySet());
+        
+        for (String strategy : allStrategies) {
+            long successes = strategySuccesses.getOrDefault(strategy, new AtomicLong(0)).get();
+            long failures = strategyFailures.getOrDefault(strategy, new AtomicLong(0)).get();
+            long totalTime = strategyExecutionTimes.getOrDefault(strategy, new AtomicLong(0)).get();
+            
+            long total = successes + failures;
+            double successRate = total > 0 ? (double) successes / total : 0.0;
+            long averageTime = successes > 0 ? totalTime / successes : 0;
+            
+            metrics.put(strategy, new StrategyMetrics(
+                strategy, successes, failures, successRate, averageTime
+            ));
+        }
+        
+        return metrics;
+    }
+    
+    /**
+     * Reset all metrics (useful for testing)
+     */
+    public void reset() {
+        totalDiscoveries.set(0);
+        successfulDiscoveries.set(0);
+        failedDiscoveries.set(0);
+        cacheHits.set(0);
+        cacheMisses.set(0);
+        strategySuccesses.clear();
+        strategyFailures.clear();
+        strategyExecutionTimes.clear();
+        exceptionCounts.clear();
+        lastDiscoveryTime = 0;
+        averageDiscoveryTime = 0;
+        minDiscoveryTime = Long.MAX_VALUE;
+        maxDiscoveryTime = 0;
+    }
+}
+#+END_SRC
+
+This technical specification provides a comprehensive agent discovery mechanism that ensures reliable detection of the ByteHot agent across all supported development environments while maintaining excellent performance through intelligent caching and monitoring.
