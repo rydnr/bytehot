@@ -98,3 +98,7 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 
 ### Development Principles
 - No private methods or constants are allowed. `protected` to preserve encapsulation. `private` methods or constants violate the Open-Closed Principle in SOLID.
+- Plugins and other side developments must be isolated in their own module or repository.
+
+### Specification Management
+- Don't move the specifications to specify modules or repositories. Copy them instead. They're useful also for the overall roadmap.
