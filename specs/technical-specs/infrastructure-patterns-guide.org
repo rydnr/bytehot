@@ -1,0 +1,2027 @@
+#+TITLE: Technical Specification: Infrastructure Patterns Guide
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This technical specification provides comprehensive guidance on the infrastructure patterns implemented in `java-commons-infrastructure`, enabling developers to effectively use, extend, and contribute to the reusable infrastructure components. The guide covers base adapter patterns, extension strategies, best practices, and decision frameworks for building robust, maintainable infrastructure.
+
+** Design Philosophy
+
+- **Reusability**: Infrastructure components should be reusable across multiple projects with minimal customization
+- **Consistency**: All infrastructure follows the same patterns and conventions
+- **Extensibility**: Base components provide extension points for project-specific needs
+- **Testability**: Infrastructure components are designed for easy testing and mocking
+- **Separation of Concerns**: Clear boundaries between infrastructure and domain logic
+- **Performance**: Infrastructure patterns optimize for both development speed and runtime efficiency
+
+* Base Adapter Patterns
+
+** The Three-Layer Infrastructure Pattern
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│              Domain Layer                           │
+│   • Domain Models                                  │
+│   • Business Logic                                 │
+│   • Domain Events                                  │
+│   • Ports (Interfaces)                             │
+└─────────────────────┬───────────────────────────────┘
+                      │ Implements
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Project Infrastructure Layer          │
+│   • Project-specific adapters                      │
+│   • Domain-specific implementations                │
+│   • Configuration customizations                   │
+│   • Tool integrations                              │
+└─────────────────────┬───────────────────────────────┘
+                      │ Extends/Composes
+                      ▼
+┌─────────────────────────────────────────────────────┐
+│              Base Infrastructure Layer             │
+│   • Base adapter patterns                          │
+│   • Common infrastructure utilities                │
+│   • Reusable frameworks                            │
+│   • Cross-cutting concerns                         │
+└─────────────────────────────────────────────────────┘
+#+END_SRC
+
+** When to Use Base Adapters vs Custom Implementations
+
+*** Use Base Adapters When:
+- Standard patterns apply (configuration loading, event emission, file watching)
+- Common infrastructure needs (HTTP communication, database access, message queuing)
+- Cross-cutting concerns (logging, monitoring, caching)
+- Testing infrastructure requirements
+- Rapid prototyping and development
+
+*** Use Custom Implementations When:
+- Highly specialized domain requirements
+- Performance-critical scenarios with specific optimizations
+- Integration with legacy systems requiring custom protocols
+- Experimental features not yet standardized
+- Regulatory compliance requiring specific implementations
+
+** Base Adapter Selection Guide
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────┐
+│                   Need Assessment                   │
+└─────────────────────┬───────────────────────────────┘
+                      │
+                      ▼
+           ┌─────────────────────┐
+           │   Configuration     │────────► BaseConfigurationAdapter
+           │   Loading?          │          • Hierarchical sources
+           └─────────────────────┘          • Validation framework
+                      │                     • Caching support
+                      ▼
+           ┌─────────────────────┐
+           │   Event Emission    │────────► BaseEventEmitterAdapter
+           │   Needed?           │          • Multiple targets
+           └─────────────────────┘          • Serialization support
+                      │                     • Failure handling
+                      ▼
+           ┌─────────────────────┐
+           │   File System       │────────► BaseFileWatcherAdapter
+           │   Monitoring?       │          • Cross-platform support
+           └─────────────────────┘          • Pattern matching
+                      │                     • Event filtering
+                      ▼
+           ┌─────────────────────┐
+           │   Network           │────────► BaseMessageAdapter
+           │   Communication?    │          • Protocol handling
+           └─────────────────────┘          • Connection management
+                      │                     • Retry logic
+                      ▼
+           ┌─────────────────────┐
+           │   Health/Metrics    │────────► BaseMonitoringAdapter
+           │   Monitoring?       │          • Health checks
+           └─────────────────────┘          • Metrics collection
+                      │                     • Alert handling
+                      ▼
+           ┌─────────────────────┐
+           │   Testing Support   │────────► MockAdapterFramework
+           │   Required?         │          • Mock implementations
+           └─────────────────────┘          • Test utilities
+                      │                     • Environment setup
+                      ▼
+           ┌─────────────────────┐
+           │   Custom            │────────► Custom Implementation
+           │   Requirements?     │          • Specialized needs
+           └─────────────────────┘          • Performance critical
+#+END_SRC
+
+* Configuration Infrastructure Patterns
+
+** Hierarchical Configuration Loading
+
+The `BaseConfigurationAdapter` implements a hierarchical configuration loading pattern that enables flexible configuration management across different environments and deployment scenarios.
+
+*** Configuration Source Priority
+#+BEGIN_SRC java
+/**
+ * Configuration sources are evaluated in priority order (lower numbers = higher priority):
+ * 
+ * 1. System Properties (Priority: 10)
+ *    - -Dapp.setting=value
+ *    - Highest priority for runtime overrides
+ * 
+ * 2. Environment Variables (Priority: 20)
+ *    - APP_SETTING=value
+ *    - Container and deployment environment configuration
+ * 
+ * 3. External Configuration Files (Priority: 25)
+ *    - /etc/app/config.yml
+ *    - Deployment-specific configuration
+ * 
+ * 4. Classpath Configuration Files (Priority: 30)
+ *    - resources/app.yml
+ *    - Packaged default configuration
+ * 
+ * 5. Default Configuration (Priority: 100)
+ *    - Hard-coded defaults
+ *    - Fallback when no other source available
+ */
+
+public class MyProjectConfigurationAdapter extends BaseConfigurationAdapter {
+    
+    @Override
+    protected List<ConfigurationSource> createConfigurationSources() {
+        return Arrays.asList(
+            // Runtime overrides
+            new SystemPropertySource("myproject."),
+            new EnvironmentVariableSource("MYPROJECT_"),
+            
+            // Deployment configuration
+            new YamlFileSource("/etc/myproject/config.yml", false), // External file
+            new YamlFileSource("myproject.yml", true),              // Classpath
+            
+            // Fallback
+            new DefaultConfigurationSource(this::createDefaultConfiguration)
+        );
+    }
+}
+#+END_SRC
+
+*** Custom Configuration Sources
+#+BEGIN_SRC java
+/**
+ * Example: Database configuration source for dynamic configuration
+ */
+public class DatabaseConfigurationSource extends ConfigurationSource {
+    
+    private final String connectionUrl;
+    private final String tableName;
+    
+    public DatabaseConfigurationSource(String connectionUrl, String tableName) {
+        super("Database Configuration (" + tableName + ")", 15); // High priority
+        this.connectionUrl = connectionUrl;
+        this.tableName = tableName;
+    }
+    
+    @Override
+    public boolean isAvailable() {
+        try (Connection conn = DriverManager.getConnection(connectionUrl)) {
+            DatabaseMetaData meta = conn.getMetaData();
+            ResultSet tables = meta.getTables(null, null, tableName, new String[]{"TABLE"});
+            return tables.next();
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+    
+    @Override
+    public Optional<InputStream> loadConfiguration() throws ConfigurationException {
+        try (Connection conn = DriverManager.getConnection(connectionUrl);
+             PreparedStatement stmt = conn.prepareStatement("SELECT config_key, config_value FROM " + tableName);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            Map<String, Object> config = new HashMap<>();
+            while (rs.next()) {
+                String key = rs.getString("config_key");
+                String value = rs.getString("config_value");
+                
+                // Convert dot notation to nested structure
+                setNestedValue(config, key, value);
+            }
+            
+            ObjectMapper mapper = new ObjectMapper();
+            String json = mapper.writeValueAsString(config);
+            return Optional.of(new ByteArrayInputStream(json.getBytes()));
+            
+        } catch (SQLException e) {
+            throw new ConfigurationException("Failed to load database configuration", e);
+        }
+    }
+    
+    private void setNestedValue(Map<String, Object> config, String key, String value) {
+        String[] parts = key.split("\\.");
+        Map<String, Object> current = config;
+        
+        for (int i = 0; i < parts.length - 1; i++) {
+            current = (Map<String, Object>) current.computeIfAbsent(parts[i], k -> new HashMap<>());
+        }
+        
+        current.put(parts[parts.length - 1], value);
+    }
+}
+#+END_SRC
+
+*** Configuration Validation Patterns
+#+BEGIN_SRC java
+/**
+ * Configuration validation framework with different validation levels
+ */
+public abstract class ConfigurationValidator {
+    
+    public enum ValidationLevel {
+        STRICT,    // All validation rules must pass
+        PERMISSIVE, // Warnings for failed rules, errors only for critical issues
+        DISABLED   // No validation (not recommended for production)
+    }
+    
+    private final ValidationLevel level;
+    private final List<ValidationRule> rules;
+    
+    protected ConfigurationValidator(ValidationLevel level) {
+        this.level = level;
+        this.rules = createValidationRules();
+    }
+    
+    protected abstract List<ValidationRule> createValidationRules();
+    
+    public ValidationResult validate(Object configuration) {
+        ValidationResult.Builder result = ValidationResult.builder();
+        
+        for (ValidationRule rule : rules) {
+            try {
+                RuleResult ruleResult = rule.validate(configuration);
+                
+                if (!ruleResult.isValid()) {
+                    switch (level) {
+                        case STRICT:
+                            result.addError(ruleResult.getMessage());
+                            break;
+                        case PERMISSIVE:
+                            if (ruleResult.isCritical()) {
+                                result.addError(ruleResult.getMessage());
+                            } else {
+                                result.addWarning(ruleResult.getMessage());
+                            }
+                            break;
+                        case DISABLED:
+                            // Skip validation
+                            break;
+                    }
+                }
+            } catch (Exception e) {
+                result.addError("Validation rule failed: " + rule.getName() + " - " + e.getMessage());
+            }
+        }
+        
+        return result.build();
+    }
+}
+
+/**
+ * Example validation rules for a typical application
+ */
+public class MyProjectConfigurationValidator extends ConfigurationValidator {
+    
+    public MyProjectConfigurationValidator() {
+        super(ValidationLevel.STRICT);
+    }
+    
+    @Override
+    protected List<ValidationRule> createValidationRules() {
+        return Arrays.asList(
+            // Required configuration validation
+            new RequiredFieldRule("server.port", "Server port must be specified"),
+            new RequiredFieldRule("database.url", "Database URL must be specified"),
+            
+            // Value validation
+            new PortRangeRule("server.port", 1024, 65535),
+            new UrlValidationRule("database.url"),
+            
+            // Business logic validation
+            new CustomRule("feature.flags", this::validateFeatureFlags),
+            
+            // Security validation
+            new PasswordStrengthRule("security.password"),
+            new SslConfigurationRule("security.ssl")
+        );
+    }
+    
+    private RuleResult validateFeatureFlags(Object value) {
+        if (value instanceof Map) {
+            Map<String, Object> flags = (Map<String, Object>) value;
+            
+            // Ensure feature flags have valid boolean values
+            for (Map.Entry<String, Object> entry : flags.entrySet()) {
+                if (!(entry.getValue() instanceof Boolean)) {
+                    return RuleResult.error("Feature flag '" + entry.getKey() + "' must be boolean");
+                }
+            }
+        }
+        
+        return RuleResult.success();
+    }
+}
+#+END_SRC
+
+** Configuration Best Practices
+
+*** 1. Environment-Specific Configuration
+#+BEGIN_SRC yaml
+# development.yml
+myproject:
+  database:
+    url: "jdbc:h2:mem:dev"
+    pool.max.size: 5
+  logging:
+    level: DEBUG
+  feature.flags:
+    experimental.feature: true
+
+# production.yml  
+myproject:
+  database:
+    url: "${DATABASE_URL}"  # Environment variable
+    pool.max.size: 20
+  logging:
+    level: INFO
+  feature.flags:
+    experimental.feature: false
+#+END_SRC
+
+*** 2. Sensitive Configuration Handling
+#+BEGIN_SRC java
+/**
+ * Secure configuration handling with encryption and masking
+ */
+public class SecureConfigurationSource extends ConfigurationSource {
+    
+    private final ConfigurationDecryptor decryptor;
+    
+    @Override
+    public Optional<InputStream> loadConfiguration() throws ConfigurationException {
+        InputStream encrypted = loadEncryptedConfiguration();
+        InputStream decrypted = decryptor.decrypt(encrypted);
+        return Optional.of(decrypted);
+    }
+    
+    // Configuration values are automatically masked in logs
+    public String toString() {
+        return "SecureConfigurationSource[***masked***]";
+    }
+}
+
+/**
+ * Configuration value masking for security
+ */
+public class ConfigurationMasker {
+    
+    private static final Set<String> SENSITIVE_KEYS = Set.of(
+        "password", "secret", "key", "token", "credential"
+    );
+    
+    public static Object maskSensitiveValues(String key, Object value) {
+        if (SENSITIVE_KEYS.stream().anyMatch(key.toLowerCase()::contains)) {
+            return "***masked***";
+        }
+        return value;
+    }
+}
+#+END_SRC
+
+*** 3. Configuration Hot Reloading
+#+BEGIN_SRC java
+/**
+ * Configuration with hot reloading capability
+ */
+public abstract class ReloadableConfigurationAdapter extends BaseConfigurationAdapter {
+    
+    private final ScheduledExecutorService reloadScheduler;
+    private final List<ConfigurationChangeListener> listeners;
+    
+    protected ReloadableConfigurationAdapter() {
+        super();
+        this.reloadScheduler = Executors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("ConfigReloader"));
+        this.listeners = new CopyOnWriteArrayList<>();
+        
+        // Check for configuration changes every 30 seconds
+        reloadScheduler.scheduleAtFixedRate(this::checkForChanges, 30, 30, TimeUnit.SECONDS);
+    }
+    
+    private void checkForChanges() {
+        try {
+            Object currentConfig = getCurrentConfiguration();
+            Object newConfig = loadConfiguration();
+            
+            if (!Objects.equals(currentConfig, newConfig)) {
+                notifyConfigurationChanged(currentConfig, newConfig);
+                updateCurrentConfiguration(newConfig);
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to check for configuration changes", e);
+        }
+    }
+    
+    public void addConfigurationChangeListener(ConfigurationChangeListener listener) {
+        listeners.add(listener);
+    }
+    
+    private void notifyConfigurationChanged(Object oldConfig, Object newConfig) {
+        ConfigurationChangeEvent event = new ConfigurationChangeEvent(oldConfig, newConfig);
+        listeners.forEach(listener -> {
+            try {
+                listener.onConfigurationChanged(event);
+            } catch (Exception e) {
+                LOG.warn("Configuration change listener failed", e);
+            }
+        });
+    }
+}
+#+END_SRC
+
+* Event Infrastructure Patterns
+
+** Multi-Target Event Emission
+
+The `BaseEventEmitterAdapter` provides a flexible framework for emitting events to multiple targets with different characteristics and requirements.
+
+*** Emission Target Types
+#+BEGIN_SRC java
+/**
+ * File-based emission target for persistent event storage
+ */
+public class FileEmissionTarget implements EmissionTarget {
+    
+    private final String name;
+    private final Path eventDirectory;
+    private final EventFileNamingStrategy namingStrategy;
+    private final FileRotationPolicy rotationPolicy;
+    
+    public FileEmissionTarget(String name, Path eventDirectory) {
+        this.name = name;
+        this.eventDirectory = eventDirectory;
+        this.namingStrategy = new TimestampFileNamingStrategy();
+        this.rotationPolicy = new SizeBasedRotationPolicy(10 * 1024 * 1024); // 10MB
+    }
+    
+    @Override
+    public void emit(String serializedEvent, DomainEvent originalEvent) throws EmissionException {
+        try {
+            Path eventFile = determineEventFile(originalEvent);
+            
+            // Check if rotation is needed
+            if (rotationPolicy.shouldRotate(eventFile)) {
+                rotationPolicy.rotate(eventFile);
+            }
+            
+            // Append event to file
+            Files.write(eventFile, 
+                       (serializedEvent + System.lineSeparator()).getBytes(),
+                       StandardOpenOption.CREATE,
+                       StandardOpenOption.APPEND);
+                       
+        } catch (IOException e) {
+            throw new EmissionException("Failed to emit event to file", e);
+        }
+    }
+    
+    @Override
+    public boolean supportsBatch() {
+        return true; // Files support efficient batch writes
+    }
+    
+    @Override
+    public void emitBatch(List<String> serializedEvents, List<DomainEvent> originalEvents) 
+        throws EmissionException {
+        
+        try {
+            // Group events by target file
+            Map<Path, List<String>> eventsByFile = groupEventsByFile(serializedEvents, originalEvents);
+            
+            // Write each group to its target file
+            for (Map.Entry<Path, List<String>> entry : eventsByFile.entrySet()) {
+                Path file = entry.getKey();
+                List<String> events = entry.getValue();
+                
+                String batchContent = String.join(System.lineSeparator(), events) + System.lineSeparator();
+                Files.write(file, batchContent.getBytes(),
+                           StandardOpenOption.CREATE,
+                           StandardOpenOption.APPEND);
+            }
+            
+        } catch (IOException e) {
+            throw new EmissionException("Failed to emit event batch to files", e);
+        }
+    }
+}
+
+/**
+ * HTTP-based emission target for remote event collection
+ */
+public class HttpEmissionTarget implements EmissionTarget {
+    
+    private final String name;
+    private final String endpoint;
+    private final HttpClient httpClient;
+    private final RetryPolicy retryPolicy;
+    
+    public HttpEmissionTarget(String name, String endpoint) {
+        this.name = name;
+        this.endpoint = endpoint;
+        this.httpClient = HttpClient.newBuilder()
+            .timeout(Duration.ofSeconds(30))
+            .build();
+        this.retryPolicy = RetryPolicy.exponentialBackoff(3, Duration.ofMillis(100));
+    }
+    
+    @Override
+    public void emit(String serializedEvent, DomainEvent originalEvent) throws EmissionException {
+        retryPolicy.execute(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/json")
+                .header("X-Event-Type", originalEvent.getClass().getSimpleName())
+                .header("X-Event-Id", originalEvent.getId())
+                .POST(HttpRequest.BodyPublishers.ofString(serializedEvent))
+                .build();
+                
+            try {
+                HttpResponse<String> response = httpClient.send(request, 
+                    HttpResponse.BodyHandlers.ofString());
+                    
+                if (response.statusCode() >= 400) {
+                    throw new EmissionException("HTTP emission failed: " + response.statusCode());
+                }
+                
+                return response;
+            } catch (IOException | InterruptedException e) {
+                throw new EmissionException("HTTP emission failed", e);
+            }
+        });
+    }
+    
+    @Override
+    public boolean supportsBatch() {
+        return true; // Can send multiple events in single request
+    }
+    
+    @Override
+    public void emitBatch(List<String> serializedEvents, List<DomainEvent> originalEvents) 
+        throws EmissionException {
+        
+        EventBatch batch = new EventBatch(serializedEvents, originalEvents);
+        String batchJson = JsonUtils.toJson(batch);
+        
+        retryPolicy.execute(() -> {
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint + "/batch"))
+                .header("Content-Type", "application/json")
+                .header("X-Batch-Size", String.valueOf(serializedEvents.size()))
+                .POST(HttpRequest.BodyPublishers.ofString(batchJson))
+                .build();
+                
+            try {
+                HttpResponse<String> response = httpClient.send(request, 
+                    HttpResponse.BodyHandlers.ofString());
+                    
+                if (response.statusCode() >= 400) {
+                    throw new EmissionException("HTTP batch emission failed: " + response.statusCode());
+                }
+                
+                return response;
+            } catch (IOException | InterruptedException e) {
+                throw new EmissionException("HTTP batch emission failed", e);
+            }
+        });
+    }
+}
+
+/**
+ * Database emission target for structured event storage
+ */
+public class DatabaseEmissionTarget implements EmissionTarget {
+    
+    private final String name;
+    private final DataSource dataSource;
+    private final String tableName;
+    
+    @Override
+    public void emit(String serializedEvent, DomainEvent originalEvent) throws EmissionException {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 "INSERT INTO " + tableName + " (event_id, event_type, event_time, event_data) VALUES (?, ?, ?, ?)")) {
+            
+            stmt.setString(1, originalEvent.getId());
+            stmt.setString(2, originalEvent.getClass().getSimpleName());
+            stmt.setTimestamp(3, Timestamp.from(originalEvent.getTimestamp()));
+            stmt.setString(4, serializedEvent);
+            
+            stmt.executeUpdate();
+            
+        } catch (SQLException e) {
+            throw new EmissionException("Database emission failed", e);
+        }
+    }
+    
+    @Override
+    public boolean supportsBatch() {
+        return true; // Database supports batch inserts
+    }
+    
+    @Override
+    public void emitBatch(List<String> serializedEvents, List<DomainEvent> originalEvents) 
+        throws EmissionException {
+        
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 "INSERT INTO " + tableName + " (event_id, event_type, event_time, event_data) VALUES (?, ?, ?, ?)")) {
+            
+            for (int i = 0; i < serializedEvents.size(); i++) {
+                DomainEvent event = originalEvents.get(i);
+                String serialized = serializedEvents.get(i);
+                
+                stmt.setString(1, event.getId());
+                stmt.setString(2, event.getClass().getSimpleName());
+                stmt.setTimestamp(3, Timestamp.from(event.getTimestamp()));
+                stmt.setString(4, serialized);
+                
+                stmt.addBatch();
+            }
+            
+            stmt.executeBatch();
+            
+        } catch (SQLException e) {
+            throw new EmissionException("Database batch emission failed", e);
+        }
+    }
+}
+#+END_SRC
+
+*** Event Serialization Strategies
+#+BEGIN_SRC java
+/**
+ * Pluggable event serialization with multiple format support
+ */
+public interface EventSerializer {
+    String serialize(DomainEvent event) throws SerializationException;
+    DomainEvent deserialize(String serialized, Class<? extends DomainEvent> eventType) throws SerializationException;
+    String getFormat();
+}
+
+/**
+ * JSON event serialization with schema validation
+ */
+public class JsonEventSerializer implements EventSerializer {
+    
+    private final ObjectMapper objectMapper;
+    private final JsonSchemaValidator schemaValidator;
+    
+    public JsonEventSerializer() {
+        this.objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        this.schemaValidator = new JsonSchemaValidator();
+    }
+    
+    @Override
+    public String serialize(DomainEvent event) throws SerializationException {
+        try {
+            EventEnvelope envelope = new EventEnvelope(
+                event.getId(),
+                event.getClass().getName(),
+                event.getTimestamp(),
+                event.getVersion(),
+                objectMapper.writeValueAsString(event)
+            );
+            
+            String serialized = objectMapper.writeValueAsString(envelope);
+            
+            // Validate against schema if available
+            schemaValidator.validate(serialized, event.getClass());
+            
+            return serialized;
+            
+        } catch (JsonProcessingException e) {
+            throw new SerializationException("Failed to serialize event: " + event.getClass().getSimpleName(), e);
+        }
+    }
+    
+    @Override
+    public DomainEvent deserialize(String serialized, Class<? extends DomainEvent> eventType) 
+        throws SerializationException {
+        try {
+            EventEnvelope envelope = objectMapper.readValue(serialized, EventEnvelope.class);
+            return objectMapper.readValue(envelope.getPayload(), eventType);
+        } catch (JsonProcessingException e) {
+            throw new SerializationException("Failed to deserialize event: " + eventType.getSimpleName(), e);
+        }
+    }
+    
+    @Override
+    public String getFormat() {
+        return "application/json";
+    }
+}
+
+/**
+ * Binary event serialization for performance-critical scenarios
+ */
+public class ProtobufEventSerializer implements EventSerializer {
+    
+    private final Map<Class<?>, MessageConverter> converters;
+    
+    public ProtobufEventSerializer() {
+        this.converters = new HashMap<>();
+        registerDefaultConverters();
+    }
+    
+    @Override
+    public String serialize(DomainEvent event) throws SerializationException {
+        try {
+            MessageConverter converter = converters.get(event.getClass());
+            if (converter == null) {
+                throw new SerializationException("No protobuf converter for event type: " + event.getClass());
+            }
+            
+            Message message = converter.toMessage(event);
+            byte[] bytes = message.toByteArray();
+            
+            // Base64 encode for string representation
+            return Base64.getEncoder().encodeToString(bytes);
+            
+        } catch (Exception e) {
+            throw new SerializationException("Failed to serialize event with protobuf", e);
+        }
+    }
+    
+    @Override
+    public String getFormat() {
+        return "application/x-protobuf";
+    }
+}
+#+END_SRC
+
+*** Failure Handling and Recovery
+#+BEGIN_SRC java
+/**
+ * Comprehensive failure handling for event emission
+ */
+public class FailureHandlingEventEmitter extends BaseEventEmitterAdapter {
+    
+    private final FailedEventStore failedEventStore;
+    private final ScheduledExecutorService retryScheduler;
+    
+    protected FailureHandlingEventEmitter() {
+        super();
+        this.failedEventStore = new FailedEventStore();
+        this.retryScheduler = Executors.newSingleThreadScheduledExecutor(
+            new NamedThreadFactory("EventRetry"));
+            
+        // Retry failed events every 5 minutes
+        retryScheduler.scheduleAtFixedRate(this::retryFailedEvents, 5, 5, TimeUnit.MINUTES);
+    }
+    
+    @Override
+    protected void handleEmissionFailure(EmissionTarget target, DomainEvent event, Exception error) {
+        super.handleEmissionFailure(target, event, error);
+        
+        // Store failed event for retry
+        FailedEvent failedEvent = new FailedEvent(
+            event, target.getName(), error, System.currentTimeMillis());
+        failedEventStore.store(failedEvent);
+        
+        // Implement circuit breaker pattern
+        if (isCircuitBreakerTripped(target)) {
+            disableTarget(target);
+            scheduleTargetRecheck(target);
+        }
+    }
+    
+    private void retryFailedEvents() {
+        List<FailedEvent> failedEvents = failedEventStore.getEventsForRetry();
+        
+        for (FailedEvent failedEvent : failedEvents) {
+            try {
+                EmissionTarget target = findTargetByName(failedEvent.getTargetName());
+                if (target != null && target.isAvailable()) {
+                    
+                    String serialized = eventSerializer.serialize(failedEvent.getEvent());
+                    target.emit(serialized, failedEvent.getEvent());
+                    
+                    // Success - remove from failed store
+                    failedEventStore.remove(failedEvent);
+                    
+                } else {
+                    // Target still not available - increment retry count
+                    failedEventStore.incrementRetryCount(failedEvent);
+                }
+                
+            } catch (Exception e) {
+                // Retry failed again - increment retry count
+                failedEventStore.incrementRetryCount(failedEvent);
+                
+                // Give up after maximum retries
+                if (failedEvent.getRetryCount() >= MAX_RETRIES) {
+                    failedEventStore.moveToDeadLetter(failedEvent);
+                }
+            }
+        }
+    }
+    
+    private boolean isCircuitBreakerTripped(EmissionTarget target) {
+        // Implement circuit breaker logic
+        int recentFailures = failedEventStore.getRecentFailureCount(target.getName(), Duration.ofMinutes(5));
+        return recentFailures >= CIRCUIT_BREAKER_THRESHOLD;
+    }
+}
+
+/**
+ * Failed event storage for retry and dead letter handling
+ */
+public class FailedEventStore {
+    
+    private final Map<String, List<FailedEvent>> failedEvents = new ConcurrentHashMap<>();
+    private final Queue<FailedEvent> deadLetterQueue = new ConcurrentLinkedQueue<>();
+    
+    public void store(FailedEvent failedEvent) {
+        String key = failedEvent.getTargetName();
+        failedEvents.computeIfAbsent(key, k -> new ArrayList<>()).add(failedEvent);
+    }
+    
+    public List<FailedEvent> getEventsForRetry() {
+        return failedEvents.values().stream()
+            .flatMap(List::stream)
+            .filter(this::shouldRetry)
+            .collect(Collectors.toList());
+    }
+    
+    private boolean shouldRetry(FailedEvent failedEvent) {
+        // Exponential backoff retry strategy
+        long backoffTime = calculateBackoffTime(failedEvent.getRetryCount());
+        return System.currentTimeMillis() - failedEvent.getFailureTime() >= backoffTime;
+    }
+    
+    private long calculateBackoffTime(int retryCount) {
+        return Math.min(Duration.ofMinutes(30).toMillis(), 
+                       Duration.ofSeconds(30).toMillis() * (1L << retryCount));
+    }
+    
+    public void moveToDeadLetter(FailedEvent failedEvent) {
+        remove(failedEvent);
+        deadLetterQueue.offer(failedEvent);
+        
+        // Log dead letter event for monitoring
+        LOG.error("Event moved to dead letter queue after {} retries: {}", 
+                 failedEvent.getRetryCount(), failedEvent.getEvent().getClass().getSimpleName());
+    }
+}
+#+END_SRC
+
+* File System Infrastructure Patterns
+
+** Cross-Platform File Watching
+
+The `BaseFileWatcherAdapter` provides robust, cross-platform file system monitoring with configurable patterns and efficient event processing.
+
+*** File Watching Strategies
+#+BEGIN_SRC java
+/**
+ * Base file watcher with multiple watching strategies
+ */
+public abstract class BaseFileWatcherAdapter implements Port {
+    
+    private final List<WatchStrategy> watchStrategies;
+    private final FileEventProcessor eventProcessor;
+    private final ExecutorService watchExecutor;
+    
+    protected BaseFileWatcherAdapter() {
+        this.watchStrategies = createWatchStrategies();
+        this.eventProcessor = createEventProcessor();
+        this.watchExecutor = Executors.newCachedThreadPool(
+            new NamedThreadFactory("FileWatcher"));
+    }
+    
+    protected abstract List<WatchStrategy> createWatchStrategies();
+    protected abstract FileEventProcessor createEventProcessor();
+    
+    /**
+     * Start watching with automatic strategy selection
+     */
+    public void startWatching(List<WatchConfiguration> configurations) {
+        for (WatchConfiguration config : configurations) {
+            WatchStrategy strategy = selectBestStrategy(config);
+            CompletableFuture.runAsync(() -> strategy.watch(config), watchExecutor);
+        }
+    }
+    
+    private WatchStrategy selectBestStrategy(WatchConfiguration config) {
+        return watchStrategies.stream()
+            .filter(strategy -> strategy.isApplicable(config))
+            .min(Comparator.comparingInt(WatchStrategy::getPriority))
+            .orElseThrow(() -> new IllegalStateException("No applicable watch strategy found"));
+    }
+}
+
+/**
+ * NIO2-based watch strategy for modern Java environments
+ */
+public class NIO2WatchStrategy implements WatchStrategy {
+    
+    private final Map<WatchKey, WatchConfiguration> watchKeys = new ConcurrentHashMap<>();
+    private volatile boolean watching = true;
+    
+    @Override
+    public boolean isApplicable(WatchConfiguration config) {
+        // NIO2 is available on all modern Java platforms
+        return true;
+    }
+    
+    @Override
+    public int getPriority() {
+        return 10; // Highest priority - most efficient
+    }
+    
+    @Override
+    public void watch(WatchConfiguration config) {
+        try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
+            
+            registerDirectories(watchService, config);
+            
+            while (watching) {
+                WatchKey key = watchService.take();
+                
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    processWatchEvent(key, event);
+                }
+                
+                boolean valid = key.reset();
+                if (!valid) {
+                    watchKeys.remove(key);
+                    if (watchKeys.isEmpty()) {
+                        break;
+                    }
+                }
+            }
+            
+        } catch (IOException | InterruptedException e) {
+            LOG.error("NIO2 file watching failed", e);
+        }
+    }
+    
+    private void registerDirectories(WatchService watchService, WatchConfiguration config) 
+        throws IOException {
+        
+        if (config.isRecursive()) {
+            // Register all subdirectories
+            Files.walk(config.getPath())
+                .filter(Files::isDirectory)
+                .forEach(dir -> registerDirectory(watchService, dir, config));
+        } else {
+            registerDirectory(watchService, config.getPath(), config);
+        }
+    }
+    
+    private void registerDirectory(WatchService watchService, Path directory, WatchConfiguration config) {
+        try {
+            WatchKey key = directory.register(watchService, 
+                StandardWatchEventKinds.ENTRY_CREATE,
+                StandardWatchEventKinds.ENTRY_MODIFY,
+                StandardWatchEventKinds.ENTRY_DELETE);
+            watchKeys.put(key, config);
+        } catch (IOException e) {
+            LOG.warn("Failed to register directory for watching: {}", directory, e);
+        }
+    }
+}
+
+/**
+ * Polling-based watch strategy for environments where NIO2 is unreliable
+ */
+public class PollingWatchStrategy implements WatchStrategy {
+    
+    private final Map<Path, FileSnapshot> fileSnapshots = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService pollingScheduler;
+    
+    public PollingWatchStrategy() {
+        this.pollingScheduler = Executors.newScheduledThreadPool(2,
+            new NamedThreadFactory("FilePoller"));
+    }
+    
+    @Override
+    public boolean isApplicable(WatchConfiguration config) {
+        // Always applicable as fallback strategy
+        return true;
+    }
+    
+    @Override
+    public int getPriority() {
+        return 50; // Lower priority - less efficient than NIO2
+    }
+    
+    @Override
+    public void watch(WatchConfiguration config) {
+        // Initial snapshot
+        takeSnapshot(config);
+        
+        // Schedule periodic polling
+        pollingScheduler.scheduleAtFixedRate(
+            () -> checkForChanges(config),
+            config.getPollingInterval(),
+            config.getPollingInterval(),
+            TimeUnit.MILLISECONDS
+        );
+    }
+    
+    private void takeSnapshot(WatchConfiguration config) {
+        try {
+            Stream<Path> files = config.isRecursive() 
+                ? Files.walk(config.getPath())
+                : Files.list(config.getPath());
+                
+            files.filter(Files::isRegularFile)
+                 .filter(path -> matchesPattern(path, config.getPatterns()))
+                 .forEach(path -> {
+                     try {
+                         FileSnapshot snapshot = new FileSnapshot(path);
+                         fileSnapshots.put(path, snapshot);
+                     } catch (IOException e) {
+                         LOG.warn("Failed to create file snapshot: {}", path, e);
+                     }
+                 });
+                 
+        } catch (IOException e) {
+            LOG.error("Failed to take initial file snapshot", e);
+        }
+    }
+    
+    private void checkForChanges(WatchConfiguration config) {
+        try {
+            Set<Path> currentFiles = new HashSet<>();
+            
+            Stream<Path> files = config.isRecursive() 
+                ? Files.walk(config.getPath())
+                : Files.list(config.getPath());
+                
+            files.filter(Files::isRegularFile)
+                 .filter(path -> matchesPattern(path, config.getPatterns()))
+                 .forEach(path -> {
+                     currentFiles.add(path);
+                     checkFileForChanges(path, config);
+                 });
+                 
+            // Check for deleted files
+            Set<Path> deletedFiles = new HashSet<>(fileSnapshots.keySet());
+            deletedFiles.removeAll(currentFiles);
+            deletedFiles.forEach(path -> {
+                fileSnapshots.remove(path);
+                notifyFileDeleted(path, config);
+            });
+            
+        } catch (IOException e) {
+            LOG.error("Failed to check for file changes", e);
+        }
+    }
+    
+    private void checkFileForChanges(Path path, WatchConfiguration config) {
+        try {
+            FileSnapshot oldSnapshot = fileSnapshots.get(path);
+            FileSnapshot newSnapshot = new FileSnapshot(path);
+            
+            if (oldSnapshot == null) {
+                // New file
+                fileSnapshots.put(path, newSnapshot);
+                notifyFileCreated(path, config);
+            } else if (!oldSnapshot.equals(newSnapshot)) {
+                // Modified file
+                fileSnapshots.put(path, newSnapshot);
+                notifyFileModified(path, config);
+            }
+            
+        } catch (IOException e) {
+            LOG.warn("Failed to check file for changes: {}", path, e);
+        }
+    }
+}
+#+END_SRC
+
+*** File Event Processing and Filtering
+#+BEGIN_SRC java
+/**
+ * Sophisticated file event processing with filtering and debouncing
+ */
+public class FileEventProcessor {
+    
+    private final EventDebouncer debouncer;
+    private final List<FileEventFilter> filters;
+    private final FileEventHandler eventHandler;
+    
+    public FileEventProcessor(FileEventHandler eventHandler) {
+        this.eventHandler = eventHandler;
+        this.debouncer = new EventDebouncer(Duration.ofMillis(500)); // 500ms debounce
+        this.filters = createDefaultFilters();
+    }
+    
+    public void processFileEvent(FileEvent event) {
+        // Apply filters
+        for (FileEventFilter filter : filters) {
+            if (!filter.accept(event)) {
+                LOG.debug("File event filtered out: {}", event);
+                return;
+            }
+        }
+        
+        // Debounce rapid file changes
+        debouncer.debounce(event.getPath(), () -> handleDebouncedEvent(event));
+    }
+    
+    private void handleDebouncedEvent(FileEvent event) {
+        try {
+            eventHandler.handle(event);
+        } catch (Exception e) {
+            LOG.error("Failed to handle file event: {}", event, e);
+        }
+    }
+    
+    private List<FileEventFilter> createDefaultFilters() {
+        return Arrays.asList(
+            // Filter out temporary files
+            new TemporaryFileFilter(),
+            
+            // Filter out hidden files
+            new HiddenFileFilter(),
+            
+            // Filter out backup files
+            new BackupFileFilter(),
+            
+            // Filter by file size (ignore very large files)
+            new FileSizeFilter(100 * 1024 * 1024), // 100MB limit
+            
+            // Filter by modification time (ignore very old events)
+            new ModificationTimeFilter(Duration.ofMinutes(5))
+        );
+    }
+}
+
+/**
+ * Event debouncer to handle rapid file system changes
+ */
+public class EventDebouncer {
+    
+    private final Map<Path, ScheduledFuture<?>> pendingEvents = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler;
+    private final Duration debounceTime;
+    
+    public EventDebouncer(Duration debounceTime) {
+        this.debounceTime = debounceTime;
+        this.scheduler = Executors.newScheduledThreadPool(2,
+            new NamedThreadFactory("EventDebouncer"));
+    }
+    
+    public void debounce(Path path, Runnable action) {
+        // Cancel any pending event for this path
+        ScheduledFuture<?> existingFuture = pendingEvents.get(path);
+        if (existingFuture != null) {
+            existingFuture.cancel(false);
+        }
+        
+        // Schedule new debounced event
+        ScheduledFuture<?> newFuture = scheduler.schedule(() -> {
+            try {
+                action.run();
+            } finally {
+                pendingEvents.remove(path);
+            }
+        }, debounceTime.toMillis(), TimeUnit.MILLISECONDS);
+        
+        pendingEvents.put(path, newFuture);
+    }
+}
+
+/**
+ * File event filters for noise reduction
+ */
+public class TemporaryFileFilter implements FileEventFilter {
+    
+    private static final Set<String> TEMP_EXTENSIONS = Set.of(
+        ".tmp", ".temp", ".swp", ".swo", ".lock"
+    );
+    
+    private static final Set<String> TEMP_PREFIXES = Set.of(
+        ".", "~", "#"
+    );
+    
+    @Override
+    public boolean accept(FileEvent event) {
+        String fileName = event.getPath().getFileName().toString();
+        
+        // Filter by extension
+        if (TEMP_EXTENSIONS.stream().anyMatch(fileName::endsWith)) {
+            return false;
+        }
+        
+        // Filter by prefix
+        if (TEMP_PREFIXES.stream().anyMatch(fileName::startsWith)) {
+            return false;
+        }
+        
+        // Filter IDE temporary files
+        if (fileName.matches(".*~[0-9]+~") || fileName.contains(".#")) {
+            return false;
+        }
+        
+        return true;
+    }
+}
+
+public class FileSizeFilter implements FileEventFilter {
+    
+    private final long maxSize;
+    
+    public FileSizeFilter(long maxSize) {
+        this.maxSize = maxSize;
+    }
+    
+    @Override
+    public boolean accept(FileEvent event) {
+        try {
+            if (Files.exists(event.getPath())) {
+                long size = Files.size(event.getPath());
+                return size <= maxSize;
+            }
+            return true; // Accept delete events even if file doesn't exist
+        } catch (IOException e) {
+            LOG.warn("Failed to check file size: {}", event.getPath(), e);
+            return true; // Accept when in doubt
+        }
+    }
+}
+#+END_SRC
+
+* Communication Infrastructure Patterns
+
+** Protocol Handler Framework
+
+The `BaseMessageAdapter` provides a framework for implementing robust communication protocols with connection management, message routing, and error handling.
+
+*** Protocol Handler Implementation
+#+BEGIN_SRC java
+/**
+ * Base message adapter with protocol abstraction
+ */
+public abstract class BaseMessageAdapter implements Port {
+    
+    private final ProtocolHandlerRegistry handlerRegistry;
+    private final ConnectionManager connectionManager;
+    private final MessageRouter messageRouter;
+    private final RetryPolicy retryPolicy;
+    
+    protected BaseMessageAdapter() {
+        this.handlerRegistry = createProtocolHandlerRegistry();
+        this.connectionManager = createConnectionManager();
+        this.messageRouter = createMessageRouter();
+        this.retryPolicy = createRetryPolicy();
+    }
+    
+    protected abstract ProtocolHandlerRegistry createProtocolHandlerRegistry();
+    protected abstract ConnectionManager createConnectionManager();
+    protected abstract MessageRouter createMessageRouter();
+    protected abstract RetryPolicy createRetryPolicy();
+    
+    public <T> CompletableFuture<T> sendMessage(Message message, Class<T> responseType) {
+        return sendMessage(message, responseType, retryPolicy);
+    }
+    
+    public <T> CompletableFuture<T> sendMessage(Message message, Class<T> responseType, RetryPolicy customRetry) {
+        ProtocolHandler handler = handlerRegistry.getHandler(message.getProtocol());
+        if (handler == null) {
+            return CompletableFuture.failedFuture(
+                new UnsupportedProtocolException("No handler for protocol: " + message.getProtocol()));
+        }
+        
+        return customRetry.execute(() -> {
+            Connection connection = connectionManager.getConnection(message.getDestination());
+            return handler.sendMessage(connection, message, responseType);
+        });
+    }
+    
+    public void registerMessageHandler(String messageType, MessageHandler handler) {
+        messageRouter.registerHandler(messageType, handler);
+    }
+    
+    public void startListening(int port) {
+        connectionManager.startServer(port, this::handleIncomingMessage);
+    }
+    
+    private void handleIncomingMessage(Connection connection, Message message) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                messageRouter.route(connection, message);
+            } catch (Exception e) {
+                LOG.error("Failed to route incoming message: {}", message.getType(), e);
+                sendErrorResponse(connection, message, e);
+            }
+        });
+    }
+}
+
+/**
+ * HTTP protocol handler implementation
+ */
+public class HttpProtocolHandler implements ProtocolHandler {
+    
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
+    
+    public HttpProtocolHandler() {
+        this.httpClient = HttpClient.newBuilder()
+            .timeout(Duration.ofSeconds(30))
+            .build();
+        this.objectMapper = new ObjectMapper();
+    }
+    
+    @Override
+    public String getProtocol() {
+        return "http";
+    }
+    
+    @Override
+    public <T> CompletableFuture<T> sendMessage(Connection connection, Message message, Class<T> responseType) {
+        try {
+            String jsonBody = objectMapper.writeValueAsString(message);
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(connection.getEndpoint())
+                .header("Content-Type", "application/json")
+                .header("X-Message-Type", message.getType())
+                .header("X-Message-Id", message.getId())
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+                
+            return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApply(response -> {
+                    if (response.statusCode() >= 400) {
+                        throw new CommunicationException("HTTP request failed: " + response.statusCode());
+                    }
+                    return parseResponse(response.body(), responseType);
+                });
+                
+        } catch (JsonProcessingException e) {
+            return CompletableFuture.failedFuture(
+                new CommunicationException("Failed to serialize message", e));
+        }
+    }
+    
+    private <T> T parseResponse(String responseBody, Class<T> responseType) {
+        try {
+            if (responseType == String.class) {
+                return responseType.cast(responseBody);
+            } else if (responseType == Void.class) {
+                return null;
+            } else {
+                return objectMapper.readValue(responseBody, responseType);
+            }
+        } catch (JsonProcessingException e) {
+            throw new CommunicationException("Failed to parse response", e);
+        }
+    }
+}
+
+/**
+ * WebSocket protocol handler for real-time communication
+ */
+public class WebSocketProtocolHandler implements ProtocolHandler {
+    
+    private final Map<String, WebSocketClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<?>> pendingRequests = new ConcurrentHashMap<>();
+    
+    @Override
+    public String getProtocol() {
+        return "websocket";
+    }
+    
+    @Override
+    public <T> CompletableFuture<T> sendMessage(Connection connection, Message message, Class<T> responseType) {
+        WebSocketClient client = getOrCreateClient(connection);
+        
+        CompletableFuture<T> responseFuture = new CompletableFuture<>();
+        pendingRequests.put(message.getId(), responseFuture);
+        
+        try {
+            String jsonMessage = objectMapper.writeValueAsString(message);
+            client.send(jsonMessage);
+            
+            // Set timeout for response
+            CompletableFuture.delayedExecutor(30, TimeUnit.SECONDS)
+                .execute(() -> {
+                    if (!responseFuture.isDone()) {
+                        pendingRequests.remove(message.getId());
+                        responseFuture.completeExceptionally(
+                            new TimeoutException("WebSocket message timeout"));
+                    }
+                });
+                
+            return responseFuture;
+            
+        } catch (JsonProcessingException e) {
+            pendingRequests.remove(message.getId());
+            return CompletableFuture.failedFuture(
+                new CommunicationException("Failed to serialize WebSocket message", e));
+        }
+    }
+    
+    private WebSocketClient getOrCreateClient(Connection connection) {
+        return clients.computeIfAbsent(connection.getId(), id -> {
+            try {
+                WebSocketClient client = new WebSocketClient(connection.getEndpoint()) {
+                    @Override
+                    public void onMessage(String message) {
+                        handleWebSocketMessage(message);
+                    }
+                    
+                    @Override
+                    public void onError(Exception e) {
+                        LOG.error("WebSocket error for connection: {}", id, e);
+                        clients.remove(id);
+                    }
+                };
+                
+                client.connect();
+                return client;
+                
+            } catch (Exception e) {
+                throw new CommunicationException("Failed to create WebSocket client", e);
+            }
+        });
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void handleWebSocketMessage(String message) {
+        try {
+            JsonNode messageNode = objectMapper.readTree(message);
+            String messageId = messageNode.get("id").asText();
+            
+            CompletableFuture<Object> pendingRequest = 
+                (CompletableFuture<Object>) pendingRequests.remove(messageId);
+                
+            if (pendingRequest != null) {
+                // This is a response to a previous request
+                Object response = objectMapper.treeToValue(messageNode, Object.class);
+                pendingRequest.complete(response);
+            } else {
+                // This is an unsolicited message - route to handlers
+                Message incomingMessage = objectMapper.readValue(message, Message.class);
+                messageRouter.route(null, incomingMessage);
+            }
+            
+        } catch (JsonProcessingException e) {
+            LOG.error("Failed to parse WebSocket message: {}", message, e);
+        }
+    }
+}
+#+END_SRC
+
+*** Connection Management Patterns
+#+BEGIN_SRC java
+/**
+ * Sophisticated connection management with pooling and health monitoring
+ */
+public class ConnectionManager {
+    
+    private final Map<String, ConnectionPool> connectionPools = new ConcurrentHashMap<>();
+    private final HealthMonitor healthMonitor;
+    private final ScheduledExecutorService maintenanceScheduler;
+    
+    public ConnectionManager() {
+        this.healthMonitor = new HealthMonitor();
+        this.maintenanceScheduler = Executors.newScheduledThreadPool(2,
+            new NamedThreadFactory("ConnectionMaintenance"));
+            
+        // Periodic connection health checks
+        maintenanceScheduler.scheduleAtFixedRate(this::performMaintenance, 1, 1, TimeUnit.MINUTES);
+    }
+    
+    public Connection getConnection(Destination destination) {
+        ConnectionPool pool = connectionPools.computeIfAbsent(
+            destination.toString(), 
+            key -> new ConnectionPool(destination, createPoolConfig())
+        );
+        
+        return pool.acquire();
+    }
+    
+    public void releaseConnection(Connection connection) {
+        ConnectionPool pool = connectionPools.get(connection.getDestination().toString());
+        if (pool != null) {
+            pool.release(connection);
+        }
+    }
+    
+    public void startServer(int port, IncomingMessageHandler handler) {
+        try {
+            ServerSocket serverSocket = new ServerSocket(port);
+            
+            CompletableFuture.runAsync(() -> {
+                while (!serverSocket.isClosed()) {
+                    try {
+                        Socket clientSocket = serverSocket.accept();
+                        handleClientConnection(clientSocket, handler);
+                    } catch (IOException e) {
+                        if (!serverSocket.isClosed()) {
+                            LOG.error("Failed to accept client connection", e);
+                        }
+                    }
+                }
+            });
+            
+            LOG.info("Message server started on port: {}", port);
+            
+        } catch (IOException e) {
+            throw new CommunicationException("Failed to start message server", e);
+        }
+    }
+    
+    private void handleClientConnection(Socket clientSocket, IncomingMessageHandler handler) {
+        CompletableFuture.runAsync(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(clientSocket.getInputStream()));
+                 PrintWriter writer = new PrintWriter(
+                    clientSocket.getOutputStream(), true)) {
+                
+                SocketConnection connection = new SocketConnection(clientSocket, reader, writer);
+                
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    try {
+                        Message message = objectMapper.readValue(line, Message.class);
+                        handler.handle(connection, message);
+                    } catch (JsonProcessingException e) {
+                        LOG.warn("Failed to parse incoming message: {}", line, e);
+                    }
+                }
+                
+            } catch (IOException e) {
+                LOG.debug("Client connection closed: {}", clientSocket.getRemoteSocketAddress());
+            }
+        });
+    }
+    
+    private void performMaintenance() {
+        for (ConnectionPool pool : connectionPools.values()) {
+            try {
+                pool.performMaintenance();
+            } catch (Exception e) {
+                LOG.warn("Connection pool maintenance failed", e);
+            }
+        }
+    }
+}
+
+/**
+ * Connection pool with health monitoring and automatic recovery
+ */
+public class ConnectionPool {
+    
+    private final Destination destination;
+    private final Queue<Connection> availableConnections = new ConcurrentLinkedQueue<>();
+    private final Set<Connection> activeConnections = ConcurrentHashMap.newKeySet();
+    private final ConnectionPoolConfig config;
+    private final AtomicInteger totalConnections = new AtomicInteger(0);
+    
+    public ConnectionPool(Destination destination, ConnectionPoolConfig config) {
+        this.destination = destination;
+        this.config = config;
+    }
+    
+    public Connection acquire() {
+        Connection connection = availableConnections.poll();
+        
+        if (connection == null || !isHealthy(connection)) {
+            connection = createNewConnection();
+        }
+        
+        if (connection != null) {
+            activeConnections.add(connection);
+        }
+        
+        return connection;
+    }
+    
+    public void release(Connection connection) {
+        activeConnections.remove(connection);
+        
+        if (isHealthy(connection) && availableConnections.size() < config.getMaxIdleConnections()) {
+            availableConnections.offer(connection);
+        } else {
+            closeConnection(connection);
+        }
+    }
+    
+    private Connection createNewConnection() {
+        if (totalConnections.get() >= config.getMaxTotalConnections()) {
+            throw new ConnectionPoolExhaustedException("Connection pool exhausted");
+        }
+        
+        try {
+            Connection connection = ConnectionFactory.create(destination);
+            totalConnections.incrementAndGet();
+            return connection;
+        } catch (Exception e) {
+            throw new CommunicationException("Failed to create connection", e);
+        }
+    }
+    
+    private boolean isHealthy(Connection connection) {
+        try {
+            return connection.isConnected() && 
+                   connection.getLastActivity().isAfter(
+                       Instant.now().minus(config.getMaxIdleTime()));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    public void performMaintenance() {
+        // Remove idle connections that have exceeded max idle time
+        List<Connection> idleConnections = new ArrayList<>();
+        Connection connection;
+        while ((connection = availableConnections.poll()) != null) {
+            if (isHealthy(connection)) {
+                idleConnections.add(connection);
+            } else {
+                closeConnection(connection);
+            }
+        }
+        
+        // Keep only the desired number of idle connections
+        int maxIdle = config.getMaxIdleConnections();
+        for (int i = 0; i < idleConnections.size(); i++) {
+            if (i < maxIdle) {
+                availableConnections.offer(idleConnections.get(i));
+            } else {
+                closeConnection(idleConnections.get(i));
+            }
+        }
+    }
+    
+    private void closeConnection(Connection connection) {
+        try {
+            connection.close();
+            totalConnections.decrementAndGet();
+        } catch (Exception e) {
+            LOG.warn("Failed to close connection", e);
+        }
+    }
+}
+#+END_SRC
+
+* Testing Infrastructure Patterns
+
+** Mock Adapter Framework
+
+The testing infrastructure provides comprehensive mocking and testing utilities for all adapter types, enabling reliable and efficient testing of infrastructure components.
+
+*** Mock Adapter Base Classes
+#+BEGIN_SRC java
+/**
+ * Base mock adapter with comprehensive testing capabilities
+ */
+public abstract class BaseMockAdapter<T extends Port> implements T {
+    
+    private final List<MethodCall> methodCalls = Collections.synchronizedList(new ArrayList<>());
+    private final Map<String, Object> configuredResponses = new ConcurrentHashMap<>();
+    private final Map<String, Exception> configuredExceptions = new ConcurrentHashMap<>();
+    private final AtomicBoolean enabled = new AtomicBoolean(true);
+    
+    protected void recordMethodCall(String methodName, Object... parameters) {
+        methodCalls.add(new MethodCall(methodName, parameters, System.currentTimeMillis()));
+    }
+    
+    protected <R> R getConfiguredResponse(String methodName, Class<R> responseType) {
+        if (!enabled.get()) {
+            throw new IllegalStateException("Mock adapter is disabled");
+        }
+        
+        // Check for configured exception
+        Exception configuredException = configuredExceptions.get(methodName);
+        if (configuredException != null) {
+            if (configuredException instanceof RuntimeException) {
+                throw (RuntimeException) configuredException;
+            } else {
+                throw new RuntimeException(configuredException);
+            }
+        }
+        
+        // Return configured response
+        Object response = configuredResponses.get(methodName);
+        if (response != null && responseType.isInstance(response)) {
+            return responseType.cast(response);
+        }
+        
+        // Return default response
+        return getDefaultResponse(methodName, responseType);
+    }
+    
+    protected abstract <R> R getDefaultResponse(String methodName, Class<R> responseType);
+    
+    // Test utility methods
+    public void configureResponse(String methodName, Object response) {
+        configuredResponses.put(methodName, response);
+    }
+    
+    public void configureException(String methodName, Exception exception) {
+        configuredExceptions.put(methodName, exception);
+    }
+    
+    public void disable() {
+        enabled.set(false);
+    }
+    
+    public void enable() {
+        enabled.set(true);
+    }
+    
+    public List<MethodCall> getMethodCalls() {
+        return new ArrayList<>(methodCalls);
+    }
+    
+    public List<MethodCall> getMethodCalls(String methodName) {
+        return methodCalls.stream()
+            .filter(call -> call.getMethodName().equals(methodName))
+            .collect(Collectors.toList());
+    }
+    
+    public void clearMethodCalls() {
+        methodCalls.clear();
+    }
+    
+    public boolean wasMethodCalled(String methodName) {
+        return methodCalls.stream().anyMatch(call -> call.getMethodName().equals(methodName));
+    }
+    
+    public int getMethodCallCount(String methodName) {
+        return (int) methodCalls.stream().filter(call -> call.getMethodName().equals(methodName)).count();
+    }
+}
+
+/**
+ * Mock configuration adapter for testing
+ */
+public class MockConfigurationAdapter extends BaseMockAdapter<ConfigurationPort> 
+    implements ConfigurationPort {
+    
+    @Override
+    public Object loadConfiguration() throws Exception {
+        recordMethodCall("loadConfiguration");
+        return getConfiguredResponse("loadConfiguration", Object.class);
+    }
+    
+    @Override
+    public boolean isConfigurationAvailable() {
+        recordMethodCall("isConfigurationAvailable");
+        return getConfiguredResponse("isConfigurationAvailable", Boolean.class);
+    }
+    
+    @Override
+    public String getConfigurationSource() {
+        recordMethodCall("getConfigurationSource");
+        return getConfiguredResponse("getConfigurationSource", String.class);
+    }
+    
+    @Override
+    protected <R> R getDefaultResponse(String methodName, Class<R> responseType) {
+        return switch (methodName) {
+            case "loadConfiguration" -> responseType.cast(createDefaultConfiguration());
+            case "isConfigurationAvailable" -> responseType.cast(true);
+            case "getConfigurationSource" -> responseType.cast("Mock Configuration");
+            default -> null;
+        };
+    }
+    
+    private Object createDefaultConfiguration() {
+        Map<String, Object> config = new HashMap<>();
+        config.put("mock", true);
+        config.put("environment", "test");
+        return config;
+    }
+}
+
+/**
+ * Mock event emitter adapter for testing
+ */
+public class MockEventEmitterAdapter extends BaseMockAdapter<EventEmitterPort> 
+    implements EventEmitterPort {
+    
+    private final List<DomainEvent> emittedEvents = Collections.synchronizedList(new ArrayList<>());
+    
+    @Override
+    public void emit(DomainEvent event) {
+        recordMethodCall("emit", event);
+        emittedEvents.add(event);
+        
+        // Check for configured exception
+        Exception exception = configuredExceptions.get("emit");
+        if (exception != null) {
+            if (exception instanceof RuntimeException) {
+                throw (RuntimeException) exception;
+            } else {
+                throw new RuntimeException(exception);
+            }
+        }
+    }
+    
+    @Override
+    public CompletableFuture<Void> emitAsync(DomainEvent event) {
+        recordMethodCall("emitAsync", event);
+        
+        return CompletableFuture.runAsync(() -> {
+            emittedEvents.add(event);
+            
+            Exception exception = configuredExceptions.get("emitAsync");
+            if (exception != null) {
+                if (exception instanceof RuntimeException) {
+                    throw (RuntimeException) exception;
+                } else {
+                    throw new RuntimeException(exception);
+                }
+            }
+        });
+    }
+    
+    // Test utility methods
+    public List<DomainEvent> getEmittedEvents() {
+        return new ArrayList<>(emittedEvents);
+    }
+    
+    public List<DomainEvent> getEmittedEvents(Class<? extends DomainEvent> eventType) {
+        return emittedEvents.stream()
+            .filter(eventType::isInstance)
+            .collect(Collectors.toList());
+    }
+    
+    public void clearEmittedEvents() {
+        emittedEvents.clear();
+    }
+    
+    public boolean wasEventEmitted(Class<? extends DomainEvent> eventType) {
+        return emittedEvents.stream().anyMatch(eventType::isInstance);
+    }
+    
+    @Override
+    protected <R> R getDefaultResponse(String methodName, Class<R> responseType) {
+        // Event emission methods don't return values
+        return null;
+    }
+}
+#+END_SRC
+
+*** Infrastructure Test Utilities
+#+BEGIN_SRC java
+/**
+ * Comprehensive test environment setup for infrastructure testing
+ */
+public class InfrastructureTestEnvironment implements AutoCloseable {
+    
+    private final Map<Class<? extends Port>, Object> mockAdapters = new HashMap<>();
+    private final TestFileSystem testFileSystem;
+    private final TestNetworkEnvironment testNetwork;
+    private final TestExecutorService testExecutor;
+    
+    public InfrastructureTestEnvironment() {
+        this.testFileSystem = new TestFileSystem();
+        this.testNetwork = new TestNetworkEnvironment();
+        this.testExecutor = new TestExecutorService();
+        setupDefaultMocks();
+    }
+    
+    @SuppressWarnings("unchecked")
+    public <T extends Port> T getMockAdapter(Class<T> portType) {
+        return (T) mockAdapters.get(portType);
+    }
+    
+    public <T extends Port> void registerMockAdapter(Class<T> portType, T mockAdapter) {
+        mockAdapters.put(portType, mockAdapter);
+    }
+    
+    private void setupDefaultMocks() {
+        registerMockAdapter(ConfigurationPort.class, new MockConfigurationAdapter());
+        registerMockAdapter(EventEmitterPort.class, new MockEventEmitterAdapter());
+        registerMockAdapter(FileWatcherPort.class, new MockFileWatcherAdapter());
+    }
+    
+    public TestFileSystem getTestFileSystem() {
+        return testFileSystem;
+    }
+    
+    public TestNetworkEnvironment getTestNetwork() {
+        return testNetwork;
+    }
+    
+    public void verifyNoInteractions() {
+        for (Object adapter : mockAdapters.values()) {
+            if (adapter instanceof BaseMockAdapter) {
+                List<MethodCall> calls = ((BaseMockAdapter<?>) adapter).getMethodCalls();
+                if (!calls.isEmpty()) {
+                    throw new AssertionError("Expected no interactions but found: " + calls);
+                }
+            }
+        }
+    }
+    
+    public void verifyInteractions(Consumer<InteractionVerifier> verifier) {
+        InteractionVerifier interactionVerifier = new InteractionVerifier(mockAdapters);
+        verifier.accept(interactionVerifier);
+    }
+    
+    @Override
+    public void close() throws Exception {
+        testFileSystem.close();
+        testNetwork.close();
+        testExecutor.close();
+        
+        // Clear all mock adapters
+        mockAdapters.clear();
+    }
+}
+
+/**
+ * Fluent interface for verifying mock interactions
+ */
+public class InteractionVerifier {
+    
+    private final Map<Class<? extends Port>, Object> mockAdapters;
+    
+    public InteractionVerifier(Map<Class<? extends Port>, Object> mockAdapters) {
+        this.mockAdapters = mockAdapters;
+    }
+    
+    public <T extends Port> AdapterVerifier<T> verify(Class<T> portType) {
+        @SuppressWarnings("unchecked")
+        T adapter = (T) mockAdapters.get(portType);
+        if (adapter == null) {
+            throw new IllegalArgumentException("No mock adapter registered for: " + portType);
+        }
+        
+        if (!(adapter instanceof BaseMockAdapter)) {
+            throw new IllegalArgumentException("Adapter is not a mock: " + portType);
+        }
+        
+        return new AdapterVerifier<>((BaseMockAdapter<T>) adapter);
+    }
+}
+
+public class AdapterVerifier<T extends Port> {
+    
+    private final BaseMockAdapter<T> mockAdapter;
+    
+    public AdapterVerifier(BaseMockAdapter<T> mockAdapter) {
+        this.mockAdapter = mockAdapter;
+    }
+    
+    public AdapterVerifier<T> wasMethodCalled(String methodName) {
+        if (!mockAdapter.wasMethodCalled(methodName)) {
+            throw new AssertionError("Expected method '" + methodName + "' to be called but it wasn't");
+        }
+        return this;
+    }
+    
+    public AdapterVerifier<T> wasMethodCalled(String methodName, int expectedCount) {
+        int actualCount = mockAdapter.getMethodCallCount(methodName);
+        if (actualCount != expectedCount) {
+            throw new AssertionError("Expected method '" + methodName + "' to be called " + 
+                                   expectedCount + " times but was called " + actualCount + " times");
+        }
+        return this;
+    }
+    
+    public AdapterVerifier<T> wasMethodCalledWith(String methodName, Object... expectedParameters) {
+        List<MethodCall> calls = mockAdapter.getMethodCalls(methodName);
+        
+        boolean found = calls.stream().anyMatch(call -> 
+            Arrays.equals(call.getParameters(), expectedParameters));
+            
+        if (!found) {
+            throw new AssertionError("Expected method '" + methodName + "' to be called with parameters " + 
+                                   Arrays.toString(expectedParameters) + " but it wasn't");
+        }
+        
+        return this;
+    }
+    
+    public AdapterVerifier<T> wasNeverCalled(String methodName) {
+        if (mockAdapter.wasMethodCalled(methodName)) {
+            throw new AssertionError("Expected method '" + methodName + "' to never be called but it was");
+        }
+        return this;
+    }
+}
+#+END_SRC
+
+This infrastructure patterns guide provides comprehensive guidance for effectively using and extending the base infrastructure components. The patterns enable rapid development while maintaining consistency, testability, and performance across all infrastructure implementations.
