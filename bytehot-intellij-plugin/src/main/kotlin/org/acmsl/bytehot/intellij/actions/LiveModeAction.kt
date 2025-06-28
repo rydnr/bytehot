@@ -160,13 +160,24 @@ open class LiveModeAction : AbstractAction("Start Live Mode") {
     
     /**
      * Discovers ByteHot agent JAR file.
-     * Implements search strategy: local repository → project target → current directory
+     * First tries to extract bundled agent from plugin resources,
+     * then falls back to common locations for development.
      * @return path to agent JAR or null if not found
      */
     protected fun findAgentJar(): String? {
-        val userHome = System.getProperty("user.home")
+        // First try to extract bundled agent from plugin resources
+        try {
+            val bundledAgentPath = extractBundledAgent()
+            if (bundledAgentPath != null) {
+                return bundledAgentPath
+            }
+        } catch (e: Exception) {
+            // Log error but continue to fallback search
+            println("Failed to extract bundled agent: ${e.message}")
+        }
         
-        // Search in local Maven repository
+        // Fallback 1: Search in local Maven repository (for development)
+        val userHome = System.getProperty("user.home")
         userHome?.let { home ->
             val localRepoPath = "$home/.m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT/bytehot-application-latest-SNAPSHOT-agent.jar"
             if (java.io.File(localRepoPath).exists()) {
@@ -174,19 +185,51 @@ open class LiveModeAction : AbstractAction("Start Live Mode") {
             }
         }
         
-        // Search in current project structure
+        // Fallback 2: Search in current project structure (for development)
         val projectTargetPath = "bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar"
         if (java.io.File(projectTargetPath).exists()) {
             return projectTargetPath
         }
         
-        // Search in current directory
+        // Fallback 3: Search in current directory (for development)
         val currentDirPath = "bytehot-application-latest-SNAPSHOT-agent.jar"
         if (java.io.File(currentDirPath).exists()) {
             return currentDirPath
         }
         
         return null
+    }
+    
+    /**
+     * Extracts the bundled ByteHot agent JAR from plugin resources to a temporary file.
+     * @return path to extracted agent JAR or null if not found
+     */
+    private fun extractBundledAgent(): String? {
+        val agentResourcePath = "/agents/bytehot-application-agent.jar"
+        
+        // Try to load the bundled agent from plugin resources
+        val agentStream = this::class.java.getResourceAsStream(agentResourcePath)
+            ?: return null
+        
+        try {
+            // Create temporary file
+            val tempDir = System.getProperty("java.io.tmpdir")
+            val tempFile = java.io.File(tempDir, "bytehot-agent-${System.currentTimeMillis()}.jar")
+            
+            // Copy resource to temporary file
+            agentStream.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            
+            // Mark for deletion on exit
+            tempFile.deleteOnExit()
+            
+            return tempFile.absolutePath
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to extract bundled ByteHot agent", e)
+        }
     }
 }
 

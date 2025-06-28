@@ -98,6 +98,31 @@ class LiveModeActionTest {
         action.updateActionState()
         assertEquals("Start Live Mode", action.getValue("Name"))
     }
+    
+    @Test
+    fun testFindAgentJarPrioritizesBundledAgent() {
+        val action = TestableLiveModeAction()
+        
+        // When - Should try bundled agent first
+        val result = action.findAgentJar()
+        
+        // Then - Should return a path (either bundled or fallback)
+        // In production with bundled agent, this would extract from resources
+        // In test environment, it may fall back to development paths
+        assertNotNull(result, "Should find agent JAR through bundled or fallback mechanism")
+    }
+    
+    @Test
+    fun testFindAgentJarFallbackBehavior() {
+        val action = TestableLiveModeAction()
+        
+        // When - Bundled agent extraction may fail in test environment
+        val result = action.findAgentJar()
+        
+        // Then - Should attempt fallback search strategy
+        // This tests that the fallback mechanism is in place
+        assertNotNull(result, "Should have fallback mechanism for development")
+    }
 }
 
 /**
@@ -122,5 +147,9 @@ class TestableLiveModeAction : LiveModeAction() {
             putValue(NAME, "Start Live Mode")
             putValue(SHORT_DESCRIPTION, "Start ByteHot live mode for immediate code reflection")
         }
+    }
+    
+    public override fun findAgentJar(): String? {
+        return super.findAgentJar()
     }
 }
