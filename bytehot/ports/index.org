@@ -1,0 +1,402 @@
+#+TITLE: ByteHot Ports Documentation Index
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-19]
+
+* Introduction
+
+This document provides a comprehensive index of all ports in the ByteHot system. Ports represent the interfaces through which the domain layer communicates with the outside world, following the principles of Hexagonal Architecture (Ports and Adapters pattern).
+
+* Port Categories and Organization
+
+ByteHot's ports are organized into primary and secondary ports, representing different directions of communication with external systems.
+
+** Primary Ports
+
+Primary ports are entry points into the domain, representing interfaces that receive external events and requests:
+
+- **Application Services**: Entry points for use case execution
+- **Event Handlers**: Interfaces for processing incoming domain events
+- **Command Handlers**: Interfaces for processing commands from external systems
+
+** Secondary Ports
+
+Secondary ports are interfaces that the domain uses to communicate with external systems:
+
+- [[./FileWatcherPort.org][FileWatcherPort]]: Interface for file system monitoring and change detection
+- [[./InstrumentationPort.org][InstrumentationPort]]: Interface for JVM instrumentation and bytecode manipulation
+
+** Infrastructure Ports
+
+These ports handle cross-cutting concerns and infrastructure operations:
+
+- **Configuration Management**: Interfaces for system configuration
+- **Event Persistence**: Interfaces for event sourcing and storage
+- **Monitoring and Metrics**: Interfaces for system observability
+
+* Port Architecture and Design Patterns
+
+** Hexagonal Architecture Implementation
+
+ByteHot implements Hexagonal Architecture through a clean separation of concerns:
+
+1. **Domain Layer**: Contains business logic and port interfaces
+2. **Application Layer**: Orchestrates use cases and coordinates between domain and infrastructure
+3. **Infrastructure Layer**: Provides concrete implementations of port interfaces
+
+** Port Interface Design
+
+All ports follow consistent design principles:
+
+- **Single Responsibility**: Each port has a focused, well-defined purpose
+- **Dependency Inversion**: Domain depends on abstractions, not implementations
+- **Testability**: Ports can be easily mocked and tested
+- **Framework Independence**: Ports are not tied to specific frameworks
+
+* File System Monitoring Ports
+
+** FileWatcherPort
+
+The FileWatcherPort provides an abstraction for file system monitoring:
+
+```java
+public interface FileWatcherPort {
+    /**
+     * Start monitoring a directory for file changes
+     */
+    void startWatching(@NonNull Path directory, @NonNull FileChangeHandler handler);
+    
+    /**
+     * Stop monitoring a directory
+     */
+    void stopWatching(@NonNull Path directory);
+    
+    /**
+     * Check if a directory is currently being monitored
+     */
+    boolean isWatching(@NonNull Path directory);
+}
+```
+
+**Capabilities:**
+- Real-time file change detection
+- Configurable monitoring patterns
+- Cross-platform compatibility
+- Performance optimization for large directory trees
+
+** FileChangeHandler Interface
+
+Defines how file change events are processed:
+
+```java
+public interface FileChangeHandler {
+    void onFileCreated(@NonNull Path filePath);
+    void onFileModified(@NonNull Path filePath);
+    void onFileDeleted(@NonNull Path filePath);
+}
+```
+
+* JVM Instrumentation Ports
+
+** InstrumentationPort
+
+The InstrumentationPort provides an abstraction for JVM instrumentation:
+
+```java
+public interface InstrumentationPort {
+    /**
+     * Get the JVM instrumentation instance
+     */
+    @NonNull Instrumentation getInstrumentation();
+    
+    /**
+     * Check if class redefinition is supported
+     */
+    boolean isRedefinitionSupported();
+    
+    /**
+     * Redefine classes with new bytecode
+     */
+    void redefineClasses(@NonNull ClassDefinition... definitions) 
+        throws ClassRedefinitionException;
+    
+    /**
+     * Get all currently loaded classes
+     */
+    @NonNull Class<?>[] getAllLoadedClasses();
+}
+```
+
+**Capabilities:**
+- Safe class redefinition
+- Bytecode validation
+- Runtime class inspection
+- Memory-efficient class loading
+
+* Configuration Management Ports
+
+** ConfigurationPort
+
+Provides access to system configuration:
+
+```java
+public interface ConfigurationPort {
+    /**
+     * Get a configuration value
+     */
+    @NonNull Optional<String> getValue(@NonNull String key);
+    
+    /**
+     * Get a configuration value with default
+     */
+    @NonNull String getValue(@NonNull String key, @NonNull String defaultValue);
+    
+    /**
+     * Check if a configuration key exists
+     */
+    boolean hasValue(@NonNull String key);
+    
+    /**
+     * Reload configuration from sources
+     */
+    void reload();
+}
+```
+
+* Event Persistence Ports
+
+** EventStorePort
+
+Interface for event sourcing and persistence:
+
+```java
+public interface EventStorePort {
+    /**
+     * Store a domain event
+     */
+    void store(@NonNull DomainEvent event);
+    
+    /**
+     * Retrieve events for an aggregate
+     */
+    @NonNull List<DomainEvent> getEvents(@NonNull AggregateId aggregateId);
+    
+    /**
+     * Get all events since a specific timestamp
+     */
+    @NonNull Stream<DomainEvent> getEventsSince(@NonNull Instant timestamp);
+    
+    /**
+     * Subscribe to new events
+     */
+    void subscribe(@NonNull EventSubscriber subscriber);
+}
+```
+
+* Monitoring and Observability Ports
+
+** MetricsPort
+
+Interface for system metrics and monitoring:
+
+```java
+public interface MetricsPort {
+    /**
+     * Record a counter metric
+     */
+    void incrementCounter(@NonNull String name, @NonNull String... tags);
+    
+    /**
+     * Record a timing metric
+     */
+    void recordTiming(@NonNull String name, @NonNull Duration duration, @NonNull String... tags);
+    
+    /**
+     * Record a gauge metric
+     */
+    void recordGauge(@NonNull String name, double value, @NonNull String... tags);
+}
+```
+
+* Testing and Validation
+
+** Port Testing Framework
+
+ByteHot provides comprehensive testing support for ports:
+
+```java
+@ExtendWith(PortTestExtension.class)
+class FileWatcherPortTest {
+    
+    @MockPort
+    private FileWatcherPort fileWatcherPort;
+    
+    @Test
+    void shouldDetectFileChanges() {
+        // Given
+        Path testFile = createTestFile();
+        FileChangeHandler handler = mock(FileChangeHandler.class);
+        
+        // When
+        fileWatcherPort.startWatching(testFile.getParent(), handler);
+        modifyFile(testFile);
+        
+        // Then
+        verify(handler).onFileModified(testFile);
+    }
+}
+```
+
+** Integration Testing
+
+Ports are tested with real implementations:
+
+- File system integration testing
+- JVM instrumentation testing  
+- Configuration loading testing
+- Event persistence testing
+
+* Performance and Optimization
+
+** Port Performance Characteristics
+
+Each port is optimized for specific performance requirements:
+
+- **FileWatcherPort**: Minimal latency file change detection
+- **InstrumentationPort**: Efficient class redefinition with minimal JVM impact
+- **ConfigurationPort**: Fast configuration lookup with caching
+- **EventStorePort**: High-throughput event persistence
+
+** Resource Management
+
+Ports implement proper resource management:
+
+- Automatic cleanup of system resources
+- Connection pooling for external systems
+- Memory-efficient data handling
+- Graceful shutdown procedures
+
+* Integration Patterns
+
+** Adapter Implementation
+
+Each port has corresponding infrastructure adapters:
+
+```java
+@Component
+public class NioFileWatcherAdapter implements FileWatcherPort {
+    private final WatchService watchService;
+    private final Map<Path, WatchKey> watchKeys;
+    
+    @Override
+    public void startWatching(@NonNull Path directory, @NonNull FileChangeHandler handler) {
+        // NIO-based file watching implementation
+    }
+}
+```
+
+** Dependency Injection
+
+Ports are injected into domain services:
+
+```java
+@Service
+public class HotSwapService {
+    private final FileWatcherPort fileWatcher;
+    private final InstrumentationPort instrumentation;
+    
+    public HotSwapService(FileWatcherPort fileWatcher, InstrumentationPort instrumentation) {
+        this.fileWatcher = fileWatcher;
+        this.instrumentation = instrumentation;
+    }
+}
+```
+
+* Framework Integration
+
+** Spring Framework Integration
+
+ByteHot ports integrate seamlessly with Spring:
+
+```java
+@Configuration
+public class PortConfiguration {
+    
+    @Bean
+    public FileWatcherPort fileWatcherPort() {
+        return new NioFileWatcherAdapter();
+    }
+    
+    @Bean
+    public InstrumentationPort instrumentationPort(@Autowired Instrumentation instrumentation) {
+        return new JvmInstrumentationAdapter(instrumentation);
+    }
+}
+```
+
+** CDI Integration
+
+Support for CDI-based dependency injection:
+
+```java
+@ApplicationScoped
+public class CdiPortProducer {
+    
+    @Produces
+    @ApplicationScoped
+    public FileWatcherPort createFileWatcherPort() {
+        return new NioFileWatcherAdapter();
+    }
+}
+```
+
+* Security Considerations
+
+** Port Security
+
+Security measures implemented in ports:
+
+- **Input Validation**: All port inputs are validated
+- **Access Control**: Proper authorization for sensitive operations
+- **Resource Limits**: Prevention of resource exhaustion attacks
+- **Audit Logging**: Comprehensive logging of port operations
+
+** Secure Communication
+
+Ports handle sensitive data securely:
+
+- Encrypted communication channels
+- Secure credential management
+- Data sanitization and validation
+- Compliance with security standards
+
+* Future Evolution
+
+** Planned Enhancements
+
+Future improvements to the port system:
+
+- **Reactive Ports**: Reactive programming support with Project Reactor
+- **Cloud Native Ports**: Kubernetes and cloud platform integration
+- **Advanced Monitoring**: Enhanced observability and tracing
+- **Performance Optimization**: Further performance improvements
+
+** Extensibility Roadmap
+
+Planned extensibility improvements:
+
+- **Custom Port Types**: User-defined port interfaces
+- **Port Composition**: Combining multiple ports into composite interfaces
+- **Dynamic Port Discovery**: Runtime port discovery and registration
+- **Advanced Testing**: Enhanced testing frameworks and utilities
+
+* Contributing to Port Documentation
+
+Guidelines for contributing to port documentation:
+
+- Follow the established interface design patterns
+- Include comprehensive usage examples
+- Maintain compatibility with existing adapters
+- Document performance characteristics and limitations
+- Provide thorough test coverage
+
+The ByteHot ports form the foundation of a clean, testable, and maintainable architecture that enables the domain layer to remain independent of external concerns while providing powerful integration capabilities.

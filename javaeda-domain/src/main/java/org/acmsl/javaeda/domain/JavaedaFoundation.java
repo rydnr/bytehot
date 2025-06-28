@@ -97,7 +97,7 @@ public class JavaedaFoundation {
      * @throws IllegalArgumentException if validation fails
      */
     public static void requireNonEmpty(@NonNull final String value, @NonNull final String fieldName) {
-        if (value.trim().isEmpty()) {
+        if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException(fieldName + " cannot be null or empty");
         }
     }
