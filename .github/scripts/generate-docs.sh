@@ -14,9 +14,13 @@ mkdir -p bytehot
 # Step 1: Copy the new-style docs/ content as the main site
 echo "📂 Moving docs/ content to root site..."
 if [ -d "docs" ]; then
-    # Copy the main index.html from docs/ as the primary index
-    cp docs/index.html bytehot/index.html
-    echo "✅ Copied new-style index.html as main page"
+    # Copy the main index.html from docs/ as the primary index if it exists
+    if [ -f "docs/index.html" ]; then
+        cp docs/index.html bytehot/index.html
+        echo "✅ Copied existing index.html as main page"
+    else
+        echo "ℹ️ No index.html found in docs/, will generate from story.org later"
+    fi
 
     # Copy all other docs files and preserve structure
     cp -r docs/* bytehot/ 2>/dev/null || true
@@ -36,6 +40,12 @@ bash ./.github/scripts/generate-html-from-org.sh "journal.org" "📔 ByteHot Dev
 # Step 3: Generate getting-started page from GETTING_STARTED.org
 echo "📔 Generating getting-started page..."
 bash ./.github/scripts/generate-html-from-org.sh "GETTING_STARTED.org" "🚀 Getting Started Guide"
+
+# Step 3.5: Generate index.html if it doesn't exist
+if [ ! -f "bytehot/index.html" ]; then
+    echo "🏠 Generating index.html from story.org..."
+    bash ./.github/scripts/generate-index.sh
+fi
 
 # Step 4: Apply the new unified style to all HTML files
 echo "🎨 Applying unified style to all HTML files..."
