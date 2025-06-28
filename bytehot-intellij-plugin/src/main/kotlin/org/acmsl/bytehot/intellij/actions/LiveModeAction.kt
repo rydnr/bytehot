@@ -98,14 +98,3 @@ class LiveModeAction : AnAction("Start Live Mode") {
             .notify(project)
     }
 }
-
-/**
- * Configuration holder for project analysis results.
- */
-data class ProjectConfiguration(
-    val mainClass: String?,
-    val classpath: String?,
-    val sourcePaths: List<String>?,
-    val jvmArgs: List<String>?,
-    val programArgs: List<String>?
-)

@@ -1,6 +1,5 @@
 package org.acmsl.bytehot.intellij.analysis
 
-import org.acmsl.bytehot.intellij.actions.ProjectConfiguration
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
