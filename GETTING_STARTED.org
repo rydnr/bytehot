@@ -308,12 +308,264 @@ java -javaagent:bytehot-application-latest-SNAPSHOT-agent.jar \
      com.example.Application
 #+END_SRC
 
-See the [[file:docs/user-guides/plugins/README.org][Plugin User Guides]] for detailed instructions on:
-- [[file:docs/user-guides/plugins/maven-plugin-guide.org][Maven Plugin Guide]] ✅ Ready
-- [[file:docs/user-guides/plugins/gradle-plugin-guide.org][Gradle Plugin Guide]] ✅ Ready  
-- [[file:docs/user-guides/plugins/intellij-plugin-guide.org][IntelliJ IDEA Plugin Guide]] ✅ Ready
-- [[file:docs/user-guides/plugins/eclipse-plugin-guide.org][Eclipse Plugin Guide]] 🚧 Planned
-- [[file:docs/user-guides/plugins/vscode-extension-guide.org][VS Code Extension Guide]] 🚧 Planned
+** Eclipse Plugin (For Eclipse IDE Users)
+
+The ByteHot Eclipse Plugin provides seamless integration with the Eclipse IDE ecosystem:
+
+*** Installation from Eclipse Marketplace
+
+1. Install from Eclipse Marketplace:
+   - Go to =Help → Eclipse Marketplace=
+   - Search for "ByteHot" 
+   - Click =Install=
+   - Restart Eclipse when prompted
+
+2. Or install from update site:
+   #+BEGIN_SRC
+   Help → Install New Software
+   Add Site: https://bytehot.acmsl.org/eclipse-update-site
+   Select: ByteHot Eclipse Plugin
+   #+END_SRC
+
+*** Usage and Features
+
+1. *Project Setup*: Right-click project → =ByteHot → Enable Live Mode=
+2. *Automatic Detection*: Plugin automatically detects:
+   - Main class from run configurations
+   - Project classpath and dependencies
+   - Output directories (=target/classes=, =bin/=)
+   - Framework configurations (Spring, Maven, Gradle)
+
+3. *Visual Integration*:
+   - *Status indicators* in Package Explorer showing hot-swap enabled classes
+   - *Console integration* with ByteHot event logging
+   - *Progress views* showing hot-swap operations in real-time
+   - *Problem markers* for hot-swap validation issues
+
+*** Advanced Configuration
+
+#+BEGIN_SRC xml
+<!-- .project file configuration -->
+<projectDescription>
+  <buildSpec>
+    <buildCommand>
+      <name>org.acmsl.bytehot.eclipse.builder</name>
+      <arguments>
+        <dictionary>
+          <key>watchPaths</key>
+          <value>bin/main,target/classes</value>
+        </dictionary>
+      </arguments>
+    </buildCommand>
+  </buildSpec>
+</projectDescription>
+#+END_SRC
+
+*** Key Features
+- *Workspace-aware configuration* with automatic project detection
+- *Build integration* with Eclipse's incremental Java compiler
+- *Debug preservation* maintaining breakpoints across hot-swaps
+- *Team synchronization* sharing ByteHot settings across team members
+- *Multi-project support* for complex workspace setups
+
+** VS Code Extension (For Visual Studio Code Users)
+
+The ByteHot VS Code Extension brings hot-swapping capabilities to the popular cross-platform editor:
+
+*** Installation from VS Code Marketplace
+
+1. Install from Marketplace:
+   - Open VS Code
+   - Go to =Extensions= (Ctrl+Shift+X)
+   - Search for "ByteHot"
+   - Click =Install=
+
+2. Or install via command line:
+   #+BEGIN_SRC bash
+   code --install-extension acmsl.bytehot-vscode
+   #+END_SRC
+
+*** Quick Setup
+
+1. *Command Palette Integration*:
+   - =Ctrl+Shift+P= → "ByteHot: Start Live Mode"
+   - =Ctrl+Shift+P= → "ByteHot: Stop Live Mode" 
+   - =Ctrl+Shift+P= → "ByteHot: Show Status"
+
+2. *Automatic Project Analysis*:
+   - Detects =pom.xml=, =build.gradle=, or =.classpath= files
+   - Identifies main class from =launch.json= configurations
+   - Configures watch paths based on build tool conventions
+
+3. *Settings Configuration*:
+   #+BEGIN_SRC json
+   // .vscode/settings.json
+   {
+     "bytehot.enabled": true,
+     "bytehot.autoStart": true,
+     "bytehot.watchPaths": ["target/classes", "build/classes"],
+     "bytehot.jvmArgs": ["-Xmx512m"],
+     "bytehot.logLevel": "INFO"
+   }
+   #+END_SRC
+
+*** Advanced Features
+
+**** Language Server Integration
+#+BEGIN_SRC json
+// .vscode/launch.json
+{
+  "type": "java",
+  "request": "launch",
+  "mainClass": "com.example.Application",
+  "vmArgs": [
+    "-javaagent:${workspaceFolder}/.vscode/bytehot-agent.jar",
+    "-Dbytehot.watch.paths=${workspaceFolder}/target/classes"
+  ],
+  "console": "integratedTerminal",
+  "bytehot": {
+    "enabled": true,
+    "autoDetect": true
+  }
+}
+#+END_SRC
+
+**** Status Bar Integration
+- *Live indicator* showing ByteHot status (🔥 Active, ⏸️ Paused, ❌ Stopped)
+- *Hot-swap counter* displaying successful operations
+- *Click actions* for quick start/stop control
+- *Tooltip information* showing current configuration
+
+**** Terminal Integration
+- *Integrated terminal* for ByteHot agent output
+- *Command execution* within VS Code environment
+- *Log filtering* and highlighting for ByteHot events
+- *Error navigation* jumping to problematic files
+
+*** Key Features
+- *Cross-platform support* (Windows, macOS, Linux)
+- *Java Extension Pack integration* leveraging existing Java tooling
+- *Workspace-scoped configuration* with team sharing capabilities
+- *Remote development support* for GitHub Codespaces and SSH
+- *Multi-root workspace support* for complex project structures
+
+** Plugin Comparison and Selection Guide
+
+| Feature | Maven Plugin | Gradle Plugin | IntelliJ Plugin | Eclipse Plugin | VS Code Extension |
+|---------|--------------|---------------|------------------|----------------|-------------------|
+| *Zero Config* | ✅ | ✅ | ✅ | ✅ | ✅ |
+| *Main Class Detection* | Auto (90%+) | Auto | Auto | Auto | Auto |
+| *Build Integration* | Native | Native | IDE-based | Native | Language Server |
+| *Visual Feedback* | Console | Console | Rich UI | Rich UI | Status Bar |
+| *Debug Integration* | Limited | Limited | Full | Full | Partial |
+| *Team Sharing* | =pom.xml= | =build.gradle= | =.idea/= | =.project= | =.vscode/= |
+| *Platform Support* | All | All | All | All | All |
+| *Learning Curve* | Low | Low | Minimal | Low | Minimal |
+
+*** Selection Recommendations
+
+**** Choose Maven Plugin if:
+- Your project uses Maven as the primary build tool
+- You prefer command-line driven development
+- You want zero-configuration setup with minimal dependencies
+- You're working in a CI/CD environment or containerized development
+
+**** Choose Gradle Plugin if:
+- Your project uses Gradle as the primary build tool
+- You want advanced build lifecycle integration
+- You need flexible property override capabilities
+- You're working with Kotlin or Android projects
+
+**** Choose IntelliJ IDEA Plugin if:
+- IntelliJ IDEA is your primary development environment
+- You want the richest visual feedback and integration
+- You frequently use IntelliJ's debugging and profiling tools
+- You're working on complex enterprise applications
+
+**** Choose Eclipse Plugin if:
+- Eclipse is your primary development environment
+- You're working in enterprise environments with Eclipse standards
+- You need integration with Eclipse's extensive plugin ecosystem
+- You're maintaining legacy projects with Eclipse-based tooling
+
+**** Choose VS Code Extension if:
+- VS Code is your primary editor
+- You're working on microservices or cloud-native applications
+- You need cross-platform consistency
+- You're working with polyglot projects (Java + JavaScript/Python/etc.)
+
+** Manual Setup (Advanced Users and Custom Environments)
+
+For specialized environments, containerized development, or when plugins aren't available:
+
+*** Direct JVM Agent Approach
+#+BEGIN_SRC bash
+# Most flexible approach with explicit control
+java -javaagent:bytehot-application-latest-SNAPSHOT-agent.jar \
+     -Dbytehot.watch.paths=target/classes \
+     -Dbytehot.user.id=$(git config user.email) \
+     -Dbytehot.session.id=custom-dev-session \
+     -Dbytehot.logging.level=DEBUG \
+     -cp target/classes:dependency1.jar:dependency2.jar \
+     com.example.Application
+#+END_SRC
+
+*** Docker Development Environment
+#+BEGIN_SRC dockerfile
+# Dockerfile for ByteHot-enabled development
+FROM openjdk:17-jdk-slim
+
+# Copy ByteHot agent
+COPY bytehot-agent.jar /opt/bytehot/
+
+# Set up development environment
+WORKDIR /app
+VOLUME ["/app/src", "/app/target"]
+
+# Default command with ByteHot
+ENTRYPOINT ["java", "-javaagent:/opt/bytehot/bytehot-agent.jar", \
+            "-Dbytehot.watch.paths=/app/target/classes", \
+            "-cp", "/app/target/classes"]
+#+END_SRC
+
+*** Kubernetes Development Pod
+#+BEGIN_SRC yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bytehot-dev
+spec:
+  containers:
+  - name: java-app
+    image: openjdk:17-jdk
+    command: [
+      "java",
+      "-javaagent:/opt/bytehot/bytehot-agent.jar",
+      "-Dbytehot.watch.paths=/app/classes",
+      "-cp", "/app/classes",
+      "com.example.Application"
+    ]
+    volumeMounts:
+    - name: source-code
+      mountPath: /app
+    - name: bytehot-agent
+      mountPath: /opt/bytehot
+  volumes:
+  - name: source-code
+    hostPath:
+      path: /path/to/your/project
+  - name: bytehot-agent
+    configMap:
+      name: bytehot-config
+#+END_SRC
+
+See the comprehensive plugin guides for detailed setup instructions:
+- [[file:docs/user-guides/plugins/maven-plugin-guide.org][Maven Plugin Guide]] ✅ Complete
+- [[file:docs/user-guides/plugins/gradle-plugin-guide.org][Gradle Plugin Guide]] ✅ Complete  
+- [[file:docs/user-guides/plugins/intellij-plugin-guide.org][IntelliJ IDEA Plugin Guide]] ✅ Complete
+- [[file:docs/user-guides/plugins/eclipse-plugin-guide.org][Eclipse Plugin Guide]] 🚧 In Development
+- [[file:docs/user-guides/plugins/vscode-extension-guide.org][VS Code Extension Guide]] 🚧 In Development
+- [[file:docs/user-guides/plugins/containerized-development-guide.org][Containerized Development Guide]] 📋 Planned
 
 * Configuration
 :PROPERTIES:
@@ -702,74 +954,436 @@ ByteHot provides detailed logs:
 :CUSTOM_ID: best-practices
 :END:
 
-** 1. Development Workflow
+** 1. Development Workflow Optimization
 
+*** Environment Setup for Teams
 #+BEGIN_SRC bash
-# Recommended development setup
-export BYTEHOT_AGENT="path/to/bytehot-agent.jar"
-export BYTEHOT_WATCH="target/classes"
+# Team-wide development setup script
+#!/bin/bash
+# scripts/setup-bytehot-dev.sh
 
-# Create an alias for easy startup
-alias run-with-bytehot='java -javaagent:$BYTEHOT_AGENT -Dbytehot.watch.paths=$BYTEHOT_WATCH'
+# Detect build tool and set appropriate defaults
+if [ -f "pom.xml" ]; then
+    export BYTEHOT_CLASSES="target/classes"
+    export BYTEHOT_TEST_CLASSES="target/test-classes"
+    BUILD_TOOL="maven"
+elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+    export BYTEHOT_CLASSES="build/classes/java/main"
+    export BYTEHOT_TEST_CLASSES="build/classes/java/test"
+    BUILD_TOOL="gradle"
+else
+    export BYTEHOT_CLASSES="bin"
+    export BYTEHOT_TEST_CLASSES="bin"
+    BUILD_TOOL="manual"
+fi
 
-# Use it in your projects
-run-with-bytehot -cp target/classes com.example.Application
+# Set ByteHot agent path (customize for your team)
+export BYTEHOT_AGENT="$HOME/.m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT/bytehot-application-latest-SNAPSHOT-agent.jar"
+
+# Create development aliases
+alias bh-dev="java -javaagent:$BYTEHOT_AGENT -Dbytehot.watch.paths=$BYTEHOT_CLASSES"
+alias bh-test="java -javaagent:$BYTEHOT_AGENT -Dbytehot.watch.paths=$BYTEHOT_CLASSES,$BYTEHOT_TEST_CLASSES"
+alias bh-debug="java -javaagent:$BYTEHOT_AGENT -Dbytehot.watch.paths=$BYTEHOT_CLASSES -Dbytehot.logging.level=DEBUG"
+
+echo "ByteHot development environment configured for $BUILD_TOOL project"
+echo "Available commands: bh-dev, bh-test, bh-debug"
 #+END_SRC
 
-** 2. IDE Integration
+*** Plugin-Based Best Practices
 
-*** IntelliJ IDEA
+**** Maven Plugin Workflow
+#+BEGIN_SRC bash
+# Optimal Maven development workflow
 
-1. Go to *Run/Debug Configurations*
-2. Add VM options:
-#+BEGIN_EXAMPLE
--javaagent:path/to/bytehot-agent.jar
--Dbytehot.watch.paths=target/classes
--Dbytehot.user.id=${USER}@${DOMAIN}
-#+END_EXAMPLE
-3. Enable *Build project automatically*
-4. Enable *Compiler > Build project automatically*
+# Start development session
+mvn bytehot:live -Dbytehot.verbose=true
 
-*** Eclipse
+# In another terminal, make changes and compile
+mvn compile  # Changes are automatically hot-swapped
 
-1. Right-click project → *Run As* → *Run Configurations*
-2. Go to *Arguments* tab
-3. Add to *VM arguments*:
-#+BEGIN_EXAMPLE
--javaagent:path/to/bytehot-agent.jar
--Dbytehot.watch.paths=target/classes
-#+END_EXAMPLE
+# For test-driven development
+mvn bytehot:live -Dbytehot.watch.paths=target/classes,target/test-classes
+#+END_SRC
 
-*** VS Code
+**** Gradle Plugin Workflow
+#+BEGIN_SRC bash
+# Optimal Gradle development workflow
 
-Add to =.vscode/launch.json=:
+# Start with automatic compilation
+./gradlew live --continuous
 
-#+BEGIN_SRC json
-{
-    "type": "java",
-    "request": "launch",
-    "mainClass": "com.example.Application",
-    "vmArgs": [
-        "-javaagent:path/to/bytehot-agent.jar",
-        "-Dbytehot.watch.paths=target/classes"
-    ]
+# Or with manual compilation control
+./gradlew live &
+./gradlew compileJava  # Triggers hot-swap
+#+END_SRC
+
+**** IntelliJ IDEA Integration Best Practices
+1. *Enable Build Project Automatically*:
+   - =Settings → Build, Execution, Deployment → Compiler=
+   - Check "Build project automatically"
+   - Check "Compile independent modules in parallel"
+
+2. *Configure Run Configuration Template*:
+   - =Run → Edit Configurations → Templates → Application=
+   - Add VM options: =-javaagent:path/to/bytehot-agent.jar=
+   - Add environment variable: =BYTEHOT_WATCH_PATHS=target/classes=
+
+3. *Setup Shared Team Configuration*:
+   - Create =.idea/runConfigurations/ByteHot_Development.xml=
+   - Commit to version control for team sharing
+   - Use path variables for cross-platform compatibility
+
+** 2. IDE-Specific Integration Strategies
+
+*** IntelliJ IDEA Advanced Integration
+
+**** Shared Run Configuration
+#+BEGIN_SRC xml
+<!-- .idea/runConfigurations/ByteHot_Development.xml -->
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ByteHot Development" type="Application">
+    <option name="MAIN_CLASS_NAME" value="com.example.Application" />
+    <option name="VM_PARAMETERS" value="-javaagent:$USER_HOME$/.m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT/bytehot-application-latest-SNAPSHOT-agent.jar -Dbytehot.watch.paths=$PROJECT_DIR$/target/classes -Dbytehot.user.id=$USER$@$HOST$" />
+    <option name="PROGRAM_PARAMETERS" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <module name="your-module-name" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
+#+END_SRC
+
+**** Live Templates for ByteHot Testing
+#+BEGIN_SRC java
+// Live Template: bht (ByteHot Test)
+@Test
+void should$DESCRIPTION$() {
+    given()
+        .event(new $SETUP_EVENT$($SETUP_PARAMS$));
+    
+    when()
+        .event(new $TEST_EVENT$($TEST_PARAMS$));
+    
+    then()
+        .expectEvent($EXPECTED_EVENT$.class)
+        .$VERIFICATION_METHOD$($EXPECTED_VALUE$);
 }
 #+END_SRC
 
-** 3. Team Development
+*** Eclipse Advanced Integration
 
+**** Project-Level Configuration
+#+BEGIN_SRC xml
+<!-- .project -->
+<projectDescription>
+  <name>your-project</name>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+    <buildCommand>
+      <name>org.acmsl.bytehot.eclipse.builder</name>
+      <arguments>
+        <dictionary>
+          <key>watchPaths</key>
+          <value>bin,target/classes</value>
+        </dictionary>
+        <dictionary>
+          <key>autoStart</key>
+          <value>true</value>
+        </dictionary>
+      </arguments>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>org.acmsl.bytehot.eclipse.nature</nature>
+  </natures>
+</projectDescription>
+#+END_SRC
+
+**** Launch Configuration Template
+#+BEGIN_SRC xml
+<!-- .metadata/.plugins/org.eclipse.debug.core/.launches/ByteHot Development.launch -->
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+  <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="com.example.Application"/>
+  <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="your-project"/>
+  <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-javaagent:${workspace_loc}/.bytehot/bytehot-agent.jar -Dbytehot.watch.paths=${workspace_loc}/bin"/>
+  <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_CLASSPATH_ONLY_JAR" value="false"/>
+</launchConfiguration>
+#+END_SRC
+
+*** VS Code Advanced Integration
+
+**** Workspace Configuration
+#+BEGIN_SRC json
+// .vscode/settings.json
+{
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.compile.nullAnalysis.mode": "automatic",
+  "bytehot.enabled": true,
+  "bytehot.autoStart": true,
+  "bytehot.agent.path": "${workspaceFolder}/.vscode/bytehot-agent.jar",
+  "bytehot.watch.paths": [
+    "${workspaceFolder}/target/classes",
+    "${workspaceFolder}/build/classes/java/main"
+  ],
+  "bytehot.user.detection.sources": ["git", "environment", "prompt"],
+  "bytehot.logging.level": "INFO",
+  "bytehot.validation.strict": true
+}
+#+END_SRC
+
+**** Task Integration
+#+BEGIN_SRC json
+// .vscode/tasks.json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ByteHot: Start Live Mode",
+      "type": "shell",
+      "command": "java",
+      "args": [
+        "-javaagent:${workspaceFolder}/.vscode/bytehot-agent.jar",
+        "-Dbytehot.watch.paths=${workspaceFolder}/target/classes",
+        "-cp", "${workspaceFolder}/target/classes",
+        "${input:mainClass}"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "new",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^\\[ByteHot\\]\\s+(ERROR|WARN):\\s+(.*)$",
+          "severity": 1,
+          "message": 2
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "mainClass",
+      "description": "Main class to run",
+      "default": "com.example.Application",
+      "type": "promptString"
+    }
+  ]
+}
+#+END_SRC
+
+
+** 3. Team Development and Collaboration
+
+*** Shared Team Configuration
+
+**** Project-Level Configuration Management
+#+BEGIN_SRC yaml
+# bytehot-team.yml - Commit to version control
+bytehot:
+  team:
+    # Shared watch paths that work across different build tools
+    watch:
+      maven:
+        - path: "target/classes"
+          patterns: ["**/*.class"]
+        - path: "target/test-classes"
+          patterns: ["**/*.class"]
+      gradle:
+        - path: "build/classes/java/main"
+          patterns: ["**/*.class"] 
+        - path: "build/classes/java/test"
+          patterns: ["**/*.class"]
+    
+    # Development profiles for different scenarios
+    profiles:
+      development:
+        logging.level: "INFO"
+        validation.strict: true
+        user.analytics.enabled: true
+      
+      debugging:
+        logging.level: "DEBUG"
+        events.trace: true
+        performance.monitoring: true
+      
+      testing:
+        watch.patterns: ["**/*Test.class", "**/*IT.class"]
+        session.timeout: "PT10M"
+#+END_SRC
+
+**** Cross-Platform Development Script
 #+BEGIN_SRC bash
-# Share ByteHot configuration in your project
-# Create scripts/run-dev.sh
 #!/bin/bash
-BYTEHOT_AGENT="tools/bytehot-agent.jar"
-MAIN_CLASS="com.example.Application"
+# scripts/bytehot-dev.sh - Works on Linux, macOS, Windows (Git Bash)
 
-java -javaagent:$BYTEHOT_AGENT \
-     -Dbytehot.watch.paths=target/classes \
-     -Dbytehot.user.id=$(git config user.email) \
-     -cp target/classes \
-     $MAIN_CLASS
+set -euo pipefail
+
+# Detect operating system and set defaults
+case "$(uname -s)" in
+    Linux*)     PLATFORM=linux;;
+    Darwin*)    PLATFORM=macos;;
+    CYGWIN*|MINGW*|MSYS*) PLATFORM=windows;;
+    *)          PLATFORM=unknown;;
+esac
+
+# Detect build tool and set classpath
+if [ -f "pom.xml" ]; then
+    CLASSES_PATH="target/classes"
+    TEST_CLASSES_PATH="target/test-classes"
+    BUILD_TOOL="maven"
+    echo "Detected Maven project"
+elif [ -f "build.gradle" ] || [ -f "build.gradle.kts" ]; then
+    CLASSES_PATH="build/classes/java/main"
+    TEST_CLASSES_PATH="build/classes/java/test"
+    BUILD_TOOL="gradle"
+    echo "Detected Gradle project"
+else
+    echo "Warning: No build tool detected, using default paths"
+    CLASSES_PATH="bin"
+    TEST_CLASSES_PATH="test-bin"
+    BUILD_TOOL="manual"
+fi
+
+# Find ByteHot agent JAR
+BYTEHOT_AGENT=""
+for location in \
+    "$HOME/.m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT/bytehot-application-latest-SNAPSHOT-agent.jar" \
+    "./tools/bytehot-agent.jar" \
+    "./lib/bytehot-agent.jar" \
+    "./bytehot-agent.jar"; do
+    if [ -f "$location" ]; then
+        BYTEHOT_AGENT="$location"
+        echo "Found ByteHot agent at: $location"
+        break
+    fi
+done
+
+if [ -z "$BYTEHOT_AGENT" ]; then
+    echo "Error: ByteHot agent JAR not found. Please install or download it."
+    echo "Tried locations:"
+    echo "  - ~/.m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT/"
+    echo "  - ./tools/bytehot-agent.jar"
+    echo "  - ./lib/bytehot-agent.jar"
+    echo "  - ./bytehot-agent.jar"
+    exit 1
+fi
+
+# Get user identification
+USER_ID="${BYTEHOT_USER_ID:-$(git config user.email 2>/dev/null || echo "${USER}@${HOSTNAME}")}"
+
+# Get main class (try multiple detection methods)
+MAIN_CLASS=""
+if [ "$BUILD_TOOL" = "maven" ] && [ -f "pom.xml" ]; then
+    # Try to extract main class from Maven configuration
+    MAIN_CLASS=$(grep -E "<mainClass>" pom.xml | sed 's/.*<mainClass>\(.*\)<\/mainClass>.*/\1/' | head -1 || echo "")
+elif [ "$BUILD_TOOL" = "gradle" ]; then
+    # Try to extract main class from Gradle configuration
+    MAIN_CLASS=$(grep -E "mainClass\s*=" build.gradle* | sed "s/.*mainClass\s*=\s*['\"]\([^'\"]*\)['\"].*/\1/" | head -1 || echo "")
+fi
+
+# Fallback: ask user or use provided argument
+if [ -z "$MAIN_CLASS" ]; then
+    if [ $# -gt 0 ]; then
+        MAIN_CLASS="$1"
+    else
+        echo "Main class not detected. Please specify:"
+        read -p "Main class: " MAIN_CLASS
+    fi
+fi
+
+echo "Starting ByteHot with:"
+echo "  Platform: $PLATFORM"
+echo "  Build Tool: $BUILD_TOOL"
+echo "  Agent: $BYTEHOT_AGENT"
+echo "  Classes: $CLASSES_PATH"
+echo "  Main Class: $MAIN_CLASS"
+echo "  User: $USER_ID"
+echo ""
+
+# Build classpath
+CLASSPATH="$CLASSES_PATH"
+if [ -d "$TEST_CLASSES_PATH" ]; then
+    CLASSPATH="$CLASSPATH:$TEST_CLASSES_PATH"
+fi
+
+# Add dependencies to classpath based on build tool
+if [ "$BUILD_TOOL" = "maven" ]; then
+    # Add Maven dependencies if available
+    if command -v mvn >/dev/null; then
+        DEPS=$(mvn dependency:build-classpath -Dmdep.outputFile=/dev/stdout -q 2>/dev/null || echo "")
+        if [ -n "$DEPS" ]; then
+            CLASSPATH="$CLASSPATH:$DEPS"
+        fi
+    fi
+elif [ "$BUILD_TOOL" = "gradle" ]; then
+    # Add Gradle dependencies if available
+    if command -v gradle >/dev/null || [ -f "./gradlew" ]; then
+        GRADLE_CMD="gradle"
+        [ -f "./gradlew" ] && GRADLE_CMD="./gradlew"
+        DEPS=$($GRADLE_CMD printClasspath -q 2>/dev/null || echo "")
+        if [ -n "$DEPS" ]; then
+            CLASSPATH="$CLASSPATH:$DEPS"
+        fi
+    fi
+fi
+
+# Launch with ByteHot
+exec java \
+    -javaagent:"$BYTEHOT_AGENT" \
+    -Dbytehot.watch.paths="$CLASSES_PATH" \
+    -Dbytehot.user.id="$USER_ID" \
+    -Dbytehot.session.id="dev-$(date +%Y%m%d%H%M%S)" \
+    -Dbytehot.logging.level="${BYTEHOT_LOG_LEVEL:-INFO}" \
+    -cp "$CLASSPATH" \
+    "$MAIN_CLASS" \
+    "$@"
+#+END_SRC
+
+*** Team Synchronization Strategies
+
+**** Version Control Integration
+#+BEGIN_SRC bash
+# .gitignore entries for ByteHot
+# Include team configuration
+!bytehot-team.yml
+!scripts/bytehot-dev.sh
+!.vscode/settings.json
+!.idea/runConfigurations/ByteHot*.xml
+
+# Exclude individual settings
+.bytehot/sessions/
+.bytehot/cache/
+bytehot-local.yml
+#+END_SRC
+
+**** Onboarding Documentation
+#+BEGIN_SRC markdown
+<!-- docs/BYTEHOT_SETUP.md - Team onboarding guide -->
+# ByteHot Setup for New Team Members
+
+## Quick Start (< 5 minutes)
+1. Clone the repository
+2. Run `./scripts/bytehot-dev.sh` (Unix) or `scripts\bytehot-dev.bat` (Windows)
+3. The script will auto-detect your environment and guide you through any missing setup
+
+## IDE Integration
+- **IntelliJ IDEA**: Import run configuration from `.idea/runConfigurations/`
+- **Eclipse**: Import project, ByteHot nature will be auto-configured
+- **VS Code**: Open workspace, extensions will prompt for ByteHot setup
+
+## Troubleshooting
+- Check `docs/TROUBLESHOOTING.md` for common issues
+- Run `./scripts/bytehot-dev.sh --check` to validate your setup
+- Ask in #dev-tools Slack channel for team-specific help
 #+END_SRC
 
 ** 4. Testing Strategy
