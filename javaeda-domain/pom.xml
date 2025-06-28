@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.acmsl</groupId>
+        <artifactId>acmsl-pom</artifactId>
+        <version>latest-SNAPSHOT</version>
+    </parent>
+    
+    <groupId>org.acmsl.javaeda</groupId>
+    <artifactId>javaeda-domain</artifactId>
+    <packaging>jar</packaging>
+    <name>JavaEDA Domain Framework</name>
+    <description>
+        Core domain layer framework for Event-Driven Architecture with DDD patterns.
+        Provides base classes for events, aggregates, commands, and domain services.
+    </description>
+    
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
+    <dependencies>
+        <!-- Framework foundation - java-commons only -->
+        <dependency>
+            <groupId>org.acmsl</groupId>
+            <artifactId>java-commons</artifactId>
+            <version>latest-SNAPSHOT</version>
+        </dependency>
+        
+        <!-- Core annotations and validation -->
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>3.42.0</version>
+        </dependency>
+        
+        <!-- Lombok for boilerplate reduction -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+        
+        <!-- Jackson for event serialization -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+        
+        <!-- Testing dependencies -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.1</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.25.1</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>5.8.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    
+    <build>
+        <plugins>
+            <!-- Maven Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.12.1</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <encoding>UTF-8</encoding>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                        <arg>-Xlint:all</arg>
+                        <arg>-Xlint:-processing</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            
+            <!-- Maven Surefire Plugin for testing -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.3</version>
+                <configuration>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                </configuration>
+            </plugin>
+            
+            <!-- Maven Enforcer Plugin for dependency restrictions -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <id>enforce-domain-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- Domain must not depend on infrastructure libraries -->
+                                        <exclude>org.springframework:*</exclude>
+                                        <exclude>javax.persistence:*</exclude>
+                                        <exclude>org.hibernate:*</exclude>
+                                        <exclude>org.apache.kafka:*</exclude>
+                                        <exclude>redis.clients:*</exclude>
+                                        <exclude>org.postgresql:*</exclude>
+                                        <exclude>mysql:*</exclude>
+                                        <exclude>com.h2database:*</exclude>
+                                        <!-- Web/HTTP libraries -->
+                                        <exclude>org.apache.httpcomponents:*</exclude>
+                                        <exclude>okhttp3:*</exclude>
+                                        <exclude>javax.servlet:*</exclude>
+                                        <!-- Message broker libraries -->
+                                        <exclude>org.apache.activemq:*</exclude>
+                                        <exclude>com.rabbitmq:*</exclude>
+                                        <!-- File system libraries beyond basic Java -->
+                                        <exclude>commons-io:*</exclude>
+                                        <exclude>org.apache.commons:commons-vfs2</exclude>
+                                    </excludes>
+                                    <message>
+                                        Domain layer must remain pure and only depend on java-commons.
+                                        Infrastructure concerns should be in javaeda-infrastructure module.
+                                    </message>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- JavaDoc Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <source>17</source>
+                    <doclint>all,-missing</doclint>
+                    <additionalJOptions>
+                        <additionalJOption>-J-Duser.language=en</additionalJOption>
+                    </additionalJOptions>
+                </configuration>
+            </plugin>
+            
+            <!-- Source Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    
+    <profiles>
+        <profile>
+            <id>quick-build</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+                <maven.javadoc.skip>true</maven.javadoc.skip>
+            </properties>
+        </profile>
+    </profiles>
+</project>

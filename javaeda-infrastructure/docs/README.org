@@ -1,0 +1,261 @@
+#+TITLE: JavaEDA Infrastructure Framework Documentation
+#+AUTHOR: JavaEDA Framework Generator
+#+EMAIL: info@acm-sl.org
+#+DATE: 2025-01-27
+#+STARTUP: showall
+#+OPTIONS: toc:2 num:nil
+
+* Overview
+
+This directory contains the literate programming documentation for the JavaEDA Infrastructure Framework, which provides the infrastructure layer foundation for external system integrations, adapter management, and port implementations within the hexagonal architecture pattern.
+
+* Documentation Structure
+
+** Core Infrastructure Classes
+- [[file:JavaedaInfrastructure.org][JavaedaInfrastructure]] - Infrastructure layer foundation utilities and adapter management
+
+** Framework Position
+
+The Infrastructure Layer sits between the Domain and Application layers in the JavaEDA three-tier architecture:
+
+#+BEGIN_EXAMPLE
+┌─────────────────────────────────────┐
+│        Application Layer            │  ← Orchestration & Use Cases
+│    (javaeda-application)            │
+├─────────────────────────────────────┤
+│       Infrastructure Layer          │  ← External Integrations & Adapters
+│    (javaeda-infrastructure)         │
+├─────────────────────────────────────┤
+│         Domain Layer                │  ← Business Logic & Rules
+│      (javaeda-domain)               │
+└─────────────────────────────────────┘
+#+END_EXAMPLE
+
+** Framework Status
+
+*** Phase 1: Foundation Layer (✅ Complete)
+The current implementation includes the infrastructure foundation layer:
+
+**** Implemented Classes
+- =JavaedaInfrastructure= - Core infrastructure utilities and adapter validation
+
+**** Key Features
+- Infrastructure layer identification and status monitoring
+- Adapter configuration validation utilities
+- Integration with domain layer for proper dependency management
+- Framework health checking and status reporting
+
+*** Future Phases (Planned)
+
+**** Phase 2: Base Adapters (Planned)
+- =JavaedaEventStoreAdapter= - Base event store adapter with pluggable backends
+- =JavaedaConfigurationAdapter= - Hierarchical configuration management
+- =JavaedaFileSystemAdapter= - File system operations and monitoring
+- =JavaedaMessageBusAdapter= - Message bus integration and event publishing
+
+**** Phase 3: Port Implementations (Planned)
+- =EventStorePort= - Event persistence and retrieval interface
+- =ConfigurationPort= - Configuration management interface
+- =EventEmitterPort= - Event publishing and subscription interface
+- =FileWatcherPort= - File system monitoring interface
+
+**** Phase 4: Integration Patterns (Planned)
+- =AdapterRegistry= - Dynamic adapter discovery and registration
+- =HealthMonitor= - Infrastructure component health checking
+- =CircuitBreaker= - Resilience patterns for external systems
+- =MetricsCollector= - Performance monitoring and observability
+
+**** Phase 5: External System Support (Planned)
+- Database integration adapters (JPA, NoSQL)
+- Message broker adapters (Kafka, RabbitMQ, etc.)
+- HTTP client adapters for REST APIs
+- File system and cloud storage adapters
+
+* Infrastructure Architecture
+
+** Hexagonal Architecture Support
+The infrastructure layer implements the port-adapter pattern:
+
+*** Primary Adapters (Inbound)
+- Web controllers receiving HTTP requests
+- Message listeners processing external events
+- File watchers monitoring system changes
+- CLI interfaces for administrative operations
+
+*** Secondary Adapters (Outbound)
+- Database adapters for data persistence
+- Message publishers for event emission
+- File system adapters for storage operations
+- External API clients for service integration
+
+** Dependency Management
+The infrastructure layer maintains proper architectural dependencies:
+
+#+BEGIN_SRC java
+// Infrastructure depends on Domain
+import org.acmsl.javaeda.domain.JavaedaFoundation;
+
+// Infrastructure provides services to Application
+// (Application depends on Infrastructure)
+#+END_SRC
+
+** Configuration Management
+Infrastructure components support hierarchical configuration:
+
+#+BEGIN_SRC java
+// Example adapter configuration validation
+JavaedaInfrastructure.validateAdapterConfig("DatabaseEventStore", dbConfig);
+#+END_SRC
+
+* Documentation Standards
+
+** Literate Programming Approach
+All infrastructure classes follow the literate programming methodology:
+- Complete class documentation in org-mode format
+- Adapter patterns and integration examples included
+- Port-adapter relationship explanations
+- Performance and resilience considerations documented
+
+** Documentation Structure
+Each infrastructure class documentation includes:
+- Overview and architectural position
+- Port-adapter pattern implementation
+- Configuration and validation requirements
+- Integration patterns with domain and application layers
+- External system interaction patterns
+- Error handling and resilience strategies
+- Performance considerations and monitoring
+- Testing strategies for infrastructure components
+
+** Synchronization Requirements
+The documentation must remain synchronized with the infrastructure code:
+- All adapter implementations must have corresponding documentation
+- Port definitions and their adapter implementations must be cross-referenced
+- Configuration schemas and validation rules must be documented
+- External system integration patterns must be explained
+
+* Integration Patterns
+
+** Domain Layer Integration
+The infrastructure layer supports domain operations:
+
+#+BEGIN_SRC java
+// Example: Event store adapter supporting domain events
+@Component
+public class DatabaseEventStoreAdapter implements EventStorePort {
+    public void store(DomainEvent event) {
+        JavaedaInfrastructure.validateAdapterConfig("EventStore", this.config);
+        // Store domain event in database
+    }
+}
+#+END_SRC
+
+** Application Layer Support
+Infrastructure provides services for application orchestration:
+
+#+BEGIN_SRC java
+// Example: Application using infrastructure adapters
+@Service
+public class OrderProcessingUseCase {
+    private final EventStorePort eventStore;
+    private final EmailNotificationPort emailService;
+    
+    public void execute(ProcessOrderCommand command) {
+        // Use infrastructure adapters for external operations
+        eventStore.store(new OrderProcessedEvent(command.getOrderId()));
+        emailService.sendConfirmation(command.getCustomerEmail());
+    }
+}
+#+END_SRC
+
+** External System Integration
+Infrastructure adapters handle external system complexity:
+
+#+BEGIN_SRC java
+// Example: Database adapter with resilience patterns
+@Component
+public class ResilientDatabaseAdapter {
+    @Retryable(value = {SQLException.class}, maxAttempts = 3)
+    public void store(Entity entity) {
+        if (!JavaedaInfrastructure.isInfrastructureReady()) {
+            throw new IllegalStateException("Infrastructure not ready");
+        }
+        // Database operations with retry logic
+    }
+}
+#+END_SRC
+
+* Usage Guidelines
+
+** Getting Started
+1. Include the =javaeda-infrastructure= dependency in your Maven POM
+2. Review the =JavaedaInfrastructure= documentation for core utilities
+3. Implement adapters by extending base adapter classes
+4. Follow the port-adapter pattern for external integrations
+5. Use configuration validation for adapter setup
+
+** Adapter Development
+- Extend framework base adapters when available
+- Implement port interfaces defined in the domain layer
+- Use =JavaedaInfrastructure.validateAdapterConfig()= for validation
+- Include proper error handling and resilience patterns
+- Add health check support for monitoring
+
+** Best Practices
+- Always validate adapter configurations using framework utilities
+- Implement proper circuit breaker patterns for external systems
+- Include comprehensive logging and monitoring
+- Follow the fail-fast principle for configuration errors
+- Use dependency injection for proper layer separation
+
+* Development Status
+
+** Current Status: Foundation Complete ✅
+- Infrastructure layer foundation implemented and tested
+- Adapter validation utilities available
+- Layer identification and status checking operational
+- Integration with domain layer established
+- Documentation synchronized with implementation
+
+** Next Steps
+1. Implement base adapter classes with common patterns
+2. Create port interfaces for standard infrastructure operations
+3. Add adapter registry for dynamic discovery
+4. Implement health monitoring and metrics collection
+5. Create integration examples and tutorials
+
+** Known Issues
+- Advanced adapter implementations will be added in future phases
+- Full port-adapter pattern implementation is planned for Phase 2
+- External system specific adapters will be provided incrementally
+
+* Contributing
+
+** Infrastructure Development
+When adding new infrastructure components:
+1. Create corresponding org-mode documentation file
+2. Follow the port-adapter pattern consistently
+3. Include proper configuration validation
+4. Add health check and monitoring support
+5. Update this README to reference new components
+
+** Documentation Updates
+For infrastructure class modifications:
+1. Update the corresponding org-mode documentation file
+2. Ensure adapter-port relationships are clearly documented
+3. Update integration patterns and configuration examples
+4. Review and update performance considerations
+
+* References
+
+** Related Documentation
+- [[file:../../javaeda-domain/docs/README.org][JavaEDA Domain Framework Documentation]]
+- [[file:../../javaeda-application/docs/README.org][JavaEDA Application Framework Documentation]]
+- [[file:../../specs/milestone-16-javaeda-framework-extraction.org][JavaEDA Framework Extraction Specification]]
+- [[file:../../java-commons-infrastructure/docs/README.org][Java Commons Infrastructure Documentation]]
+
+** External Resources
+- Hexagonal Architecture pattern implementation
+- Port-Adapter pattern best practices
+- Infrastructure resilience patterns
+- External system integration strategies

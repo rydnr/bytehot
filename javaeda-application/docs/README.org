@@ -1,0 +1,378 @@
+#+TITLE: JavaEDA Application Framework Documentation
+#+AUTHOR: JavaEDA Framework Generator
+#+EMAIL: info@acm-sl.org
+#+DATE: 2025-01-27
+#+STARTUP: showall
+#+OPTIONS: toc:2 num:nil
+
+* Overview
+
+This directory contains the literate programming documentation for the JavaEDA Application Framework, which provides the application layer foundation for use case orchestration, workflow management, and cross-layer coordination within the JavaEDA three-tier architecture.
+
+* Documentation Structure
+
+** Core Application Classes
+- [[file:JavaedaApplication.org][JavaedaApplication]] - Application layer foundation utilities and use case orchestration
+
+** Framework Position
+
+The Application Layer sits at the top of the JavaEDA three-tier architecture:
+
+#+BEGIN_EXAMPLE
+┌─────────────────────────────────────┐
+│        Application Layer            │  ← Orchestration & Use Cases
+│    (javaeda-application)            │     [WE ARE HERE]
+├─────────────────────────────────────┤
+│       Infrastructure Layer          │  ← External Integrations & Adapters
+│    (javaeda-infrastructure)         │
+├─────────────────────────────────────┤
+│         Domain Layer                │  ← Business Logic & Rules
+│      (javaeda-domain)               │
+└─────────────────────────────────────┘
+#+END_EXAMPLE
+
+** Framework Status
+
+*** Phase 1: Foundation Layer (✅ Complete)
+The current implementation includes the application orchestration foundation:
+
+**** Implemented Classes
+- =JavaedaApplication= - Core application utilities and cross-layer coordination
+
+**** Key Features
+- Application layer identification and comprehensive status monitoring
+- Use case configuration validation utilities
+- Complete framework health checking across all three layers
+- Cross-layer dependency validation and management
+- Workflow coordination infrastructure
+
+*** Future Phases (Planned)
+
+**** Phase 2: Use Case Infrastructure (Planned)
+- =JavaedaUseCase= - Base use case pattern implementation
+- =UseCaseOrchestrator= - Use case discovery and execution coordination
+- =WorkflowManager= - Multi-step workflow orchestration
+- =CommandProcessor= - Command pattern implementation for operations
+
+**** Phase 3: Event Coordination (Planned)
+- =EventWorkflow= - Event-driven workflow orchestration
+- =SagaOrchestrator= - Distributed transaction coordination
+- =EventProjection= - Query-side event projections
+- =ProcessManager= - Long-running process coordination
+
+**** Phase 4: Integration Orchestration (Planned)
+- =ServiceOrchestrator= - External service coordination
+- =CompensationManager= - Failure recovery and rollback coordination
+- =CircuitBreakerCoordinator= - Resilience pattern orchestration
+- =MetricsAggregator= - Cross-layer performance monitoring
+
+**** Phase 5: Advanced Patterns (Planned)
+- =CQRSOrchestrator= - Command-Query Responsibility Segregation coordination
+- =EventSourcingWorkflow= - Event sourcing pattern implementation
+- =ProcessEngine= - BPMN-style process execution
+- =IntegrationGateway= - External system integration coordination
+
+* Application Architecture
+
+** Use Case Pattern Implementation
+The application layer implements clean use case orchestration:
+
+*** Use Case Responsibilities
+- Coordinate operations across domain and infrastructure layers
+- Implement business workflows without containing business logic
+- Handle cross-cutting concerns (logging, security, transactions)
+- Manage external system integration coordination
+
+*** Workflow Orchestration
+- Multi-step business process coordination
+- Compensation patterns for failure recovery
+- Event-driven workflow execution
+- Integration with external process engines
+
+** Dependency Management
+The application layer coordinates all framework layers:
+
+#+BEGIN_SRC java
+// Application depends on both Infrastructure and Domain
+import org.acmsl.javaeda.domain.JavaedaFoundation;
+import org.acmsl.javaeda.infrastructure.JavaedaInfrastructure;
+
+// Application orchestrates but doesn't contain business logic
+public static boolean isApplicationReady() {
+    return JavaedaFoundation.isInitialized() && 
+           JavaedaInfrastructure.isInfrastructureReady();
+}
+#+END_SRC
+
+** Cross-Layer Coordination
+Application layer provides complete framework coordination:
+
+#+BEGIN_SRC java
+// Example: Complete framework status monitoring
+public static String getFrameworkStatus() {
+    return String.format("JavaEDA Framework Status:\n- Domain: %s\n- Infrastructure: %s\n- Application: %s",
+        JavaedaFoundation.isInitialized() ? "Ready" : "Not Ready",
+        JavaedaInfrastructure.isInfrastructureReady() ? "Ready" : "Not Ready", 
+        isApplicationReady() ? "Ready" : "Not Ready");
+}
+#+END_SRC
+
+* Documentation Standards
+
+** Literate Programming Approach
+All application classes follow the literate programming methodology:
+- Complete class documentation in org-mode format
+- Use case patterns and orchestration examples included
+- Cross-layer coordination explanations
+- Workflow management patterns documented
+
+** Documentation Structure
+Each application class documentation includes:
+- Overview and orchestration responsibilities
+- Use case pattern implementation
+- Cross-layer coordination strategies
+- Workflow management approaches
+- Error handling and compensation patterns
+- Performance considerations and monitoring
+- Testing strategies for application orchestration
+- Integration patterns with external systems
+
+** Synchronization Requirements
+The documentation must remain synchronized with the application code:
+- All use case implementations must have corresponding documentation
+- Workflow patterns and their orchestration must be documented
+- Cross-layer coordination patterns must be explained
+- Error handling and compensation strategies must be detailed
+
+* Orchestration Patterns
+
+** Use Case Orchestration
+The application layer coordinates business workflows:
+
+#+BEGIN_SRC java
+// Example: Multi-layer use case orchestration
+@Service
+public class ProcessOrderUseCase {
+    public OrderResult execute(ProcessOrderCommand command) {
+        // 1. Validate application readiness
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Application not ready");
+        }
+        
+        try {
+            // 2. Domain layer - business validation
+            Order order = orderRepository.findById(command.getOrderId());
+            order.process(); // Domain logic
+            
+            // 3. Infrastructure layer - external operations
+            paymentService.processPayment(order.getPayment());
+            inventoryService.reserveItems(order.getItems());
+            
+            // 4. Application layer - coordination
+            return OrderResult.success(order);
+            
+        } catch (Exception e) {
+            return OrderResult.failure(e.getMessage());
+        }
+    }
+}
+#+END_SRC
+
+** Workflow Coordination
+Application coordinates complex multi-step processes:
+
+#+BEGIN_SRC java
+// Example: Saga-style workflow coordination
+@Component
+public class OrderFulfillmentWorkflow {
+    public void execute(OrderFulfillmentSaga saga) {
+        try {
+            // Step 1: Reserve inventory
+            saga.reserveInventory();
+            
+            // Step 2: Process payment
+            saga.processPayment();
+            
+            // Step 3: Ship order
+            saga.shipOrder();
+            
+            saga.complete();
+            
+        } catch (Exception e) {
+            // Compensation: rollback all steps
+            saga.compensate();
+        }
+    }
+}
+#+END_SRC
+
+** Event-Driven Coordination
+Application orchestrates event-driven workflows:
+
+#+BEGIN_SRC java
+// Example: Event-driven workflow
+@EventHandler
+public class OrderEventOrchestrator {
+    @EventListener
+    public void on(OrderCreatedEvent event) {
+        if (JavaedaApplication.isApplicationReady()) {
+            // Coordinate follow-up actions
+            inventoryService.checkAvailability(event.getOrderId());
+            paymentService.validatePayment(event.getPaymentInfo());
+        }
+    }
+}
+#+END_SRC
+
+* Integration Patterns
+
+** Domain Layer Coordination
+Application orchestrates domain operations without business logic:
+
+#+BEGIN_SRC java
+// Example: Domain coordination without logic leakage
+@Service
+public class CustomerManagementUseCase {
+    public void execute(UpdateCustomerCommand command) {
+        // Application validates readiness
+        JavaedaApplication.validateUseCaseConfig("CustomerManagement", command);
+        
+        // Domain performs business logic
+        Customer customer = customerRepository.findById(command.getCustomerId());
+        customer.updateProfile(command.getProfile()); // Domain logic
+        
+        // Infrastructure handles persistence
+        customerRepository.save(customer);
+    }
+}
+#+END_SRC
+
+** Infrastructure Layer Coordination
+Application coordinates infrastructure operations:
+
+#+BEGIN_SRC java
+// Example: Infrastructure coordination
+@Service
+public class DataSynchronizationUseCase {
+    public void execute(SyncDataCommand command) {
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Cannot sync - application not ready");
+        }
+        
+        // Coordinate multiple infrastructure adapters
+        List<DataSource> sources = dataSourceRegistry.getActiveSources();
+        for (DataSource source : sources) {
+            dataSync.synchronize(source, command.getTargetDestination());
+        }
+    }
+}
+#+END_SRC
+
+** External System Coordination
+Application orchestrates external system interactions:
+
+#+BEGIN_SRC java
+// Example: External system coordination
+@Service
+public class IntegrationWorkflow {
+    public void execute(IntegrationCommand command) {
+        // Ensure all layers are ready
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Integration not available");
+        }
+        
+        try {
+            // Coordinate external systems
+            externalApiClient.authenticate();
+            DataTransfer transfer = externalApiClient.initiateTransfer(command.getData());
+            
+            // Handle results
+            if (transfer.isSuccessful()) {
+                eventPublisher.publish(new DataTransferCompletedEvent(transfer.getId()));
+            } else {
+                compensationManager.handleFailure(transfer);
+            }
+            
+        } catch (ExternalSystemException e) {
+            // Application-level error handling
+            circuitBreaker.recordFailure();
+            throw new ApplicationException("External integration failed", e);
+        }
+    }
+}
+#+END_SRC
+
+* Usage Guidelines
+
+** Getting Started
+1. Include the =javaeda-application= dependency in your Maven POM
+2. Review the =JavaedaApplication= documentation for core utilities
+3. Implement use cases following the orchestration patterns
+4. Use framework status checking for application health
+5. Follow cross-layer coordination patterns
+
+** Use Case Development
+- Focus on orchestration, not business logic
+- Use domain services for business rules
+- Coordinate infrastructure for external operations
+- Implement proper error handling and compensation
+- Include comprehensive monitoring and logging
+
+** Best Practices
+- Always validate application readiness before use case execution
+- Keep business logic in the domain layer
+- Use infrastructure adapters for external system access
+- Implement proper compensation patterns for failures
+- Follow the single responsibility principle for use cases
+
+* Development Status
+
+** Current Status: Foundation Complete ✅
+- Application layer foundation implemented and tested
+- Use case validation utilities available
+- Cross-layer status monitoring operational
+- Framework health checking across all layers
+- Documentation synchronized with implementation
+
+** Next Steps
+1. Implement base use case classes with orchestration patterns
+2. Create workflow management infrastructure
+3. Add saga pattern implementation for distributed transactions
+4. Implement comprehensive error handling and compensation
+5. Create integration examples and tutorials
+
+** Known Issues
+- Advanced use case patterns will be implemented in future phases
+- Workflow orchestration infrastructure is planned for Phase 2
+- Saga and compensation patterns will be added incrementally
+
+* Contributing
+
+** Application Development
+When adding new application components:
+1. Create corresponding org-mode documentation file
+2. Follow use case orchestration patterns consistently
+3. Implement proper cross-layer coordination
+4. Add comprehensive error handling and compensation
+5. Update this README to reference new components
+
+** Documentation Updates
+For application class modifications:
+1. Update the corresponding org-mode documentation file
+2. Ensure orchestration patterns are clearly documented
+3. Update cross-layer coordination examples
+4. Review and update workflow management approaches
+
+* References
+
+** Related Documentation
+- [[file:../../javaeda-domain/docs/README.org][JavaEDA Domain Framework Documentation]]
+- [[file:../../javaeda-infrastructure/docs/README.org][JavaEDA Infrastructure Framework Documentation]]
+- [[file:../../specs/milestone-16-javaeda-framework-extraction.org][JavaEDA Framework Extraction Specification]]
+- [[file:../../specs/technical-specs/infrastructure-patterns-guide.org][Infrastructure Patterns Guide]]
+
+** External Resources
+- Use Case pattern implementation
+- Saga pattern for distributed transactions
+- CQRS and Event Sourcing patterns
+- Application orchestration best practices

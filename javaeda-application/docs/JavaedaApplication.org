@@ -1,0 +1,500 @@
+#+TITLE: JavaedaApplication
+#+AUTHOR: JavaEDA Framework Generator  
+#+EMAIL: info@acm-sl.org
+#+DATE: 2025-01-27
+#+STARTUP: showall
+#+OPTIONS: toc:2 num:nil
+
+* Overview
+
+The =JavaedaApplication= class serves as the foundation for the application layer of the JavaEDA framework, providing essential utilities for use case orchestration, workflow management, and cross-layer coordination within the three-tier architecture.
+
+* Purpose and Responsibilities
+
+** Core Responsibilities
+- Provide application layer identification and comprehensive status monitoring
+- Support use case configuration validation and orchestration management
+- Enable workflow coordination between domain and infrastructure layers
+- Provide complete framework health checking across all architectural layers
+
+** Design Principles
+- Application layer orchestration without business logic leakage
+- Use case-centric design with clear responsibility boundaries
+- Complete framework integration and status visibility
+- Layered architecture compliance with proper dependency management
+
+* Class Structure
+
+** Package Declaration
+#+BEGIN_SRC java
+package org.acmsl.javaeda.application;
+#+END_SRC
+
+The class resides in the root application package, serving as the entry point for application-level operations.
+
+** Dependencies
+#+BEGIN_SRC java
+import org.acmsl.javaeda.domain.JavaedaFoundation;
+import org.acmsl.javaeda.infrastructure.JavaedaInfrastructure;
+import org.checkerframework.checker.nullness.qual.NonNull;
+#+END_SRC
+
+Dependencies demonstrate proper layered architecture:
+- =JavaedaFoundation= for domain layer integration
+- =JavaedaInfrastructure= for infrastructure layer coordination
+- Checker Framework annotations for compile-time null safety
+
+** Class Declaration
+#+BEGIN_SRC java
+public class JavaedaApplication {
+    private JavaedaApplication() {
+        // Utility class
+    }
+}
+#+END_SRC
+
+Implemented as a utility class following the established framework pattern.
+
+* Constants and Application Metadata
+
+** Layer Identification
+#+BEGIN_SRC java
+@NonNull
+public static final String LAYER_NAME = "Application";
+#+END_SRC
+
+Identifies the application layer within the JavaEDA three-layer architecture:
+- **Domain Layer**: Core business logic and rules
+- **Infrastructure Layer**: External integrations and adapters  
+- **Application Layer**: Orchestration and use case coordination
+
+* Public API Methods
+
+** Layer Information Methods
+
+*** getLayerName()
+#+BEGIN_SRC java
+@NonNull
+public static String getLayerName() {
+    return LAYER_NAME;
+}
+#+END_SRC
+
+Returns the application layer name for identification and orchestration purposes.
+
+**** Return Value
+- =@NonNull String=: The layer name ("Application")
+
+*** getLayerIdentifier()
+#+BEGIN_SRC java
+@NonNull
+public static String getLayerIdentifier() {
+    return JavaedaFoundation.getName() + " " + LAYER_NAME + " Layer v" + JavaedaFoundation.getVersion();
+}
+#+END_SRC
+
+Provides a complete application layer identifier for logging and monitoring.
+
+**** Return Value
+- =@NonNull String=: Combined identifier (e.g., "JavaEDA Framework Application Layer v1.0.0")
+
+**** Usage Example
+#+BEGIN_SRC java
+String layerInfo = JavaedaApplication.getLayerIdentifier();
+log.info("Application layer starting: {}", layerInfo);
+#+END_SRC
+
+** Application Status Methods
+
+*** isApplicationReady()
+#+BEGIN_SRC java
+public static boolean isApplicationReady() {
+    return JavaedaFoundation.isInitialized() && JavaedaInfrastructure.isInfrastructureReady();
+}
+#+END_SRC
+
+Checks if the application layer is properly initialized and all dependencies are ready.
+
+**** Dependencies Validation
+The application layer requires both lower layers to be operational:
+1. **Domain Layer**: =JavaedaFoundation.isInitialized()= must return =true=
+2. **Infrastructure Layer**: =JavaedaInfrastructure.isInfrastructureReady()= must return =true=
+
+This enforces the architectural dependency chain: Application → Infrastructure → Domain
+
+**** Return Value
+- =boolean=: =true= if application and all dependencies are ready, =false= otherwise
+
+**** Usage Example
+#+BEGIN_SRC java
+@EventListener
+public void onApplicationReady(ApplicationReadyEvent event) {
+    if (JavaedaApplication.isApplicationReady()) {
+        startUseCases();
+    } else {
+        log.error("Cannot start application - dependencies not ready");
+    }
+}
+#+END_SRC
+
+*** getStatus()
+#+BEGIN_SRC java
+@NonNull
+public static String getStatus() {
+    return String.format("%s: %s", 
+        getLayerIdentifier(), 
+        isApplicationReady() ? "Ready" : "Not Ready");
+}
+#+END_SRC
+
+Provides application layer status for monitoring and health checks.
+
+**** Return Value
+- =@NonNull String=: Formatted status message
+
+*** getFrameworkStatus()
+#+BEGIN_SRC java
+@NonNull
+public static String getFrameworkStatus() {
+    return String.format("JavaEDA Framework Status:\n- Domain: %s\n- Infrastructure: %s\n- Application: %s",
+        JavaedaFoundation.isInitialized() ? "Ready" : "Not Ready",
+        JavaedaInfrastructure.isInfrastructureReady() ? "Ready" : "Not Ready", 
+        isApplicationReady() ? "Ready" : "Not Ready");
+}
+#+END_SRC
+
+Provides comprehensive framework status across all three layers for complete system health visibility.
+
+**** Return Value
+- =@NonNull String=: Multi-line status report covering all layers
+
+**** Usage Example
+#+BEGIN_SRC java
+// System health endpoint
+@GetMapping("/health/framework")
+public ResponseEntity<String> getFrameworkHealth() {
+    String status = JavaedaApplication.getFrameworkStatus();
+    return ResponseEntity.ok(status);
+}
+#+END_SRC
+
+** Use Case Configuration Methods
+
+*** validateUseCaseConfig(String, Object)
+#+BEGIN_SRC java
+public static void validateUseCaseConfig(@NonNull final String useCaseName, @NonNull final Object config) {
+    JavaedaFoundation.requireNonEmpty(useCaseName, "useCaseName");
+    JavaedaFoundation.requireNonNull(config, "useCaseConfig");
+}
+#+END_SRC
+
+Validates use case configuration ensuring proper naming and non-null configuration objects.
+
+**** Parameters
+- =useCaseName=: The name of the use case being configured
+- =config=: The configuration object for the use case
+
+**** Exceptions
+- =IllegalArgumentException=: If use case name is null/empty or config is null
+
+**** Usage Example
+#+BEGIN_SRC java
+@Service
+public class UserRegistrationUseCase {
+    public UserRegistrationUseCase(String name, UseCaseConfig config) {
+        JavaedaApplication.validateUseCaseConfig(name, config);
+        this.name = name;
+        this.config = config;
+    }
+}
+#+END_SRC
+
+* Usage Patterns
+
+** Application Layer Initialization
+#+BEGIN_SRC java
+// Complete framework startup orchestration
+@Component
+public class FrameworkBootstrap {
+    @PostConstruct
+    public void initializeFramework() {
+        log.info("Starting framework initialization");
+        log.info(JavaedaApplication.getFrameworkStatus());
+        
+        if (JavaedaApplication.isApplicationReady()) {
+            log.info("All layers ready - starting application services");
+            startApplicationServices();
+        } else {
+            throw new IllegalStateException("Framework not ready for application services");
+        }
+    }
+}
+#+END_SRC
+
+** Use Case Orchestration
+#+BEGIN_SRC java
+// Use case registry with validation
+@Service
+public class UseCaseOrchestrator {
+    private final Map<String, UseCase> useCases = new ConcurrentHashMap<>();
+    
+    public void registerUseCase(String name, UseCase useCase, UseCaseConfig config) {
+        JavaedaApplication.validateUseCaseConfig(name, config);
+        useCases.put(name, useCase);
+        log.info("Registered use case: {} with {}", name, 
+            JavaedaApplication.getLayerIdentifier());
+    }
+    
+    public <T> T execute(String useCaseName, Object input) {
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Application layer not ready");
+        }
+        return (T) useCases.get(useCaseName).execute(input);
+    }
+}
+#+END_SRC
+
+** Complete Framework Health Monitoring
+#+BEGIN_SRC java
+// Comprehensive framework health indicator
+@Component
+public class FrameworkHealthIndicator implements HealthIndicator {
+    @Override
+    public Health health() {
+        try {
+            String frameworkStatus = JavaedaApplication.getFrameworkStatus();
+            
+            if (JavaedaApplication.isApplicationReady()) {
+                return Health.up()
+                    .withDetail("framework", "JavaEDA")
+                    .withDetail("version", JavaedaFoundation.getVersion())
+                    .withDetail("layers", Map.of(
+                        "domain", JavaedaFoundation.isInitialized(),
+                        "infrastructure", JavaedaInfrastructure.isInfrastructureReady(),
+                        "application", JavaedaApplication.isApplicationReady()
+                    ))
+                    .withDetail("status", frameworkStatus)
+                    .build();
+            } else {
+                return Health.down()
+                    .withDetail("framework", "JavaEDA")
+                    .withDetail("reason", "One or more layers not ready")
+                    .withDetail("status", frameworkStatus)
+                    .build();
+            }
+        } catch (Exception e) {
+            return Health.down()
+                .withDetail("error", e.getMessage())
+                .build();
+        }
+    }
+}
+#+END_SRC
+
+* Integration Points
+
+** Domain Layer Integration
+The application layer coordinates with the domain layer for business logic execution:
+
+#+BEGIN_SRC java
+// Example use case leveraging domain services
+@Service
+public class ProcessOrderUseCase {
+    public void execute(ProcessOrderCommand command) {
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Application not ready");
+        }
+        
+        // Coordinate with domain layer
+        OrderAggregate order = orderRepository.findById(command.getOrderId());
+        order.process(); // Domain logic
+        orderRepository.save(order);
+    }
+}
+#+END_SRC
+
+** Infrastructure Layer Integration
+The application layer leverages infrastructure adapters for external interactions:
+
+#+BEGIN_SRC java
+// Example use case coordinating infrastructure
+@Service
+public class NotifyCustomerUseCase {
+    private final EmailAdapter emailAdapter;
+    private final CustomerRepository customerRepository;
+    
+    public void execute(NotifyCustomerCommand command) {
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Application not ready");
+        }
+        
+        // Use infrastructure layer
+        Customer customer = customerRepository.findById(command.getCustomerId());
+        emailAdapter.sendEmail(customer.getEmail(), command.getMessage());
+    }
+}
+#+END_SRC
+
+** Cross-Layer Orchestration
+The application layer orchestrates operations across all layers:
+
+#+BEGIN_SRC java
+// Complex use case involving all layers
+@Service
+@Transactional
+public class CompleteOrderUseCase {
+    public OrderResult execute(CompleteOrderCommand command) {
+        // Validate application readiness
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Application not ready");
+        }
+        
+        try {
+            // 1. Domain layer - business logic
+            OrderAggregate order = orderRepository.findById(command.getOrderId());
+            order.complete(); // Domain validation and state change
+            
+            // 2. Infrastructure layer - external integrations
+            paymentAdapter.processPayment(order.getPaymentInfo());
+            inventoryAdapter.updateStock(order.getItems());
+            emailAdapter.sendConfirmation(order.getCustomerEmail());
+            
+            // 3. Application layer - coordination
+            return OrderResult.success(order.getId());
+            
+        } catch (DomainException e) {
+            log.error("Domain validation failed: {}", e.getMessage());
+            return OrderResult.failure(e.getMessage());
+        } catch (InfrastructureException e) {
+            log.error("Infrastructure failure: {}", e.getMessage());
+            return OrderResult.failure("External system unavailable");
+        }
+    }
+}
+#+END_SRC
+
+* Architectural Patterns
+
+** Use Case Pattern Implementation
+The application layer implements the use case pattern for clean business workflow orchestration:
+
+#+BEGIN_SRC java
+// Base use case interface
+public interface UseCase<INPUT, OUTPUT> {
+    OUTPUT execute(INPUT input);
+}
+
+// Abstract base use case with validation
+public abstract class JavaedaUseCase<INPUT, OUTPUT> implements UseCase<INPUT, OUTPUT> {
+    @Override
+    public final OUTPUT execute(INPUT input) {
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Application layer not ready");
+        }
+        
+        validateInput(input);
+        return doExecute(input);
+    }
+    
+    protected abstract void validateInput(INPUT input);
+    protected abstract OUTPUT doExecute(INPUT input);
+}
+#+END_SRC
+
+** Command Pattern Integration
+Support for command-based operation coordination:
+
+#+BEGIN_SRC java
+// Command handler coordination
+@Component
+public class CommandProcessor {
+    public <T> T process(Command command) {
+        JavaedaApplication.validateUseCaseConfig(command.getName(), command);
+        
+        if (!JavaedaApplication.isApplicationReady()) {
+            throw new IllegalStateException("Cannot process commands - application not ready");
+        }
+        
+        return (T) findHandler(command.getClass()).handle(command);
+    }
+}
+#+END_SRC
+
+* Error Handling Strategy
+
+** Layered Error Management
+The application layer provides comprehensive error handling across all layers:
+
+#+BEGIN_SRC java
+// Application-level exception handling
+@ControllerAdvice
+public class ApplicationExceptionHandler {
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleApplicationNotReady(IllegalStateException e) {
+        String status = JavaedaApplication.getFrameworkStatus();
+        return ResponseEntity.status(503)
+            .body("Service unavailable: " + e.getMessage() + "\n" + status);
+    }
+}
+#+END_SRC
+
+** Consistent Validation
+Uses framework-wide validation patterns:
+- Delegates to lower layers for specific validations
+- Maintains fail-fast philosophy across all layers
+- Provides comprehensive error context
+
+* Future Enhancements
+
+** Planned Features
+- Dynamic use case discovery and registration
+- Workflow orchestration with compensation patterns
+- Event-driven use case coordination
+- Metrics collection for use case performance
+- Integration with external orchestration engines
+
+** Extension Points
+- Pluggable use case validation strategies
+- Custom orchestration patterns
+- Workflow definition languages
+- Integration with process management systems
+
+* Testing Strategy
+
+** Integration Test Coverage
+Application layer testing should focus on:
+- Cross-layer integration verification
+- Use case orchestration correctness
+- Framework status accuracy
+- Error handling completeness
+
+** Example Test Structure
+#+BEGIN_SRC java
+@SpringBootTest
+class JavaedaApplicationIntegrationTest {
+    @Test
+    void shouldReportReadyWhenAllLayersInitialized() {
+        // Given all layers are initialized
+        // When checking application readiness
+        // Then should return true
+        assertThat(JavaedaApplication.isApplicationReady()).isTrue();
+    }
+    
+    @Test
+    void shouldProvideCompleteFrameworkStatus() {
+        String status = JavaedaApplication.getFrameworkStatus();
+        assertThat(status).contains("Domain:", "Infrastructure:", "Application:");
+    }
+    
+    @Test
+    void shouldValidateUseCaseConfiguration() {
+        assertThatThrownBy(() -> 
+            JavaedaApplication.validateUseCaseConfig("", new Object()))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+}
+#+END_SRC
+
+* Conclusion
+
+The =JavaedaApplication= class provides essential orchestration services for the application layer while maintaining clear architectural boundaries and comprehensive framework visibility. Its design enables clean use case implementation, proper layer coordination, and complete system health monitoring across the entire JavaEDA framework stack.

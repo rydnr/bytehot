@@ -1,0 +1,382 @@
+#+TITLE: JavaedaInfrastructure
+#+AUTHOR: JavaEDA Framework Generator  
+#+EMAIL: info@acm-sl.org
+#+DATE: 2025-01-27
+#+STARTUP: showall
+#+OPTIONS: toc:2 num:nil
+
+* Overview
+
+The =JavaedaInfrastructure= class serves as the foundation for the infrastructure layer of the JavaEDA framework, providing essential utilities for adapter discovery, port resolution, and external system integration patterns.
+
+* Purpose and Responsibilities
+
+** Core Responsibilities
+- Provide infrastructure layer identification and status monitoring
+- Support adapter configuration validation and management
+- Enable external system integration patterns and health checking
+- Coordinate with domain and application layers for complete framework status
+
+** Design Principles
+- Infrastructure layer abstraction and encapsulation
+- Adapter-agnostic configuration management
+- Fail-fast validation for infrastructure components
+- Layered architecture compliance with clear boundaries
+
+* Class Structure
+
+** Package Declaration
+#+BEGIN_SRC java
+package org.acmsl.javaeda.infrastructure;
+#+END_SRC
+
+The class resides in the root infrastructure package, making it accessible throughout the infrastructure layer.
+
+** Dependencies
+#+BEGIN_SRC java
+import org.acmsl.javaeda.domain.JavaedaFoundation;
+import org.checkerframework.checker.nullness.qual.NonNull;
+#+END_SRC
+
+Dependencies on:
+- =JavaedaFoundation= for domain layer integration and basic utilities
+- Checker Framework annotations for compile-time null safety
+
+** Class Declaration
+#+BEGIN_SRC java
+public class JavaedaInfrastructure {
+    private JavaedaInfrastructure() {
+        // Utility class
+    }
+}
+#+END_SRC
+
+Implemented as a utility class with private constructor following the same pattern as =JavaedaFoundation=.
+
+* Constants and Infrastructure Metadata
+
+** Layer Identification
+#+BEGIN_SRC java
+@NonNull
+public static final String LAYER_NAME = "Infrastructure";
+#+END_SRC
+
+Provides clear identification of the infrastructure layer within the three-layer JavaEDA architecture:
+- Domain Layer (foundational business logic)
+- Infrastructure Layer (external integrations)
+- Application Layer (orchestration and workflows)
+
+* Public API Methods
+
+** Layer Information Methods
+
+*** getLayerName()
+#+BEGIN_SRC java
+@NonNull
+public static String getLayerName() {
+    return LAYER_NAME;
+}
+#+END_SRC
+
+Returns the infrastructure layer name for identification and logging purposes.
+
+**** Return Value
+- =@NonNull String=: The layer name ("Infrastructure")
+
+*** getLayerIdentifier()
+#+BEGIN_SRC java
+@NonNull
+public static String getLayerIdentifier() {
+    return JavaedaFoundation.getName() + " " + LAYER_NAME + " Layer v" + JavaedaFoundation.getVersion();
+}
+#+END_SRC
+
+Provides a complete infrastructure layer identifier combining framework name, layer name, and version.
+
+**** Return Value
+- =@NonNull String=: Combined identifier (e.g., "JavaEDA Framework Infrastructure Layer v1.0.0")
+
+**** Usage Example
+#+BEGIN_SRC java
+String layerInfo = JavaedaInfrastructure.getLayerIdentifier();
+log.info("Infrastructure layer initialized: {}", layerInfo);
+#+END_SRC
+
+** Infrastructure Status Methods
+
+*** isInfrastructureReady()
+#+BEGIN_SRC java
+public static boolean isInfrastructureReady() {
+    return JavaedaFoundation.isInitialized();
+}
+#+END_SRC
+
+Checks if the infrastructure layer is properly initialized and ready for use.
+
+**** Dependencies
+- Depends on domain layer initialization via =JavaedaFoundation.isInitialized()=
+- Ensures layered architecture compliance (infrastructure depends on domain)
+
+**** Return Value
+- =boolean=: =true= if infrastructure is ready, =false= otherwise
+
+**** Usage Example
+#+BEGIN_SRC java
+if (JavaedaInfrastructure.isInfrastructureReady()) {
+    initializeAdapters();
+} else {
+    throw new IllegalStateException("Infrastructure not ready");
+}
+#+END_SRC
+
+*** getStatus()
+#+BEGIN_SRC java
+@NonNull
+public static String getStatus() {
+    return String.format("%s: %s", 
+        getLayerIdentifier(), 
+        isInfrastructureReady() ? "Ready" : "Not Ready");
+}
+#+END_SRC
+
+Provides a human-readable status description for monitoring and debugging.
+
+**** Return Value
+- =@NonNull String=: Formatted status message
+
+**** Usage Example
+#+BEGIN_SRC java
+// Health check endpoint
+@GetMapping("/health/infrastructure")
+public ResponseEntity<String> getInfrastructureHealth() {
+    String status = JavaedaInfrastructure.getStatus();
+    return ResponseEntity.ok(status);
+}
+#+END_SRC
+
+** Adapter Configuration Methods
+
+*** validateAdapterConfig(String, Object)
+#+BEGIN_SRC java
+public static void validateAdapterConfig(@NonNull final String adapterName, @NonNull final Object config) {
+    JavaedaFoundation.requireNonEmpty(adapterName, "adapterName");
+    JavaedaFoundation.requireNonNull(config, "adapterConfig");
+}
+#+END_SRC
+
+Validates adapter configuration ensuring proper naming and non-null configuration objects.
+
+**** Parameters
+- =adapterName=: The name of the adapter being configured
+- =config=: The configuration object for the adapter
+
+**** Exceptions
+- =IllegalArgumentException=: If adapter name is null/empty or config is null
+
+**** Usage Example
+#+BEGIN_SRC java
+public class DatabaseAdapter {
+    public DatabaseAdapter(String name, DatabaseConfig config) {
+        JavaedaInfrastructure.validateAdapterConfig(name, config);
+        this.name = name;
+        this.config = config;
+    }
+}
+#+END_SRC
+
+* Usage Patterns
+
+** Infrastructure Layer Initialization
+#+BEGIN_SRC java
+// Check infrastructure readiness before starting adapters
+@Component
+public class InfrastructureInitializer {
+    @EventListener
+    public void onApplicationReady(ApplicationReadyEvent event) {
+        if (JavaedaInfrastructure.isInfrastructureReady()) {
+            log.info("Starting infrastructure layer: {}", 
+                JavaedaInfrastructure.getLayerIdentifier());
+            startAdapters();
+        } else {
+            log.error("Cannot start infrastructure - layer not ready");
+        }
+    }
+}
+#+END_SRC
+
+** Adapter Registration and Validation
+#+BEGIN_SRC java
+// Adapter registry with validation
+@Service
+public class AdapterRegistry {
+    private final Map<String, Object> adapters = new ConcurrentHashMap<>();
+    
+    public void registerAdapter(String name, Object adapter, Object config) {
+        JavaedaInfrastructure.validateAdapterConfig(name, config);
+        adapters.put(name, adapter);
+        log.info("Registered adapter: {} with {}", name, 
+            JavaedaInfrastructure.getLayerIdentifier());
+    }
+}
+#+END_SRC
+
+** Health Monitoring Integration
+#+BEGIN_SRC java
+// Infrastructure health indicator
+@Component
+public class InfrastructureHealthIndicator implements HealthIndicator {
+    @Override
+    public Health health() {
+        if (JavaedaInfrastructure.isInfrastructureReady()) {
+            return Health.up()
+                .withDetail("layer", JavaedaInfrastructure.getLayerName())
+                .withDetail("identifier", JavaedaInfrastructure.getLayerIdentifier())
+                .withDetail("status", "Ready")
+                .build();
+        } else {
+            return Health.down()
+                .withDetail("layer", JavaedaInfrastructure.getLayerName())
+                .withDetail("reason", "Infrastructure layer not ready")
+                .build();
+        }
+    }
+}
+#+END_SRC
+
+* Integration Points
+
+** Domain Layer Integration
+The infrastructure layer maintains a clear dependency on the domain layer:
+
+#+BEGIN_SRC java
+// Infrastructure depends on domain being ready
+public static boolean isInfrastructureReady() {
+    return JavaedaFoundation.isInitialized(); // Domain layer check
+}
+#+END_SRC
+
+This ensures:
+- Domain-driven design principles are maintained
+- Infrastructure cannot start without a properly initialized domain
+- Clean architecture boundaries are enforced
+
+** Application Layer Integration
+The infrastructure layer is designed to support the application layer:
+
+#+BEGIN_SRC java
+// Application layer will check infrastructure readiness
+// Infrastructure provides utilities for adapter management
+// Clear separation of concerns maintained
+#+END_SRC
+
+** Logging Integration
+Infrastructure status can be included in structured logging:
+
+#+BEGIN_SRC java
+// Add infrastructure context to MDC
+MDC.put("layer", JavaedaInfrastructure.getLayerName());
+MDC.put("layer_status", JavaedaInfrastructure.isInfrastructureReady() ? "ready" : "not_ready");
+log.info("Processing infrastructure operation");
+#+END_SRC
+
+* Architectural Patterns
+
+** Port-Adapter Pattern Support
+The infrastructure layer is designed to support the hexagonal architecture pattern:
+
+#+BEGIN_SRC java
+// Example port definition (would be in domain)
+public interface EventStorePort {
+    void store(DomainEvent event);
+    List<DomainEvent> retrieve(String aggregateId);
+}
+
+// Example adapter implementation (in infrastructure)
+@Component
+public class DatabaseEventStoreAdapter implements EventStorePort {
+    public DatabaseEventStoreAdapter(DatabaseConfig config) {
+        JavaedaInfrastructure.validateAdapterConfig("DatabaseEventStore", config);
+        // ... initialization
+    }
+}
+#+END_SRC
+
+** Configuration Management
+Support for centralized configuration validation:
+
+#+BEGIN_SRC java
+// Configuration validator
+public class InfrastructureConfigValidator {
+    public void validateAll(Map<String, Object> adapterConfigs) {
+        adapterConfigs.forEach((name, config) -> 
+            JavaedaInfrastructure.validateAdapterConfig(name, config)
+        );
+    }
+}
+#+END_SRC
+
+* Error Handling Strategy
+
+** Consistent Validation
+Uses the same validation patterns as the domain layer:
+- Delegates to =JavaedaFoundation= for consistent error messages
+- Maintains the same fail-fast philosophy
+- Provides clear, actionable error information
+
+** Layer-Specific Errors
+Infrastructure-specific error handling:
+- Adapter configuration validation
+- External system connectivity issues
+- Resource availability checking
+
+* Future Enhancements
+
+** Planned Features
+- Dynamic adapter discovery and registration
+- Adapter health monitoring and circuit breaker patterns
+- Configuration hot-reloading support
+- Metrics collection for adapter performance
+- Integration with external service discovery systems
+
+** Extension Points
+- Pluggable adapter validation strategies
+- Custom health check implementations
+- Adapter lifecycle management hooks
+- Configuration source abstractions
+
+* Testing Strategy
+
+** Unit Test Coverage
+Infrastructure layer testing should cover:
+- Adapter configuration validation
+- Status reporting accuracy
+- Integration with domain layer
+- Error condition handling
+
+** Example Test Structure
+#+BEGIN_SRC java
+class JavaedaInfrastructureTest {
+    @Test
+    void shouldReturnCorrectLayerName() {
+        assertThat(JavaedaInfrastructure.getLayerName()).isEqualTo("Infrastructure");
+    }
+    
+    @Test
+    void shouldValidateAdapterConfiguration() {
+        assertThatThrownBy(() -> 
+            JavaedaInfrastructure.validateAdapterConfig("", new Object()))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
+    
+    @Test
+    void shouldReportReadyWhenDomainInitialized() {
+        // Given domain is initialized
+        // When checking infrastructure readiness
+        // Then should return true
+    }
+}
+#+END_SRC
+
+* Conclusion
+
+The =JavaedaInfrastructure= class provides essential foundation services for the infrastructure layer while maintaining strict architectural boundaries and dependency relationships. Its utility-focused design ensures consistent behavior across all infrastructure components while providing clear integration points for adapters and external systems.
