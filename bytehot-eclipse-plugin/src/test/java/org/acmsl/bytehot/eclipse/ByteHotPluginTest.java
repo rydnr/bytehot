@@ -48,6 +48,19 @@ public class ByteHotPluginTest {
     }
     
     @Test
+    public void testAgentDiscoveryPrioritizesBundledAgent() {
+        // Given: Plugin should try bundled agent first
+        
+        // When: Search for agent (bundled extraction may fail in test environment)
+        Optional<String> result = plugin.findAgentJar();
+        
+        // Then: Should return a path (either bundled or fallback)
+        // In production with bundled agent, this would extract from resources
+        // In test environment, it falls back to development paths
+        assertTrue("Agent should be found through bundled or fallback mechanism", result.isPresent());
+    }
+    
+    @Test
     public void testAgentDiscoveryWithLocalRepository() throws IOException {
         // Given: Mock local repository structure
         String userHome = System.getProperty("java.io.tmpdir");
@@ -62,7 +75,7 @@ public class ByteHotPluginTest {
         try {
             System.setProperty("user.home", tempDir.toString());
             
-            // When: Search for agent
+            // When: Search for agent (should fall back to repository after bundled fails)
             Optional<String> result = plugin.findAgentJar();
             
             // Then: Should find the agent

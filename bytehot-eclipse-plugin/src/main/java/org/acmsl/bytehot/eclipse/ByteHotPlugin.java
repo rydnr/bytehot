@@ -1,5 +1,9 @@
 package org.acmsl.bytehot.eclipse;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Optional;
 
 /**
@@ -72,12 +76,23 @@ public class ByteHotPlugin {
     
     /**
      * Discovers the ByteHot agent JAR file.
-     * Uses multiple search strategies similar to other plugins.
+     * First tries to extract bundled agent from plugin resources,
+     * then falls back to common locations for development.
      */
     public Optional<String> findAgentJar() {
-        String userHome = System.getProperty("user.home");
+        // First try to extract bundled agent from plugin resources
+        try {
+            String bundledAgentPath = extractBundledAgent();
+            if (bundledAgentPath != null) {
+                return Optional.of(bundledAgentPath);
+            }
+        } catch (Exception e) {
+            // Log error but continue to fallback search
+            logError("Failed to extract bundled agent: " + e.getMessage());
+        }
         
-        // Strategy 1: Local Maven repository
+        // Fallback 1: Local Maven repository (for development)
+        String userHome = System.getProperty("user.home");
         if (userHome != null) {
             String localRepoPath = userHome + "/.m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT/bytehot-application-latest-SNAPSHOT-agent.jar";
             if (fileExists(localRepoPath)) {
@@ -85,19 +100,55 @@ public class ByteHotPlugin {
             }
         }
         
-        // Strategy 2: Current workspace relative path
+        // Fallback 2: Current workspace relative path (for development)
         String workspacePath = System.getProperty("user.dir") + "/bytehot-application/target/bytehot-application-latest-SNAPSHOT-agent.jar";
         if (fileExists(workspacePath)) {
             return Optional.of(workspacePath);
         }
         
-        // Strategy 3: Current directory
+        // Fallback 3: Current directory (for development)
         String currentDirPath = System.getProperty("user.dir") + "/bytehot-application-latest-SNAPSHOT-agent.jar";
         if (fileExists(currentDirPath)) {
             return Optional.of(currentDirPath);
         }
         
         return Optional.empty();
+    }
+    
+    /**
+     * Extracts the bundled ByteHot agent JAR from plugin resources to a temporary file.
+     * @return path to extracted agent JAR or null if not found
+     */
+    protected String extractBundledAgent() throws IOException {
+        String agentResourcePath = "/agents/bytehot-application-agent.jar";
+        
+        // Try to load the bundled agent from plugin resources
+        InputStream agentStream = this.getClass().getResourceAsStream(agentResourcePath);
+        if (agentStream == null) {
+            return null;
+        }
+        
+        try {
+            // Create temporary file
+            String tempDir = System.getProperty("java.io.tmpdir");
+            File tempFile = new File(tempDir, "bytehot-agent-" + System.currentTimeMillis() + ".jar");
+            
+            // Copy resource to temporary file
+            try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = agentStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+            
+            // Mark for deletion on exit
+            tempFile.deleteOnExit();
+            
+            return tempFile.getAbsolutePath();
+        } finally {
+            agentStream.close();
+        }
     }
     
     /**
