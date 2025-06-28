@@ -71,6 +71,7 @@ From a code standpoint, a "Port" is an interface in the Domain layer, and an "Ad
 
 ### Dependency Management
 - Use maven-enforcer-plugin to ensure bytehot-domain can only depend on java-commons and not on other libraries that serialize to xml or json, for example.
+- Child poms cannot define versions for dependencies, only parent pom can, in the `<dependencyManagement>` section.
 
 ### CI/CD Workflows
 - CI/CD workflows shouldn't create complete documents on the fly. Instead, they should convert existing files and do certain transformations on them if necessary. Exceptions are headers and footers, css, javascript, or index files.

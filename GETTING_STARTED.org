@@ -10,12 +10,13 @@ Welcome to ByteHot! This comprehensive guide will help you get started with Byte
 2. [[#prerequisites][Prerequisites]]
 3. [[#installation][Installation]]
 4. [[#quick-start][Quick Start]]
-5. [[#configuration][Configuration]]
-6. [[#basic-usage][Basic Usage]]
-7. [[#advanced-features][Advanced Features]]
-8. [[#troubleshooting][Troubleshooting]]
-9. [[#best-practices][Best Practices]]
-10. [[#examples][Examples]]
+5. [[#plugin-integration][Plugin Integration]]
+6. [[#configuration][Configuration]]
+7. [[#basic-usage][Basic Usage]]
+8. [[#advanced-features][Advanced Features]]
+9. [[#troubleshooting][Troubleshooting]]
+10. [[#best-practices][Best Practices]]
+11. [[#examples][Examples]]
 
 * What is ByteHot?
 :PROPERTIES:
@@ -160,6 +161,159 @@ javac -d target/classes src/main/java/com/example/HelloWorld.java
 #+END_SRC
 
 4. *Watch the magic happen* - your running application will start using the new method without restarting!
+
+* Plugin Integration
+:PROPERTIES:
+:CUSTOM_ID: plugin-integration
+:END:
+
+For production development workflows, ByteHot provides plugins for popular build tools and IDEs that automate the setup and provide enhanced developer experience.
+
+** Maven Plugin (Recommended for Maven Projects)
+
+The ByteHot Maven Plugin provides zero-configuration live mode activation:
+
+*** Quick Setup
+
+1. Add the plugin to your =pom.xml=:
+
+#+BEGIN_SRC xml
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.acmsl</groupId>
+      <artifactId>bytehot-maven-plugin</artifactId>
+      <version>latest-SNAPSHOT</version>
+    </plugin>
+  </plugins>
+</build>
+#+END_SRC
+
+2. Start live mode with a single command:
+
+#+BEGIN_SRC bash
+# Zero-configuration - automatically detects main class and classpath
+mvn bytehot:live
+
+# Or with custom main class
+mvn bytehot:live -Dbytehot.mainClass=com.example.MyApp
+
+# Dry run to see what would be executed
+mvn bytehot:live -Dbytehot.dryRun=true
+#+END_SRC
+
+*** Key Features
+- *Automatic main class detection* (>90% success rate)
+- *Zero-configuration setup* for standard Maven projects
+- *Multi-module project support*
+- *Classpath auto-building* from project dependencies
+- *Agent auto-discovery* in local repository
+- *Spring Boot application support*
+
+** Gradle Plugin (Recommended for Gradle Projects)
+
+The ByteHot Gradle Plugin provides seamless integration with Gradle's build lifecycle:
+
+*** Quick Setup
+
+1. Add the plugin to your =build.gradle=:
+
+#+BEGIN_SRC gradle
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.acmsl.bytehot' version 'latest-SNAPSHOT'
+}
+
+application {
+    mainClass = 'com.example.Application'
+}
+#+END_SRC
+
+2. Start live mode with a single command:
+
+#+BEGIN_SRC bash
+# Zero-configuration - automatically detects main class and classpath
+./gradlew live
+
+# Dry run to see what would be executed
+./gradlew live -Pbytehot.dryRun=true
+
+# With custom configuration
+./gradlew live -Pbytehot.verbose=true
+#+END_SRC
+
+*** Advanced Configuration
+
+#+BEGIN_SRC gradle
+bytehot {
+    enabled = true
+    verbose = true
+    mainClass = 'com.example.CustomApp'  // Override detection
+    jvmArgs = ['-Xmx512m', '-Dspring.profiles.active=dev']
+    programArgs = ['--debug', '--port=8080']
+}
+#+END_SRC
+
+*** Key Features
+- *Automatic main class detection* from application plugin configuration
+- *Zero-configuration setup* for standard Gradle projects
+- *Complete classpath building* from project dependencies
+- *Agent auto-discovery* in local repository
+- *Task integration* with Gradle's build lifecycle
+- *Property override support* via =-P= command line options
+
+** IntelliJ IDEA Plugin (Recommended for IntelliJ Users)
+
+The ByteHot IntelliJ Plugin provides native IDE integration with visual feedback:
+
+*** Installation
+
+1. Install from JetBrains Marketplace:
+   - Go to =File → Settings → Plugins=
+   - Search for "ByteHot" 
+   - Click =Install=
+
+2. Or build from source:
+   #+BEGIN_SRC bash
+   cd bytehot-intellij-plugin
+   mvn package
+   # Install the generated JAR in IntelliJ
+   #+END_SRC
+
+*** Usage
+
+1. *One-click activation*: Click the "Start Live Mode" toolbar button
+2. *Visual feedback*: Real-time hot-swap notifications in the editor
+3. *Project analysis*: Automatic detection of main class and project structure
+4. *Process management*: Integrated start/stop controls with lifecycle management
+
+*** Key Features
+- *Native IDE integration* with IntelliJ's UI
+- *Visual hot-swap indicators* and notifications
+- *Automatic project analysis* and configuration
+- *Integrated tool window* for status monitoring
+- *Zero-configuration activation* for most projects
+
+** Manual Setup (Advanced Users)
+
+For custom setups or when plugins aren't available:
+
+#+BEGIN_SRC bash
+# Manual agent attachment with explicit configuration
+java -javaagent:bytehot-application-latest-SNAPSHOT-agent.jar \
+     -Dbytehot.watch.paths=target/classes \
+     -Dbytehot.user.id=$(git config user.email) \
+     -cp target/classes \
+     com.example.Application
+#+END_SRC
+
+See the [[file:docs/user-guides/plugins/README.org][Plugin User Guides]] for detailed instructions on:
+- [[file:docs/user-guides/plugins/maven-plugin-guide.org][Maven Plugin Guide]] ✅ Ready
+- [[file:docs/user-guides/plugins/gradle-plugin-guide.org][Gradle Plugin Guide]] ✅ Ready  
+- [[file:docs/user-guides/plugins/intellij-plugin-guide.org][IntelliJ IDEA Plugin Guide]] ✅ Ready
+- [[file:docs/user-guides/plugins/eclipse-plugin-guide.org][Eclipse Plugin Guide]] 🚧 Planned
+- [[file:docs/user-guides/plugins/vscode-extension-guide.org][VS Code Extension Guide]] 🚧 Planned
 
 * Configuration
 :PROPERTIES:

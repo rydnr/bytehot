@@ -26,7 +26,7 @@ The ByteHot IntelliJ IDEA Plugin provides seamless integration between IntelliJ 
 
 ** Installation Methods
 
-*** Method 1: JetBrains Marketplace
+*** Method 1: JetBrains Marketplace (Future Release)
 
 1. Open IntelliJ IDEA
 2. Go to =File → Settings → Plugins= (or =IntelliJ IDEA → Preferences → Plugins= on macOS)
@@ -35,44 +35,75 @@ The ByteHot IntelliJ IDEA Plugin provides seamless integration between IntelliJ 
 5. Click =Install= next to the ByteHot plugin
 6. Restart IntelliJ IDEA when prompted
 
-*** Method 2: Manual Installation
+*** Method 2: Development Build (Current)
 
-1. Download the plugin JAR from [[https://github.com/rydnr/bytehot/releases][ByteHot Releases]]
-2. Open IntelliJ IDEA
-3. Go to =File → Settings → Plugins=
-4. Click the gear icon and select =Install Plugin from Disk=
-5. Select the downloaded JAR file
-6. Restart IntelliJ IDEA
+Build and install the plugin from source:
 
-*** Method 3: Development Build
+#+BEGIN_SRC bash
+# Clone the ByteHot repository
+git clone https://github.com/rydnr/bytehot.git
+cd bytehot
 
-For the latest development version:
+# Build the IntelliJ plugin
+cd bytehot-intellij-plugin
+mvn package
 
-1. Clone the ByteHot repository
-2. Build the plugin:
-   #+BEGIN_SRC bash
-   ./gradlew :bytehot-intellij-plugin:buildPlugin
-   #+END_SRC
-3. Install the generated plugin from =bytehot-intellij-plugin/build/distributions/=
+# The plugin JAR will be in target/
+ls target/bytehot-intellij-plugin-*.jar
+#+END_SRC
+
+Manual installation:
+1. Open IntelliJ IDEA
+2. Go to =File → Settings → Plugins=
+3. Click the gear icon and select =Install Plugin from Disk=
+4. Select =target/bytehot-intellij-plugin-latest-SNAPSHOT.jar=
+5. Restart IntelliJ IDEA
+
+*** Method 3: GitHub Releases (Future)
+
+Download pre-built plugin JARs from GitHub Releases when available.
 
 * Getting Started
 
-** Initial Setup
+** Quick Start with Live Mode Action
 
-After installation, you'll see the ByteHot tool window in the IDE:
+The ByteHot IntelliJ Plugin provides zero-configuration live mode activation:
 
-1. **Open the ByteHot Tool Window**:
-   - Go to =View → Tool Windows → ByteHot=
-   - Or click the ByteHot tab (usually at the bottom)
+1. **Install the plugin** (see Installation section above)
 
-2. **Configure Connection**:
-   - Click the "Configure" button in the tool window
-   - Set the agent host and port (default: localhost:8080)
-   - Click "Test Connection" to verify
+2. **One-click activation**:
+   - Look for the "Start Live Mode" button in the toolbar
+   - Or use =Tools → ByteHot → Start Live Mode= from the menu
+   - The plugin automatically detects your project structure and main class
 
-3. **Start Monitoring**:
-   - Click the "Start Watching" button
-   - The plugin will begin monitoring your project for changes
+3. **Watch the magic**:
+   - Plugin automatically discovers the ByteHot agent
+   - Launches your application with agent attached
+   - Provides visual feedback for hot-swap operations
+
+** What Happens Automatically
+
+When you click "Start Live Mode":
+
+1. *Project Analysis*: Automatically scans your project to detect:
+   - Main class (using Spring Boot detection, Maven exec plugin, or bytecode scanning)
+   - Source directories and compiled classes
+   - Project classpath and dependencies
+
+2. *Agent Discovery*: Searches for ByteHot agent in:
+   - Local Maven repository (~/.m2/repository)
+   - Project target directory (bytehot-application/target)
+   - Current working directory
+
+3. *Process Launch*: Starts your application with:
+   - Proper classpath from project analysis
+   - ByteHot agent attached via -javaagent
+   - JVM arguments if configured
+
+4. *Visual Feedback*: Provides real-time notifications for:
+   - Live mode start/stop status
+   - Hot-swap operations success/failure
+   - Connection status to running application
 
 ** Quick Start Tutorial
 

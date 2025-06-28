@@ -4,16 +4,18 @@
 
 * Overview
 
-The ByteHot Gradle Plugin brings hot-swapping capabilities to your Gradle-based Java projects. This plugin integrates seamlessly with Gradle's build system to provide real-time bytecode updates without application restarts.
+The ByteHot Gradle Plugin provides zero-configuration live mode activation for Gradle projects. This plugin integrates seamlessly with Gradle's build lifecycle to provide automatic main class detection, classpath building, and ByteHot agent discovery.
 
 ** Key Features
 
-- Native Gradle task integration
+- Zero-configuration live mode activation (=./gradlew live=)
+- Automatic main class detection from application plugin
+- Complete classpath building from project dependencies
+- ByteHot agent auto-discovery in local repository
+- Task integration with Gradle's build lifecycle
+- Property override support via =-P= command line options
+- Dry run mode for configuration analysis
 - Kotlin DSL and Groovy DSL support
-- Multi-project build support
-- Incremental compilation integration
-- Android project support
-- Build cache compatibility
 
 * Installation
 
@@ -21,127 +23,162 @@ The ByteHot Gradle Plugin brings hot-swapping capabilities to your Gradle-based 
 
 - Java 17 or higher
 - Gradle 7.6 or higher
-- A running Java application with ByteHot agent attached
+- ByteHot agent JAR available (auto-discovered)
 
-** Using the Plugins Block (Recommended)
+** Quick Setup
 
-Add to your =build.gradle= (Groovy DSL):
+1. Add to your =build.gradle= (Groovy DSL):
 
 #+BEGIN_SRC groovy
 plugins {
+    id 'java'
+    id 'application'
     id 'org.acmsl.bytehot' version 'latest-SNAPSHOT'
 }
+
+application {
+    mainClass = 'com.example.Application'
+}
 #+END_SRC
 
-Or =build.gradle.kts= (Kotlin DSL):
+2. Or =build.gradle.kts= (Kotlin DSL):
 
 #+BEGIN_SRC kotlin
 plugins {
+    java
+    application
     id("org.acmsl.bytehot") version "latest-SNAPSHOT"
 }
+
+application {
+    mainClass.set("com.example.Application")
+}
 #+END_SRC
 
-** Legacy Plugin Application
+* Usage
 
-For older Gradle versions, use the legacy syntax:
+** Zero-Configuration (Recommended)
+
+The plugin works with zero configuration for standard Gradle projects:
+
+#+BEGIN_SRC bash
+# Zero-configuration live mode
+./gradlew live
+
+# Dry run to see configuration analysis
+./gradlew live -Pbytehot.dryRun=true
+
+# Enable verbose output
+./gradlew live -Pbytehot.verbose=true
+#+END_SRC
+
+The plugin automatically:
+- *Detects main class* from application plugin configuration
+- *Builds complete classpath* from project dependencies  
+- *Discovers ByteHot agent* in local Maven repository
+- *Launches application* with proper agent attachment
+
+** Main Class Detection
+
+The plugin uses multiple strategies for main class detection:
+
+1. *Application Plugin Configuration*: Checks =application.mainClass= setting
+2. *Build File Parsing*: Searches for =mainClass= or =mainClassName= in build files
+3. *Source Code Scanning*: Scans source directories for =public static void main= methods
 
 #+BEGIN_SRC groovy
-buildscript {
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'org.acmsl:bytehot-gradle-plugin:latest-SNAPSHOT'
-    }
+// Explicit main class configuration
+application {
+    mainClass = 'com.example.MyApplication'
 }
 
-apply plugin: 'org.acmsl.bytehot'
+// Plugin will auto-detect this configuration
 #+END_SRC
 
-* Configuration
+** Configuration Options
 
-** Basic Configuration (Groovy DSL)
+All configuration is optional with sensible defaults:
 
 #+BEGIN_SRC groovy
 bytehot {
-    // Agent connection settings
-    agentHost = 'localhost'
-    agentPort = 8080
-    
-    // Monitoring configuration
-    watchPaths = ['src/main/java', 'src/main/kotlin', 'src/main/resources']
-    watchInterval = 1000
-    
-    // File patterns
-    includes = ['**/*.java', '**/*.kt', '**/*.class']
-    excludes = ['**/test/**', '**/build/**']
-    
-    // Hot-swap behavior
-    hotSwapEnabled = true
-    autoRecompile = true
-    
-    // Build integration
-    incrementalCompilation = true
-    parallelExecution = true
+    enabled = true                    // Enable/disable plugin
+    verbose = false                   // Enable verbose output  
+    dryRun = false                   // Show configuration without execution
+    mainClass = 'com.example.App'    // Override main class detection
+    agentPath = '/path/to/agent.jar' // Override agent discovery
+    jvmArgs = ['-Xmx512m', '-Dspring.profiles.active=dev']
+    programArgs = ['--debug', '--port=8080']
+    watchPaths = ['src/main/java', 'src/main/kotlin']
 }
 #+END_SRC
 
-** Basic Configuration (Kotlin DSL)
+** Kotlin DSL Configuration
 
 #+BEGIN_SRC kotlin
 bytehot {
-    // Agent connection settings
-    agentHost.set("localhost")
-    agentPort.set(8080)
-    
-    // Monitoring configuration
-    watchPaths.set(listOf("src/main/java", "src/main/kotlin", "src/main/resources"))
-    watchInterval.set(1000)
-    
-    // File patterns
-    includes.set(listOf("**/*.java", "**/*.kt", "**/*.class"))
-    excludes.set(listOf("**/test/**", "**/build/**"))
-    
-    // Hot-swap behavior
-    hotSwapEnabled.set(true)
-    autoRecompile.set(true)
-    
-    // Build integration
-    incrementalCompilation.set(true)
-    parallelExecution.set(true)
+    enabled = true
+    verbose = false
+    dryRun = false
+    mainClass = "com.example.App"
+    agentPath = "/path/to/agent.jar"
+    jvmArgs = listOf("-Xmx512m", "-Dspring.profiles.active=dev")
+    programArgs = listOf("--debug", "--port=8080")
+    watchPaths = listOf("src/main/java", "src/main/kotlin")
 }
 #+END_SRC
 
-** Advanced Configuration
+** Command Line Property Overrides
+
+Override configuration via command line properties:
+
+#+BEGIN_SRC bash
+# Disable plugin
+./gradlew live -Pbytehot.enabled=false
+
+# Enable verbose mode
+./gradlew live -Pbytehot.verbose=true
+
+# Dry run mode
+./gradlew live -Pbytehot.dryRun=true
+#+END_SRC
+
+** Spring Boot Integration
+
+The plugin works seamlessly with Spring Boot projects:
 
 #+BEGIN_SRC groovy
-bytehot {
-    // Connection settings
-    agent {
-        host = 'localhost'
-        port = 8080
-        timeout = 5000
-        retryAttempts = 3
-        retryDelay = 1000
-    }
-    
-    // File monitoring
-    fileWatcher {
-        paths = ['src/main/java', 'src/main/kotlin']
-        interval = 500
-        useNativeWatcher = true
-        
-        includes = ['**/*.java', '**/*.kt']
-        excludes = ['**/test/**', '**/*Test*']
-    }
-    
-    // Compilation settings
-    compilation {
-        auto = true
-        incremental = true
-        parallel = true
-        maxWorkers = Runtime.runtime.availableProcessors()
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.7.0'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'org.acmsl.bytehot' version 'latest-SNAPSHOT'
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+}
+
+// No additional configuration needed!
+// Plugin auto-detects Spring Boot main class
+#+END_SRC
+
+* Advanced Usage
+
+** Multi-Module Projects
+
+For multi-module projects, apply the plugin to the modules containing main classes:
+
+#+BEGIN_SRC groovy
+// In subproject build.gradle
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.acmsl.bytehot' version 'latest-SNAPSHOT'
+}
+
+application {
+    mainClass = 'com.example.SubModuleApp'
+}
         
         // Custom compiler options
         javaCompilerArgs = ['-parameters', '-Xlint:unchecked']

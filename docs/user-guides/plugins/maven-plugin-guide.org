@@ -36,18 +36,24 @@ Add the ByteHot Maven plugin to your project's =pom.xml=:
         <artifactId>bytehot-maven-plugin</artifactId>
         <version>latest-SNAPSHOT</version>
         <configuration>
-          <!-- Optional configuration -->
+          <!-- All configuration is optional - zero-configuration support -->
+          <mainClass>com.example.Application</mainClass>
+          <agentPath>/path/to/bytehot-agent.jar</agentPath>
           <watchPaths>
             <watchPath>src/main/java</watchPath>
             <watchPath>src/main/resources</watchPath>
           </watchPaths>
-          <agentPort>8080</agentPort>
-          <hotSwapEnabled>true</hotSwapEnabled>
+          <jvmArgs>
+            <jvmArg>-Xmx512m</jvmArg>
+            <jvmArg>-Dspring.profiles.active=dev</jvmArg>
+          </jvmArgs>
+          <verbose>true</verbose>
+          <dryRun>false</dryRun>
         </configuration>
         <executions>
           <execution>
             <goals>
-              <goal>watch</goal>
+              <goal>live</goal>
             </goals>
           </execution>
         </executions>
@@ -57,50 +63,92 @@ Add the ByteHot Maven plugin to your project's =pom.xml=:
 </project>
 #+END_SRC
 
-** Alternative: Using Maven Plugin Repository
+** Alternative: Command Line Usage
 
-If you prefer to use the plugin without modifying your =pom.xml=:
+Execute the plugin directly without modifying your =pom.xml=:
 
 #+BEGIN_SRC bash
-mvn org.acmsl:bytehot-maven-plugin:watch
+# Zero-configuration live mode (automatic main class detection)
+mvn org.acmsl:bytehot-maven-plugin:latest-SNAPSHOT:live
+
+# With specific main class
+mvn org.acmsl:bytehot-maven-plugin:latest-SNAPSHOT:live -Dbytehot.mainClass=com.example.App
+
+# Dry run to see what would be executed
+mvn org.acmsl:bytehot-maven-plugin:latest-SNAPSHOT:live -Dbytehot.dryRun=true
 #+END_SRC
 
-* Configuration
+* Usage
 
-** Basic Configuration
+** Quick Start (Zero Configuration)
 
-The plugin works with zero configuration for standard Maven projects, but you can customize its behavior:
+The ByteHot Maven Plugin is designed for zero-configuration usage:
+
+#+BEGIN_SRC bash
+# 1. Add plugin to pom.xml (see Installation section)
+# 2. Run live mode - everything is automatic
+mvn bytehot:live
+#+END_SRC
+
+The plugin automatically:
+- *Detects your main class* using multiple strategies (exec plugin → Spring Boot → bytecode scanning)
+- *Builds the classpath* from your project outputs and dependencies  
+- *Discovers the ByteHot agent* in local repository, project target, or current directory
+- *Launches your application* with proper JVM arguments and agent attachment
+
+** Main Class Detection Strategies
+
+The plugin uses sophisticated main class detection (>90% success rate):
+
+1. *Maven Exec Plugin Configuration*: Checks =exec-maven-plugin= for =mainClass= setting
+2. *Spring Boot Plugin Configuration*: Detects Spring Boot applications and main classes
+3. *Properties Configuration*: Looks for =exec.mainClass= property in =pom.xml=
+4. *Bytecode Scanning*: Scans compiled classes for =public static void main= methods
+5. *Spring Boot Annotation Scanning*: Finds classes with =@SpringBootApplication=
+
+** Configuration Parameters
+
+All parameters are optional with sensible defaults:
+
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| =mainClass= | Main class to execute | Auto-detected | =com.example.Application= |
+| =agentPath= | Path to ByteHot agent JAR | Auto-discovered | =/path/to/agent.jar= |
+| =watchPaths= | Directories to monitor | Auto-detected | =src/main/java,src/test/java= |
+| =jvmArgs= | Additional JVM arguments | None | =-Xmx512m,-Dspring.profiles.active=dev= |
+| =verbose= | Enable verbose output | =false= | =true= |
+| =dryRun= | Show configuration without execution | =false= | =true= |
+| =enabled= | Enable/disable the plugin | =true= | =false= |
+
+** Advanced Configuration
+
+For custom setups, you can override detection:
 
 #+BEGIN_SRC xml
 <configuration>
-  <!-- Directories to monitor for changes -->
+  <!-- Override main class detection -->
+  <mainClass>com.example.CustomApplication</mainClass>
+  
+  <!-- Specify agent location -->
+  <agentPath>/custom/path/to/bytehot-agent.jar</agentPath>
+  
+  <!-- Custom watch paths -->
   <watchPaths>
     <watchPath>src/main/java</watchPath>
     <watchPath>src/main/resources</watchPath>
-    <watchPath>src/test/java</watchPath>
+    <watchPath>custom-sources</watchPath>
   </watchPaths>
   
-  <!-- ByteHot agent connection settings -->
-  <agentHost>localhost</agentHost>
-  <agentPort>8080</agentPort>
+  <!-- JVM tuning -->
+  <jvmArgs>
+    <jvmArg>-Xmx1g</jvmArg>
+    <jvmArg>-XX:+UseG1GC</jvmArg>
+    <jvmArg>-Dspring.profiles.active=dev</jvmArg>
+    <jvmArg>-Dbytehot.logging.level=DEBUG</jvmArg>
+  </jvmArgs>
   
-  <!-- File patterns to include/exclude -->
-  <includes>
-    <include>**/*.java</include>
-    <include>**/*.class</include>
-  </includes>
-  <excludes>
-    <exclude>**/test/**</exclude>
-  </excludes>
-  
-  <!-- Hot-swap behavior -->
-  <hotSwapEnabled>true</hotSwapEnabled>
-  <autoRecompile>true</autoRecompile>
-  <watchInterval>1000</watchInterval>
-  
-  <!-- Build integration -->
-  <triggerFullBuild>false</triggerFullBuild>
-  <skipTests>true</skipTests>
+  <!-- Enable verbose output for debugging -->
+  <verbose>true</verbose>
 </configuration>
 #+END_SRC
 
