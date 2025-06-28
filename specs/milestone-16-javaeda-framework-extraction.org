@@ -1,0 +1,1492 @@
+#+TITLE: Milestone 16: JavaEDA Framework Extraction
+#+AUTHOR: ByteHot Development Team
+#+DATE: [2025-06-27]
+#+DESCRIPTION: Extract DDD/Hexagonal/EDA patterns from ByteHot into a reusable framework
+
+* Executive Summary
+
+This milestone defines the extraction of ByteHot's sophisticated Domain-Driven Design (DDD), Hexagonal Architecture, and Event-Driven Architecture (EDA) patterns into a reusable framework called **JavaEDA**. The framework will consist of three modules (`javaeda-domain`, `javaeda-infrastructure`, `javaeda-application`) that enable rapid development of event-driven Java applications while maintaining strict architectural boundaries and minimizing boilerplate code.
+
+** Objectives
+
+*** Primary Goals
+- Extract reusable DDD/Hexagonal/EDA patterns from ByteHot into framework modules
+- Create three distinct modules with clear separation of concerns and unbreakable layer boundaries  
+- Enable new applications to be built with minimal boilerplate while maintaining architectural integrity
+- Provide migration path for existing ByteHot functionality to use the framework
+- Establish foundation for future Java applications regardless of domain (agents, backend, mobile)
+
+*** Success Criteria
+- New applications can be created with <50 lines of domain-specific code for basic event-driven functionality
+- Layer boundaries are enforced at compile time through Maven module dependencies
+- Framework adds <10% performance overhead compared to hand-coded solutions
+- Migration path exists for ByteHot to adopt the framework incrementally
+- Built-in testing support reduces test code by 60% compared to manual event testing
+
+* Current State Analysis
+
+** ByteHot's Architectural Excellence
+
+*** Domain-Driven Design Implementation
+- Rich domain model with 40+ domain events capturing business semantics
+- Clear aggregate boundaries and entity lifecycle management
+- Value objects for type safety and business rule enforcement
+- Domain services for cross-aggregate coordination
+
+*** Hexagonal Architecture Implementation
+- Clean separation between domain, application, and infrastructure layers
+- Port-Adapter pattern with dynamic adapter discovery and injection
+- Infrastructure adapters isolated from domain logic
+- Configurable adapter implementations (file system, event emission, configuration)
+
+*** Event-Driven Architecture Implementation
+- Comprehensive event sourcing with metadata and versioning
+- Command and Event buses with async processing support
+- Event-driven testing framework with Given-When-Then patterns
+- Event store abstraction with multiple backend support
+
+** Framework Extraction Opportunities
+
+*** Reusable Patterns Identified
+| Pattern Category | ByteHot Implementation | Framework Potential |
+|------------------|------------------------|-------------------|
+| Event Infrastructure | DomainEvent hierarchy, metadata, versioning | ✓ High - Core framework foundation |
+| Event/Command Buses | In-memory implementations with async support | ✓ High - Essential coordination patterns |
+| Event Sourcing | Store abstraction, serialization, aggregates | ✓ High - Complete event sourcing framework |
+| Testing Framework | Event-driven BDD testing with capture/assertion | ✓ High - Developer productivity multiplier |
+| Hexagonal Architecture | Port/Adapter with dynamic discovery | ✓ High - Clean architecture enforcement |
+| Application Orchestration | Event-driven application lifecycle | ✓ Medium - Reduces application boilerplate |
+| Configuration Management | Multi-source hierarchical configuration | ✓ Medium - Already extracted in infrastructure |
+| Error Handling | Event-driven error recovery and resilience | ✓ Medium - Operational reliability patterns |
+
+* Framework Architecture Design
+
+** Module Structure and Dependencies
+
+*** Dependency Hierarchy
+#+begin_example
+┌─────────────────────────────────────┐
+│           javaeda-application       │
+│    ┌─────────────────────────────┐  │
+│    │      javaeda-infrastructure │  │
+│    │    ┌─────────────────────┐  │  │
+│    │    │    javaeda-domain   │  │  │
+│    │    │  • Events          │  │  │
+│    │    │  • Aggregates      │  │  │
+│    │    │  • Commands        │  │  │
+│    │    │  • Ports           │  │  │
+│    │    └─────────────────────┘  │  │
+│    │  • Event Stores             │  │
+│    │  • Message Buses            │  │
+│    │  • Configuration           │  │
+│    └─────────────────────────────┘  │
+│  • Application Orchestration       │
+│  • Adapter Discovery               │
+│  • Testing Framework               │
+└─────────────────────────────────────┘
+#+end_example
+
+*** Maven Module Configuration
+#+begin_src xml
+<!-- Root POM modules -->
+<modules>
+    <module>javaeda-domain</module>
+    <module>javaeda-infrastructure</module>
+    <module>javaeda-application</module>
+    <!-- Existing modules -->
+    <module>java-commons</module>
+    <module>java-commons-infrastructure</module>
+    <module>bytehot-domain</module>
+    <module>bytehot-application</module>
+    <module>bytehot-infrastructure</module>
+</modules>
+
+<!-- Dependency management for framework -->
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.acmsl</groupId>
+            <artifactId>javaeda-domain</artifactId>
+            <version>latest-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.acmsl</groupId>
+            <artifactId>javaeda-infrastructure</artifactId>
+            <version>latest-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.acmsl</groupId>
+            <artifactId>javaeda-application</artifactId>
+            <version>latest-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+#+end_src
+
+** Layer Boundary Enforcement
+
+*** Compile-Time Dependency Rules
+#+begin_src xml
+<!-- javaeda-domain POM - Zero external dependencies -->
+<dependencies>
+    <!-- Only minimal JVM dependencies -->
+    <dependency>
+        <groupId>org.checkerframework</groupId>
+        <artifactId>checker-qual</artifactId>
+    </dependency>
+</dependencies>
+
+<!-- javaeda-infrastructure POM - Only domain dependency -->
+<dependencies>
+    <dependency>
+        <groupId>org.acmsl</groupId>
+        <artifactId>javaeda-domain</artifactId>
+    </dependency>
+    <!-- Infrastructure libraries (Jackson, message buses, etc.) -->
+</dependencies>
+
+<!-- javaeda-application POM - Framework orchestration -->
+<dependencies>
+    <dependency>
+        <groupId>org.acmsl</groupId>
+        <artifactId>javaeda-domain</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.acmsl</groupId>
+        <artifactId>javaeda-infrastructure</artifactId>
+    </dependency>
+</dependencies>
+#+end_src
+
+*** Architecture Validation Rules
+#+begin_src xml
+<!-- Maven Enforcer Plugin Rules -->
+<plugin>
+    <artifactId>maven-enforcer-plugin</artifactId>
+    <executions>
+        <execution>
+            <id>enforce-architecture-boundaries</id>
+            <goals><goal>enforce</goal></goals>
+            <configuration>
+                <rules>
+                    <!-- javaeda-domain: No infrastructure dependencies -->
+                    <bannedDependencies>
+                        <excludes>
+                            <exclude>org.springframework:*</exclude>
+                            <exclude>com.fasterxml.jackson.core:*</exclude>
+                            <exclude>org.apache.kafka:*</exclude>
+                        </excludes>
+                    </bannedDependencies>
+                    <!-- Prevent circular dependencies -->
+                    <dependencyConvergence/>
+                </rules>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+#+end_src
+
+* JavaEDA Domain Module (javaeda-domain)
+
+** Core Event Infrastructure
+
+*** Base Event Contracts
+#+begin_src java
+// Extracted and enhanced from ByteHot's event system
+package org.acmsl.javaeda.domain.events;
+
+/**
+ * Marker interface for all domain events in JavaEDA applications.
+ * Events represent facts about what has happened in the domain.
+ */
+public interface DomainEvent {
+    /**
+     * Returns the unique identifier for this event.
+     * @return event ID
+     */
+    String getEventId();
+    
+    /**
+     * Returns when this event occurred.
+     * @return event timestamp
+     */
+    Instant getOccurredAt();
+    
+    /**
+     * Returns the type of aggregate that generated this event.
+     * @return aggregate type
+     */
+    String getAggregateType();
+    
+    /**
+     * Returns the ID of the aggregate that generated this event.
+     * @return aggregate ID
+     */
+    String getAggregateId();
+}
+
+/**
+ * Enhanced domain event with full event sourcing metadata.
+ * Extracted from ByteHot's VersionedDomainEvent patterns.
+ */
+public interface VersionedDomainEvent extends DomainEvent {
+    /**
+     * Returns the version of this event within the aggregate stream.
+     * @return event version
+     */
+    long getVersion();
+    
+    /**
+     * Returns correlation ID for tracking related events.
+     * @return correlation ID
+     */
+    String getCorrelationId();
+    
+    /**
+     * Returns causation ID linking to the event that caused this one.
+     * @return causation ID, or null if this is a root event
+     */
+    String getCausationId();
+    
+    /**
+     * Returns the user context when this event occurred.
+     * @return user context
+     */
+    UserContext getUserContext();
+    
+    /**
+     * Returns the schema version for this event type.
+     * @return schema version
+     */
+    String getSchemaVersion();
+}
+
+/**
+ * Response events that reference a preceding event.
+ * Extracted from ByteHot's DomainResponseEvent pattern.
+ */
+public interface DomainResponseEvent<T extends DomainEvent> extends VersionedDomainEvent {
+    /**
+     * Returns the event that triggered this response.
+     * @return triggering event
+     */
+    T getTriggeringEvent();
+    
+    /**
+     * Returns whether this response indicates success or failure.
+     * @return true if successful, false if failed
+     */
+    boolean isSuccess();
+}
+#+end_src
+
+*** Event Metadata Framework
+#+begin_src java
+// Enhanced from ByteHot's EventMetadata
+package org.acmsl.javaeda.domain.events;
+
+/**
+ * Comprehensive event metadata for event sourcing.
+ * Extracted and enhanced from ByteHot's EventMetadata.
+ */
+@Value
+@Builder
+public class EventMetadata {
+    @NonNull String eventId;
+    @NonNull String aggregateType;
+    @NonNull String aggregateId;
+    long version;
+    @NonNull Instant timestamp;
+    @NonNull String eventType;
+    @NonNull String schemaVersion;
+    String correlationId;
+    String causationId;
+    @NonNull UserContext userContext;
+    long streamPosition;
+    Map<String, String> headers;
+    
+    /**
+     * Factory method for new events.
+     */
+    public static EventMetadata newEvent(String aggregateType, String aggregateId, 
+                                       String eventType, UserContext userContext) {
+        return EventMetadata.builder()
+            .eventId(UUID.randomUUID().toString())
+            .aggregateType(aggregateType)
+            .aggregateId(aggregateId)
+            .version(1L)
+            .timestamp(Instant.now())
+            .eventType(eventType)
+            .schemaVersion("1.0")
+            .userContext(userContext)
+            .streamPosition(-1L) // Set by event store
+            .headers(new HashMap<>())
+            .build();
+    }
+    
+    /**
+     * Factory method for response events.
+     */
+    public static EventMetadata responseEvent(DomainEvent triggeringEvent, 
+                                            String eventType, UserContext userContext) {
+        return EventMetadata.builder()
+            .eventId(UUID.randomUUID().toString())
+            .aggregateType(triggeringEvent.getAggregateType())
+            .aggregateId(triggeringEvent.getAggregateId())
+            .version(triggeringEvent.getVersion() + 1)
+            .timestamp(Instant.now())
+            .eventType(eventType)
+            .schemaVersion("1.0")
+            .correlationId(extractCorrelationId(triggeringEvent))
+            .causationId(triggeringEvent.getEventId())
+            .userContext(userContext)
+            .headers(new HashMap<>())
+            .build();
+    }
+}
+#+end_src
+
+** Event Bus Framework
+
+*** Enhanced Event Bus Implementation
+#+begin_src java
+// Extracted and enhanced from ByteHot's EventBus
+package org.acmsl.javaeda.domain.events;
+
+/**
+ * Event bus for publishing and subscribing to domain events.
+ * Extracted from ByteHot's EventBus with enhancements.
+ */
+public interface EventBus {
+    /**
+     * Publishes a single event synchronously.
+     */
+    void publish(DomainEvent event);
+    
+    /**
+     * Publishes multiple events synchronously.
+     */
+    void publishAll(List<? extends DomainEvent> events);
+    
+    /**
+     * Publishes a single event asynchronously.
+     */
+    CompletableFuture<Void> publishAsync(DomainEvent event);
+    
+    /**
+     * Publishes multiple events asynchronously.
+     */
+    CompletableFuture<Void> publishAllAsync(List<? extends DomainEvent> events);
+    
+    /**
+     * Registers an event handler for a specific event type.
+     */
+    <T extends DomainEvent> void subscribe(Class<T> eventType, EventHandler<T> handler);
+    
+    /**
+     * Unregisters an event handler.
+     */
+    <T extends DomainEvent> void unsubscribe(Class<T> eventType, EventHandler<T> handler);
+    
+    /**
+     * Returns health status of the event bus.
+     */
+    HealthStatus getHealth();
+}
+
+/**
+ * Functional interface for event handlers.
+ * Enhanced from ByteHot's EventHandler.
+ */
+@FunctionalInterface
+public interface EventHandler<T extends DomainEvent> {
+    /**
+     * Handles the event and optionally returns response events.
+     */
+    List<DomainEvent> handle(T event);
+    
+    /**
+     * Returns the order of this handler (lower values execute first).
+     */
+    default int getOrder() {
+        return 0;
+    }
+    
+    /**
+     * Returns whether this handler can handle the given event.
+     */
+    default boolean canHandle(DomainEvent event) {
+        return true;
+    }
+}
+#+end_src
+
+** Command Bus Framework
+
+*** CQRS Command Infrastructure
+#+begin_src java
+// Enhanced from ByteHot's CommandBus
+package org.acmsl.javaeda.domain.commands;
+
+/**
+ * Command bus for CQRS implementation.
+ * Extracted and enhanced from ByteHot's CommandBus.
+ */
+public interface CommandBus {
+    /**
+     * Sends a command synchronously and returns the result.
+     */
+    <R> R send(Command<R> command);
+    
+    /**
+     * Sends a command asynchronously and returns a future result.
+     */
+    <R> CompletableFuture<R> sendAsync(Command<R> command);
+    
+    /**
+     * Registers a command handler for a specific command type.
+     */
+    <C extends Command<R>, R> void register(Class<C> commandType, CommandHandler<C, R> handler);
+    
+    /**
+     * Returns health status of the command bus.
+     */
+    HealthStatus getHealth();
+}
+
+/**
+ * Base interface for all commands.
+ */
+public interface Command<R> {
+    /**
+     * Returns the unique identifier for this command.
+     */
+    String getCommandId();
+    
+    /**
+     * Returns when this command was created.
+     */
+    Instant getCreatedAt();
+    
+    /**
+     * Returns the user context for this command.
+     */
+    UserContext getUserContext();
+}
+
+/**
+ * Command handler interface.
+ */
+@FunctionalInterface
+public interface CommandHandler<C extends Command<R>, R> {
+    /**
+     * Handles the command and returns the result.
+     */
+    R handle(C command);
+}
+#+end_src
+
+** Aggregate Framework
+
+*** Enhanced Aggregate Root Implementation
+#+begin_src java
+// Enhanced from ByteHot's aggregate patterns
+package org.acmsl.javaeda.domain.aggregates;
+
+/**
+ * Base class for event-sourced aggregate roots.
+ * Extracted and enhanced from ByteHot's domain patterns.
+ */
+public abstract class AggregateRoot {
+    private final String aggregateId;
+    private final String aggregateType;
+    private long version;
+    private final List<DomainEvent> uncommittedEvents;
+    private boolean deleted;
+    
+    protected AggregateRoot(String aggregateId) {
+        this.aggregateId = requireNonNull(aggregateId);
+        this.aggregateType = getClass().getSimpleName();
+        this.version = 0L;
+        this.uncommittedEvents = new ArrayList<>();
+        this.deleted = false;
+    }
+    
+    /**
+     * Applies an event to this aggregate and adds it to uncommitted events.
+     */
+    protected void applyEvent(DomainEvent event) {
+        applyEventInternal(event);
+        uncommittedEvents.add(event);
+    }
+    
+    /**
+     * Applies an event to this aggregate without adding to uncommitted events.
+     * Used during event replay from event store.
+     */
+    public void applyEventFromHistory(DomainEvent event) {
+        applyEventInternal(event);
+    }
+    
+    /**
+     * Template method for applying events to aggregate state.
+     * Subclasses must implement this to update their state.
+     */
+    protected abstract void applyEventInternal(DomainEvent event);
+    
+    /**
+     * Returns and clears uncommitted events.
+     */
+    public List<DomainEvent> getUncommittedEvents() {
+        List<DomainEvent> events = new ArrayList<>(uncommittedEvents);
+        uncommittedEvents.clear();
+        return events;
+    }
+    
+    /**
+     * Marks events as committed and updates version.
+     */
+    public void markEventsAsCommitted(long newVersion) {
+        this.version = newVersion;
+        uncommittedEvents.clear();
+    }
+    
+    // Getters
+    public String getAggregateId() { return aggregateId; }
+    public String getAggregateType() { return aggregateType; }
+    public long getVersion() { return version; }
+    public boolean isDeleted() { return deleted; }
+    
+    protected void markAsDeleted() { this.deleted = true; }
+}
+#+end_src
+
+** Event Store Abstraction
+
+*** Event Store Port Interface
+#+begin_src java
+// Enhanced from ByteHot's EventStorePort
+package org.acmsl.javaeda.domain.events;
+
+/**
+ * Port interface for event persistence.
+ * Extracted and enhanced from ByteHot's EventStorePort.
+ */
+public interface EventStore {
+    /**
+     * Appends events to an aggregate stream.
+     * Throws OptimisticConcurrencyException if expected version doesn't match.
+     */
+    void appendEvents(String aggregateType, String aggregateId, 
+                     List<DomainEvent> events, long expectedVersion) 
+        throws OptimisticConcurrencyException;
+    
+    /**
+     * Loads all events for an aggregate.
+     */
+    List<DomainEvent> loadEvents(String aggregateType, String aggregateId);
+    
+    /**
+     * Loads events for an aggregate from a specific version.
+     */
+    List<DomainEvent> loadEvents(String aggregateType, String aggregateId, long fromVersion);
+    
+    /**
+     * Loads events within a time range.
+     */
+    List<DomainEvent> loadEvents(String aggregateType, String aggregateId, 
+                                Instant from, Instant to);
+    
+    /**
+     * Returns the current version of an aggregate.
+     */
+    long getCurrentVersion(String aggregateType, String aggregateId);
+    
+    /**
+     * Returns whether an aggregate exists.
+     */
+    boolean exists(String aggregateType, String aggregateId);
+    
+    /**
+     * Creates a snapshot of an aggregate at a specific version.
+     */
+    void saveSnapshot(String aggregateType, String aggregateId, 
+                     Object snapshot, long version);
+    
+    /**
+     * Loads the latest snapshot for an aggregate.
+     */
+    Optional<AggregateSnapshot> loadSnapshot(String aggregateType, String aggregateId);
+    
+    /**
+     * Returns event store health status.
+     */
+    HealthStatus getHealth();
+}
+
+/**
+ * Aggregate snapshot value object.
+ */
+@Value
+public class AggregateSnapshot {
+    String aggregateType;
+    String aggregateId;
+    Object data;
+    long version;
+    Instant createdAt;
+}
+
+/**
+ * Exception thrown when optimistic concurrency check fails.
+ */
+public class OptimisticConcurrencyException extends RuntimeException {
+    private final String aggregateType;
+    private final String aggregateId;
+    private final long expectedVersion;
+    private final long actualVersion;
+    
+    public OptimisticConcurrencyException(String aggregateType, String aggregateId, 
+                                        long expectedVersion, long actualVersion) {
+        super(String.format("Optimistic concurrency violation for %s/%s: expected version %d, actual version %d", 
+                          aggregateType, aggregateId, expectedVersion, actualVersion));
+        this.aggregateType = aggregateType;
+        this.aggregateId = aggregateId;
+        this.expectedVersion = expectedVersion;
+        this.actualVersion = actualVersion;
+    }
+    
+    // Getters...
+}
+#+end_src
+
+* JavaEDA Infrastructure Module (javaeda-infrastructure)
+
+** Event Store Implementations
+
+*** File System Event Store
+#+begin_src java
+// Enhanced from ByteHot's FilesystemEventStoreAdapter
+package org.acmsl.javaeda.infrastructure.events;
+
+/**
+ * File system-based event store implementation.
+ * Enhanced from ByteHot's FilesystemEventStoreAdapter.
+ */
+@Component
+public class FileSystemEventStore implements EventStore {
+    private final Path rootPath;
+    private final ObjectMapper objectMapper;
+    private final EventSerializer eventSerializer;
+    private final ReadWriteLock lock;
+    
+    public FileSystemEventStore(Path rootPath) {
+        this.rootPath = requireNonNull(rootPath);
+        this.objectMapper = createObjectMapper();
+        this.eventSerializer = new JsonEventSerializer(objectMapper);
+        this.lock = new ReentrantReadWriteLock();
+        initializeStorage();
+    }
+    
+    @Override
+    public void appendEvents(String aggregateType, String aggregateId, 
+                           List<DomainEvent> events, long expectedVersion) {
+        lock.writeLock().lock();
+        try {
+            // Verify expected version
+            long currentVersion = getCurrentVersionInternal(aggregateType, aggregateId);
+            if (currentVersion != expectedVersion) {
+                throw new OptimisticConcurrencyException(aggregateType, aggregateId, 
+                                                       expectedVersion, currentVersion);
+            }
+            
+            // Append events to stream file
+            Path streamFile = getStreamFile(aggregateType, aggregateId);
+            List<SerializedEvent> serializedEvents = events.stream()
+                .map(event -> eventSerializer.serialize(event, currentVersion + 1))
+                .toList();
+            
+            appendEventsToFile(streamFile, serializedEvents);
+            
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+    
+    @Override
+    public List<DomainEvent> loadEvents(String aggregateType, String aggregateId) {
+        lock.readLock().lock();
+        try {
+            Path streamFile = getStreamFile(aggregateType, aggregateId);
+            if (!Files.exists(streamFile)) {
+                return Collections.emptyList();
+            }
+            
+            return loadEventsFromFile(streamFile);
+            
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+    
+    // Helper methods for file operations...
+    private Path getStreamFile(String aggregateType, String aggregateId) {
+        return rootPath.resolve(aggregateType).resolve(aggregateId).resolve("events.jsonl");
+    }
+    
+    private void ensureDirectoryExists(Path directory) throws IOException {
+        if (!Files.exists(directory)) {
+            Files.createDirectories(directory);
+        }
+    }
+}
+#+end_src
+
+*** Database Event Store
+#+begin_src java
+// New implementation for production use
+package org.acmsl.javaeda.infrastructure.events;
+
+/**
+ * PostgreSQL-based event store implementation.
+ */
+@Component
+public class PostgreSQLEventStore implements EventStore {
+    private final DataSource dataSource;
+    private final EventSerializer eventSerializer;
+    
+    // Table structure:
+    // CREATE TABLE events (
+    //   aggregate_type VARCHAR(255) NOT NULL,
+    //   aggregate_id VARCHAR(255) NOT NULL,
+    //   version BIGINT NOT NULL,
+    //   event_type VARCHAR(255) NOT NULL,
+    //   event_data JSONB NOT NULL,
+    //   metadata JSONB NOT NULL,
+    //   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    //   PRIMARY KEY (aggregate_type, aggregate_id, version)
+    // );
+    
+    @Override
+    public void appendEvents(String aggregateType, String aggregateId, 
+                           List<DomainEvent> events, long expectedVersion) {
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try {
+                // Check current version
+                long currentVersion = getCurrentVersionInternal(conn, aggregateType, aggregateId);
+                if (currentVersion != expectedVersion) {
+                    throw new OptimisticConcurrencyException(aggregateType, aggregateId, 
+                                                           expectedVersion, currentVersion);
+                }
+                
+                // Insert events
+                String sql = """
+                    INSERT INTO events (aggregate_type, aggregate_id, version, event_type, 
+                                      event_data, metadata, created_at) 
+                    VALUES (?, ?, ?, ?, ?::jsonb, ?::jsonb, ?)
+                    """;
+                
+                try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                    long version = currentVersion;
+                    for (DomainEvent event : events) {
+                        version++;
+                        SerializedEvent serialized = eventSerializer.serialize(event, version);
+                        
+                        stmt.setString(1, aggregateType);
+                        stmt.setString(2, aggregateId);
+                        stmt.setLong(3, version);
+                        stmt.setString(4, event.getClass().getSimpleName());
+                        stmt.setString(5, serialized.getEventData());
+                        stmt.setString(6, serialized.getMetadata());
+                        stmt.setTimestamp(7, Timestamp.from(event.getOccurredAt()));
+                        stmt.addBatch();
+                    }
+                    stmt.executeBatch();
+                }
+                
+                conn.commit();
+                
+            } catch (Exception e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new EventStoreException("Failed to append events", e);
+        }
+    }
+    
+    // Other implementations...
+}
+#+end_src
+
+** Message Bus Integrations
+
+*** Kafka Event Publisher
+#+begin_src java
+// New Kafka integration for distributed event processing
+package org.acmsl.javaeda.infrastructure.messaging;
+
+/**
+ * Kafka-based event publisher for distributed event processing.
+ */
+@Component
+public class KafkaEventPublisher implements EventPublisher {
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final EventSerializer eventSerializer;
+    private final String topicPrefix;
+    
+    public KafkaEventPublisher(KafkaTemplate<String, String> kafkaTemplate,
+                              EventSerializer eventSerializer,
+                              @Value("${javaeda.kafka.topic-prefix:events}") String topicPrefix) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.eventSerializer = eventSerializer;
+        this.topicPrefix = topicPrefix;
+    }
+    
+    @Override
+    public void publish(DomainEvent event) {
+        String topic = getTopicName(event);
+        String key = getPartitionKey(event);
+        SerializedEvent serialized = eventSerializer.serialize(event, -1L);
+        
+        kafkaTemplate.send(topic, key, serialized.getEventData())
+            .addCallback(
+                result -> log.debug("Event published successfully: {}", event.getEventId()),
+                failure -> log.error("Failed to publish event: {}", event.getEventId(), failure)
+            );
+    }
+    
+    @Override
+    public CompletableFuture<Void> publishAsync(DomainEvent event) {
+        String topic = getTopicName(event);
+        String key = getPartitionKey(event);
+        SerializedEvent serialized = eventSerializer.serialize(event, -1L);
+        
+        return kafkaTemplate.send(topic, key, serialized.getEventData())
+            .completable()
+            .thenApply(result -> null);
+    }
+    
+    private String getTopicName(DomainEvent event) {
+        return topicPrefix + "." + event.getAggregateType().toLowerCase();
+    }
+    
+    private String getPartitionKey(DomainEvent event) {
+        return event.getAggregateType() + ":" + event.getAggregateId();
+    }
+}
+#+end_src
+
+** Configuration Enhancement
+
+*** Framework Configuration
+#+begin_src java
+// Enhanced configuration for JavaEDA applications
+package org.acmsl.javaeda.infrastructure.config;
+
+/**
+ * JavaEDA framework configuration properties.
+ */
+@ConfigurationProperties(prefix = "javaeda")
+@Data
+public class JavaEDAProperties {
+    
+    private EventStore eventStore = new EventStore();
+    private EventBus eventBus = new EventBus();
+    private CommandBus commandBus = new CommandBus();
+    private Messaging messaging = new Messaging();
+    private Testing testing = new Testing();
+    
+    @Data
+    public static class EventStore {
+        private String type = "filesystem"; // filesystem, postgresql, mongodb
+        private String path = "./events"; // for filesystem
+        private String connectionString; // for databases
+        private boolean enableSnapshots = true;
+        private int snapshotFrequency = 100; // every N events
+    }
+    
+    @Data
+    public static class EventBus {
+        private boolean asyncByDefault = true;
+        private int threadPoolSize = 10;
+        private int queueCapacity = 1000;
+        private boolean enableMetrics = true;
+    }
+    
+    @Data
+    public static class CommandBus {
+        private int threadPoolSize = 5;
+        private Duration timeout = Duration.ofSeconds(30);
+        private boolean enableMetrics = true;
+    }
+    
+    @Data
+    public static class Messaging {
+        private boolean enabled = false;
+        private String provider = "kafka"; // kafka, rabbitmq, redis
+        private String topicPrefix = "events";
+        private Map<String, String> properties = new HashMap<>();
+    }
+    
+    @Data
+    public static class Testing {
+        private boolean enableEventCapture = true;
+        private boolean enableAssertions = true;
+        private Duration eventWaitTimeout = Duration.ofSeconds(5);
+    }
+}
+#+end_src
+
+* JavaEDA Application Module (javaeda-application)
+
+** Application Framework
+
+*** Generic Application Base Class
+#+begin_src java
+// Enhanced from ByteHot's ByteHotApplication
+package org.acmsl.javaeda.application;
+
+/**
+ * Base class for JavaEDA applications.
+ * Extracted and enhanced from ByteHot's ByteHotApplication.
+ */
+public abstract class JavaEDAApplication implements Application {
+    private final EventBus eventBus;
+    private final CommandBus commandBus;
+    private final EventStore eventStore;
+    private final AdapterRegistry adapterRegistry;
+    private final ApplicationLifecycle lifecycle;
+    
+    protected JavaEDAApplication() {
+        this.adapterRegistry = new AdapterRegistry();
+        this.lifecycle = new ApplicationLifecycle();
+        
+        // Initialize core infrastructure
+        this.eventStore = createEventStore();
+        this.eventBus = createEventBus();
+        this.commandBus = createCommandBus();
+        
+        // Register for lifecycle management
+        this.lifecycle.registerComponent(eventStore);
+        this.lifecycle.registerComponent(eventBus);
+        this.lifecycle.registerComponent(commandBus);
+    }
+    
+    /**
+     * Initializes the application with automatic adapter discovery.
+     */
+    public final void initialize() {
+        try {
+            lifecycle.start();
+            discoverAndRegisterAdapters();
+            onApplicationStarted();
+            
+        } catch (Exception e) {
+            throw new ApplicationInitializationException("Failed to initialize application", e);
+        }
+    }
+    
+    /**
+     * Gracefully shuts down the application.
+     */
+    public final void shutdown() {
+        try {
+            onApplicationStopping();
+            lifecycle.stop();
+            
+        } catch (Exception e) {
+            log.error("Error during application shutdown", e);
+        }
+    }
+    
+    /**
+     * Generic event dispatcher with automatic handler routing.
+     */
+    @Override
+    public final List<? extends DomainResponseEvent<?>> accept(DomainEvent event) {
+        try {
+            // Publish event to event bus for async processing
+            eventBus.publishAsync(event);
+            
+            // Handle event directly and return response events
+            return handleEvent(event);
+            
+        } catch (Exception e) {
+            log.error("Error processing event: {}", event.getClass().getSimpleName(), e);
+            return List.of(createErrorResponseEvent(event, e));
+        }
+    }
+    
+    /**
+     * Template method for handling events. Subclasses can override for custom logic.
+     */
+    protected List<? extends DomainResponseEvent<?>> handleEvent(DomainEvent event) {
+        // Default implementation: delegate to registered handlers
+        return eventBus.publish(event).stream()
+            .filter(DomainResponseEvent.class::isInstance)
+            .map(DomainResponseEvent.class::cast)
+            .toList();
+    }
+    
+    // Template methods for subclass customization
+    protected abstract EventStore createEventStore();
+    protected abstract EventBus createEventBus();
+    protected abstract CommandBus createCommandBus();
+    
+    protected void onApplicationStarted() {
+        // Override in subclasses for startup logic
+    }
+    
+    protected void onApplicationStopping() {
+        // Override in subclasses for shutdown logic
+    }
+    
+    // Adapter discovery and registration
+    private void discoverAndRegisterAdapters() {
+        AdapterDiscovery discovery = new AdapterDiscovery();
+        List<Class<? extends Adapter>> adapterClasses = discovery.findAdapterClasses();
+        
+        for (Class<? extends Adapter> adapterClass : adapterClasses) {
+            try {
+                Adapter adapter = adapterClass.getDeclaredConstructor().newInstance();
+                adapterRegistry.register(adapter);
+                
+            } catch (Exception e) {
+                log.warn("Failed to register adapter: {}", adapterClass.getSimpleName(), e);
+            }
+        }
+    }
+}
+#+end_src
+
+*** Application Lifecycle Management
+#+begin_src java
+// Application lifecycle coordination
+package org.acmsl.javaeda.application;
+
+/**
+ * Manages application component lifecycle.
+ */
+public class ApplicationLifecycle {
+    private final List<LifecycleComponent> components;
+    private final AtomicBoolean started;
+    
+    public ApplicationLifecycle() {
+        this.components = new CopyOnWriteArrayList<>();
+        this.started = new AtomicBoolean(false);
+    }
+    
+    public void registerComponent(Object component) {
+        if (component instanceof LifecycleComponent) {
+            components.add((LifecycleComponent) component);
+        }
+    }
+    
+    public void start() throws ApplicationInitializationException {
+        if (started.compareAndSet(false, true)) {
+            for (LifecycleComponent component : components) {
+                try {
+                    component.start();
+                } catch (Exception e) {
+                    stop(); // Clean up already started components
+                    throw new ApplicationInitializationException(
+                        "Failed to start component: " + component.getClass().getSimpleName(), e);
+                }
+            }
+        }
+    }
+    
+    public void stop() {
+        if (started.compareAndSet(true, false)) {
+            // Stop components in reverse order
+            List<LifecycleComponent> reversed = new ArrayList<>(components);
+            Collections.reverse(reversed);
+            
+            for (LifecycleComponent component : reversed) {
+                try {
+                    component.stop();
+                } catch (Exception e) {
+                    log.error("Error stopping component: {}", component.getClass().getSimpleName(), e);
+                }
+            }
+        }
+    }
+    
+    public boolean isStarted() {
+        return started.get();
+    }
+}
+
+/**
+ * Interface for components that participate in application lifecycle.
+ */
+public interface LifecycleComponent {
+    void start() throws Exception;
+    void stop() throws Exception;
+    
+    default HealthStatus getHealth() {
+        return HealthStatus.UP;
+    }
+}
+#+end_src
+
+** Testing Framework
+
+*** Event-Driven Testing Support
+#+begin_src java
+// Enhanced from ByteHot's event testing framework
+package org.acmsl.javaeda.application.testing;
+
+/**
+ * Base class for event-driven testing with Given-When-Then pattern.
+ * Extracted and enhanced from ByteHot's event testing framework.
+ */
+public abstract class EventDrivenTestSupport {
+    protected final TestEventBus eventBus;
+    protected final TestCommandBus commandBus;
+    protected final TestEventStore eventStore;
+    protected final EventCapture eventCapture;
+    
+    @BeforeEach
+    void setUp() {
+        this.eventBus = new TestEventBus();
+        this.commandBus = new TestCommandBus();
+        this.eventStore = new TestEventStore();
+        this.eventCapture = new EventCapture();
+        
+        // Wire event capture to bus
+        eventBus.addInterceptor(eventCapture);
+        commandBus.addInterceptor(eventCapture);
+        
+        initializeTestContext();
+    }
+    
+    protected abstract void initializeTestContext();
+    
+    /**
+     * Given stage for test setup.
+     */
+    protected GivenStage given() {
+        return new GivenStage(eventStore, eventBus);
+    }
+    
+    /**
+     * When stage for test execution.
+     */
+    protected WhenStage when() {
+        return new WhenStage(eventBus, commandBus);
+    }
+    
+    /**
+     * Then stage for assertions.
+     */
+    protected ThenStage then() {
+        return new ThenStage(eventCapture, eventStore);
+    }
+}
+
+/**
+ * Given stage for test setup with fluent API.
+ */
+public class GivenStage {
+    private final TestEventStore eventStore;
+    private final TestEventBus eventBus;
+    
+    public GivenStage(TestEventStore eventStore, TestEventBus eventBus) {
+        this.eventStore = eventStore;
+        this.eventBus = eventBus;
+    }
+    
+    public GivenStage events(DomainEvent... events) {
+        for (DomainEvent event : events) {
+            eventStore.appendEvent(event);
+        }
+        return this;
+    }
+    
+    public GivenStage aggregate(String aggregateType, String aggregateId, DomainEvent... events) {
+        eventStore.appendEvents(aggregateType, aggregateId, Arrays.asList(events), 0L);
+        return this;
+    }
+    
+    public GivenStage handler(Class<? extends DomainEvent> eventType, EventHandler handler) {
+        eventBus.subscribe(eventType, handler);
+        return this;
+    }
+}
+
+/**
+ * When stage for test execution.
+ */
+public class WhenStage {
+    private final TestEventBus eventBus;
+    private final TestCommandBus commandBus;
+    
+    public WhenStage(TestEventBus eventBus, TestCommandBus commandBus) {
+        this.eventBus = eventBus;
+        this.commandBus = commandBus;
+    }
+    
+    public WhenStage event(DomainEvent event) {
+        eventBus.publish(event);
+        return this;
+    }
+    
+    public <R> WhenStage command(Command<R> command) {
+        commandBus.send(command);
+        return this;
+    }
+    
+    public WhenStage events(DomainEvent... events) {
+        eventBus.publishAll(Arrays.asList(events));
+        return this;
+    }
+}
+
+/**
+ * Then stage for assertions with fluent API.
+ */
+public class ThenStage {
+    private final EventCapture eventCapture;
+    private final TestEventStore eventStore;
+    
+    public ThenStage(EventCapture eventCapture, TestEventStore eventStore) {
+        this.eventCapture = eventCapture;
+        this.eventStore = eventStore;
+    }
+    
+    public ThenStage eventWasPublished(Class<? extends DomainEvent> eventType) {
+        assertThat(eventCapture.getCapturedEvents())
+            .anyMatch(event -> eventType.isInstance(event));
+        return this;
+    }
+    
+    public ThenStage eventWasPublished(Class<? extends DomainEvent> eventType, Predicate<DomainEvent> condition) {
+        assertThat(eventCapture.getCapturedEvents())
+            .anyMatch(event -> eventType.isInstance(event) && condition.test(event));
+        return this;
+    }
+    
+    public ThenStage eventsWerePublished(int count) {
+        assertThat(eventCapture.getCapturedEvents()).hasSize(count);
+        return this;
+    }
+    
+    public ThenStage noEventsWerePublished() {
+        assertThat(eventCapture.getCapturedEvents()).isEmpty();
+        return this;
+    }
+    
+    public ThenStage eventWasStored(String aggregateType, String aggregateId, 
+                                   Class<? extends DomainEvent> eventType) {
+        List<DomainEvent> events = eventStore.loadEvents(aggregateType, aggregateId);
+        assertThat(events).anyMatch(eventType::isInstance);
+        return this;
+    }
+    
+    public ThenStage aggregateVersion(String aggregateType, String aggregateId, long expectedVersion) {
+        long actualVersion = eventStore.getCurrentVersion(aggregateType, aggregateId);
+        assertThat(actualVersion).isEqualTo(expectedVersion);
+        return this;
+    }
+}
+#+end_src
+
+* Migration Strategy and Implementation Plan
+
+** Phase 1: Foundation Module Creation (Weeks 1-2)
+
+*** Module Setup and Basic Patterns
+#+begin_src xml
+<!-- Create javaeda-domain module -->
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.acmsl</groupId>
+        <artifactId>acmsl-pom</artifactId>
+        <version>latest-SNAPSHOT</version>
+    </parent>
+    
+    <artifactId>javaeda-domain</artifactId>
+    <name>JavaEDA Domain</name>
+    <description>Domain layer for JavaEDA framework</description>
+    
+    <dependencies>
+        <!-- Zero infrastructure dependencies -->
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>
+#+end_src
+
+*** Extract Core Patterns
+1. **DomainEvent hierarchy** from java-commons patterns
+2. **EventBus and CommandBus interfaces** with enhanced metadata
+3. **Port and Adapter patterns** with type safety improvements
+4. **AggregateRoot base class** with event sourcing support
+5. **EventStore abstraction** with optimistic concurrency
+
+** Phase 2: Infrastructure Layer (Weeks 3-4)
+
+*** Event Store Implementations
+1. **FileSystemEventStore** - Enhanced from ByteHot's implementation
+2. **PostgreSQLEventStore** - Production-ready database implementation
+3. **Event serialization** - JSON and Protobuf support
+
+*** Message Bus Integrations
+1. **KafkaEventPublisher** - Distributed event publishing
+2. **RabbitMQEventPublisher** - Alternative message bus
+3. **RedisEventBus** - Fast in-memory event processing
+
+** Phase 3: Application Framework (Weeks 5-6)
+
+*** Application Base Class
+1. **JavaEDAApplication** - Generic application orchestration
+2. **Adapter discovery** - Automatic port/adapter wiring
+3. **Lifecycle management** - Startup/shutdown coordination
+4. **Health monitoring** - Component health aggregation
+
+*** Testing Framework
+1. **EventDrivenTestSupport** - BDD-style event testing
+2. **Test doubles** - Mock event stores, buses, adapters
+3. **Event capture and assertion** - Fluent testing API
+
+** Phase 4: Framework Integration (Weeks 7-8)
+
+*** Spring Boot Integration
+#+begin_src java
+@Configuration
+@EnableConfigurationProperties(JavaEDAProperties.class)
+public class JavaEDAAutoConfiguration {
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public EventStore eventStore(JavaEDAProperties properties) {
+        return switch (properties.getEventStore().getType()) {
+            case "filesystem" -> new FileSystemEventStore(Paths.get(properties.getEventStore().getPath()));
+            case "postgresql" -> new PostgreSQLEventStore(dataSource);
+            default -> throw new IllegalArgumentException("Unknown event store type");
+        };
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public EventBus eventBus() {
+        return new SimpleEventBus();
+    }
+    
+    @Bean
+    @ConditionalOnMissingBean
+    public CommandBus commandBus() {
+        return new SimpleCommandBus();
+    }
+}
+#+end_src
+
+*** Annotation Support
+#+begin_src java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Component
+public @interface EventHandler {
+    Class<? extends DomainEvent>[] value();
+    int order() default 0;
+}
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Component
+public @interface CommandHandler {
+    Class<? extends Command>[] value();
+}
+
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Component
+public @interface AggregateRoot {
+    String value() default "";
+}
+#+end_src
+
+** Phase 5: ByteHot Migration (Weeks 9-10)
+
+*** Gradual Migration Strategy
+1. **Keep existing interfaces** - Maintain backward compatibility
+2. **Delegate to framework** - Gradually move implementation to JavaEDA
+3. **Extract domain events** - Move ByteHot events to framework
+4. **Migrate adapters** - Update to use framework infrastructure
+
+*** Migration Example
+#+begin_src java
+// Before: ByteHot-specific implementation
+public class ByteHotApplication implements Application {
+    private final EventBus eventBus = new SimpleEventBus();
+    // 500+ lines of application logic
+}
+
+// After: Framework-based implementation
+public class ByteHotApplication extends JavaEDAApplication {
+    
+    @Override
+    protected EventStore createEventStore() {
+        return new FileSystemEventStore(Paths.get("./bytehot-events"));
+    }
+    
+    @Override
+    protected EventBus createEventBus() {
+        return new SimpleEventBus();
+    }
+    
+    @Override
+    protected CommandBus createCommandBus() {
+        return new SimpleCommandBus();
+    }
+    
+    @EventHandler(ClassFileChanged.class)
+    public List<DomainResponseEvent<?>> handleClassFileChanged(ClassFileChanged event) {
+        // ByteHot-specific hot-swap logic
+        return executeHotSwapPipeline(event);
+    }
+    
+    // Reduced from 500+ lines to ~50 lines of domain-specific logic
+}
+#+end_src
+
+* Success Metrics and Validation
+
+** Code Reduction Metrics
+| Application Type | Before Framework | After Framework | Reduction |
+|------------------|------------------|-----------------|-----------|
+| Simple Event-Driven App | 200-300 lines | 30-50 lines | 75-85% |
+| Microservice with CQRS | 500-800 lines | 100-150 lines | 70-80% |
+| Complex Domain Application | 1000+ lines | 200-300 lines | 70-80% |
+| ByteHot Migration | 687 lines (ByteHotApplication) | 50-80 lines | 85-90% |
+
+** Performance Benchmarks
+- **Event processing overhead**: <5% compared to direct implementation
+- **Memory overhead**: <10MB for framework infrastructure
+- **Startup time**: <2 seconds additional for adapter discovery
+- **Throughput**: >10,000 events/second for in-memory event bus
+
+** Developer Experience Metrics
+- **Time to first working application**: <30 minutes
+- **Test setup time**: <5 minutes with framework testing support
+- **Learning curve**: <1 week for developers familiar with DDD/CQRS
+- **Documentation completeness**: 100% API coverage with examples
+
+** Architecture Compliance
+- **Layer boundary violations**: 0 (enforced by Maven dependencies)
+- **Circular dependencies**: 0 (validated by build process)
+- **Test coverage**: >90% for framework code
+- **Code quality**: SonarQube quality gate passing
+
+This comprehensive milestone establishes JavaEDA as a production-ready framework for building event-driven Java applications with minimal boilerplate while maintaining strict architectural boundaries and excellent developer experience.
