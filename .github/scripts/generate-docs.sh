@@ -49,10 +49,34 @@ fi
 
 # Step 4: Apply the new unified style to all HTML files
 echo "🎨 Applying unified style to all HTML files..."
+
+# Get the CSS content safely
+CSS_CONTENT=$(bash .github/scripts/unified-style.sh)
+
 for file in bytehot/*.html; do
     if [ -f "$file" ]; then
-        # Add the unified stylesheet
-        sed -i 's|<style>.*</style>|<style>'"$(< .github/scripts/unified-style.sh)"'</style>|' "$file"
+        echo "  🎨 Styling $file..."
+        # Create a temporary file with the new content
+        temp_file=$(mktemp)
+        
+        # Use awk to replace the style section safely
+        awk -v css_content="$CSS_CONTENT" '
+        /<style>/ { 
+            print "<style>"
+            print css_content
+            in_style = 1
+            next
+        }
+        /<\/style>/ && in_style { 
+            print "</style>"
+            in_style = 0
+            next
+        }
+        !in_style { print }
+        ' "$file" > "$temp_file"
+        
+        # Replace the original file
+        mv "$temp_file" "$file"
     fi
 done
 
