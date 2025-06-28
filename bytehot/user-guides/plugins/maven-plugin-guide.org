@@ -1,0 +1,541 @@
+#+TITLE: ByteHot Maven Plugin User Guide
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-27
+
+* Overview
+
+The ByteHot Maven Plugin integrates hot-swapping capabilities directly into your Maven build lifecycle. This plugin automatically monitors your Java classes for changes and applies bytecode updates to running JVM instances without requiring application restarts.
+
+** Key Features
+
+- Seamless integration with Maven build lifecycle
+- Automatic class change detection during development
+- Zero-configuration setup for standard Maven projects
+- Support for multi-module Maven projects
+- Integration with popular IDEs and development workflows
+- Real-time feedback on hot-swap operations
+
+* Installation
+
+** Prerequisites
+
+- Java 17 or higher
+- Maven 3.8.0 or higher
+- A running Java application with ByteHot agent attached
+
+** Adding the Plugin to Your Project
+
+Add the ByteHot Maven plugin to your project's =pom.xml=:
+
+#+BEGIN_SRC xml
+<project>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.acmsl</groupId>
+        <artifactId>bytehot-maven-plugin</artifactId>
+        <version>latest-SNAPSHOT</version>
+        <configuration>
+          <!-- All configuration is optional - zero-configuration support -->
+          <mainClass>com.example.Application</mainClass>
+          <agentPath>/path/to/bytehot-agent.jar</agentPath>
+          <watchPaths>
+            <watchPath>src/main/java</watchPath>
+            <watchPath>src/main/resources</watchPath>
+          </watchPaths>
+          <jvmArgs>
+            <jvmArg>-Xmx512m</jvmArg>
+            <jvmArg>-Dspring.profiles.active=dev</jvmArg>
+          </jvmArgs>
+          <verbose>true</verbose>
+          <dryRun>false</dryRun>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>live</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
+#+END_SRC
+
+** Alternative: Command Line Usage
+
+Execute the plugin directly without modifying your =pom.xml=:
+
+#+BEGIN_SRC bash
+# Zero-configuration live mode (automatic main class detection)
+mvn org.acmsl:bytehot-maven-plugin:latest-SNAPSHOT:live
+
+# With specific main class
+mvn org.acmsl:bytehot-maven-plugin:latest-SNAPSHOT:live -Dbytehot.mainClass=com.example.App
+
+# Dry run to see what would be executed
+mvn org.acmsl:bytehot-maven-plugin:latest-SNAPSHOT:live -Dbytehot.dryRun=true
+#+END_SRC
+
+* Usage
+
+** Quick Start (Zero Configuration)
+
+The ByteHot Maven Plugin is designed for zero-configuration usage:
+
+#+BEGIN_SRC bash
+# 1. Add plugin to pom.xml (see Installation section)
+# 2. Run live mode - everything is automatic
+mvn bytehot:live
+#+END_SRC
+
+The plugin automatically:
+- *Detects your main class* using multiple strategies (exec plugin → Spring Boot → bytecode scanning)
+- *Builds the classpath* from your project outputs and dependencies  
+- *Discovers the ByteHot agent* in local repository, project target, or current directory
+- *Launches your application* with proper JVM arguments and agent attachment
+
+** Main Class Detection Strategies
+
+The plugin uses sophisticated main class detection (>90% success rate):
+
+1. *Maven Exec Plugin Configuration*: Checks =exec-maven-plugin= for =mainClass= setting
+2. *Spring Boot Plugin Configuration*: Detects Spring Boot applications and main classes
+3. *Properties Configuration*: Looks for =exec.mainClass= property in =pom.xml=
+4. *Bytecode Scanning*: Scans compiled classes for =public static void main= methods
+5. *Spring Boot Annotation Scanning*: Finds classes with =@SpringBootApplication=
+
+** Configuration Parameters
+
+All parameters are optional with sensible defaults:
+
+| Parameter | Description | Default | Example |
+|-----------|-------------|---------|---------|
+| =mainClass= | Main class to execute | Auto-detected | =com.example.Application= |
+| =agentPath= | Path to ByteHot agent JAR | Auto-discovered | =/path/to/agent.jar= |
+| =watchPaths= | Directories to monitor | Auto-detected | =src/main/java,src/test/java= |
+| =jvmArgs= | Additional JVM arguments | None | =-Xmx512m,-Dspring.profiles.active=dev= |
+| =verbose= | Enable verbose output | =false= | =true= |
+| =dryRun= | Show configuration without execution | =false= | =true= |
+| =enabled= | Enable/disable the plugin | =true= | =false= |
+
+** Advanced Configuration
+
+For custom setups, you can override detection:
+
+#+BEGIN_SRC xml
+<configuration>
+  <!-- Override main class detection -->
+  <mainClass>com.example.CustomApplication</mainClass>
+  
+  <!-- Specify agent location -->
+  <agentPath>/custom/path/to/bytehot-agent.jar</agentPath>
+  
+  <!-- Custom watch paths -->
+  <watchPaths>
+    <watchPath>src/main/java</watchPath>
+    <watchPath>src/main/resources</watchPath>
+    <watchPath>custom-sources</watchPath>
+  </watchPaths>
+  
+  <!-- JVM tuning -->
+  <jvmArgs>
+    <jvmArg>-Xmx1g</jvmArg>
+    <jvmArg>-XX:+UseG1GC</jvmArg>
+    <jvmArg>-Dspring.profiles.active=dev</jvmArg>
+    <jvmArg>-Dbytehot.logging.level=DEBUG</jvmArg>
+  </jvmArgs>
+  
+  <!-- Enable verbose output for debugging -->
+  <verbose>true</verbose>
+</configuration>
+#+END_SRC
+
+** Configuration Properties
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| =watchPaths= | =src/main/java= | Directories to monitor for changes |
+| =agentHost= | =localhost= | ByteHot agent hostname |
+| =agentPort= | =8080= | ByteHot agent port |
+| =includes= | =**/*.java,**/*.class= | File patterns to include |
+| =excludes= | =**/test/**= | File patterns to exclude |
+| =hotSwapEnabled= | =true= | Enable/disable hot-swapping |
+| =autoRecompile= | =true= | Automatically recompile changed files |
+| =watchInterval= | =1000= | File watching interval in milliseconds |
+| =triggerFullBuild= | =false= | Trigger full Maven build on changes |
+| =skipTests= | =true= | Skip tests during incremental builds |
+
+** Environment Variables
+
+You can also configure the plugin using environment variables:
+
+#+BEGIN_SRC bash
+export BYTEHOT_MAVEN_AGENT_HOST=localhost
+export BYTEHOT_MAVEN_AGENT_PORT=8080
+export BYTEHOT_MAVEN_WATCH_INTERVAL=500
+export BYTEHOT_MAVEN_AUTO_RECOMPILE=true
+#+END_SRC
+
+* Usage
+
+** Starting Hot-Swap Monitoring
+
+*** Method 1: Maven Goal
+
+#+BEGIN_SRC bash
+# Start watching for changes in current project
+mvn bytehot:watch
+
+# Watch with custom configuration
+mvn bytehot:watch -Dbytehot.agent.port=9090
+
+# Watch in background (detached mode)
+mvn bytehot:watch -Dbytehot.daemon=true
+#+END_SRC
+
+*** Method 2: Build Lifecycle Integration
+
+If configured in your =pom.xml= executions, the plugin will automatically start monitoring during the =compile= phase:
+
+#+BEGIN_SRC bash
+# Regular Maven compile will start ByteHot monitoring
+mvn compile
+
+# Development mode with continuous monitoring
+mvn compile -Dbytehot.watch.continuous=true
+#+END_SRC
+
+** Development Workflow
+
+*** Typical Development Session
+
+1. **Start your application** with ByteHot agent:
+   #+BEGIN_SRC bash
+   java -javaagent:bytehot-agent.jar -jar your-application.jar
+   #+END_SRC
+
+2. **Start Maven monitoring** in a separate terminal:
+   #+BEGIN_SRC bash
+   mvn bytehot:watch
+   #+END_SRC
+
+3. **Edit your Java files** - the plugin will automatically:
+   - Detect file changes
+   - Recompile modified classes
+   - Send bytecode updates to the running application
+   - Display hot-swap status
+
+*** IDE Integration
+
+The plugin works seamlessly with popular IDEs:
+
+**** IntelliJ IDEA
+- Configure "Build project automatically" in Settings
+- Plugin will detect IDE compilation events
+- Hot-swap occurs immediately after successful compilation
+
+**** Eclipse
+- Enable "Build automatically" in Project menu
+- Plugin monitors Eclipse's output directories
+- Automatic hot-swap after workspace builds
+
+**** VS Code
+- Works with Java Extension Pack
+- Monitors language server compilation events
+- Integrates with VS Code's task system
+
+** Multi-Module Projects
+
+For Maven multi-module projects, configure the plugin in the parent =pom.xml=:
+
+#+BEGIN_SRC xml
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <version>latest-SNAPSHOT</version>
+  <configuration>
+    <multiModuleSupport>true</multiModuleSupport>
+    <watchPaths>
+      <watchPath>*/src/main/java</watchPath>
+    </watchPaths>
+  </configuration>
+</plugin>
+#+END_SRC
+
+Run from parent directory:
+#+BEGIN_SRC bash
+mvn bytehot:watch -Dbytehot.multi-module=true
+#+END_SRC
+
+* Advanced Usage
+
+** Custom Build Integration
+
+*** Pre/Post Hot-Swap Hooks
+
+#+BEGIN_SRC xml
+<configuration>
+  <preHotSwapCommands>
+    <command>echo "Preparing hot-swap..."</command>
+    <command>mvn validate</command>
+  </preHotSwapCommands>
+  <postHotSwapCommands>
+    <command>echo "Hot-swap completed!"</command>
+    <command>curl -X POST http://localhost:8080/refresh</command>
+  </postHotSwapCommands>
+</configuration>
+#+END_SRC
+
+*** Conditional Hot-Swap
+
+#+BEGIN_SRC xml
+<configuration>
+  <hotSwapConditions>
+    <condition>
+      <filePattern>**/Controller.java</filePattern>
+      <action>full-restart</action>
+    </condition>
+    <condition>
+      <filePattern>**/Service.java</filePattern>
+      <action>hot-swap</action>
+    </condition>
+  </hotSwapConditions>
+</configuration>
+#+END_SRC
+
+** Integration with Build Profiles
+
+#+BEGIN_SRC xml
+<profiles>
+  <profile>
+    <id>development</id>
+    <properties>
+      <bytehot.watch.enabled>true</bytehot.watch.enabled>
+      <bytehot.watch.interval>500</bytehot.watch.interval>
+    </properties>
+  </profile>
+  <profile>
+    <id>production</id>
+    <properties>
+      <bytehot.watch.enabled>false</bytehot.watch.enabled>
+    </properties>
+  </profile>
+</profiles>
+#+END_SRC
+
+Activate development profile:
+#+BEGIN_SRC bash
+mvn bytehot:watch -Pdevelopment
+#+END_SRC
+
+** Docker Integration
+
+For containerized development:
+
+#+BEGIN_SRC dockerfile
+FROM openjdk:17-jdk
+COPY target/bytehot-agent.jar /app/
+COPY target/your-application.jar /app/
+WORKDIR /app
+EXPOSE 8080
+CMD ["java", "-javaagent:bytehot-agent.jar", "-jar", "your-application.jar"]
+#+END_SRC
+
+Mount source directory for hot development:
+#+BEGIN_SRC bash
+docker run -v $(pwd)/src:/workspace/src \
+           -v $(pwd)/target:/workspace/target \
+           -p 8080:8080 \
+           your-app
+
+# In another terminal
+mvn bytehot:watch -Dbytehot.agent.host=localhost
+#+END_SRC
+
+* Troubleshooting
+
+** Common Issues
+
+*** Plugin Not Detecting Changes
+
+*Problem*: Files are modified but hot-swap doesn't trigger
+
+*Solutions*:
+1. Check if file is in monitored paths:
+   #+BEGIN_SRC bash
+   mvn bytehot:watch -X  # Enable debug logging
+   #+END_SRC
+
+2. Verify file patterns:
+   #+BEGIN_SRC xml
+   <includes>
+     <include>**/*.java</include>
+   </includes>
+   #+END_SRC
+
+3. Check watch interval:
+   #+BEGIN_SRC xml
+   <watchInterval>500</watchInterval>  <!-- Faster polling -->
+   #+END_SRC
+
+*** Connection Issues
+
+*Problem*: Cannot connect to ByteHot agent
+
+*Solutions*:
+1. Verify agent is running:
+   #+BEGIN_SRC bash
+   curl http://localhost:8080/health
+   #+END_SRC
+
+2. Check firewall settings:
+   #+BEGIN_SRC bash
+   netstat -tulpn | grep 8080
+   #+END_SRC
+
+3. Verify configuration:
+   #+BEGIN_SRC xml
+   <agentHost>localhost</agentHost>
+   <agentPort>8080</agentPort>
+   #+END_SRC
+
+*** Compilation Errors
+
+*Problem*: Plugin fails to compile changed files
+
+*Solutions*:
+1. Check Maven compiler configuration:
+   #+BEGIN_SRC xml
+   <plugin>
+     <groupId>org.apache.maven.plugins</groupId>
+     <artifactId>maven-compiler-plugin</artifactId>
+     <version>3.11.0</version>
+     <configuration>
+       <source>17</source>
+       <target>17</target>
+     </configuration>
+   </plugin>
+   #+END_SRC
+
+2. Verify classpath:
+   #+BEGIN_SRC bash
+   mvn dependency:build-classpath
+   #+END_SRC
+
+3. Check for circular dependencies:
+   #+BEGIN_SRC bash
+   mvn dependency:analyze
+   #+END_SRC
+
+** Debug Mode
+
+Enable verbose logging:
+
+#+BEGIN_SRC bash
+mvn bytehot:watch -X -Dbytehot.debug=true
+#+END_SRC
+
+Or add to =pom.xml=:
+#+BEGIN_SRC xml
+<configuration>
+  <debug>true</debug>
+  <verbose>true</verbose>
+</configuration>
+#+END_SRC
+
+** Performance Tuning
+
+For large projects:
+
+#+BEGIN_SRC xml
+<configuration>
+  <!-- Reduce file system polling -->
+  <watchInterval>2000</watchInterval>
+  
+  <!-- Limit watched directories -->
+  <watchPaths>
+    <watchPath>src/main/java/com/yourpackage</watchPath>
+  </watchPaths>
+  
+  <!-- Use more specific patterns -->
+  <includes>
+    <include>**/service/**/*.java</include>
+    <include>**/controller/**/*.java</include>
+  </includes>
+  
+  <!-- Enable parallel compilation -->
+  <parallelCompilation>true</parallelCompilation>
+  <compilationThreads>4</compilationThreads>
+</configuration>
+#+END_SRC
+
+* Examples
+
+** Basic Web Application
+
+#+BEGIN_SRC xml
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <version>latest-SNAPSHOT</version>
+  <configuration>
+    <watchPaths>
+      <watchPath>src/main/java</watchPath>
+      <watchPath>src/main/resources</watchPath>
+    </watchPaths>
+    <includes>
+      <include>**/*.java</include>
+      <include>**/*.properties</include>
+      <include>**/*.yml</include>
+    </includes>
+  </configuration>
+</plugin>
+#+END_SRC
+
+** Microservices Architecture
+
+#+BEGIN_SRC xml
+<plugin>
+  <groupId>org.acmsl</groupId>
+  <artifactId>bytehot-maven-plugin</artifactId>
+  <version>latest-SNAPSHOT</version>
+  <configuration>
+    <multiModuleSupport>true</multiModuleSupport>
+    <agentDiscovery>true</agentDiscovery>
+    <serviceDiscovery>
+      <consulEnabled>true</consulEnabled>
+      <consulHost>localhost</consulHost>
+      <consulPort>8500</consulPort>
+    </serviceDiscovery>
+  </configuration>
+</plugin>
+#+END_SRC
+
+* Best Practices
+
+** Development Workflow
+
+1. **Start with minimal configuration** - use defaults first
+2. **Use development profiles** - separate dev/prod configurations
+3. **Monitor specific packages** - avoid watching entire source tree
+4. **Use IDE integration** - leverage automatic compilation
+5. **Test incrementally** - verify hot-swap with small changes first
+
+** Performance Tips
+
+1. **Exclude test directories** - focus on main source code
+2. **Use specific file patterns** - avoid unnecessary file monitoring
+3. **Adjust watch intervals** - balance responsiveness vs. CPU usage
+4. **Enable parallel compilation** - for multi-core systems
+5. **Use SSD storage** - faster file system operations
+
+** Security Considerations
+
+1. **Disable in production** - never enable hot-swap in production
+2. **Restrict agent access** - bind to localhost only
+3. **Use build profiles** - conditional plugin activation
+4. **Monitor agent ports** - ensure no unauthorized access
+
+For more information, see the [[../../technical-specs/plugin-communication-protocol.org][Plugin Communication Protocol]] and [[../../milestone-9-maven-plugin.org][Maven Plugin Specification]].

@@ -1,0 +1,574 @@
+#+TITLE: ByteHot Eclipse Plugin User Guide
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-27
+
+* Overview
+
+The ByteHot Eclipse Plugin brings seamless hot-swapping capabilities to Eclipse IDE. This plugin integrates with Eclipse's workspace, build system, and debugging tools to provide real-time bytecode updates without application restarts.
+
+** Key Features
+
+- Integration with Eclipse workspace and build system
+- Visual hot-swap indicators in Project Explorer
+- Real-time monitoring view with hot-swap logs
+- Automatic detection of workspace builds
+- Project-specific configuration support
+- Integration with Eclipse debugging
+- Support for multiple workspace configurations
+
+* Installation
+
+** Prerequisites
+
+- Eclipse 2023-06 or higher (any edition)
+- Java 17 or higher
+- ByteHot agent running in your application
+
+** Installation Methods
+
+*** Method 1: Eclipse Marketplace
+
+1. Open Eclipse IDE
+2. Go to =Help → Eclipse Marketplace=
+3. Search for "ByteHot"
+4. Click =Install= next to the ByteHot Plugin
+5. Follow the installation wizard
+6. Restart Eclipse when prompted
+
+*** Method 2: Update Site
+
+1. Go to =Help → Install New Software=
+2. Click =Add= and enter:
+   - Name: ByteHot
+   - Location: =https://releases.bytehot.org/eclipse/=
+3. Select "ByteHot Plugin" from the list
+4. Follow the installation wizard
+5. Restart Eclipse
+
+*** Method 3: Local Installation
+
+1. Download the plugin JAR from [[https://github.com/rydnr/bytehot/releases][ByteHot Releases]]
+2. Go to =Help → Install New Software=
+3. Click =Add → Local= and select the downloaded file
+4. Follow the installation wizard
+5. Restart Eclipse
+
+* Getting Started
+
+** Initial Configuration
+
+After installation, configure ByteHot for your workspace:
+
+1. **Open ByteHot Perspective**:
+   - Go to =Window → Perspective → Open Perspective → Other=
+   - Select "ByteHot" and click =OK=
+
+2. **Configure Connection**:
+   - Open =Window → Preferences → ByteHot=
+   - Set agent host and port (default: localhost:8080)
+   - Click "Test Connection"
+
+3. **Enable for Project**:
+   - Right-click your project in Project Explorer
+   - Select =ByteHot → Enable Hot-Swap=
+   - Configure project-specific settings
+
+** Quick Start Example
+
+1. **Create a simple Java project**:
+   #+BEGIN_SRC java
+   // src/main/HelloWorld.java
+   public class HelloWorld {
+       public static void main(String[] args) {
+           HelloWorld hello = new HelloWorld();
+           while (true) {
+               System.out.println(hello.getMessage());
+               try {
+                   Thread.sleep(2000);
+               } catch (InterruptedException e) {
+                   break;
+               }
+           }
+       }
+       
+       public String getMessage() {
+           return "Hello, World!";
+       }
+   }
+   #+END_SRC
+
+2. **Run with ByteHot agent**:
+   - Right-click project → =Run As → Java Application=
+   - In run configuration, add VM arguments:
+     #+BEGIN_SRC
+     -javaagent:/path/to/bytehot-agent.jar
+     #+END_SRC
+
+3. **Enable hot-swap monitoring**:
+   - Right-click project → =ByteHot → Start Monitoring=
+   - You should see the ByteHot icon appear next to the project
+
+4. **Make a change**:
+   #+BEGIN_SRC java
+   public String getMessage() {
+       return "Hello, ByteHot!"; // Changed message
+   }
+   #+END_SRC
+
+5. **Save the file** (Ctrl+S) and watch the console output change immediately!
+
+* User Interface
+
+** ByteHot Perspective
+
+The ByteHot perspective provides an optimized layout:
+
+- **Project Explorer**: Shows hot-swap status icons
+- **ByteHot Monitor**: Real-time monitoring and logs
+- **Console**: Application output and hot-swap messages
+- **Problems**: Hot-swap errors and warnings
+- **Properties**: Quick access to ByteHot settings
+
+** ByteHot Monitor View
+
+The main monitoring interface (=Window → Show View → ByteHot → Monitor=):
+
+*** Connection Tab
+- **Agent Status**: Connection state indicator
+- **Connect/Disconnect**: Manage agent connections
+- **Connection Info**: Host, port, and response time
+- **Test Connection**: Verify agent connectivity
+
+*** Projects Tab
+- **Monitored Projects**: List of projects with hot-swap enabled
+- **Project Status**: Monitoring state for each project
+- **Start/Stop Monitoring**: Control per-project monitoring
+- **Project Configuration**: Quick access to project settings
+
+*** Logs Tab
+- **Hot-swap Log**: Real-time log of all hot-swap operations
+- **Filter Options**: Filter by project, severity, or time
+- **Export Log**: Save logs to file
+- **Clear Log**: Clear current log display
+
+*** Statistics Tab
+- **Hot-swap Statistics**: Success/failure rates, timing
+- **Performance Metrics**: Processing times and throughput
+- **Error Analysis**: Common failure patterns
+
+** Project Explorer Integration
+
+ByteHot adds visual indicators to Project Explorer:
+
+- **Green Dot**: Project has hot-swap enabled and monitoring
+- **Yellow Dot**: Project enabled but not currently monitoring
+- **Red Dot**: Project enabled but connection error
+- **Blue Lightning**: File was recently hot-swapped successfully
+- **Red X**: File had hot-swap error
+
+** Editor Integration
+
+*** Margin Indicators
+- **Green Arrow**: Method was successfully hot-swapped
+- **Red Arrow**: Method hot-swap failed
+- **Yellow Clock**: Method hot-swap pending
+
+*** Context Menu
+Right-click in editor for ByteHot options:
+- **Hot-swap This File**: Manually trigger hot-swap
+- **Hot-swap Selection**: Hot-swap only selected methods
+- **View Hot-swap History**: Show hot-swap history for file
+- **Exclude from Hot-swap**: Temporarily exclude from monitoring
+
+* Configuration
+
+** Workspace Preferences
+
+Access via =Window → Preferences → ByteHot=:
+
+*** Connection Settings
+- **Default Agent Host**: Default host for new projects (localhost)
+- **Default Agent Port**: Default port for new projects (8080)
+- **Connection Timeout**: Agent communication timeout (5000ms)
+- **Auto-reconnect**: Automatically reconnect on connection loss
+- **Connection Pool Size**: Maximum concurrent connections
+
+*** Monitoring Settings
+- **Auto-start Monitoring**: Start monitoring when workspace opens
+- **Monitor All Projects**: Enable monitoring for all Java projects
+- **Watch Interval**: File system polling interval (1000ms)
+- **Background Processing**: Process hot-swaps in background threads
+
+*** Build Integration
+- **Auto-build Trigger**: Trigger hot-swap on Eclipse auto-build
+- **Manual Build Trigger**: Trigger hot-swap on manual builds
+- **Clean Build Behavior**: Action on clean builds (stop/restart monitoring)
+- **Incremental Build**: Use incremental compilation when possible
+
+*** UI Preferences
+- **Show Perspective**: Automatically switch to ByteHot perspective
+- **Show Notifications**: Display hot-swap notifications
+- **Notification Duration**: How long to show notifications (3000ms)
+- **Sound Notifications**: Play sounds for hot-swap events
+- **Status Line**: Show ByteHot status in Eclipse status line
+
+** Project-Specific Configuration
+
+Right-click project → =Properties → ByteHot=:
+
+*** Project Settings
+- **Enable Hot-swap**: Enable hot-swap for this project
+- **Agent Connection**: Project-specific agent host/port
+- **Auto-start**: Start monitoring when project is opened
+- **Build Integration**: How to integrate with project builds
+
+*** Source Settings
+- **Source Folders**: Which source folders to monitor
+- **Include Patterns**: File patterns to include (*.java, *.class)
+- **Exclude Patterns**: File patterns to exclude (*Test*, */test/*)
+- **Output Folders**: Monitor compiled output folders
+
+*** Advanced Settings
+- **Hot-swap Strategy**: Conservative, Normal, or Aggressive
+- **Method Replacement**: How to handle method-level changes
+- **Field Changes**: How to handle field additions/removals
+- **Class Structure Changes**: How to handle structural changes
+
+** Team Configuration
+
+Share configurations across team:
+
+1. **Export settings**:
+   - =File → Export → General → Preferences=
+   - Select ByteHot preferences
+   - Export to team repository
+
+2. **Project-specific settings**:
+   - Create =.bytehot/config.properties= in project root
+   - Version control this file for team sharing
+
+3. **Workspace templates**:
+   - Create standard workspace configurations
+   - Share via team documentation
+
+* Usage Scenarios
+
+** Web Application Development
+
+For servlet-based or Spring web applications:
+
+1. **Project setup**:
+   - Create Dynamic Web Project or import Maven/Gradle project
+   - Configure deployment to Tomcat/Jetty with ByteHot agent
+   - Enable hot-swap monitoring
+
+2. **Development workflow**:
+   - Edit servlets, JSPs, or configuration files
+   - Eclipse auto-builds trigger hot-swap
+   - Changes appear immediately in browser
+
+3. **Configuration example**:
+   #+BEGIN_SRC
+   Source Folders: src/main/java, src/main/webapp
+   Include Patterns: **/*.java, **/*.jsp, **/*.xml
+   Output Folders: build/classes, WebContent/WEB-INF/classes
+   #+END_SRC
+
+** Enterprise Application Development
+
+For large enterprise applications with multiple modules:
+
+1. **Multi-project setup**:
+   - Import all modules as Eclipse projects
+   - Configure shared ByteHot agent
+   - Set up module dependencies
+
+2. **Configuration per module**:
+   - Core modules: Aggressive hot-swap
+   - API modules: Conservative hot-swap
+   - Test modules: Disabled
+
+3. **Build coordination**:
+   - Use Eclipse project dependencies
+   - Configure build order
+   - Enable cross-module hot-swap
+
+** Android Development (with ADT)
+
+For Android development using Eclipse ADT:
+
+1. **Setup**:
+   - Install Android Development Tools
+   - Configure Android SDK path
+   - Enable ByteHot for Android projects
+
+2. **Configuration**:
+   #+BEGIN_SRC
+   Source Folders: src/main/java
+   Include Patterns: **/*.java
+   Exclude Patterns: **/R.java, **/BuildConfig.java
+   Android Integration: Enabled
+   ADB Path: /path/to/adb
+   #+END_SRC
+
+3. **Development workflow**:
+   - Edit Java sources
+   - Hot-swap changes to device/emulator
+   - No need to redeploy APK for code changes
+
+** Plugin Development
+
+For Eclipse plugin development:
+
+1. **PDE setup**:
+   - Create Plugin Project
+   - Configure target platform
+   - Enable ByteHot for plugin project
+
+2. **Testing workflow**:
+   - Launch runtime workbench with ByteHot agent
+   - Edit plugin code
+   - Changes reflected immediately in runtime workbench
+
+* Advanced Features
+
+** Debug Integration
+
+ByteHot integrates with Eclipse debugger:
+
+1. **Debug configuration**:
+   - Add ByteHot agent to debug VM arguments
+   - Enable "Hot Code Replace" in debugger
+   - Configure hot-swap breakpoint behavior
+
+2. **Debug workflow**:
+   - Set breakpoints in code
+   - Start debugging
+   - Edit code while debugging
+   - Hot-swap without losing debug session
+
+3. **Advanced debugging**:
+   - Step through hot-swapped code
+   - Evaluate expressions with new code
+   - Conditional breakpoints work with hot-swapped methods
+
+** JUnit Integration
+
+Run tests with hot-swap support:
+
+1. **Test configuration**:
+   - Add ByteHot agent to JUnit run configuration
+   - Enable test monitoring
+   - Configure test-specific hot-swap rules
+
+2. **Test-driven development**:
+   - Write failing test
+   - Implement code with hot-swap
+   - See test results update immediately
+
+** Build System Integration
+
+*** Maven Integration
+With M2Eclipse plugin:
+
+#+BEGIN_SRC xml
+<!-- Add to pom.xml -->
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <configuration>
+        <argLine>-javaagent:${bytehot.agent.path}</argLine>
+    </configuration>
+</plugin>
+#+END_SRC
+
+*** Gradle Integration
+With Buildship plugin:
+
+#+BEGIN_SRC groovy
+// Add to build.gradle
+test {
+    jvmArgs '-javaagent:' + project.property('bytehot.agent.path')
+}
+#+END_SRC
+
+** Remote Development
+
+For remote server development:
+
+1. **SSH tunnel setup**:
+   - Configure SSH tunnel to remote server
+   - Forward ByteHot agent port locally
+   - Configure Eclipse to connect through tunnel
+
+2. **File synchronization**:
+   - Use Eclipse RSE (Remote System Explorer)
+   - Configure automatic file upload
+   - Sync compiled classes to remote server
+
+3. **Remote debugging**:
+   - Enable remote debugging on server
+   - Connect Eclipse debugger
+   - Use hot-swap for remote debugging sessions
+
+* Troubleshooting
+
+** Common Issues
+
+*** Plugin Not Loading
+
+*Problem*: ByteHot views/menus don't appear
+
+*Solutions*:
+1. Check Eclipse version (2023-06+)
+2. Verify Java version (17+)
+3. Check =Help → About Eclipse IDE → Installation Details=
+4. Reset workspace: =eclipse -clean -data workspace_path=
+5. Check error log: =Window → Show View → Error Log=
+
+*** Connection Problems
+
+*Problem*: Cannot connect to ByteHot agent
+
+*Solutions*:
+1. **Verify agent is running**:
+   #+BEGIN_SRC bash
+   curl http://localhost:8080/health
+   #+END_SRC
+
+2. **Check Eclipse proxy settings**:
+   - =Window → Preferences → General → Network Connections=
+   - Ensure localhost is in proxy bypass list
+
+3. **Firewall configuration**:
+   - Allow Eclipse through firewall
+   - Ensure agent port is accessible
+
+4. **Test with telnet**:
+   #+BEGIN_SRC bash
+   telnet localhost 8080
+   #+END_SRC
+
+*** Auto-build Issues
+
+*Problem*: Hot-swap not triggered on file save
+
+*Solutions*:
+1. **Enable auto-build**:
+   - =Project → Build Automatically= (should be checked)
+
+2. **Check project build path**:
+   - Right-click project → =Properties → Java Build Path=
+   - Verify source folders and output folders
+
+3. **Clear workspace**:
+   - =Project → Clean → Clean all projects=
+
+4. **Check ByteHot project configuration**:
+   - Verify project has hot-swap enabled
+   - Check source folder configuration
+
+*** Performance Issues
+
+*Problem*: Eclipse becomes slow with ByteHot
+
+*Solutions*:
+1. **Increase Eclipse memory**:
+   #+BEGIN_SRC
+   # eclipse.ini
+   -Xmx2g
+   -XX:MaxMetaspaceSize=512m
+   #+END_SRC
+
+2. **Reduce monitoring scope**:
+   - Monitor only active projects
+   - Use specific include/exclude patterns
+   - Increase watch interval
+
+3. **Disable unnecessary features**:
+   - Turn off automatic spell checking
+   - Reduce validation scope
+   - Disable unused plugins
+
+** Debug Information
+
+Enable debug logging:
+
+1. **Eclipse debug options**:
+   - Create =.options= file in workspace
+   - Add: =org.acmsl.bytehot.eclipse/debug=true=
+   - Restart Eclipse with =-debug= flag
+
+2. **Console debug**:
+   - Open =Console= view
+   - Select "ByteHot Debug Console" from dropdown
+   - Monitor debug messages
+
+3. **Log files**:
+   - Check =.metadata/.log= in workspace
+   - Look for ByteHot-related errors
+   - Export error log for support
+
+** Performance Monitoring
+
+Monitor plugin performance:
+
+1. **Built-in monitoring**:
+   - Open ByteHot Monitor view
+   - Check Statistics tab
+   - Monitor response times and success rates
+
+2. **Eclipse monitoring**:
+   - =Help → Performance Monitoring=
+   - Look for ByteHot-related operations
+   - Check memory usage patterns
+
+* Best Practices
+
+** Workspace Organization
+
+1. **Project structure**:
+   - Group related projects in working sets
+   - Use consistent naming conventions
+   - Configure shared build settings
+
+2. **Configuration management**:
+   - Export/import workspace preferences
+   - Version control project-specific settings
+   - Document team setup procedures
+
+** Development Workflow
+
+1. **Incremental development**:
+   - Make small, focused changes
+   - Test hot-swapped changes immediately
+   - Use version control for checkpoint commits
+
+2. **Testing strategy**:
+   - Run unit tests frequently
+   - Use hot-swap for test-driven development
+   - Restart application periodically for integration testing
+
+3. **Debugging workflow**:
+   - Use hot-swap during debugging sessions
+   - Test edge cases with modified code
+   - Verify behavior with full restart
+
+** Performance Optimization
+
+1. **Memory management**:
+   - Configure appropriate heap sizes
+   - Monitor memory usage
+   - Close unused projects
+
+2. **Build optimization**:
+   - Use incremental builds
+   - Configure appropriate compiler settings
+   - Exclude unnecessary files from builds
+
+3. **Network optimization**:
+   - Use localhost connections when possible
+   - Configure appropriate timeouts
+   - Monitor network usage for remote connections
+
+For more information, see the [[../../technical-specs/plugin-communication-protocol.org][Plugin Communication Protocol]] and [[../../milestone-12-eclipse-plugin.org][Eclipse Plugin Specification]].

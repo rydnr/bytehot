@@ -251,3 +251,7 @@ Other considerations:
 - Github Action workflows should not be redundant. One should address the Github Pages documentation, another the Continuous Integration, another the Release generation. There must not be variants of any of them. All changes should be focused on improving the existing workflows.
 - **All Github Actions workflows should fail fast, instead of trying to find non-optimal workarounds.**
 - All Github Pages content should define the CSS (provided by `.github/scripts/css.sh`), header (provided by `.github/scripts/header.sh`), footer (provided by `.github/scripts/footer.sh`) and the Matrix style (provided by `.github/scripts/matrix.sh`).
+
+## Dependency Management
+
+- Versions in maven plugins in `pom.xml` files should be defined as variables defined in the top-level pom.xml, to make sure all modules use the same versions.

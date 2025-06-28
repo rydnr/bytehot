@@ -1,0 +1,668 @@
+#+TITLE: Publishing ByteHot IntelliJ Plugin to JetBrains Marketplace
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This guide provides step-by-step instructions for publishing the ByteHot IntelliJ IDEA Plugin to the JetBrains Marketplace. The JetBrains Marketplace is the official distribution platform for IntelliJ IDEA plugins and extensions.
+
+** Prerequisites
+
+- Completed and tested ByteHot IntelliJ plugin
+- JetBrains Account (free registration)
+- Plugin built and validated locally
+- Documentation and assets prepared
+
+* Pre-Publication Preparation
+
+** Plugin Development Checklist
+
+Before submitting to the marketplace, ensure:
+
+*** Code Quality
+- [ ] Plugin follows JetBrains Plugin Development Guidelines
+- [ ] Code passes all quality inspections
+- [ ] No hardcoded values or debugging code
+- [ ] Proper error handling and logging
+- [ ] Thread-safe implementation for IDE operations
+
+*** Testing
+- [ ] Tested on multiple IntelliJ IDEA versions (2023.1+)
+- [ ] Tested on different operating systems (Windows, macOS, Linux)
+- [ ] Integration tests with various project types
+- [ ] Performance testing with large projects
+- [ ] Memory leak testing
+
+*** Documentation
+- [ ] Plugin description written
+- [ ] Change notes prepared
+- [ ] Screenshots and demo videos created
+- [ ] User documentation completed
+
+** Required Assets
+
+*** Plugin Icons
+Create plugin icons in multiple sizes:
+
+#+BEGIN_SRC
+icons/
+├── pluginIcon.svg          # Vector icon (preferred)
+├── pluginIcon.png          # 40x40 pixels
+├── pluginIcon@2x.png       # 80x80 pixels (Retina)
+└── pluginIcon_dark.png     # 40x40 pixels (dark theme)
+#+END_SRC
+
+*** Screenshots
+Prepare high-quality screenshots:
+- Plugin in action (tool windows, status indicators)
+- Configuration dialogs
+- Integration with ByteHot agent
+- Before/after hot-swap demonstrations
+
+Recommended sizes:
+- Width: 1280-1920 pixels
+- Height: 720-1080 pixels
+- Format: PNG or JPG
+- At least 3-5 screenshots
+
+*** Demo Video (Optional but Recommended)
+Create a short demo video (2-3 minutes) showing:
+- Plugin installation
+- Basic configuration
+- Hot-swap in action
+- Key features demonstration
+
+** Plugin Configuration Files
+
+*** plugin.xml Preparation
+
+Ensure =plugin.xml= is properly configured:
+
+#+BEGIN_SRC xml
+<idea-plugin>
+    <id>org.acmsl.bytehot.intellij</id>
+    <name>ByteHot</name>
+    <version>1.0.0</version>
+    <vendor email="support@bytehot.org" url="https://github.com/rydnr/bytehot">ByteHot Team</vendor>
+    
+    <description><![CDATA[
+    <h1>ByteHot - Hot-Swap Plugin for IntelliJ IDEA</h1>
+    
+    <p>ByteHot enables real-time hot-swapping of Java bytecode without application restarts. 
+    Perfect for rapid development and testing cycles.</p>
+    
+    <h2>Key Features:</h2>
+    <ul>
+        <li>🔥 Real-time hot-swapping of Java classes</li>
+        <li>🎯 Visual status indicators and notifications</li>
+        <li>⚡ Automatic detection of code changes</li>
+        <li>🔧 Project-specific configuration</li>
+        <li>📊 Integrated monitoring and logging</li>
+        <li>🐛 Debug session integration</li>
+    </ul>
+    
+    <h2>Supported IDEs:</h2>
+    <p>IntelliJ IDEA Community and Ultimate editions (2023.1+)</p>
+    
+    <h2>Getting Started:</h2>
+    <ol>
+        <li>Install the plugin</li>
+        <li>Start your application with ByteHot agent</li>
+        <li>Connect the plugin to your running application</li>
+        <li>Edit code and see changes immediately!</li>
+    </ol>
+    
+    <h2>Documentation:</h2>
+    <p>Complete documentation available at: 
+    <a href="https://github.com/rydnr/bytehot">https://github.com/rydnr/bytehot</a></p>
+    ]]></description>
+    
+    <change-notes><![CDATA[
+    <h2>Version 1.0.0</h2>
+    <ul>
+        <li>Initial release of ByteHot IntelliJ Plugin</li>
+        <li>Hot-swap integration with IntelliJ IDEA</li>
+        <li>Visual status indicators and tool window</li>
+        <li>Project configuration support</li>
+        <li>Real-time monitoring and logging</li>
+        <li>Integration with IntelliJ build system</li>
+    </ul>
+    ]]></change-notes>
+    
+    <!-- Build number from which the plugin is compatible -->
+    <idea-version since-build="231.8109"/>
+    
+    <!-- Plugin dependencies -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    
+    <!-- Extension points and components -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Plugin extensions -->
+    </extensions>
+    
+    <!-- Actions -->
+    <actions>
+        <!-- Plugin actions -->
+    </actions>
+    
+    <!-- Application components -->
+    <application-components>
+        <!-- Plugin components -->
+    </application-components>
+</idea-plugin>
+#+END_SRC
+
+*** Key Configuration Elements
+
+**** Version Numbering
+Follow semantic versioning (SemVer):
+- =1.0.0= - Initial release
+- =1.0.1= - Bug fixes
+- =1.1.0= - New features
+- =2.0.0= - Breaking changes
+
+**** Compatibility Range
+- =since-build=: Minimum IntelliJ build number
+- =until-build=: Maximum IntelliJ build number (optional)
+- Check build numbers at: https://plugins.jetbrains.com/docs/intellij/build-number-ranges.html
+
+**** Dependencies
+Declare all required dependencies:
+#+BEGIN_SRC xml
+<depends>com.intellij.modules.platform</depends>     <!-- Platform APIs -->
+<depends>com.intellij.modules.java</depends>         <!-- Java support -->
+<depends>com.intellij.modules.json</depends>         <!-- JSON support -->
+#+END_SRC
+
+** Build Configuration
+
+*** Gradle Build Setup
+
+Configure =build.gradle.kts= for publishing:
+
+#+BEGIN_SRC kotlin
+plugins {
+    id("java")
+    id("org.jetbrains.kotlin.jvm") version "1.9.0"
+    id("org.jetbrains.intellij") version "1.15.0"
+}
+
+group = "org.acmsl.bytehot"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.acmsl:java-commons:latest-SNAPSHOT")
+    implementation("org.acmsl:java-commons-infrastructure:latest-SNAPSHOT")
+    
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.4.0")
+}
+
+intellij {
+    version.set("2023.1")
+    type.set("IC") // IC = Community, IU = Ultimate
+    
+    plugins.set(listOf("java"))
+    
+    // Disable auto-update of IDE and plugins
+    updateSinceUntilBuild.set(false)
+}
+
+tasks {
+    withType<JavaCompile> {
+        sourceCompatibility = "17"
+        targetCompatibility = "17"
+    }
+    
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        kotlinOptions.jvmTarget = "17"
+    }
+    
+    patchPluginXml {
+        sinceBuild.set("231")
+        untilBuild.set("241.*")
+        
+        changeNotes.set("""
+        <h2>Version 1.0.0</h2>
+        <ul>
+            <li>Initial release of ByteHot IntelliJ Plugin</li>
+            <li>Hot-swap integration with IntelliJ IDEA</li>
+            <li>Visual status indicators and tool window</li>
+            <li>Project configuration support</li>
+        </ul>
+        """.trimIndent())
+    }
+    
+    signPlugin {
+        certificateChain.set(System.getenv("CERTIFICATE_CHAIN"))
+        privateKey.set(System.getenv("PRIVATE_KEY"))
+        password.set(System.getenv("PRIVATE_KEY_PASSWORD"))
+    }
+    
+    publishPlugin {
+        token.set(System.getenv("PUBLISH_TOKEN"))
+        channels.set(listOf("stable"))
+    }
+    
+    // Build verification
+    buildPlugin {
+        archiveFileName.set("bytehot-intellij-plugin-${version}.zip")
+    }
+    
+    runPluginVerifier {
+        ideVersions.set(listOf("2023.1", "2023.2", "2023.3", "2024.1"))
+    }
+}
+#+END_SRC
+
+* JetBrains Account Setup
+
+** Account Registration
+
+1. **Create JetBrains Account**:
+   - Go to https://account.jetbrains.com/
+   - Click "Sign Up" 
+   - Complete registration with email verification
+
+2. **Developer Profile Setup**:
+   - Add developer information
+   - Provide contact details
+   - Add company information (if applicable)
+
+** Plugin Developer Certificate
+
+For plugin signing (required for marketplace):
+
+1. **Generate Certificate**:
+   #+BEGIN_SRC bash
+   # Generate private key
+   openssl genrsa -out private_key.pem 2048
+   
+   # Generate certificate signing request
+   openssl req -new -key private_key.pem -out cert_request.csr
+   
+   # Generate self-signed certificate
+   openssl x509 -req -days 365 -in cert_request.csr \
+     -signkey private_key.pem -out certificate.crt
+   
+   # Create certificate chain
+   cat certificate.crt > certificate_chain.crt
+   #+END_SRC
+
+2. **Store Securely**:
+   - Store private key securely
+   - Add to CI/CD environment variables
+   - Never commit to version control
+
+* Marketplace Submission Process
+
+** Initial Submission
+
+1. **Access Plugin Portal**:
+   - Go to https://plugins.jetbrains.com/
+   - Sign in with JetBrains account
+   - Click "Upload Plugin"
+
+2. **Plugin Information Form**:
+
+*** Basic Information
+- **Plugin Name**: ByteHot
+- **Plugin ID**: org.acmsl.bytehot.intellij
+- **Category**: Development Tools
+- **Tags**: hot-swap, development, java, bytecode, debugging
+
+*** Description
+#+BEGIN_SRC html
+<h1>ByteHot - Hot-Swap Plugin for IntelliJ IDEA</h1>
+
+<p>ByteHot enables real-time hot-swapping of Java bytecode without application restarts. 
+Perfect for rapid development and testing cycles.</p>
+
+<h2>🚀 Key Features:</h2>
+<ul>
+    <li><strong>Real-time Hot-Swapping</strong>: Instantly apply code changes to running applications</li>
+    <li><strong>Visual Feedback</strong>: Status indicators and notifications for hot-swap operations</li>
+    <li><strong>Automatic Detection</strong>: Monitors code changes and triggers hot-swap automatically</li>
+    <li><strong>Project Configuration</strong>: Flexible, project-specific settings</li>
+    <li><strong>Integrated Monitoring</strong>: Built-in tool window with logs and statistics</li>
+    <li><strong>Debug Integration</strong>: Works seamlessly with IntelliJ's debugger</li>
+</ul>
+
+<h2>💡 Why ByteHot?</h2>
+<p>Traditional development workflows require full application restarts for every code change, 
+leading to significant time loss. ByteHot eliminates this bottleneck by enabling instant 
+code updates, dramatically improving development productivity.</p>
+
+<h2>📋 Requirements:</h2>
+<ul>
+    <li>IntelliJ IDEA 2023.1 or higher</li>
+    <li>Java 17 or higher</li>
+    <li>ByteHot agent (included)</li>
+</ul>
+
+<h2>🎯 Perfect For:</h2>
+<ul>
+    <li>Web application development</li>
+    <li>Microservices development</li>
+    <li>Enterprise application development</li>
+    <li>Test-driven development</li>
+    <li>Rapid prototyping</li>
+</ul>
+
+<h2>📚 Documentation & Support:</h2>
+<p>Complete documentation, examples, and community support available at:</p>
+<ul>
+    <li><a href="https://github.com/rydnr/bytehot">GitHub Repository</a></li>
+    <li><a href="https://github.com/rydnr/bytehot/wiki">User Guide</a></li>
+    <li><a href="https://github.com/rydnr/bytehot/issues">Issue Tracker</a></li>
+</ul>
+#+END_SRC
+
+*** Vendor Information
+- **Vendor Name**: ByteHot Team
+- **Website**: https://github.com/rydnr/bytehot
+- **Email**: support@bytehot.org
+
+3. **Upload Plugin Archive**:
+   - Build plugin: =./gradlew buildPlugin=
+   - Upload generated ZIP file from =build/distributions/=
+   - Verify upload success
+
+** Plugin Review Process
+
+*** Automated Verification
+JetBrains runs automated checks:
+- Plugin structure validation
+- Compatibility verification
+- Security scanning
+- Performance analysis
+
+*** Manual Review
+Human reviewers check:
+- Plugin quality and functionality
+- User interface consistency
+- Documentation completeness
+- Marketplace guidelines compliance
+
+*** Review Timeline
+- **Automated checks**: 1-2 hours
+- **Manual review**: 1-3 business days
+- **Total process**: Usually 2-5 business days
+
+** Approval and Publication
+
+Once approved:
+1. **Publication notification** sent via email
+2. **Plugin appears** in marketplace search
+3. **Download statistics** available in developer portal
+4. **User reviews** and ratings enabled
+
+* Post-Publication Management
+
+** Version Updates
+
+*** Publishing New Versions
+
+1. **Update plugin.xml**:
+   - Increment version number
+   - Add change notes
+   - Update compatibility if needed
+
+2. **Build and test**:
+   #+BEGIN_SRC bash
+   ./gradlew clean buildPlugin
+   ./gradlew runPluginVerifier
+   #+END_SRC
+
+3. **Upload new version**:
+   - Go to plugin page in developer portal
+   - Click "Upload Update"
+   - Upload new ZIP file
+
+*** Update Best Practices
+- Test thoroughly before publishing
+- Provide detailed change notes
+- Maintain backward compatibility when possible
+- Follow semantic versioning
+
+** Channel Management
+
+*** Release Channels
+- **Stable**: Production releases for all users
+- **EAP**: Early access program for testing
+- **Beta**: Beta releases for selected users
+
+*** Channel Strategy
+#+BEGIN_SRC bash
+# Publish to beta channel first
+./gradlew publishPlugin -Ppublish.channel=beta
+
+# After testing, promote to stable
+./gradlew publishPlugin -Ppublish.channel=stable
+#+END_SRC
+
+** Analytics and Monitoring
+
+*** Download Metrics
+Monitor plugin adoption:
+- Total downloads
+- Downloads per version
+- Geographic distribution
+- IDE version distribution
+
+*** User Feedback
+Respond to:
+- User reviews and ratings
+- Issue reports
+- Feature requests
+- Support questions
+
+*** Performance Monitoring
+Track:
+- Plugin crash reports
+- Performance issues
+- Compatibility problems
+- User satisfaction metrics
+
+* CI/CD Integration
+
+** Automated Publishing Pipeline
+
+Create =.github/workflows/publish-plugin.yml=:
+
+#+BEGIN_SRC yaml
+name: Publish Plugin
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Gradle
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+        
+    - name: Grant execute permission
+      run: chmod +x gradlew
+      
+    - name: Run tests
+      run: ./gradlew test
+      
+    - name: Build plugin
+      run: ./gradlew buildPlugin
+      
+    - name: Verify plugin
+      run: ./gradlew runPluginVerifier
+      
+    - name: Sign plugin
+      env:
+        CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+        PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+      run: ./gradlew signPlugin
+      
+    - name: Publish to JetBrains Marketplace
+      env:
+        PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
+      run: ./gradlew publishPlugin
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: plugin-artifacts
+        path: build/distributions/
+#+END_SRC
+
+** Required Secrets
+
+Add to GitHub repository secrets:
+- =JETBRAINS_MARKETPLACE_TOKEN= - Marketplace API token
+- =CERTIFICATE_CHAIN= - Plugin signing certificate
+- =PRIVATE_KEY= - Plugin signing private key
+- =PRIVATE_KEY_PASSWORD= - Private key password
+
+* Marketplace Guidelines Compliance
+
+** Plugin Quality Standards
+
+*** Code Quality
+- Follow IntelliJ Platform coding standards
+- Use appropriate APIs and avoid deprecated methods
+- Implement proper error handling
+- Ensure thread safety
+
+*** User Experience
+- Consistent UI with IntelliJ IDEA look and feel
+- Intuitive configuration and setup
+- Clear error messages and notifications
+- Comprehensive documentation
+
+*** Performance
+- Minimal impact on IDE startup time
+- Efficient memory usage
+- Responsive user interface
+- Background processing for heavy operations
+
+** Security Requirements
+
+*** Data Handling
+- No unauthorized data collection
+- Secure communication protocols
+- Proper credential management
+- User privacy protection
+
+*** Code Security
+- No malicious code or behavior
+- Secure external dependencies
+- Proper input validation
+- Safe API usage
+
+** Legal Compliance
+
+*** Licensing
+- Clear license information
+- Compatible with JetBrains marketplace terms
+- Proper attribution for third-party code
+- Open source compliance
+
+*** Intellectual Property
+- No trademark violations
+- Original or properly licensed assets
+- Clear ownership documentation
+- Compliance with export regulations
+
+* Troubleshooting Common Issues
+
+** Plugin Verification Failures
+
+*** Problem: Compatibility Issues
+*Solution*:
+1. Check IntelliJ Platform version compatibility
+2. Update deprecated API usage
+3. Test with target IDE versions
+4. Review compatibility matrix
+
+*** Problem: Missing Dependencies
+*Solution*:
+1. Declare all required dependencies in plugin.xml
+2. Include necessary libraries in plugin distribution
+3. Verify classpath configuration
+4. Test plugin in clean environment
+
+## Publishing Failures
+
+*** Problem: Authentication Errors
+*Solution*:
+1. Verify marketplace token is valid
+2. Check token permissions
+3. Ensure account has publishing rights
+4. Contact JetBrains support if needed
+
+*** Problem: Validation Errors
+*Solution*:
+1. Review plugin.xml for required fields
+2. Validate plugin structure
+3. Check file permissions and formats
+4. Ensure all assets are included
+
+** Post-Publication Issues
+
+*** Problem: Low Download Numbers
+*Solutions*:
+1. Improve plugin description and screenshots
+2. Add more relevant tags and keywords
+3. Create demo videos and tutorials
+4. Engage with developer community
+5. Collect and respond to user feedback
+
+*** Problem: Negative Reviews
+*Solutions*:
+1. Respond professionally to user feedback
+2. Address reported issues quickly
+3. Provide clear documentation and support
+4. Release updates with improvements
+5. Monitor and fix compatibility issues
+
+* Best Practices Summary
+
+** Pre-Publication
+1. **Thorough Testing**: Test on multiple platforms and IDE versions
+2. **Quality Documentation**: Provide comprehensive user guides
+3. **Professional Assets**: Create high-quality icons and screenshots
+4. **Version Planning**: Plan release strategy and versioning
+
+** Publication Process
+1. **Gradual Rollout**: Use beta channel for initial releases
+2. **Monitor Feedback**: Watch for user reviews and issues
+3. **Quick Response**: Address problems promptly
+4. **Regular Updates**: Maintain active development cycle
+
+** Long-term Success
+1. **Community Engagement**: Participate in developer forums
+2. **Feature Evolution**: Listen to user needs and requests
+3. **Platform Updates**: Keep up with IntelliJ Platform changes
+4. **Documentation Maintenance**: Keep guides current and accurate
+
+Following these comprehensive guidelines will ensure successful publication and long-term success of the ByteHot IntelliJ plugin on the JetBrains Marketplace.

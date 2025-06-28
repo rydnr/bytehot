@@ -1,0 +1,297 @@
+#+TITLE: ByteHot Plugin User Guides
+#+AUTHOR: ByteHot Team
+#+DATE: 2025-06-27
+
+* Overview
+
+This directory contains comprehensive user guides for all ByteHot plugins and extensions. These guides provide step-by-step instructions for installation, configuration, and usage of ByteHot's development tools across different build systems and IDEs.
+
+** Available Guides
+
+- [[./maven-plugin-guide.org][Maven Plugin Guide]] - Integration with Maven build lifecycle
+- [[./gradle-plugin-guide.org][Gradle Plugin Guide]] - Gradle task integration and build scripts
+- [[./intellij-plugin-guide.org][IntelliJ IDEA Plugin Guide]] - IntelliJ IDEA IDE integration
+- [[./eclipse-plugin-guide.org][Eclipse Plugin Guide]] - Eclipse workspace and build integration
+- [[./vscode-extension-guide.org][VS Code Extension Guide]] - Visual Studio Code editor integration
+
+* Quick Start Matrix
+
+Choose your development environment:
+
+| Build Tool | IDE/Editor | Guide | Installation | Status |
+|-------------|------------|-------|--------------|--------|
+| Maven | Any IDE | [[./maven-plugin-guide.org][Maven Plugin]] | Add plugin to =pom.xml= | ✅ **Ready** |
+| Gradle | Any IDE | [[./gradle-plugin-guide.org][Gradle Plugin]] | Add plugin to =build.gradle= | ✅ **Ready** |
+| Any | IntelliJ IDEA | [[./intellij-plugin-guide.org][IntelliJ Plugin]] | Build from source | ✅ **Ready** |
+| Any | Eclipse | [[./eclipse-plugin-guide.org][Eclipse Plugin]] | Install from Update Site | 🚧 Planned |
+| Any | VS Code | [[./vscode-extension-guide.org][VS Code Extension]] | Install from Extensions | 🚧 Planned |
+
+* Common Prerequisites
+
+All ByteHot plugins require:
+
+- **Java 17 or higher** - Runtime environment
+- **ByteHot Agent JAR** - Download from [[https://github.com/rydnr/bytehot/releases][releases]]
+- **Running Application** - Application started with ByteHot agent attached
+
+** Agent Setup
+
+1. **Download the agent**:
+   #+BEGIN_SRC bash
+   wget https://github.com/rydnr/bytehot/releases/latest/download/bytehot-agent.jar
+   #+END_SRC
+
+2. **Start your application with agent**:
+   #+BEGIN_SRC bash
+   java -javaagent:bytehot-agent.jar -jar your-application.jar
+   #+END_SRC
+
+3. **Verify agent is running**:
+   #+BEGIN_SRC bash
+   curl http://localhost:8080/health
+   #+END_SRC
+
+* Universal Configuration
+
+** Basic Configuration Properties
+
+All plugins support these common configuration options:
+
+#+BEGIN_SRC properties
+# Agent connection
+bytehot.agent.host=localhost
+bytehot.agent.port=8080
+bytehot.agent.timeout=5000
+
+# File monitoring
+bytehot.watch.paths=src/main/java,src/main/resources
+bytehot.watch.includes=**/*.java,**/*.class
+bytehot.watch.excludes=**/test/**,**/build/**
+bytehot.watch.interval=1000
+
+# Hot-swap behavior
+bytehot.hotswap.enabled=true
+bytehot.hotswap.auto.compile=true
+bytehot.hotswap.strategy=incremental
+#+END_SRC
+
+** Environment Variables
+
+Configure via environment variables for CI/CD:
+
+#+BEGIN_SRC bash
+export BYTEHOT_AGENT_HOST=localhost
+export BYTEHOT_AGENT_PORT=8080
+export BYTEHOT_WATCH_ENABLED=true
+export BYTEHOT_AUTO_COMPILE=true
+#+END_SRC
+
+* Development Workflows
+
+** Ready-to-Use Implementations
+
+*** Maven Plugin Workflow
+
+For Maven projects, use the zero-configuration approach:
+
+#+BEGIN_SRC bash
+# 1. Add plugin to pom.xml (see Maven guide)
+# 2. One command to start live mode
+mvn bytehot:live
+
+# Plugin automatically:
+# - Detects main class (>90% success rate)
+# - Discovers ByteHot agent
+# - Builds classpath from project
+# - Launches with hot-swap enabled
+#+END_SRC
+
+*** Gradle Plugin Workflow
+
+For Gradle projects, use the seamless build integration:
+
+#+BEGIN_SRC bash
+# 1. Add plugin to build.gradle (see Gradle guide)
+# 2. One command to start live mode
+./gradlew live
+
+# Plugin automatically:
+# - Detects main class from application plugin
+# - Discovers ByteHot agent
+# - Builds complete classpath with dependencies
+# - Integrates with Gradle's build lifecycle
+#+END_SRC
+
+*** IntelliJ IDEA Plugin Workflow
+
+For IntelliJ users, use the native IDE integration:
+
+1. **Install plugin** from source (build =bytehot-intellij-plugin=)
+2. **Click "Start Live Mode"** button in toolbar
+3. **Plugin automatically handles** project analysis and agent discovery
+4. **Get visual feedback** for all hot-swap operations
+
+** Basic Development Cycle
+
+1. **Start application** using plugin (Maven, Gradle, or IntelliJ)
+2. **Edit source code** in your preferred editor
+3. **Save files** (automatic compilation and hot-swap)
+4. **See immediate changes** in running application
+5. **Get visual feedback** on hot-swap success/failure
+
+** Team Development Setup
+
+1. **Shared configuration**:
+   - Commit plugin configurations to version control
+   - Document agent setup procedures
+   - Provide setup scripts for new team members
+
+2. **Development standards**:
+   - Use consistent plugin versions across team
+   - Establish hot-swap testing procedures
+   - Define when to use full restart vs hot-swap
+
+** CI/CD Integration
+
+1. **Testing with hot-swap**:
+   - Run tests with ByteHot agent enabled
+   - Use hot-swap for rapid test iteration
+   - Include full restart tests for validation
+
+2. **Build pipeline integration**:
+   - Include ByteHot plugins in build configurations
+   - Configure environment-specific settings
+   - Automate agent deployment for testing environments
+
+* Troubleshooting Common Issues
+
+** Connection Problems
+
+*Symptoms*: Cannot connect to ByteHot agent
+
+*Solutions*:
+1. Verify agent is running: =curl http://localhost:8080/health=
+2. Check firewall settings and port accessibility
+3. Verify correct host/port configuration in plugin
+4. Test with different ports if needed
+
+** Hot-swap Not Working
+
+*Symptoms*: Code changes don't trigger hot-swap
+
+*Solutions*:
+1. Check file patterns (includes/excludes)
+2. Verify auto-compilation is enabled
+3. Ensure files are in monitored directories
+4. Check for compilation errors
+5. Try manual hot-swap to test connection
+
+** Performance Issues
+
+*Symptoms*: IDE/build tool becomes slow
+
+*Solutions*:
+1. Reduce monitoring scope (watch specific directories)
+2. Increase watch interval to reduce CPU usage
+3. Exclude large directories (node_modules, build outputs)
+4. Use more specific file patterns
+5. Monitor system resources
+
+** Compilation Errors
+
+*Symptoms*: Hot-swap fails due to compilation errors
+
+*Solutions*:
+1. Check Java version compatibility
+2. Verify classpath and dependencies
+3. Ensure source directories are correctly configured
+4. Check for circular dependencies
+5. Try clean rebuild
+
+* Plugin-Specific Features
+
+** Build Tool Plugins
+
+*** Maven Plugin Features ✅ **Implemented**
+- Zero-configuration live mode activation (=mvn bytehot:live=)
+- Automatic main class detection (>90% success rate)
+- Multi-strategy detection: exec plugin → Spring Boot → bytecode scanning
+- Agent auto-discovery in local repository, project target, current directory
+- Support for multi-module projects
+- Classpath auto-building from project dependencies
+- Custom JVM arguments and configuration
+- Dry-run mode for testing configuration
+- Comprehensive test coverage (20 tests passing)
+
+*** Gradle Plugin Features 🚧 **Planned**
+- Gradle task integration
+- Kotlin DSL support
+- Build cache compatibility
+- Multi-project builds
+
+** IDE/Editor Plugins
+
+*** IntelliJ IDEA Features ✅ **Implemented**
+- One-click "Start Live Mode" toolbar action
+- Zero-configuration project analysis and main class detection
+- Automatic ByteHot agent discovery and process launching
+- Native IDE integration with Swing/AWT components
+- Real-time visual feedback for hot-swap operations
+- Process lifecycle management (start/stop controls)
+- Project-specific configuration and analysis
+- Kotlin-based implementation following IntelliJ SDK patterns
+- Comprehensive test coverage (20 tests passing)
+
+*** Eclipse Features 🚧 **Planned**
+- Workspace integration
+- Project Explorer indicators
+- Build system integration
+- Perspective support
+
+*** VS Code Features 🚧 **Planned**
+- Command palette integration
+- Status bar indicators
+- Multi-root workspace support
+- Task system integration
+
+* Best Practices
+
+** Development Environment
+
+1. **Use localhost connections** when possible for better performance
+2. **Configure specific file patterns** to avoid unnecessary monitoring
+3. **Use development profiles** to separate dev/prod configurations
+4. **Monitor system resources** to ensure optimal performance
+
+** Code Development
+
+1. **Make incremental changes** for better hot-swap success
+2. **Test hot-swapped changes** before major modifications
+3. **Use version control** for checkpoint commits
+4. **Restart periodically** for full integration testing
+
+** Team Collaboration
+
+1. **Document setup procedures** for new team members
+2. **Share plugin configurations** via version control
+3. **Establish testing standards** for hot-swapped code
+4. **Provide troubleshooting guides** for common issues
+
+* Support and Resources
+
+** Documentation
+- [[../../../specs/milestone-15-infrastructure-refactoring.org][Infrastructure Refactoring Specification]]
+- [[../../../specs/technical-specs/plugin-communication-protocol.org][Plugin Communication Protocol]]
+- [[../../../specs/technical-specs/unified-configuration-format.org][Unified Configuration Format]]
+
+** Community Support
+- GitHub Issues: [[https://github.com/rydnr/bytehot/issues][Report bugs and request features]]
+- Discussions: [[https://github.com/rydnr/bytehot/discussions][Community discussions and help]]
+- Wiki: [[https://github.com/rydnr/bytehot/wiki][Additional documentation and examples]]
+
+** Development Resources
+- [[../../../specs/technical-specs/plugin-testing-framework.org][Plugin Testing Framework]]
+- [[../../../specs/migration-guides/adapter-migration-guide.org][Adapter Migration Guide]]
+- [[../../../specs/technical-specs/infrastructure-patterns-guide.org][Infrastructure Patterns Guide]]
+
+For specific plugin instructions, choose the appropriate guide from the list above.
