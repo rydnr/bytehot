@@ -74,19 +74,17 @@ public class StatePreserver {
                     continue;
                 }
                 
-                // Make field accessible if it's private
-                final boolean wasAccessible = field.canAccess(object);
-                if (!wasAccessible) {
-                    field.setAccessible(true);
+                // Make field accessible if it's private (using modern Java 9+ API)
+                if (!field.trySetAccessible()) {
+                    throw new IllegalAccessException("Cannot access field: " + field.getName() + " on class: " + clazz.getName());
                 }
                 
                 try {
                     // Get field value and store it
                     final Object value = field.get(object);
                     state.put(field.getName(), value);
-                } finally {
-                    // Restore original accessibility
-                    field.setAccessible(wasAccessible);
+                } catch (final IllegalAccessException e) {
+                    throw new RuntimeException("Failed to access field: " + field.getName(), e);
                 }
             }
         } catch (final IllegalAccessException e) {
@@ -124,19 +122,17 @@ public class StatePreserver {
                     continue; // Skip fields not in preserved state
                 }
                 
-                // Make field accessible if it's private
-                final boolean wasAccessible = field.canAccess(object);
-                if (!wasAccessible) {
-                    field.setAccessible(true);
+                // Make field accessible if it's private (using modern Java 9+ API)
+                if (!field.trySetAccessible()) {
+                    throw new IllegalAccessException("Cannot access field: " + fieldName + " on class: " + clazz.getName());
                 }
                 
                 try {
                     // Restore field value
                     final Object value = state.get(fieldName);
                     field.set(object, value);
-                } finally {
-                    // Restore original accessibility
-                    field.setAccessible(wasAccessible);
+                } catch (final IllegalAccessException e) {
+                    throw new RuntimeException("Failed to set field: " + fieldName, e);
                 }
             }
         } catch (final IllegalAccessException e) {

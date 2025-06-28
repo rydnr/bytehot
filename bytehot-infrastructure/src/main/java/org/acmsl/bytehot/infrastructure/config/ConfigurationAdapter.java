@@ -211,7 +211,9 @@ public class ConfigurationAdapter
         final WatchConfiguration config = new WatchConfiguration(port);
         try {
             final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
-            foldersField.setAccessible(true);
+            if (!foldersField.trySetAccessible()) {
+                throw new IllegalAccessException("Cannot access field: folders on WatchConfiguration");
+            }
             foldersField.set(config, folders);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
@@ -245,7 +247,9 @@ public class ConfigurationAdapter
         final WatchConfiguration config = new WatchConfiguration(8080);
         try {
             final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
-            foldersField.setAccessible(true);
+            if (!foldersField.trySetAccessible()) {
+                throw new IllegalAccessException("Cannot access field: folders on WatchConfiguration");
+            }
             foldersField.set(config, folders);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to set folders in WatchConfiguration", e);
@@ -388,7 +392,9 @@ public class ConfigurationAdapter
         final WatchConfiguration config = new WatchConfiguration(8080);
         try {
             final java.lang.reflect.Field foldersField = WatchConfiguration.class.getDeclaredField("folders");
-            foldersField.setAccessible(true);
+            if (!foldersField.trySetAccessible()) {
+                throw new IllegalAccessException("Cannot access field: folders on WatchConfiguration");
+            }
             foldersField.set(config, folders);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to set folders in WatchConfiguration", e);

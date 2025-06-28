@@ -8,7 +8,7 @@ cat <<EOF
         }
 
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Courier, monospace;
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
             color: #00ff00;
             line-height: 1.6;
@@ -80,7 +80,7 @@ cat <<EOF
             transform: translateY(-3px) scale(1.05);
         }
 
-        .content {
+        .content, .container {
             margin-top: 100px;
             padding: 2rem;
             max-width: 1200px;
@@ -146,7 +146,7 @@ cat <<EOF
             color: #00ff00;
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Courier, monospace;
             border: 1px solid rgba(0, 255, 0, 0.3);
         }
 
@@ -277,6 +277,64 @@ cat <<EOF
         .class-ref:hover {
             background: rgba(0, 255, 0, 0.2);
             box-shadow: 0 0 10px #00ff00;
+        }
+
+        .intro-section {
+            background: rgba(26, 26, 58, 0.6);
+            border: 1px solid #00cccc;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .intro-section p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .category-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 2px solid #00cccc;
+        }
+
+        .category-section h2 {
+            color: #00ff00;
+            font-size: 1.8rem;
+            margin: 0 0 1rem 0;
+            border-left: 4px solid #00ff00;
+            padding-left: 1rem;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .category-section p {
+            color: #ffffff;
+            margin: 1rem 0;
+            line-height: 1.8;
+        }
+
+        .class-link {
+            background: rgba(0, 204, 204, 0.1);
+            padding: 0.8rem 1.2rem;
+            border-radius: 6px;
+            border: 1px solid #00cccc;
+            display: block;
+            margin: 0.4rem;
+            color: #00cccc;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .class-link:hover {
+            background: rgba(0, 204, 204, 0.2);
+            box-shadow: 0 0 15px #00cccc;
+            transform: translateY(-2px);
+            color: #ffffff;
         }
 
         .revolutionary-banner {

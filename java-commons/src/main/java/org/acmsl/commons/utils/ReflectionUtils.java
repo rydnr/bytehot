@@ -342,13 +342,13 @@ public class ReflectionUtils
         {
             // Are we running on a JDK 1.2 or later system?
             final Method t_Method =
-                Thread.class.getMethod("getContextClassLoader", (Class<?>) null);
+                Thread.class.getMethod("getContextClassLoader");
 
             // Get the thread context class loader (if there is one)
             try
             {
                 result =
-                    (ClassLoader) t_Method.invoke(Thread.currentThread(), (Class<?>) null);
+                    (ClassLoader) t_Method.invoke(Thread.currentThread());
             }
             catch  (final InvocationTargetException invocationTargetException)
             {
