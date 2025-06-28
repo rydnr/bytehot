@@ -11,27 +11,74 @@ import { spawn } from 'child_process';
  */
 
 let liveModeTerminal: vscode.Terminal | undefined;
+let statusBarItem: vscode.StatusBarItem;
+let outputChannel: vscode.OutputChannel;
+let isLiveModeActive = false;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('ByteHot extension is now active!');
 
-    // Register the "Start Live Mode" command
+    // Initialize output channel
+    outputChannel = vscode.window.createOutputChannel('ByteHot');
+    outputChannel.appendLine('ByteHot extension activated');
+    
+    // Initialize status bar item
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    statusBarItem.command = 'bytehot.toggleLiveMode';
+    updateStatusBar();
+    statusBarItem.show();
+
+    // Register commands
     let startLiveModeCommand = vscode.commands.registerCommand('bytehot.startLiveMode', () => {
         startLiveMode(context);
     });
 
-    // Register the "Stop Live Mode" command
     let stopLiveModeCommand = vscode.commands.registerCommand('bytehot.stopLiveMode', () => {
         stopLiveMode();
     });
+    
+    let toggleLiveModeCommand = vscode.commands.registerCommand('bytehot.toggleLiveMode', () => {
+        if (isLiveModeActive) {
+            stopLiveMode();
+        } else {
+            startLiveMode(context);
+        }
+    });
 
-    context.subscriptions.push(startLiveModeCommand);
-    context.subscriptions.push(stopLiveModeCommand);
+    let showOutputCommand = vscode.commands.registerCommand('bytehot.showOutput', () => {
+        outputChannel.show();
+    });
+
+    // Register all commands with context
+    context.subscriptions.push(
+        startLiveModeCommand,
+        stopLiveModeCommand,
+        toggleLiveModeCommand,
+        showOutputCommand,
+        statusBarItem,
+        outputChannel
+    );
 }
 
 export function deactivate() {
     if (liveModeTerminal) {
         liveModeTerminal.dispose();
+    }
+    isLiveModeActive = false;
+}
+
+/**
+ * Updates the status bar item based on current live mode state.
+ */
+function updateStatusBar() {
+    if (isLiveModeActive) {
+        statusBarItem.text = '$(debug-stop) ByteHot: Active';
+        statusBarItem.tooltip = 'ByteHot live mode is running. Click to stop.';
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+    } else {
+        statusBarItem.text = '$(play) ByteHot: Ready';
+        statusBarItem.tooltip = 'ByteHot live mode is ready. Click to start.';
+        statusBarItem.backgroundColor = undefined;
     }
 }
 
@@ -39,19 +86,45 @@ export function deactivate() {
  * Starts ByteHot live mode for the current workspace.
  */
 async function startLiveMode(context: vscode.ExtensionContext) {
+    if (isLiveModeActive) {
+        vscode.window.showWarningMessage('ByteHot live mode is already running');
+        return;
+    }
+
     try {
+        outputChannel.appendLine('Starting ByteHot live mode...');
+        
         // Find agent JAR (bundled or fallback)
         const agentPath = await findAgentJar(context);
         if (!agentPath) {
-            vscode.window.showErrorMessage('ByteHot agent JAR not found. Please ensure bytehot-application is built.');
+            const message = 'ByteHot agent JAR not found. Please ensure bytehot-application is built.';
+            outputChannel.appendLine(`ERROR: ${message}`);
+            vscode.window.showErrorMessage(message);
             return;
         }
+        
+        outputChannel.appendLine(`Found agent JAR: ${agentPath}`);
 
         // Analyze current project
         const projectConfig = await analyzeProject();
         if (!projectConfig.mainClass) {
-            vscode.window.showErrorMessage('No main class found. Please ensure your project has a class with main method.');
+            const message = 'No main class found. Please ensure your project has a class with main method.';
+            outputChannel.appendLine(`ERROR: ${message}`);
+            vscode.window.showErrorMessage(message);
             return;
+        }
+        
+        outputChannel.appendLine(`Detected main class: ${projectConfig.mainClass}`);
+        outputChannel.appendLine(`Classpath: ${projectConfig.classpath}`);
+
+        // Apply user configuration overrides
+        const config = vscode.workspace.getConfiguration('bytehot');
+        const userMainClass = config.get<string>('mainClass');
+        const userJvmArgs = config.get<string[]>('jvmArgs') || [];
+        
+        if (userMainClass && userMainClass.trim()) {
+            projectConfig.mainClass = userMainClass.trim();
+            outputChannel.appendLine(`Using configured main class: ${projectConfig.mainClass}`);
         }
 
         // Create terminal for live mode
@@ -64,17 +137,34 @@ async function startLiveMode(context: vscode.ExtensionContext) {
             cwd: vscode.workspace.workspaceFolders?.[0].uri.fsPath
         });
 
-        // Build launch command
-        const command = buildLaunchCommand(projectConfig, agentPath);
+        // Build launch command with user JVM args
+        const command = buildLaunchCommand(projectConfig, agentPath, userJvmArgs);
         
-        vscode.window.showInformationMessage(`Starting live mode for ${projectConfig.mainClass}`);
+        outputChannel.appendLine(`Launch command: ${command}`);
+        
+        const message = `Starting live mode for ${projectConfig.mainClass}`;
+        vscode.window.showInformationMessage(message);
+        outputChannel.appendLine(message);
         
         // Execute command in terminal
         liveModeTerminal.sendText(command);
         liveModeTerminal.show();
+        
+        // Update state
+        isLiveModeActive = true;
+        updateStatusBar();
+        
+        // Monitor terminal for closure
+        vscode.window.onDidCloseTerminal((terminal) => {
+            if (terminal === liveModeTerminal) {
+                handleLiveModeTerminated();
+            }
+        });
 
     } catch (error) {
-        vscode.window.showErrorMessage(`Failed to start live mode: ${error}`);
+        const message = `Failed to start live mode: ${error}`;
+        outputChannel.appendLine(`ERROR: ${message}`);
+        vscode.window.showErrorMessage(message);
     }
 }
 
@@ -82,10 +172,35 @@ async function startLiveMode(context: vscode.ExtensionContext) {
  * Stops the current live mode session.
  */
 function stopLiveMode() {
+    if (!isLiveModeActive) {
+        vscode.window.showWarningMessage('ByteHot live mode is not running');
+        return;
+    }
+
+    outputChannel.appendLine('Stopping ByteHot live mode...');
+    
     if (liveModeTerminal) {
         liveModeTerminal.dispose();
         liveModeTerminal = undefined;
-        vscode.window.showInformationMessage('Live mode stopped');
+    }
+    
+    isLiveModeActive = false;
+    updateStatusBar();
+    
+    const message = 'ByteHot live mode stopped';
+    vscode.window.showInformationMessage(message);
+    outputChannel.appendLine(message);
+}
+
+/**
+ * Handles live mode terminal termination.
+ */
+function handleLiveModeTerminated() {
+    if (isLiveModeActive) {
+        outputChannel.appendLine('Live mode terminal was closed');
+        isLiveModeActive = false;
+        updateStatusBar();
+        liveModeTerminal = undefined;
     }
 }
 
@@ -287,14 +402,22 @@ async function buildClasspath(workspaceRoot: string): Promise<string> {
 /**
  * Builds the launch command for the application with ByteHot agent.
  */
-function buildLaunchCommand(config: ProjectConfiguration, agentPath: string): string {
+function buildLaunchCommand(config: ProjectConfiguration, agentPath: string, jvmArgs: string[] = []): string {
     const parts = [
         'java',
-        `-javaagent:"${agentPath}"`,
+        `-javaagent:"${agentPath}"`
+    ];
+    
+    // Add additional JVM arguments
+    if (jvmArgs.length > 0) {
+        parts.push(...jvmArgs);
+    }
+    
+    parts.push(
         '-cp',
         `"${config.classpath}"`,
         config.mainClass!
-    ];
+    );
 
     return parts.join(' ');
 }
