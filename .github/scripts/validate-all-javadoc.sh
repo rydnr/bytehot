@@ -49,7 +49,7 @@ for module in java-commons bytehot-domain bytehot-infrastructure bytehot-applica
             -Dadditionalparam="-Xdoclint:syntax,reference" \
             -Dmaven.javadoc.skip=false \
             -Dquiet=false \
-            > "../$TEMP_DIR/$module.log" 2>&1) || true
+            > "$TEMP_DIR/$module.log" 2>&1) || true
             
         # Extract only errors from this module
         if [[ -f "$TEMP_DIR/$module.log" ]]; then
