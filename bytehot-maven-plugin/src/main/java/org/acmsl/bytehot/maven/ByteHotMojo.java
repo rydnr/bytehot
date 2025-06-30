@@ -135,6 +135,10 @@ public class ByteHotMojo extends AbstractMojo {
         return config;
     }
 
+    /**
+     * Logs the current project configuration for debugging purposes.
+     * @param config the project configuration to log
+     */
     protected void logConfiguration(ProjectConfiguration config) {
         getLog().info("ByteHot Configuration:");
         getLog().info("  - Main Class: " + config.getMainClass());
@@ -145,6 +149,11 @@ public class ByteHotMojo extends AbstractMojo {
         getLog().info("  - Dry Run: " + dryRun);
     }
 
+    /**
+     * Configures the ByteHot agent for the project.
+     * @param config the project configuration to use for agent setup
+     * @throws MojoExecutionException if agent configuration fails
+     */
     protected void configureAgent(ProjectConfiguration config) throws MojoExecutionException {
         // Resolve agent path
         String resolvedAgentPath;
@@ -173,6 +182,11 @@ public class ByteHotMojo extends AbstractMojo {
         }
     }
 
+    /**
+     * Starts the application with the ByteHot agent attached.
+     * @param config the project configuration containing main class and JVM settings
+     * @throws MojoExecutionException if the application fails to start
+     */
     protected void startApplicationWithAgent(ProjectConfiguration config) throws MojoExecutionException {
         try {
             getLog().info("Starting " + config.getMainClass() + " with ByteHot agent...");

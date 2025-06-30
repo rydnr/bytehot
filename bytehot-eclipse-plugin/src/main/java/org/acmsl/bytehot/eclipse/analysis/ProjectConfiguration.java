@@ -32,6 +32,7 @@ public class ProjectConfiguration {
     
     /**
      * Sets the main class to launch.
+     * @param mainClass the fully qualified main class name
      */
     public void setMainClass(String mainClass) {
         this.mainClass = mainClass;
@@ -46,6 +47,7 @@ public class ProjectConfiguration {
     
     /**
      * Sets the source paths to monitor.
+     * @param sourcePaths list of source directory paths, null values are converted to empty list
      */
     public void setSourcePaths(List<String> sourcePaths) {
         this.sourcePaths = sourcePaths != null ? sourcePaths : new ArrayList<>();
@@ -60,6 +62,7 @@ public class ProjectConfiguration {
     
     /**
      * Sets the classpath for the application.
+     * @param classpath the classpath string for the application
      */
     public void setClasspath(String classpath) {
         this.classpath = classpath;
@@ -74,6 +77,7 @@ public class ProjectConfiguration {
     
     /**
      * Sets the JVM arguments.
+     * @param jvmArgs list of JVM arguments, null values are converted to empty list
      */
     public void setJvmArgs(List<String> jvmArgs) {
         this.jvmArgs = jvmArgs != null ? jvmArgs : new ArrayList<>();
@@ -88,6 +92,7 @@ public class ProjectConfiguration {
     
     /**
      * Sets the program arguments.
+     * @param programArgs list of program arguments, null values are converted to empty list
      */
     public void setProgramArgs(List<String> programArgs) {
         this.programArgs = programArgs != null ? programArgs : new ArrayList<>();
@@ -95,6 +100,7 @@ public class ProjectConfiguration {
     
     /**
      * Adds a JVM argument.
+     * @param arg the JVM argument to add, null or empty values are ignored
      */
     public void addJvmArg(String arg) {
         if (arg != null && !arg.trim().isEmpty()) {
@@ -104,6 +110,7 @@ public class ProjectConfiguration {
     
     /**
      * Adds a program argument.
+     * @param arg the program argument to add, null or empty values are ignored
      */
     public void addProgramArg(String arg) {
         if (arg != null && !arg.trim().isEmpty()) {
@@ -113,6 +120,7 @@ public class ProjectConfiguration {
     
     /**
      * Adds a source path.
+     * @param path the source path to add, null or empty values are ignored
      */
     public void addSourcePath(String path) {
         if (path != null && !path.trim().isEmpty()) {

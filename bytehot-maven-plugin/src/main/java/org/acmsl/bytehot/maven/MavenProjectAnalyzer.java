@@ -27,6 +27,11 @@ public class MavenProjectAnalyzer {
     protected final MavenProject project;
     protected final MavenSession session;
     
+    /**
+     * Creates a new Maven project analyzer.
+     * @param project the Maven project to analyze
+     * @param session the current Maven session
+     */
     public MavenProjectAnalyzer(MavenProject project, MavenSession session) {
         this.project = project;
         this.session = session;
@@ -160,6 +165,11 @@ public class MavenProjectAnalyzer {
         }
     }
     
+    /**
+     * Loads a class file and checks if it contains a main method.
+     * @param classFile the path to the class file to analyze
+     * @return the class name if it has a main method, null otherwise
+     */
     protected String loadClassAndCheckForMain(Path classFile) {
         try {
             String className = classPathToClassName(classFile);
@@ -178,6 +188,11 @@ public class MavenProjectAnalyzer {
         return null;
     }
     
+    /**
+     * Converts a class file path to a fully qualified class name.
+     * @param classFile the path to the class file
+     * @return the fully qualified class name
+     */
     protected String classPathToClassName(Path classFile) {
         String outputDirectory = project.getBuild().getOutputDirectory();
         String relativePath = Paths.get(outputDirectory)
