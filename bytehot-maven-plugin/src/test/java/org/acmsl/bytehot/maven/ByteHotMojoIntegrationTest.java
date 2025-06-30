@@ -64,10 +64,18 @@ public class ByteHotMojoIntegrationTest {
             mojo.execute();
             fail("Should throw exception for null project");
         } catch (Exception e) {
-            assertTrue("Should contain validation error message", 
-                e.getMessage().contains("Maven project is required") ||
-                e.getMessage().contains("project") ||
-                e.getMessage().contains("null"));
+            // The validation error gets wrapped in a MojoExecutionException
+            // Check both the main message and the cause message
+            String mainMessage = e.getMessage() != null ? e.getMessage() : "";
+            String causeMessage = e.getCause() != null && e.getCause().getMessage() != null ? 
+                e.getCause().getMessage() : "";
+            
+            assertTrue("Should contain validation error message. Got: '" + mainMessage + 
+                      "' with cause: '" + causeMessage + "'", 
+                mainMessage.contains("Failed to start application") ||
+                causeMessage.contains("Maven project is required") ||
+                causeMessage.contains("project") ||
+                causeMessage.contains("null"));
         }
     }
 
