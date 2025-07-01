@@ -18,9 +18,28 @@ public class ByteHotPluginTest {
     private ByteHotPlugin plugin;
     private Path tempDir;
     
+    /**
+     * Test-specific plugin that can disable bundled agent extraction to test fallback logic.
+     */
+    private static class TestableByteHotPlugin extends ByteHotPlugin {
+        private boolean disableBundledAgent = false;
+        
+        public void setDisableBundledAgent(boolean disable) {
+            this.disableBundledAgent = disable;
+        }
+        
+        @Override
+        protected String extractBundledAgent() throws IOException {
+            if (disableBundledAgent) {
+                return null; // Force fallback to repository search
+            }
+            return super.extractBundledAgent();
+        }
+    }
+    
     @Before
     public void setUp() throws IOException {
-        plugin = new ByteHotPlugin();
+        plugin = new TestableByteHotPlugin();
         tempDir = Files.createTempDirectory("bytehot-test");
     }
     
@@ -62,10 +81,11 @@ public class ByteHotPluginTest {
     
     @Test
     public void testAgentDiscoveryWithLocalRepository() throws IOException {
-        // Given: Mock local repository structure
-        String userHome = System.getProperty("java.io.tmpdir");
+        // Given: Mock local repository structure and disable bundled agent
+        TestableByteHotPlugin testPlugin = (TestableByteHotPlugin) plugin;
+        testPlugin.setDisableBundledAgent(true);
+        
         String originalUserHome = System.getProperty("user.home");
-        System.setProperty("user.home", userHome);
         
         Path m2Dir = tempDir.resolve(".m2/repository/org/acmsl/bytehot-application/latest-SNAPSHOT");
         Files.createDirectories(m2Dir);
@@ -89,12 +109,18 @@ public class ByteHotPluginTest {
     
     @Test
     public void testAgentDiscoveryWithCurrentDirectory() throws IOException {
-        // Given: Agent jar in current directory
+        // Given: Agent jar in current directory and disable bundled agent
+        TestableByteHotPlugin testPlugin = (TestableByteHotPlugin) plugin;
+        testPlugin.setDisableBundledAgent(true);
+        
         String originalUserDir = System.getProperty("user.dir");
+        String originalUserHome = System.getProperty("user.home");
         Path agentJar = tempDir.resolve("bytehot-application-latest-SNAPSHOT-agent.jar");
         Files.createFile(agentJar);
         
         try {
+            // Set user.home to nonexistent directory to skip repository check
+            System.setProperty("user.home", "/nonexistent");
             System.setProperty("user.dir", tempDir.toString());
             
             // When: Search for agent
@@ -105,12 +131,16 @@ public class ByteHotPluginTest {
             assertEquals("Agent path should match", agentJar.toString(), result.get());
         } finally {
             System.setProperty("user.dir", originalUserDir);
+            System.setProperty("user.home", originalUserHome);
         }
     }
     
     @Test
     public void testAgentDiscoveryNotFound() {
-        // Given: No agent jar available
+        // Given: No agent jar available and disable bundled agent
+        TestableByteHotPlugin testPlugin = (TestableByteHotPlugin) plugin;
+        testPlugin.setDisableBundledAgent(true);
+        
         String originalUserHome = System.getProperty("user.home");
         String originalUserDir = System.getProperty("user.dir");
         

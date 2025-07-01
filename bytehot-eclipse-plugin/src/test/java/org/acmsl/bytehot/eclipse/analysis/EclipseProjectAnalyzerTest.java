@@ -1,5 +1,6 @@
 package org.acmsl.bytehot.eclipse.analysis;
 
+import org.acmsl.bytehot.eclipse.ByteHotPlugin;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -17,9 +18,14 @@ public class EclipseProjectAnalyzerTest {
     
     private Path tempDir;
     private EclipseProjectAnalyzer analyzer;
+    private ByteHotPlugin plugin;
     
     @Before
     public void setUp() throws IOException {
+        // Create and initialize plugin instance
+        plugin = new ByteHotPlugin();
+        plugin.initializePlugin();
+        
         tempDir = Files.createTempDirectory("eclipse-test");
         analyzer = new EclipseProjectAnalyzer(tempDir.toString(), "test-project");
     }

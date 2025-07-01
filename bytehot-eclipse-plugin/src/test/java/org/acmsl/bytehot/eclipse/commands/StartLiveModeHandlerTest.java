@@ -1,5 +1,6 @@
 package org.acmsl.bytehot.eclipse.commands;
 
+import org.acmsl.bytehot.eclipse.ByteHotPlugin;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -16,9 +17,33 @@ public class StartLiveModeHandlerTest {
     private StartLiveModeHandler handler;
     private Path tempDir;
     private String projectName;
+    private TestableByteHotPlugin plugin;
+    
+    /**
+     * Test-specific plugin that can disable agent discovery to test failure scenarios.
+     */
+    private static class TestableByteHotPlugin extends ByteHotPlugin {
+        private boolean disableAgentDiscovery = false;
+        
+        public void setDisableAgentDiscovery(boolean disable) {
+            this.disableAgentDiscovery = disable;
+        }
+        
+        @Override
+        public java.util.Optional<String> findAgentJar() {
+            if (disableAgentDiscovery) {
+                return java.util.Optional.empty();
+            }
+            return super.findAgentJar();
+        }
+    }
     
     @Before
     public void setUp() throws IOException {
+        // Create and initialize plugin instance
+        plugin = new TestableByteHotPlugin();
+        plugin.initializePlugin();
+        
         handler = new StartLiveModeHandler();
         tempDir = Files.createTempDirectory("handler-test");
         projectName = "test-project";
@@ -41,6 +66,7 @@ public class StartLiveModeHandlerTest {
     public void testCanExecuteWithoutAgent() throws IOException {
         // Given: Valid project but no agent
         createValidProject();
+        plugin.setDisableAgentDiscovery(true);
         
         // When: Check if can execute
         boolean canExecute = handler.canExecute(tempDir.toString(), projectName);
