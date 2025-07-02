@@ -102,14 +102,15 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - User context propagation through all domain events
 - User preferences and statistics tracking
 
-#### [Milestone 6D: Event-Driven Bug Reporting](milestone-6d-event-bug-reporting.md) 📋 PLANNED
+#### [Milestone 6D: Event-Driven Bug Reporting](milestone-6d-event-bug-reporting.md) ✅ COMPLETED
 **Objective:** Exceptions include complete event context for reproduction
+**Status:** ✅ Implemented with comprehensive bug reproduction capabilities
 **Walking Skeleton Value:** Every bug becomes a reproducible test case
 **Key Components:**
-- `EventSnapshotException` - Exceptions with event history
-- Automatic event snapshot generation on errors
-- Bug report serialization and reproduction
-- Developer-friendly error reporting with complete context
+- `EventSnapshotException` - Exceptions with event history ✅
+- Automatic event snapshot generation on errors ✅
+- Bug report serialization and reproduction ✅
+- Developer-friendly error reporting with complete context ✅
 
 #### [Milestone 6E: GitHub Actions CI/CD Pipeline Setup](milestone-6e-github-actions-setup.md) ✅ COMPLETED
 **Objective:** Establish comprehensive GitHub Actions CI/CD pipeline for automated testing, quality checks, and milestone releases
@@ -185,6 +186,22 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 **Objective:** Complete runtime self-awareness and documentation
 **Value:** Self-healing and self-documenting applications
 
+#### Milestone 14: Plugin Ecosystem Integration
+**Objective:** Complete plugin ecosystem with comprehensive testing, documentation, and community guidelines
+**Value:** Production-ready ecosystem making ByteHot invisible across all development environments
+
+#### Milestone 15: Infrastructure Refactoring and Reusability
+**Objective:** Extract reusable infrastructure components into java-commons-infrastructure module
+**Value:** Accelerated development of new tools through battle-tested infrastructure patterns
+
+#### Milestone 16: JavaEDA Framework Extraction
+**Objective:** Extract DDD/Hexagonal/EDA patterns into reusable JavaEDA framework modules
+**Value:** Rapid development of event-driven Java applications with minimal boilerplate
+
+#### Milestone 17: D-Bus Integration and Event Variant Architecture
+**Objective:** Add comprehensive D-Bus support with scalable event variant system for desktop integration
+**Value:** Desktop-native development experience with system notifications, tray presence, and IDE coordination
+
 ## Technical Architecture
 
 ### Domain-Driven Design (DDD)
@@ -235,13 +252,14 @@ All development follows strict TDD methodology with emoji-based commit conventio
 - **Milestone 6E:** GitHub Actions CI/CD Pipeline Setup - Complete automated workflows
 - **Milestone 6F:** Flow Detection - Complete flow detection with java-commons framework extraction
 - **Milestone 6C:** User Management Domain - ✅ Complete user-aware operations with context propagation
+- **Milestone 6D:** Event-Driven Bug Reporting - ✅ Complete exception-based reproduction with event snapshots
 - **Milestone 7:** Documentation Introspection - ✅ Complete self-documenting runtime system with flow detection
 - **Milestone 6B:** Event-Driven Testing Framework - ✅ Complete Given/When/Then testing with bug reproduction
 - **Milestone 6G:** Java-Commons Refactoring - ✅ Partially complete (major frameworks extracted)
 
 ### 📋 Next Steps (Walking Skeleton Approach)
-- **Milestone 6D:** Event-Driven Bug Reporting - Exception-based reproduction
 - **Milestone 6G:** Complete Java-Commons Refactoring - Remaining architecture components
+- **Milestone 8:** Plugin Foundation Architecture - Plugin discovery and integration framework
 
 ## Key Design Decisions
 
