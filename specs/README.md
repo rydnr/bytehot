@@ -132,9 +132,9 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - Real-time flow documentation generation and pattern recognition
 - **Bonus:** Complete framework extraction to java-commons for cross-domain reusability
 
-#### [Milestone 6G: Java-Commons Refactoring](milestone-6g-java-commons-refactoring.md) ✅ PARTIALLY COMPLETED
+#### [Milestone 6G: Java-Commons Refactoring](milestone-6g-java-commons-refactoring.md) ✅ COMPLETED
 **Objective:** Extract generic components to java-commons for reuse
-**Status:** ✅ Major frameworks extracted during Milestone 6F implementation
+**Status:** ✅ Complete framework extraction and ByteHot integration achieved
 **Walking Skeleton Value:** Architecture becomes reusable across projects
 **Completed Components:**
 - **Event Sourcing Framework:** `VersionedDomainEvent`, `EventMetadata`, `AbstractVersionedDomainEvent`
@@ -143,11 +143,10 @@ The ByteHot MVP is built around 10 core domain events that represent the complet
 - **ID Framework:** `AbstractId<T>` with factory methods and validation
 - **Time Utilities:** `TimeWindow` for temporal analysis
 - **Revolutionary Testing Framework:** Event-driven testing support for any domain
-**Remaining Components:**
-- Generic `Application` class moved to java-commons
-- `EventBus`, `CommandBus` abstractions
-- `AggregateRepository<T>` with EventSourcing
-- Enhanced `PortResolver` with plugin awareness
+- **Generic Application Interface:** `HandlesByteHotAttached extends Application` ✅
+- **EventBus, CommandBus Abstractions:** Available in java-commons for future use ✅
+- **AggregateRepository<T>:** Complete EventSourcing repository with versioning ✅
+- **Enhanced PortResolver:** `Ports extends CachingPortResolver` with performance optimization ✅
 
 ### Development Infrastructure (SUPPORTING)
 
@@ -255,11 +254,10 @@ All development follows strict TDD methodology with emoji-based commit conventio
 - **Milestone 6D:** Event-Driven Bug Reporting - ✅ Complete exception-based reproduction with event snapshots
 - **Milestone 7:** Documentation Introspection - ✅ Complete self-documenting runtime system with flow detection
 - **Milestone 6B:** Event-Driven Testing Framework - ✅ Complete Given/When/Then testing with bug reproduction
-- **Milestone 6G:** Java-Commons Refactoring - ✅ Partially complete (major frameworks extracted)
+- **Milestone 6G:** Java-Commons Refactoring - ✅ Complete framework extraction and ByteHot integration
 
 ### 📋 Next Steps (Walking Skeleton Approach)
-- **Milestone 6G:** Complete Java-Commons Refactoring - Remaining architecture components
-- **Milestone 8:** Plugin Foundation Architecture - Plugin discovery and integration framework
+- **Milestone 8:** Plugin Foundation Architecture - Complete bytehot-plugin-commons shared infrastructure
 
 ## Key Design Decisions
 
