@@ -1,0 +1,981 @@
+#+TITLE: Milestone 16: HTTP REPL & Runtime Interaction
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-07-03
+
+* Overview
+
+Milestone 16 enables runtime configuration and introspection via HTTP API, providing dynamic behavior modification without restarts. This milestone completes Phase 4 by adding interactive runtime capabilities that allow developers and operations teams to configure, monitor, and control ByteHot through web-based interfaces.
+
+** Goals
+
+- Implement HTTP-based REPL for runtime interaction and command execution
+- Build comprehensive REST API for configuration and monitoring
+- Create web-based dashboard for hot-swap operations and system visualization
+- Develop runtime introspection and debugging capabilities
+- Provide security and authentication for production use
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want to interact with ByteHot at runtime through a web interface, configure settings dynamically, monitor operations in real-time, and debug issues without requiring application restarts or deployments."
+#+END_QUOTE
+
+* HTTP REPL Architecture
+
+** Runtime Interaction Platform
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────────────┐
+│                HTTP REPL & Runtime Platform                │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │ HTTP-based  │  │    REST     │  │  Web-based  │        │
+│  │    REPL     │  │     API     │  │  Dashboard  │        │
+│  │& Commands   │  │Config/Monitor│  │& Operations │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  Runtime    │  │  Security   │  │ WebSocket   │        │
+│  │Introspection│  │& Auth System│  │Real-time    │        │
+│  │& Debugging  │  │& Production │  │ Updates     │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Key Components
+
+- *HTTP REPL*: Interactive command-line interface accessible via HTTP endpoints
+- *REST API*: Comprehensive API for configuration, monitoring, and operation control
+- *Web Dashboard*: Rich web-based interface for visual interaction and monitoring
+- *Runtime Introspection*: Deep system inspection and debugging capabilities
+- *Security Framework*: Authentication, authorization, and production-grade security
+
+* Runtime Interaction Implementation
+
+## HTTP-Based REPL for Runtime Interaction
+Interactive command execution and system control via HTTP endpoints
+
+## REST API for Configuration and Monitoring
+Comprehensive API enabling programmatic control and integration
+
+## Web-Based Dashboard for Hot-Swap Operations  
+Rich visual interface for monitoring, control, and system visualization
+
+## Runtime Introspection and Debugging Capabilities
+Deep system inspection tools for troubleshooting and optimization
+
+## Security and Authentication for Production Use
+Enterprise-grade security framework ensuring safe production deployment
+
+This milestone enables dynamic runtime interaction and provides comprehensive web-based tooling for ByteHot management.
+
+* Phase 1: HTTP-Based REPL & Command Execution
+
+** Objective
+Implement interactive HTTP-based REPL that allows runtime command execution, system configuration, and real-time interaction with ByteHot agent.
+
+** Technical Specifications
+
+*** HTTP REPL Server
+#+BEGIN_SRC java
+public class ByteHotREPLServer {
+    private final HttpServer httpServer;
+    private final CommandProcessor commandProcessor;
+    private final SessionManager sessionManager;
+    private final SecurityManager securityManager;
+    
+    public void startREPLServer(int port) {
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        
+        // REPL endpoint for interactive sessions
+        server.createContext("/repl", new REPLHandler());
+        
+        // Command execution endpoint
+        server.createContext("/execute", new CommandExecutionHandler());
+        
+        // Session management endpoints
+        server.createContext("/session", new SessionHandler());
+        
+        // WebSocket endpoint for real-time interaction
+        server.createContext("/ws", new WebSocketHandler());
+        
+        server.setExecutor(Executors.newCachedThreadPool());
+        server.start();
+        
+        getLogger().info("ByteHot REPL server started on port {}", port);
+    }
+    
+    private class REPLHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String sessionId = getOrCreateSession(exchange);
+            String command = extractCommand(exchange);
+            
+            // Process command in session context
+            CommandResult result = commandProcessor.processCommand(command, sessionId);
+            
+            // Return response
+            sendResponse(exchange, result.toJson());
+        }
+    }
+}
+#+END_SRC
+
+*** Command Processor
+#+BEGIN_SRC java
+public class REPLCommandProcessor {
+    private final Map<String, CommandHandler> commandHandlers;
+    private final ContextManager contextManager;
+    private final SecurityValidator securityValidator;
+    
+    public REPLCommandProcessor() {
+        this.commandHandlers = initializeCommandHandlers();
+        this.contextManager = new ContextManager();
+        this.securityValidator = new SecurityValidator();
+    }
+    
+    public CommandResult processCommand(String command, String sessionId) {
+        try {
+            // Parse command
+            ParsedCommand parsed = parseCommand(command);
+            
+            // Validate security
+            securityValidator.validateCommand(parsed, sessionId);
+            
+            // Get command handler
+            CommandHandler handler = commandHandlers.get(parsed.getCommandName());
+            if (handler == null) {
+                return CommandResult.error("Unknown command: " + parsed.getCommandName());
+            }
+            
+            // Execute command
+            return handler.execute(parsed, contextManager.getContext(sessionId));
+            
+        } catch (Exception e) {
+            return CommandResult.error("Command execution failed: " + e.getMessage());
+        }
+    }
+    
+    private Map<String, CommandHandler> initializeCommandHandlers() {
+        Map<String, CommandHandler> handlers = new HashMap<>();
+        
+        // System commands
+        handlers.put("status", new StatusCommandHandler());
+        handlers.put("config", new ConfigCommandHandler());
+        handlers.put("reload", new ReloadCommandHandler());
+        handlers.put("shutdown", new ShutdownCommandHandler());
+        
+        // Hot-swap commands
+        handlers.put("hotswap", new HotSwapCommandHandler());
+        handlers.put("list-classes", new ListClassesCommandHandler());
+        handlers.put("class-info", new ClassInfoCommandHandler());
+        
+        // Monitoring commands
+        handlers.put("metrics", new MetricsCommandHandler());
+        handlers.put("health", new HealthCommandHandler());
+        handlers.put("threads", new ThreadsCommandHandler());
+        handlers.put("memory", new MemoryCommandHandler());
+        
+        // Debugging commands
+        handlers.put("inspect", new InspectCommandHandler());
+        handlers.put("trace", new TraceCommandHandler());
+        handlers.put("log-level", new LogLevelCommandHandler());
+        
+        return handlers;
+    }
+}
+#+END_SRC
+
+*** Command Handlers Implementation
+#+BEGIN_SRC java
+public class HotSwapCommandHandler implements CommandHandler {
+    private final HotSwapManager hotSwapManager;
+    private final ClassLoader classLoader;
+    
+    @Override
+    public CommandResult execute(ParsedCommand command, REPLContext context) {
+        String className = command.getArgument("class");
+        String sourcePath = command.getArgument("source");
+        
+        if (className == null) {
+            return CommandResult.error("Missing required argument: class");
+        }
+        
+        try {
+            // Load class bytecode
+            byte[] bytecode = loadBytecode(className, sourcePath);
+            
+            // Perform hot-swap
+            HotSwapResult result = hotSwapManager.performHotSwap(className, bytecode);
+            
+            if (result.isSuccessful()) {
+                return CommandResult.success(String.format(
+                    "Successfully hot-swapped class %s in %dms", 
+                    className, result.getDuration().toMillis()));
+            } else {
+                return CommandResult.error("Hot-swap failed: " + result.getErrorMessage());
+            }
+            
+        } catch (Exception e) {
+            return CommandResult.error("Failed to hot-swap class: " + e.getMessage());
+        }
+    }
+}
+
+public class InspectCommandHandler implements CommandHandler {
+    private final RuntimeInspector inspector;
+    
+    @Override
+    public CommandResult execute(ParsedCommand command, REPLContext context) {
+        String target = command.getArgument("target");
+        String type = command.getArgument("type", "object");
+        
+        try {
+            switch (type) {
+                case "object":
+                    return inspectObject(target);
+                case "class":
+                    return inspectClass(target);
+                case "thread":
+                    return inspectThread(target);
+                case "memory":
+                    return inspectMemory(target);
+                default:
+                    return CommandResult.error("Unknown inspection type: " + type);
+            }
+        } catch (Exception e) {
+            return CommandResult.error("Inspection failed: " + e.getMessage());
+        }
+    }
+    
+    private CommandResult inspectObject(String objectId) {
+        Object obj = inspector.findObject(objectId);
+        if (obj == null) {
+            return CommandResult.error("Object not found: " + objectId);
+        }
+        
+        ObjectInspectionResult inspection = inspector.inspectObject(obj);
+        return CommandResult.success(inspection.toJson());
+    }
+}
+#+END_SRC
+
+*** Session Management
+#+BEGIN_SRC java
+public class REPLSessionManager {
+    private final Map<String, REPLSession> sessions;
+    private final SessionConfiguration config;
+    
+    public String createSession(HttpExchange exchange) {
+        String sessionId = generateSessionId();
+        String userAgent = exchange.getRequestHeaders().getFirst("User-Agent");
+        String remoteAddress = exchange.getRemoteAddress().toString();
+        
+        REPLSession session = REPLSession.builder()
+            .sessionId(sessionId)
+            .userAgent(userAgent)
+            .remoteAddress(remoteAddress)
+            .createdAt(Instant.now())
+            .lastActivity(Instant.now())
+            .context(new REPLContext())
+            .build();
+        
+        sessions.put(sessionId, session);
+        
+        // Schedule session cleanup
+        scheduleSessionCleanup(sessionId);
+        
+        return sessionId;
+    }
+    
+    public void updateSessionActivity(String sessionId) {
+        REPLSession session = sessions.get(sessionId);
+        if (session != null) {
+            session.setLastActivity(Instant.now());
+        }
+    }
+    
+    private void scheduleSessionCleanup(String sessionId) {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        executor.schedule(() -> {
+            REPLSession session = sessions.get(sessionId);
+            if (session != null && session.isExpired(config.getSessionTimeout())) {
+                sessions.remove(sessionId);
+                getLogger().info("Cleaned up expired REPL session: {}", sessionId);
+            }
+        }, config.getSessionTimeout().toMinutes(), TimeUnit.MINUTES);
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** REPL Server Infrastructure
+1. Implement HTTP server with REPL endpoints
+2. Create command parsing and execution framework
+3. Build session management and context handling
+4. Implement WebSocket support for real-time interaction
+
+*** Command Framework
+1. Create comprehensive command handler system
+2. Implement system, hot-swap, monitoring, and debugging commands
+3. Build command help and auto-completion support
+4. Create command history and replay capabilities
+
+*** Interactive Features
+1. Build multi-line command support
+2. Implement command history and navigation
+3. Create auto-completion and suggestion system
+4. Build interactive debugging and inspection tools
+
+** Acceptance Criteria
+
+- [ ] HTTP REPL server starts and accepts connections
+- [ ] All essential commands implemented and functional
+- [ ] Session management handles concurrent users
+- [ ] WebSocket real-time updates work correctly
+- [ ] Command execution is secure and validated
+- [ ] Interactive features enhance user experience
+
+* Phase 2: REST API & Web Dashboard
+
+** Objective
+Build comprehensive REST API for programmatic control and create rich web-based dashboard for visual interaction and monitoring.
+
+** Technical Specifications
+
+*** REST API Framework
+#+BEGIN_SRC java
+@RestController
+@RequestMapping("/api/v1")
+public class ByteHotRESTController {
+    private final ByteHotService byteHotService;
+    private final ConfigurationService configService;
+    private final MonitoringService monitoringService;
+    private final SecurityService securityService;
+    
+    @GetMapping("/status")
+    public ResponseEntity<SystemStatus> getSystemStatus() {
+        SystemStatus status = byteHotService.getSystemStatus();
+        return ResponseEntity.ok(status);
+    }
+    
+    @PostMapping("/hotswap")
+    public ResponseEntity<HotSwapResponse> performHotSwap(
+            @RequestBody HotSwapRequest request) {
+        
+        // Validate request
+        if (!isValidHotSwapRequest(request)) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // Perform hot-swap
+        HotSwapResult result = byteHotService.performHotSwap(
+            request.getClassName(), 
+            request.getBytecode()
+        );
+        
+        return ResponseEntity.ok(HotSwapResponse.from(result));
+    }
+    
+    @GetMapping("/configuration")
+    public ResponseEntity<Configuration> getConfiguration() {
+        Configuration config = configService.getCurrentConfiguration();
+        return ResponseEntity.ok(config);
+    }
+    
+    @PutMapping("/configuration")
+    public ResponseEntity<Void> updateConfiguration(
+            @RequestBody Configuration configuration) {
+        
+        // Validate configuration
+        ValidationResult validation = configService.validateConfiguration(configuration);
+        if (!validation.isValid()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        // Apply configuration
+        configService.applyConfiguration(configuration);
+        return ResponseEntity.ok().build();
+    }
+    
+    @GetMapping("/metrics")
+    public ResponseEntity<MetricsSnapshot> getMetrics(
+            @RequestParam(defaultValue = "1h") String timeWindow) {
+        
+        TimeWindow window = TimeWindow.parse(timeWindow);
+        MetricsSnapshot metrics = monitoringService.getMetrics(window);
+        return ResponseEntity.ok(metrics);
+    }
+    
+    @GetMapping("/classes")
+    public ResponseEntity<List<ClassInfo>> getLoadedClasses(
+            @RequestParam(required = false) String filter) {
+        
+        List<ClassInfo> classes = byteHotService.getLoadedClasses(filter);
+        return ResponseEntity.ok(classes);
+    }
+    
+    @GetMapping("/classes/{className}")
+    public ResponseEntity<DetailedClassInfo> getClassDetails(
+            @PathVariable String className) {
+        
+        DetailedClassInfo classInfo = byteHotService.getClassDetails(className);
+        if (classInfo == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(classInfo);
+    }
+}
+#+END_SRC
+
+*** Web Dashboard Implementation
+#+BEGIN_SRC html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ByteHot Dashboard</title>
+    <style>
+        /* Modern dashboard styling */
+        .dashboard {
+            display: grid;
+            grid-template-areas: 
+                "header header header"
+                "sidebar main main"
+                "footer footer footer";
+            grid-template-rows: 60px 1fr 40px;
+            grid-template-columns: 250px 1fr 1fr;
+            height: 100vh;
+        }
+        
+        .header { grid-area: header; background: #2c3e50; color: white; }
+        .sidebar { grid-area: sidebar; background: #34495e; color: white; }
+        .main { grid-area: main; background: #ecf0f1; }
+        .footer { grid-area: footer; background: #95a5a6; }
+        
+        .widget {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .metric-card {
+            text-align: center;
+            border-left: 4px solid #3498db;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            text-transform: uppercase;
+            font-size: 0.8em;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <h1>ByteHot Dashboard</h1>
+            <div class="status-indicator" id="connectionStatus">Connected</div>
+        </header>
+        
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#hot-swaps">Hot-Swaps</a></li>
+                <li><a href="#classes">Classes</a></li>
+                <li><a href="#metrics">Metrics</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#logs">Logs</a></li>
+            </ul>
+        </nav>
+        
+        <main class="main">
+            <div id="overview" class="tab-content">
+                <div class="widget metric-card">
+                    <div class="metric-value" id="totalHotSwaps">0</div>
+                    <div class="metric-label">Total Hot-Swaps</div>
+                </div>
+                
+                <div class="widget metric-card">
+                    <div class="metric-value" id="successRate">0%</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+                
+                <div class="widget metric-card">
+                    <div class="metric-value" id="timeSaved">0s</div>
+                    <div class="metric-label">Time Saved</div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Recent Hot-Swap Operations</h3>
+                    <table id="recentOperations">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Class</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="hot-swaps" class="tab-content" style="display: none;">
+                <div class="widget">
+                    <h3>Manual Hot-Swap</h3>
+                    <form id="hotSwapForm">
+                        <input type="text" id="className" placeholder="Class name" required>
+                        <input type="file" id="classFile" accept=".class">
+                        <button type="submit">Perform Hot-Swap</button>
+                    </form>
+                </div>
+                
+                <div class="widget">
+                    <h3>Hot-Swap History</h3>
+                    <div id="hotSwapHistory"></div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="footer">
+            <span>ByteHot v1.0.0 | Connected to localhost:8080</span>
+        </footer>
+    </div>
+    
+    <script src="dashboard.js"></script>
+</body>
+</html>
+#+END_SRC
+
+*** Dashboard JavaScript Implementation
+#+BEGIN_SRC javascript
+class ByteHotDashboard {
+    constructor() {
+        this.ws = null;
+        this.apiBase = '/api/v1';
+        this.init();
+    }
+    
+    init() {
+        this.connectWebSocket();
+        this.loadInitialData();
+        this.setupEventListeners();
+        this.startPeriodicUpdates();
+    }
+    
+    connectWebSocket() {
+        const wsUrl = `ws://${window.location.host}/ws`;
+        this.ws = new WebSocket(wsUrl);
+        
+        this.ws.onopen = () => {
+            console.log('WebSocket connected');
+            this.updateConnectionStatus('connected');
+        };
+        
+        this.ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            this.handleWebSocketMessage(data);
+        };
+        
+        this.ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            this.updateConnectionStatus('disconnected');
+            // Attempt reconnection
+            setTimeout(() => this.connectWebSocket(), 5000);
+        };
+    }
+    
+    async loadInitialData() {
+        try {
+            const [status, metrics, classes] = await Promise.all([
+                this.fetchAPI('/status'),
+                this.fetchAPI('/metrics'),
+                this.fetchAPI('/classes')
+            ]);
+            
+            this.updateOverview(status, metrics);
+            this.updateClassList(classes);
+            
+        } catch (error) {
+            console.error('Failed to load initial data:', error);
+        }
+    }
+    
+    async fetchAPI(endpoint) {
+        const response = await fetch(this.apiBase + endpoint);
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.statusText}`);
+        }
+        return response.json();
+    }
+    
+    updateOverview(status, metrics) {
+        document.getElementById('totalHotSwaps').textContent = metrics.totalOperations;
+        document.getElementById('successRate').textContent = 
+            `${(metrics.successRate * 100).toFixed(1)}%`;
+        document.getElementById('timeSaved').textContent = 
+            this.formatDuration(metrics.totalTimeSaved);
+    }
+    
+    handleWebSocketMessage(data) {
+        switch (data.type) {
+            case 'hotswap-completed':
+                this.addRecentOperation(data.operation);
+                this.updateMetrics();
+                break;
+            case 'configuration-changed':
+                this.showNotification('Configuration updated', 'info');
+                break;
+            case 'error':
+                this.showNotification(data.message, 'error');
+                break;
+        }
+    }
+    
+    async performHotSwap(className, classFile) {
+        const formData = new FormData();
+        formData.append('className', className);
+        formData.append('classFile', classFile);
+        
+        try {
+            const response = await fetch(this.apiBase + '/hotswap', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification(`Hot-swap successful: ${className}`, 'success');
+            } else {
+                this.showNotification(`Hot-swap failed: ${result.error}`, 'error');
+            }
+            
+        } catch (error) {
+            this.showNotification(`Hot-swap error: ${error.message}`, 'error');
+        }
+    }
+    
+    formatDuration(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        
+        if (hours > 0) {
+            return `${hours}h ${minutes % 60}m`;
+        } else if (minutes > 0) {
+            return `${minutes}m ${seconds % 60}s`;
+        } else {
+            return `${seconds}s`;
+        }
+    }
+}
+
+// Initialize dashboard when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    new ByteHotDashboard();
+});
+#+END_SRC
+
+** Implementation Tasks
+
+*** REST API Development
+1. Implement comprehensive REST API with all endpoints
+2. Create request/response DTOs and validation
+3. Build API documentation and OpenAPI specification
+4. Implement rate limiting and error handling
+
+*** Web Dashboard Creation
+1. Build responsive web dashboard interface
+2. Create real-time data visualization components
+3. Implement interactive controls and forms
+4. Build WebSocket integration for live updates
+
+*** API Integration
+1. Create JavaScript API client library
+2. Implement real-time updates via WebSocket
+3. Build offline capability and error handling
+4. Create API authentication and session management
+
+** Acceptance Criteria
+
+- [ ] REST API provides complete functionality access
+- [ ] Web dashboard displays real-time system status
+- [ ] Interactive controls enable manual operations
+- [ ] WebSocket updates provide immediate feedback
+- [ ] API documentation is complete and accurate
+- [ ] Dashboard is responsive and user-friendly
+
+* Phase 3: Security & Production Features
+
+** Objective
+Implement enterprise-grade security framework ensuring safe production deployment with authentication, authorization, and comprehensive security controls.
+
+** Security Framework
+
+*** Authentication & Authorization
+#+BEGIN_SRC java
+@Component
+public class ByteHotSecurityManager {
+    private final AuthenticationProvider authProvider;
+    private final AuthorizationManager authzManager;
+    private final SessionSecurityManager sessionManager;
+    private final AuditLogger auditLogger;
+    
+    public AuthenticationResult authenticate(HttpExchange exchange) {
+        try {
+            // Extract credentials from request
+            Credentials credentials = extractCredentials(exchange);
+            
+            // Authenticate user
+            User user = authProvider.authenticate(credentials);
+            
+            // Create secure session
+            Session session = sessionManager.createSecureSession(user);
+            
+            // Log successful authentication
+            auditLogger.logAuthentication(user, exchange.getRemoteAddress());
+            
+            return AuthenticationResult.success(user, session);
+            
+        } catch (AuthenticationException e) {
+            // Log failed authentication
+            auditLogger.logFailedAuthentication(exchange.getRemoteAddress(), e);
+            return AuthenticationResult.failure(e.getMessage());
+        }
+    }
+    
+    public boolean authorize(User user, String operation, String resource) {
+        try {
+            boolean authorized = authzManager.isAuthorized(user, operation, resource);
+            
+            // Log authorization decision
+            auditLogger.logAuthorization(user, operation, resource, authorized);
+            
+            return authorized;
+            
+        } catch (Exception e) {
+            auditLogger.logAuthorizationError(user, operation, resource, e);
+            return false;
+        }
+    }
+}
+
+@Configuration
+public class SecurityConfiguration {
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/api/v1/public/**").permitAll()
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/**").hasRole("USER")
+                .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.decoder(jwtDecoder()))
+            )
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .csrf(csrf -> csrf.disable());
+        
+        return http.build();
+    }
+}
+#+END_SRC
+
+*** Production Security Features
+#+BEGIN_SRC java
+public class ProductionSecurityEnforcer {
+    private final SecurityPolicy securityPolicy;
+    private final ThreatDetector threatDetector;
+    private final RateLimiter rateLimiter;
+    private final SecurityAuditor auditor;
+    
+    public SecurityValidationResult validateOperation(SecurityContext context, Operation operation) {
+        // Rate limiting check
+        if (!rateLimiter.allowRequest(context.getUser(), operation.getType())) {
+            return SecurityValidationResult.denied("Rate limit exceeded");
+        }
+        
+        // Threat detection
+        ThreatAssessment threat = threatDetector.assessThreat(context, operation);
+        if (threat.isThreatDetected()) {
+            auditor.logSecurityThreat(context, operation, threat);
+            return SecurityValidationResult.denied("Security threat detected");
+        }
+        
+        // Policy validation
+        if (!securityPolicy.isOperationAllowed(context, operation)) {
+            return SecurityValidationResult.denied("Operation not allowed by security policy");
+        }
+        
+        // Additional production checks
+        if (isProductionEnvironment() && !operation.isProductionSafe()) {
+            return SecurityValidationResult.denied("Operation not approved for production");
+        }
+        
+        return SecurityValidationResult.allowed();
+    }
+    
+    public void enforceSecureConfiguration() {
+        // Ensure HTTPS in production
+        if (isProductionEnvironment() && !isHTTPSEnabled()) {
+            throw new SecurityException("HTTPS is required in production environment");
+        }
+        
+        // Validate certificate configuration
+        if (!isCertificateValid()) {
+            throw new SecurityException("Invalid or expired SSL certificate");
+        }
+        
+        // Check for security headers
+        enforceSecurityHeaders();
+        
+        // Validate access controls
+        validateAccessControls();
+    }
+}
+#+END_SRC
+
+*** Audit & Compliance Framework
+#+BEGIN_SRC java
+public class ComplianceAuditor {
+    private final AuditEventStore auditStore;
+    private final ComplianceReporter reporter;
+    private final AlertManager alertManager;
+    
+    public void auditOperation(User user, Operation operation, OperationResult result) {
+        AuditEvent event = AuditEvent.builder()
+            .timestamp(Instant.now())
+            .userId(user.getId())
+            .userName(user.getName())
+            .operation(operation.getName())
+            .resource(operation.getResource())
+            .result(result.getStatus())
+            .duration(result.getDuration())
+            .sourceIP(operation.getSourceIP())
+            .userAgent(operation.getUserAgent())
+            .build();
+        
+        // Store audit event
+        auditStore.store(event);
+        
+        // Check for compliance violations
+        checkComplianceViolations(event);
+        
+        // Generate alerts if necessary
+        if (requiresAlert(event)) {
+            alertManager.sendSecurityAlert(event);
+        }
+    }
+    
+    public ComplianceReport generateComplianceReport(TimeWindow window) {
+        List<AuditEvent> events = auditStore.findByWindow(window);
+        
+        return ComplianceReport.builder()
+            .window(window)
+            .totalOperations(events.size())
+            .successfulOperations(countSuccessful(events))
+            .failedOperations(countFailed(events))
+            .unauthorizedAttempts(countUnauthorized(events))
+            .securityViolations(findSecurityViolations(events))
+            .userActivity(analyzeUserActivity(events))
+            .recommendations(generateRecommendations(events))
+            .build();
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Security Infrastructure
+1. Implement authentication and authorization framework
+2. Create session management and security validation
+3. Build threat detection and prevention systems
+4. Implement rate limiting and abuse prevention
+
+*** Production Security
+1. Create HTTPS/TLS configuration and enforcement
+2. Build certificate management and validation
+3. Implement security headers and CORS handling
+4. Create production deployment security checklist
+
+*** Audit & Compliance
+1. Build comprehensive audit logging system
+2. Create compliance reporting and monitoring
+3. Implement security alerting and incident response
+4. Build security configuration validation
+
+** Acceptance Criteria
+
+- [ ] Authentication and authorization work correctly
+- [ ] All operations are audited and logged
+- [ ] HTTPS/TLS enforced in production environments
+- [ ] Rate limiting prevents abuse and DoS attacks
+- [ ] Security policies configurable and enforceable
+- [ ] Compliance reports meet regulatory requirements
+
+* Dependencies & Integration
+
+** Security Dependencies
+- Spring Security for authentication and authorization
+- JWT library for token management
+- TLS/SSL certificate management
+- Rate limiting and abuse prevention libraries
+
+** Web Framework Dependencies
+- Spring Boot for REST API framework
+- WebSocket support for real-time updates
+- Static web content serving
+- JSON serialization libraries
+
+* Testing Strategy
+
+** Security Testing
+- Authentication and authorization testing
+- Penetration testing and vulnerability assessment
+- Rate limiting and abuse prevention testing
+- HTTPS/TLS configuration validation
+
+** API Testing
+- REST API functionality and performance testing
+- WebSocket connectivity and real-time update testing
+- Error handling and edge case testing
+- Cross-browser compatibility testing
+
+** Production Testing
+- Production environment deployment testing
+- Security configuration validation
+- Performance and load testing
+- Disaster recovery and failover testing
+
+* Success Metrics
+
+** Security Success Metrics
+- Zero critical security vulnerabilities in production
+- 100% of operations authenticated and authorized
+- Complete audit trail with no gaps
+- Rate limiting effectively prevents abuse
+
+** User Experience Metrics
+- Dashboard load time: <2 seconds
+- API response time: <500ms for 95th percentile
+- WebSocket message latency: <100ms
+- User satisfaction: >4.5/5 rating
+
+This milestone completes Phase 4 by providing comprehensive runtime interaction capabilities with enterprise-grade security and production readiness.

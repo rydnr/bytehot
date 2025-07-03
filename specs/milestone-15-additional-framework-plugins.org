@@ -1,0 +1,801 @@
+#+TITLE: Milestone 15: Additional Framework Plugins (Quarkus, Guice, Micronaut)
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-07-03
+
+* Overview
+
+Milestone 15 expands framework support beyond Spring using the established plugin patterns from Milestone 9. This milestone enables broader ecosystem adoption across different technology stacks by providing comprehensive hot-swapping capabilities for Quarkus, Google Guice, and Micronaut frameworks.
+
+** Goals
+
+- Create Quarkus plugin with native compilation support and GraalVM integration
+- Build Google Guice dependency injection integration with comprehensive scope handling
+- Develop Micronaut framework plugin with compile-time optimization awareness
+- Provide framework-agnostic hot-swapping capabilities for plain Java applications
+- Implement cross-framework compatibility testing and validation
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want to use ByteHot with my preferred framework (Quarkus, Guice, Micronaut) and get the same seamless hot-swapping experience I would get with Spring, including framework-specific optimizations and features."
+#+END_QUOTE
+
+* Framework Plugin Architecture
+
+** Multi-Framework Plugin Ecosystem
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────────────┐
+│                Framework Plugin Ecosystem                  │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │   Quarkus   │  │   Google    │  │  Micronaut  │        │
+│  │   Plugin    │  │    Guice    │  │   Plugin    │        │
+│  │ & GraalVM   │  │   Plugin    │  │ & Compile   │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │ Framework   │  │Cross-Plugin │  │   Plugin    │        │
+│  │ Agnostic    │  │Compatibility│  │ Foundation  │        │
+│  │Hot-Swapping │  │  Testing    │  │(Milestone 8)│        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Key Components
+
+- *Quarkus Plugin*: Native compilation awareness, GraalVM integration, Arc DI support
+- *Guice Plugin*: Dependency injection scope handling, provider hot-swapping, module reloading
+- *Micronaut Plugin*: Compile-time optimization preservation, reflection-free hot-swapping
+- *Framework Agnostic*: Plain Java application support without framework dependencies
+- *Cross-Framework Testing*: Compatibility validation and integration testing
+
+* Plugin Implementation
+
+## Quarkus Plugin with Native Compilation Support
+Complete Quarkus integration with GraalVM awareness and Arc dependency injection
+
+## Google Guice Dependency Injection Integration
+Comprehensive Guice plugin with scope management and provider hot-swapping
+
+## Micronaut Framework Plugin with Compile-Time Optimization
+Micronaut integration preserving compile-time optimizations during hot-swapping
+
+## Framework-Agnostic Hot-Swapping Capabilities
+Plain Java application support without requiring specific framework dependencies
+
+## Cross-Framework Compatibility Testing & Validation
+Comprehensive testing ensuring plugins work correctly across different environments
+
+This milestone establishes ByteHot as a universal hot-swapping solution across the Java ecosystem.
+
+* Phase 1: Quarkus Plugin with Native Compilation Support
+
+** Objective
+Create comprehensive Quarkus plugin that provides seamless hot-swapping in both JVM and native modes, with full Arc dependency injection support and GraalVM integration.
+
+** Technical Specifications
+
+*** Quarkus Plugin Foundation
+#+BEGIN_SRC java
+public class ByteHotQuarkusPlugin 
+    extends PluginBase {
+    
+    private final QuarkusContextManager contextManager;
+    private final ArcContainerHotSwapHandler arcHandler;
+    private final QuarkusConfigurationDetector configDetector;
+    private final NativeCompilationHandler nativeHandler;
+    private final QuarkusDevModeIntegration devModeIntegration;
+    
+    public ByteHotQuarkusPlugin() {
+        super("ByteHot Quarkus Plugin", "1.0.0-SNAPSHOT");
+        this.contextManager = new QuarkusContextManager();
+        this.arcHandler = new ArcContainerHotSwapHandler();
+        this.configDetector = new QuarkusConfigurationDetector();
+        this.nativeHandler = new NativeCompilationHandler();
+        this.devModeIntegration = new QuarkusDevModeIntegration();
+    }
+    
+    @Override
+    public boolean initialize() {
+        try {
+            // Detect Quarkus runtime environment
+            if (!contextManager.detectQuarkusRuntime()) {
+                getLogger().info("Quarkus runtime not detected, plugin inactive");
+                return false;
+            }
+            
+            // Initialize Arc container integration
+            arcHandler.initialize(contextManager.getArcContainer());
+            
+            // Setup configuration change detection
+            configDetector.initialize();
+            
+            // Setup native compilation handling if available
+            if (nativeHandler.isNativeRuntimeDetected()) {
+                nativeHandler.initialize();
+            }
+            
+            // Integrate with Quarkus dev mode if active
+            if (devModeIntegration.isDevModeActive()) {
+                devModeIntegration.setupByteHotIntegration();
+            }
+            
+            getLogger().info("ByteHot Quarkus plugin initialized successfully");
+            return true;
+            
+        } catch (Exception e) {
+            getLogger().error("Failed to initialize Quarkus plugin", e);
+            return false;
+        }
+    }
+}
+#+END_SRC
+
+*** Arc Container Hot-Swap Handler
+#+BEGIN_SRC java
+public class ArcContainerHotSwapHandler {
+    private final ArcContainer container;
+    private final BeanManagerProvider beanManagerProvider;
+    private final ScopeManager scopeManager;
+    
+    public void handleBeanHotSwap(HotSwapEvent event) {
+        Class<?> modifiedClass = event.getModifiedClass();
+        
+        // Check if class is an Arc bean
+        if (!isArcBean(modifiedClass)) {
+            return;
+        }
+        
+        // Handle different Arc scopes
+        if (isSingleton(modifiedClass)) {
+            handleSingletonBeanHotSwap(modifiedClass);
+        } else if (isApplicationScoped(modifiedClass)) {
+            handleApplicationScopedBeanHotSwap(modifiedClass);
+        } else if (isRequestScoped(modifiedClass)) {
+            handleRequestScopedBeanHotSwap(modifiedClass);
+        }
+        
+        // Update dependent beans
+        updateDependentBeans(modifiedClass);
+        
+        // Trigger Arc container refresh if needed
+        if (requiresContainerRefresh(modifiedClass)) {
+            refreshArcContainer();
+        }
+    }
+    
+    private void handleSingletonBeanHotSwap(Class<?> beanClass) {
+        // Destroy existing singleton instance
+        destroySingletonInstance(beanClass);
+        
+        // Re-register bean definition with new class
+        reregisterBeanDefinition(beanClass);
+        
+        // Update all injection points
+        updateInjectionPoints(beanClass);
+    }
+    
+    private boolean isArcBean(Class<?> clazz) {
+        return clazz.isAnnotationPresent(ApplicationScoped.class) ||
+               clazz.isAnnotationPresent(Singleton.class) ||
+               clazz.isAnnotationPresent(RequestScoped.class) ||
+               clazz.isAnnotationPresent(SessionScoped.class);
+    }
+}
+#+END_SRC
+
+*** Native Compilation Handler
+#+BEGIN_SRC java
+public class NativeCompilationHandler {
+    private final GraalVMDetector graalVMDetector;
+    private final NativeImageConfiguration nativeConfig;
+    private final ReflectionConfigurationManager reflectionManager;
+    
+    public boolean isNativeRuntimeDetected() {
+        return graalVMDetector.isRunningOnGraalVM() || 
+               graalVMDetector.isNativeImageRuntime();
+    }
+    
+    public void handleNativeHotSwap(HotSwapEvent event) {
+        if (!isNativeRuntimeDetected()) {
+            throw new UnsupportedOperationException(
+                "Hot-swap in native mode requires GraalVM runtime");
+        }
+        
+        Class<?> modifiedClass = event.getModifiedClass();
+        
+        // Validate hot-swap compatibility in native mode
+        validateNativeCompatibility(modifiedClass);
+        
+        // Update reflection configuration if needed
+        updateReflectionConfiguration(modifiedClass);
+        
+        // Handle native-specific constraints
+        handleNativeConstraints(modifiedClass);
+        
+        // Perform hot-swap with native optimizations
+        performNativeOptimizedHotSwap(modifiedClass);
+    }
+    
+    private void validateNativeCompatibility(Class<?> clazz) {
+        // Check for native-incompatible changes
+        if (hasNewReflectiveAccess(clazz)) {
+            throw new HotSwapException(
+                "Cannot add new reflective access in native mode");
+        }
+        
+        if (hasNewDynamicProxy(clazz)) {
+            throw new HotSwapException(
+                "Cannot create new dynamic proxies in native mode");
+        }
+        
+        if (hasNewResourceAccess(clazz)) {
+            throw new HotSwapException(
+                "Cannot add new resource access in native mode");
+        }
+    }
+}
+#+END_SRC
+
+*** Quarkus Configuration Detection
+#+BEGIN_SRC java
+public class QuarkusConfigurationDetector {
+    private final ApplicationPropertiesWatcher propertiesWatcher;
+    private final YamlConfigurationWatcher yamlWatcher;
+    private final ProfileManager profileManager;
+    
+    @EventListener
+    public void onConfigurationChange(ConfigurationChangeEvent event) {
+        String changedProperty = event.getPropertyName();
+        
+        // Handle Quarkus-specific configuration changes
+        if (isQuarkusConfigProperty(changedProperty)) {
+            handleQuarkusConfigChange(changedProperty, event.getNewValue());
+        }
+        
+        // Handle profile-specific changes
+        if (isProfileSpecificProperty(changedProperty)) {
+            handleProfileChange(changedProperty, event.getNewValue());
+        }
+        
+        // Handle runtime configuration changes
+        if (isRuntimeConfigurable(changedProperty)) {
+            applyRuntimeConfigChange(changedProperty, event.getNewValue());
+        }
+    }
+    
+    private boolean isQuarkusConfigProperty(String property) {
+        return property.startsWith("quarkus.") ||
+               property.startsWith("mp.") || // MicroProfile
+               property.startsWith("%"); // Profile-specific
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Quarkus Core Integration
+1. Implement Quarkus runtime detection and Arc container integration
+2. Create comprehensive bean scope handling for all Arc scopes
+3. Build configuration change detection for application.properties and YAML
+4. Implement Quarkus dev mode integration and coordination
+
+*** Native Compilation Support
+1. Create GraalVM detection and native runtime handling
+2. Implement native-compatible hot-swap validation
+3. Build reflection configuration management
+4. Create native-specific optimization strategies
+
+*** Quarkus Feature Integration
+1. Implement MicroProfile configuration support
+2. Create Reactive Streams integration
+3. Build Panache entity hot-swapping support
+4. Implement REST endpoint hot-swapping
+
+** Acceptance Criteria
+
+- [ ] Quarkus applications hot-swap successfully in JVM mode
+- [ ] Arc dependency injection updates correctly after hot-swap
+- [ ] Native mode limitations clearly identified and handled
+- [ ] Configuration changes applied without restart
+- [ ] Quarkus dev mode coordination works seamlessly
+- [ ] MicroProfile features supported during hot-swap
+
+* Phase 2: Google Guice Dependency Injection Integration
+
+** Objective
+Create comprehensive Google Guice plugin that provides seamless dependency injection integration with scope management, provider hot-swapping, and module reloading capabilities.
+
+** Technical Specifications
+
+*** Guice Plugin Foundation
+#+BEGIN_SRC java
+public class ByteHotGuicePlugin 
+    extends PluginBase {
+    
+    private final GuiceInjectorManager injectorManager;
+    private final GuiceScopeHandler scopeHandler;
+    private final ModuleHotSwapHandler moduleHandler;
+    private final ProviderHotSwapHandler providerHandler;
+    private final GuiceConfigurationDetector configDetector;
+    
+    public ByteHotGuicePlugin() {
+        super("ByteHot Guice Plugin", "1.0.0-SNAPSHOT");
+        this.injectorManager = new GuiceInjectorManager();
+        this.scopeHandler = new GuiceScopeHandler();
+        this.moduleHandler = new ModuleHotSwapHandler();
+        this.providerHandler = new ProviderHotSwapHandler();
+        this.configDetector = new GuiceConfigurationDetector();
+    }
+    
+    @Override
+    public boolean initialize() {
+        try {
+            // Detect Guice injector
+            if (!injectorManager.detectGuiceInjector()) {
+                getLogger().info("Guice injector not detected, plugin inactive");
+                return false;
+            }
+            
+            // Initialize scope handling
+            scopeHandler.initialize(injectorManager.getInjector());
+            
+            // Setup module hot-swap handling
+            moduleHandler.initialize();
+            
+            // Setup provider hot-swap handling
+            providerHandler.initialize();
+            
+            // Setup configuration detection
+            configDetector.initialize();
+            
+            getLogger().info("ByteHot Guice plugin initialized successfully");
+            return true;
+            
+        } catch (Exception e) {
+            getLogger().error("Failed to initialize Guice plugin", e);
+            return false;
+        }
+    }
+}
+#+END_SRC
+
+*** Guice Scope Handler
+#+BEGIN_SRC java
+public class GuiceScopeHandler {
+    private final Injector injector;
+    private final ScopeRegistry scopeRegistry;
+    private final BindingRegistry bindingRegistry;
+    
+    public void handleScopedBeanHotSwap(HotSwapEvent event) {
+        Class<?> modifiedClass = event.getModifiedClass();
+        
+        // Determine binding scope
+        Scope scope = determineScope(modifiedClass);
+        
+        switch (scope.getScopeType()) {
+            case SINGLETON:
+                handleSingletonHotSwap(modifiedClass);
+                break;
+            case PROTOTYPE:
+                handlePrototypeHotSwap(modifiedClass);
+                break;
+            case CUSTOM:
+                handleCustomScopeHotSwap(modifiedClass, scope);
+                break;
+        }
+        
+        // Update dependent bindings
+        updateDependentBindings(modifiedClass);
+    }
+    
+    private void handleSingletonHotSwap(Class<?> clazz) {
+        // Get existing singleton instance
+        Object existingInstance = getSingletonInstance(clazz);
+        
+        // Clear singleton cache
+        clearSingletonCache(clazz);
+        
+        // Update binding with new class
+        updateBinding(clazz);
+        
+        // Migrate state if possible
+        if (existingInstance != null) {
+            migrateInstanceState(existingInstance, clazz);
+        }
+    }
+    
+    private Scope determineScope(Class<?> clazz) {
+        // Check for @Singleton annotation
+        if (clazz.isAnnotationPresent(Singleton.class)) {
+            return Scopes.SINGLETON;
+        }
+        
+        // Check for custom scope annotations
+        for (Annotation annotation : clazz.getAnnotations()) {
+            if (annotation.annotationType().isAnnotationPresent(ScopeAnnotation.class)) {
+                return scopeRegistry.getScope(annotation.annotationType());
+            }
+        }
+        
+        // Default to prototype scope
+        return Scopes.NO_SCOPE;
+    }
+}
+#+END_SRC
+
+*** Module Hot-Swap Handler
+#+BEGIN_SRC java
+public class ModuleHotSwapHandler {
+    private final ModuleRegistry moduleRegistry;
+    private final InjectorManager injectorManager;
+    private final BindingAnalyzer bindingAnalyzer;
+    
+    public void handleModuleHotSwap(HotSwapEvent event) {
+        Class<?> modifiedClass = event.getModifiedClass();
+        
+        // Check if modified class is a Guice module
+        if (!isGuiceModule(modifiedClass)) {
+            return;
+        }
+        
+        // Analyze binding changes
+        BindingChanges changes = bindingAnalyzer.analyzeChanges(modifiedClass);
+        
+        // Handle different types of changes
+        if (changes.hasNewBindings()) {
+            addNewBindings(changes.getNewBindings());
+        }
+        
+        if (changes.hasRemovedBindings()) {
+            removeObsoleteBindings(changes.getRemovedBindings());
+        }
+        
+        if (changes.hasModifiedBindings()) {
+            updateModifiedBindings(changes.getModifiedBindings());
+        }
+        
+        // Recreate child injectors if needed
+        if (changes.requiresInjectorRecreation()) {
+            recreateChildInjectors(modifiedClass);
+        }
+    }
+    
+    private boolean isGuiceModule(Class<?> clazz) {
+        return Module.class.isAssignableFrom(clazz) ||
+               clazz.isAnnotationPresent(GuiceModule.class);
+    }
+    
+    private void recreateChildInjectors(Class<?> moduleClass) {
+        // Get affected child injectors
+        List<Injector> childInjectors = getChildInjectors(moduleClass);
+        
+        // Recreate each child injector with updated module
+        for (Injector childInjector : childInjectors) {
+            recreateInjector(childInjector, moduleClass);
+        }
+    }
+}
+#+END_SRC
+
+*** Provider Hot-Swap Handler
+#+BEGIN_SRC java
+public class ProviderHotSwapHandler {
+    private final ProviderRegistry providerRegistry;
+    private final BindingUpdater bindingUpdater;
+    
+    public void handleProviderHotSwap(HotSwapEvent event) {
+        Class<?> modifiedClass = event.getModifiedClass();
+        
+        // Check if class implements Provider interface
+        if (!isProvider(modifiedClass)) {
+            return;
+        }
+        
+        // Update provider binding
+        updateProviderBinding(modifiedClass);
+        
+        // Clear provider cache if applicable
+        clearProviderCache(modifiedClass);
+        
+        // Update dependent bindings that use this provider
+        updateDependentProviderBindings(modifiedClass);
+    }
+    
+    private boolean isProvider(Class<?> clazz) {
+        return Provider.class.isAssignableFrom(clazz) ||
+               javax.inject.Provider.class.isAssignableFrom(clazz);
+    }
+    
+    private void updateProviderBinding(Class<?> providerClass) {
+        // Find existing binding for this provider
+        Key<?> providerKey = getProviderKey(providerClass);
+        
+        // Update binding with new provider class
+        bindingUpdater.updateProviderBinding(providerKey, providerClass);
+        
+        // Notify binding listeners
+        notifyProviderBindingUpdate(providerKey, providerClass);
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Guice Core Integration
+1. Implement Guice injector detection and integration
+2. Create comprehensive scope handling for all Guice scopes
+3. Build module hot-swap capabilities with binding analysis
+4. Implement provider hot-swapping and cache management
+
+*** Binding Management
+1. Create binding registry and update mechanisms
+2. Implement dependent binding analysis and updates
+3. Build binding validation and consistency checking
+4. Create binding migration and state transfer
+
+*** Advanced Guice Features
+1. Implement assisted injection support
+2. Create multibinding hot-swap handling
+3. Build private module support
+4. Implement interceptor hot-swapping
+
+** Acceptance Criteria
+
+- [ ] Guice-managed objects hot-swap correctly across all scopes
+- [ ] Module changes applied without full injector recreation
+- [ ] Provider implementations update seamlessly
+- [ ] Dependent bindings updated automatically
+- [ ] Custom scopes handled correctly
+- [ ] Assisted injection and multibindings supported
+
+* Phase 3: Micronaut Framework Plugin & Framework-Agnostic Support
+
+** Objective
+Create Micronaut framework plugin with compile-time optimization awareness and implement framework-agnostic hot-swapping for plain Java applications.
+
+** Technical Specifications
+
+*** Micronaut Plugin Foundation
+#+BEGIN_SRC java
+public class ByteHotMicronautPlugin 
+    extends PluginBase {
+    
+    private final MicronautContextManager contextManager;
+    private final BeanContextHotSwapHandler beanHandler;
+    private final CompileTimeOptimizationHandler compileTimeHandler;
+    private final MicronautConfigurationDetector configDetector;
+    private final ReflectionFreeHotSwapHandler reflectionFreeHandler;
+    
+    public ByteHotMicronautPlugin() {
+        super("ByteHot Micronaut Plugin", "1.0.0-SNAPSHOT");
+        this.contextManager = new MicronautContextManager();
+        this.beanHandler = new BeanContextHotSwapHandler();
+        this.compileTimeHandler = new CompileTimeOptimizationHandler();
+        this.configDetector = new MicronautConfigurationDetector();
+        this.reflectionFreeHandler = new ReflectionFreeHotSwapHandler();
+    }
+    
+    @Override
+    public boolean initialize() {
+        try {
+            // Detect Micronaut runtime
+            if (!contextManager.detectMicronautRuntime()) {
+                getLogger().info("Micronaut runtime not detected, plugin inactive");
+                return false;
+            }
+            
+            // Initialize bean context integration
+            beanHandler.initialize(contextManager.getBeanContext());
+            
+            // Setup compile-time optimization handling
+            compileTimeHandler.initialize();
+            
+            // Setup configuration detection
+            configDetector.initialize();
+            
+            // Setup reflection-free hot-swapping
+            reflectionFreeHandler.initialize();
+            
+            getLogger().info("ByteHot Micronaut plugin initialized successfully");
+            return true;
+            
+        } catch (Exception e) {
+            getLogger().error("Failed to initialize Micronaut plugin", e);
+            return false;
+        }
+    }
+}
+#+END_SRC
+
+*** Framework-Agnostic Hot-Swapping
+#+BEGIN_SRC java
+public class FrameworkAgnosticHotSwapHandler {
+    private final ClassLoaderManager classLoaderManager;
+    private final InstanceTracker instanceTracker;
+    private final StateTransferManager stateManager;
+    
+    public void handlePlainJavaHotSwap(HotSwapEvent event) {
+        Class<?> modifiedClass = event.getModifiedClass();
+        
+        // Find all instances of the modified class
+        List<Object> instances = instanceTracker.findInstances(modifiedClass);
+        
+        // Perform class redefinition
+        redefineClass(modifiedClass, event.getNewBytecode());
+        
+        // Update existing instances if possible
+        for (Object instance : instances) {
+            updateInstance(instance, modifiedClass);
+        }
+        
+        // Update static fields if needed
+        updateStaticFields(modifiedClass);
+        
+        // Notify completion
+        notifyHotSwapCompletion(modifiedClass, instances.size());
+    }
+    
+    private void updateInstance(Object instance, Class<?> newClass) {
+        try {
+            // Transfer compatible field values
+            stateManager.transferCompatibleState(instance, newClass);
+            
+            // Call re-initialization methods if present
+            invokeReinitializationMethods(instance);
+            
+        } catch (Exception e) {
+            getLogger().warn("Failed to update instance state for {}: {}", 
+                newClass.getName(), e.getMessage());
+        }
+    }
+    
+    private void invokeReinitializationMethods(Object instance) {
+        // Look for @PostHotSwap annotated methods
+        Method[] methods = instance.getClass().getDeclaredMethods();
+        for (Method method : methods) {
+            if (method.isAnnotationPresent(PostHotSwap.class)) {
+                try {
+                    method.setAccessible(true);
+                    method.invoke(instance);
+                } catch (Exception e) {
+                    getLogger().warn("Failed to invoke post-hot-swap method {}: {}", 
+                        method.getName(), e.getMessage());
+                }
+            }
+        }
+    }
+}
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface PostHotSwap {
+    String value() default "";
+}
+#+END_SRC
+
+*** Cross-Framework Compatibility Testing
+#+BEGIN_SRC java
+public class CrossFrameworkCompatibilityTester {
+    private final List<PluginBase> availablePlugins;
+    private final CompatibilityValidator validator;
+    
+    public CompatibilityReport testCrossFrameworkCompatibility() {
+        CompatibilityReport.Builder reportBuilder = CompatibilityReport.builder();
+        
+        // Test each plugin individually
+        for (PluginBase plugin : availablePlugins) {
+            PluginCompatibilityResult result = testPluginCompatibility(plugin);
+            reportBuilder.addPluginResult(result);
+        }
+        
+        // Test plugin combinations
+        List<PluginCombination> combinations = generatePluginCombinations();
+        for (PluginCombination combination : combinations) {
+            CombinationCompatibilityResult result = testCombinationCompatibility(combination);
+            reportBuilder.addCombinationResult(result);
+        }
+        
+        return reportBuilder.build();
+    }
+    
+    private PluginCompatibilityResult testPluginCompatibility(PluginBase plugin) {
+        return PluginCompatibilityResult.builder()
+            .plugin(plugin)
+            .initializationTest(testPluginInitialization(plugin))
+            .hotSwapTest(testPluginHotSwap(plugin))
+            .configurationTest(testPluginConfiguration(plugin))
+            .errorHandlingTest(testPluginErrorHandling(plugin))
+            .build();
+    }
+    
+    private CombinationCompatibilityResult testCombinationCompatibility(PluginCombination combination) {
+        // Test plugin interaction and conflicts
+        return CombinationCompatibilityResult.builder()
+            .combination(combination)
+            .interactionTest(testPluginInteraction(combination))
+            .conflictTest(testPluginConflicts(combination))
+            .resourceSharingTest(testResourceSharing(combination))
+            .build();
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Micronaut Integration
+1. Implement Micronaut bean context integration
+2. Create compile-time optimization preservation
+3. Build reflection-free hot-swapping capabilities
+4. Implement Micronaut configuration hot-reloading
+
+*** Framework-Agnostic Support
+1. Create plain Java application hot-swapping
+2. Implement instance tracking and state transfer
+3. Build @PostHotSwap annotation support
+4. Create framework detection and fallback mechanisms
+
+*** Cross-Framework Testing
+1. Build comprehensive compatibility testing framework
+2. Create plugin combination testing
+3. Implement conflict detection and resolution
+4. Build automated compatibility reporting
+
+** Acceptance Criteria
+
+- [ ] Micronaut applications hot-swap with compile-time optimizations preserved
+- [ ] Plain Java applications supported without framework dependencies
+- [ ] Cross-framework compatibility verified and documented
+- [ ] Plugin conflicts detected and resolved automatically
+- [ ] State transfer works correctly across different scenarios
+- [ ] Performance impact minimal across all supported frameworks
+
+* Dependencies & Integration
+
+** Framework Dependencies
+- Quarkus: Arc dependency injection, MicroProfile Config, GraalVM SDK
+- Guice: Google Guice core, Assisted Inject, Multibindings
+- Micronaut: Core framework, Dependency injection, Configuration
+- Framework-agnostic: Bytecode manipulation libraries, reflection utilities
+
+** Plugin Infrastructure
+- bytehot-plugin-commons: Shared plugin foundation (Milestone 8)
+- Plugin communication protocol and health monitoring
+- Shared configuration management and discovery mechanisms
+
+* Testing Strategy
+
+** Framework-Specific Testing
+- Each plugin tested with framework-specific scenarios
+- Integration testing with real framework applications
+- Performance testing to ensure minimal overhead
+- Compatibility testing across framework versions
+
+** Cross-Framework Testing
+- Plugin combination testing for conflicts
+- Resource sharing and isolation validation
+- Performance impact measurement across combinations
+- Error handling and recovery testing
+
+** Real-World Application Testing
+- Testing with actual applications using each framework
+- Complex scenario testing with multiple plugins active
+- Production-like environment testing
+- Load testing and stress testing
+
+* Success Metrics
+
+** Plugin Success Metrics
+- Framework detection accuracy: >99% correct identification
+- Hot-swap success rate: >95% for compatible changes
+- Performance overhead: <3% additional overhead per plugin
+- Framework feature coverage: >90% of common features supported
+
+** Ecosystem Success Metrics
+- Cross-framework compatibility: No conflicts between plugins
+- Developer adoption: >80% satisfaction across all supported frameworks
+- Documentation completeness: All framework-specific features documented
+- Community contribution: Active plugin development by community members
+
+This milestone establishes ByteHot as the universal hot-swapping solution across the entire Java ecosystem, supporting developers regardless of their framework choice.
