@@ -1,0 +1,367 @@
+#+TITLE: Milestone 9: Plugin Architecture + Spring Support
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-07-03
+
+* Overview
+
+Milestone 9 establishes the first framework-specific plugin for ByteHot, focusing on Spring Framework integration. This milestone leverages the bytehot-plugin-commons foundation to create a sophisticated Spring plugin that enables seamless hot-swapping of Spring components, configurations, and bean definitions.
+
+** Goals
+
+- Create the first framework-specific plugin using bytehot-plugin-commons infrastructure
+- Enable hot-swapping of Spring beans, configurations, and component definitions
+- Implement Spring context management and refresh capabilities
+- Design plugin architecture patterns that can be replicated for other frameworks
+- Provide comprehensive Spring developer experience with minimal configuration
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want to modify my Spring application's beans, configurations, and components and see the changes instantly without restarting the application or losing application state."
+#+END_QUOTE
+
+* Architecture Overview
+
+** Spring Plugin Architecture
+
+#+BEGIN_SRC
+                    ┌─────────────────────────────────────┐
+                    │         Spring Application          │
+                    │    (Running with ByteHot agent)     │
+                    └─────────────────────────────────────┘
+                                      │
+                    ┌─────────────────────────────────────┐
+                    │      ByteHot Spring Plugin          │
+                    │  • Spring Context Management        │
+                    │  • Bean Hot-Swap Capabilities       │
+                    │  • Configuration Refresh            │
+                    │  • Annotation Processing            │
+                    └─────────────────────────────────────┘
+                                      │
+                    ┌─────────────────────────────────────┐
+                    │      Plugin Foundation Layer        │
+                    │  (bytehot-plugin-commons)           │
+                    │  • PluginBase Lifecycle             │
+                    │  • Agent Discovery & Communication  │
+                    │  • Configuration Management         │
+                    │  • Health Monitoring                │
+                    └─────────────────────────────────────┘
+                                      │
+                    ┌─────────────────────────────────────┐
+                    │         ByteHot Core Agent          │
+                    │  bytehot-application-*-agent.jar    │
+                    └─────────────────────────────────────┘
+#+END_SRC
+
+** Component Relationships
+
+- *Spring Plugin*: Framework-specific implementation extending bytehot-plugin-commons
+- *Spring Context Manager*: Manages application context refresh and bean lifecycle
+- *Bean Hot-Swap Handler*: Specialized logic for Spring bean redefinition
+- *Configuration Detector*: Automatic discovery of Spring configuration patterns
+- *Annotation Processor*: Handles Spring annotations during hot-swap operations
+
+* Phase 1: Spring Plugin Foundation
+
+** Objective
+Create the core Spring plugin structure using bytehot-plugin-commons as the foundation, establishing the pattern for all future framework plugins.
+
+** Technical Specifications
+
+*** Spring Plugin Class Structure
+#+BEGIN_SRC java
+public class ByteHotSpringPlugin extends PluginBase {
+    private final SpringContextManager contextManager;
+    private final SpringBeanHotSwapHandler beanHandler;
+    private final SpringConfigurationDetector configDetector;
+    private final SpringAnnotationProcessor annotationProcessor;
+    
+    public ByteHotSpringPlugin() {
+        super();
+        this.contextManager = new SpringContextManager();
+        this.beanHandler = new SpringBeanHotSwapHandler();
+        this.configDetector = new SpringConfigurationDetector();
+        this.annotationProcessor = new SpringAnnotationProcessor();
+    }
+    
+    @Override
+    public String getPluginName() {
+        return "ByteHot Spring Plugin";
+    }
+    
+    @Override
+    public String getPluginVersion() {
+        return "1.0.0-SNAPSHOT";
+    }
+    
+    @Override
+    protected boolean onInitialize() {
+        // Spring-specific initialization
+        return initializeSpringIntegration();
+    }
+}
+#+END_SRC
+
+*** Spring Context Management
+#+BEGIN_SRC java
+public class SpringContextManager {
+    private ApplicationContext applicationContext;
+    private ConfigurableApplicationContext configurableContext;
+    
+    public boolean discoverSpringContext() {
+        // Discover running Spring application context
+        // Support multiple discovery strategies:
+        // 1. Static ApplicationContextHolder
+        // 2. JVM instrumentation context discovery  
+        // 3. Bean registry inspection
+        // 4. Spring Boot actuator integration
+    }
+    
+    public boolean refreshContext(Set<String> changedBeans) {
+        // Selective context refresh for modified beans
+        // Minimize application disruption
+        // Preserve singleton state where possible
+    }
+    
+    public List<BeanDefinition> getBeanDefinitions() {
+        // Extract current bean definitions for comparison
+    }
+    
+    public boolean updateBeanDefinition(String beanName, BeanDefinition newDefinition) {
+        // Hot-swap individual bean definitions
+    }
+}
+#+END_SRC
+
+*** Spring Bean Hot-Swap Handler
+#+BEGIN_SRC java
+public class SpringBeanHotSwapHandler {
+    
+    public boolean canHotSwapBean(String beanName, Class<?> oldClass, Class<?> newClass) {
+        // Determine if bean can be safely hot-swapped
+        // Consider:
+        // - Bean scope (singleton, prototype, session, request)
+        // - Dependencies and dependents
+        // - Interface compatibility
+        // - Annotation changes
+    }
+    
+    public HotSwapResult hotSwapBean(String beanName, Class<?> newClass) {
+        // Perform Spring-aware bean hot-swap
+        // 1. Create new bean instance
+        // 2. Update bean registry
+        // 3. Refresh dependent beans
+        // 4. Notify Spring event listeners
+    }
+    
+    public void rollbackBeanSwap(String beanName, BeanDefinition originalDefinition) {
+        // Rollback bean changes if hot-swap fails
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Core Spring Plugin
+1. Create bytehot-spring-plugin Maven module
+2. Implement ByteHotSpringPlugin extending PluginBase
+3. Create Spring-specific configuration management
+4. Implement plugin lifecycle integration with Spring
+
+*** Spring Context Discovery
+1. Implement multiple ApplicationContext discovery strategies
+2. Create Spring Boot detection and integration
+3. Build context inspection and analysis capabilities
+4. Handle multiple context scenarios (parent/child contexts)
+
+*** Bean Hot-Swap Capabilities
+1. Implement Spring-aware bean hot-swap logic
+2. Create bean dependency analysis and impact assessment
+3. Build selective context refresh mechanisms
+4. Implement rollback capabilities for failed swaps
+
+** Acceptance Criteria
+
+- [ ] ByteHotSpringPlugin successfully extends PluginBase foundation
+- [ ] Plugin automatically discovers Spring ApplicationContext in >90% of scenarios
+- [ ] Bean hot-swap works for common Spring component types (@Service, @Component, @Controller)
+- [ ] Configuration changes trigger appropriate context refresh
+- [ ] Plugin maintains Spring application state during hot-swap operations
+- [ ] Comprehensive test suite with >95% code coverage
+- [ ] Performance impact <5% overhead on Spring application startup
+
+* Phase 2: Advanced Spring Integration
+
+** Objective
+Implement sophisticated Spring-specific features including configuration hot-swap, annotation processing, and Spring Boot integration.
+
+** Advanced Features
+
+*** Spring Configuration Hot-Swap
+#+BEGIN_SRC java
+public class SpringConfigurationDetector {
+    
+    public List<ConfigurationClass> detectConfigurationChanges(ClassFileChangedEvent event) {
+        // Detect changes to:
+        // - @Configuration classes
+        // - @ComponentScan annotations
+        // - @PropertySource definitions
+        // - @Import statements
+        // - @Profile configurations
+    }
+    
+    public boolean processConfigurationChange(ConfigurationClass configClass) {
+        // Handle configuration class changes:
+        // 1. Reprocess @Bean methods
+        // 2. Update component scanning
+        // 3. Refresh property sources
+        // 4. Reapply conditional logic
+    }
+}
+#+END_SRC
+
+*** Spring Boot Integration
+#+BEGIN_SRC java
+public class SpringBootIntegration {
+    
+    public boolean isSpringBootApplication() {
+        // Detect Spring Boot application
+    }
+    
+    public void integrateWithActuator() {
+        // Integrate with Spring Boot Actuator
+        // - Expose hot-swap endpoints
+        // - Provide health indicators
+        // - Enable JMX management
+    }
+    
+    public void handleAutoConfiguration() {
+        // Manage Spring Boot auto-configuration during hot-swap
+        // - Refresh auto-configuration
+        // - Handle conditional beans
+        // - Update starter configurations
+    }
+}
+#+END_SRC
+
+*** Annotation Processing
+#+BEGIN_SRC java
+public class SpringAnnotationProcessor {
+    
+    public AnnotationChange detectAnnotationChanges(Class<?> oldClass, Class<?> newClass) {
+        // Detect changes in Spring annotations:
+        // - Component stereotypes (@Service, @Repository, @Component)
+        // - Lifecycle annotations (@PostConstruct, @PreDestroy)
+        // - Injection annotations (@Autowired, @Value, @Qualifier)
+        // - AOP annotations (@Transactional, @Cacheable, @Async)
+    }
+    
+    public boolean processAnnotationChange(AnnotationChange change) {
+        // Handle annotation changes:
+        // 1. Update bean metadata
+        // 2. Refresh AOP proxies
+        // 3. Reprocess injection points
+        // 4. Update transaction management
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Advanced Configuration Management
+1. Implement @Configuration class hot-swap
+2. Create property source refresh capabilities
+3. Build profile-aware configuration management
+4. Handle conditional bean processing
+
+*** Spring Boot Integration
+1. Create Spring Boot auto-detection
+2. Implement Actuator endpoint integration
+3. Build starter configuration management
+4. Handle embedded server scenarios
+
+*** Annotation Processing
+1. Implement Spring annotation change detection
+2. Create AOP proxy refresh logic
+3. Build injection point update mechanisms
+4. Handle transaction and caching annotation changes
+
+** Acceptance Criteria
+
+- [ ] @Configuration class changes trigger appropriate context refresh
+- [ ] Spring Boot applications support seamless integration
+- [ ] Annotation changes (AOP, injection, lifecycle) are processed correctly
+- [ ] Property source changes refresh application configuration
+- [ ] Spring profiles work correctly with hot-swap operations
+- [ ] Integration tests cover major Spring usage patterns
+- [ ] Documentation includes Spring-specific hot-swap guidelines
+
+* Dependencies & Integration
+
+** ByteHot Core Integration
+- Leverages bytehot-plugin-commons foundation completely
+- Integrates with ByteHot domain events for Spring-specific operations
+- Uses ByteHot agent for class redefinition capabilities
+
+** Spring Framework Requirements
+- Spring Framework 5.0+ for core functionality
+- Spring Boot 2.0+ for Boot-specific features
+- Spring AOP for proxy management
+- Spring Context for ApplicationContext operations
+
+** External Dependencies
+- Spring Framework (spring-core, spring-context, spring-aop)
+- Spring Boot (spring-boot, spring-boot-actuator) - optional
+- Jackson for configuration serialization
+- SLF4J for logging integration
+
+* Testing Strategy
+
+** Unit Testing
+- Spring plugin component testing with mocks
+- Bean hot-swap logic verification
+- Configuration change detection testing
+- Annotation processing validation
+
+** Integration Testing
+- Real Spring application hot-swap scenarios
+- Spring Boot application integration
+- Multi-context environment testing
+- Performance impact measurement
+
+** Compatibility Testing
+- Testing across Spring Framework versions (5.x, 6.x)
+- Spring Boot version compatibility (2.x, 3.x)
+- Different Spring configuration styles (XML, Java, annotations)
+- Various application server environments
+
+* Success Metrics
+
+** Technical Metrics
+- Spring context discovery success rate: >90%
+- Bean hot-swap success rate: >95% for compatible changes
+- Configuration refresh time: <500ms for typical applications
+- Performance overhead: <5% on application startup
+- Test coverage: >95% for Spring plugin module
+
+** User Experience Metrics
+- Zero-configuration success rate: >80% for Spring applications
+- Spring developer adoption rate: >60% of Spring users
+- Hot-swap operation feedback time: <2 seconds
+- Documentation clarity: <10% support requests per user
+
+* Risk Analysis & Mitigation
+
+** Technical Risks
+- *Spring Context Corruption*: Comprehensive rollback mechanisms and state validation
+- *Bean Dependency Conflicts*: Advanced dependency analysis and conflict resolution
+- *Performance Degradation*: Continuous performance monitoring and optimization
+- *Spring Version Compatibility*: Extensive version testing and compatibility matrix
+
+** Adoption Risks
+- *Complex Spring Configurations*: Clear documentation and example applications
+- *Learning Curve*: Integration with existing Spring development patterns
+- *Integration Conflicts*: Thorough testing with popular Spring libraries
+- *Production Readiness*: Graduated rollout with feature flags
+
+This milestone establishes ByteHot as a production-ready tool for Spring development, providing the first concrete demonstration of the plugin architecture's power and setting the pattern for future framework integrations.

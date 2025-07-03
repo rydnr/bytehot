@@ -181,10 +181,3 @@ class PluginBaseTest {
     }
 }
 
-/**
- * Minimal PluginConfiguration interface for testing
- */
-interface PluginConfiguration {
-    String getConfigurationName();
-    boolean isValid();
-}

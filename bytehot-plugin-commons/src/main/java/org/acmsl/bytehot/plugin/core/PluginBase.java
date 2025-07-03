@@ -232,22 +232,3 @@ public abstract class PluginBase {
     }
 }
 
-/**
- * Plugin configuration interface.
- * Represents configuration data for a ByteHot plugin.
- */
-interface PluginConfiguration {
-    /**
-     * Gets the name of this configuration.
-     * 
-     * @return the configuration name
-     */
-    String getConfigurationName();
-
-    /**
-     * Validates this configuration.
-     * 
-     * @return true if the configuration is valid, false otherwise
-     */
-    boolean isValid();
-}
