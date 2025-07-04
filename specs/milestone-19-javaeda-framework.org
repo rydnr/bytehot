@@ -1,0 +1,1413 @@
+#+TITLE: Milestone 19: JavaEDA Framework & Advanced Architecture
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-07-03
+
+* Overview
+
+Milestone 19 extracts DDD/Hexagonal/EDA patterns into a reusable JavaEDA framework, enabling rapid development of event-driven applications with proven architectural patterns. This milestone completes Phase 5 by establishing JavaEDA as a comprehensive framework for building robust, maintainable Java applications.
+
+** Goals
+
+- Extract JavaEDA framework modules with comprehensive DDD and Hexagonal Architecture patterns
+- Create event-driven architecture patterns and templates for rapid application development
+- Build domain-driven design scaffolding and code generators for consistent implementation
+- Develop hexagonal architecture reference implementations and best practices
+- Provide advanced event sourcing and CQRS capabilities for complex domains
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want to build new event-driven Java applications using proven DDD/Hexagonal/EDA patterns from ByteHot, without having to implement these complex architectural patterns from scratch."
+#+END_QUOTE
+
+* JavaEDA Framework Architecture
+
+** Comprehensive Framework Platform
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────────────┐
+│                   JavaEDA Framework Platform               │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │   JavaEDA   │  │Event-Driven │  │Domain-Driven│        │
+│  │ Framework   │  │Architecture │  │   Design    │        │
+│  │  Modules    │  │ Patterns &  │  │ Scaffolding │        │
+│  │             │  │ Templates   │  │& Generators │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │ Hexagonal   │  │Event Sourcing│  │  Advanced   │        │
+│  │Architecture │  │   & CQRS    │  │ Architecture│        │
+│  │ Reference   │  │ Capabilities │  │  Patterns   │        │
+│  │Implementations│  │             │  │& Templates  │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Key Components
+
+- *JavaEDA Framework*: Comprehensive modules with DDD, Hexagonal, and EDA patterns
+- *Event-Driven Architecture*: Templates and patterns for building event-driven applications
+- *Domain-Driven Design*: Scaffolding and generators for consistent DDD implementation
+- *Hexagonal Architecture*: Reference implementations and architectural guidelines
+- *Advanced Capabilities*: Event sourcing, CQRS, and complex domain modeling patterns
+
+* JavaEDA Implementation
+
+## JavaEDA Framework Modules Extraction
+Comprehensive framework extraction with proven DDD, Hexagonal, and EDA patterns
+
+## Event-Driven Architecture Patterns & Templates
+Ready-to-use patterns and templates for building robust event-driven applications
+
+## Domain-Driven Design Scaffolding & Code Generators
+Automated tools for consistent DDD implementation and domain modeling
+
+## Hexagonal Architecture Reference Implementations
+Complete reference implementations demonstrating best practices and patterns
+
+## Advanced Event Sourcing & CQRS Capabilities
+Sophisticated event sourcing and CQRS implementations for complex domain requirements
+
+This milestone establishes JavaEDA as the premier framework for building event-driven Java applications with proven architectural patterns.
+
+* Phase 1: JavaEDA Framework Modules Extraction
+
+** Objective
+Extract comprehensive JavaEDA framework modules from ByteHot, providing reusable DDD, Hexagonal Architecture, and Event-Driven Architecture patterns for rapid application development.
+
+** Technical Specifications
+
+*** JavaEDA Core Framework
+#+BEGIN_SRC java
+// module-info.java for javaeda-core
+module org.acmsl.javaeda.core {
+    exports org.acmsl.javaeda.core.domain;
+    exports org.acmsl.javaeda.core.domain.event;
+    exports org.acmsl.javaeda.core.domain.aggregate;
+    exports org.acmsl.javaeda.core.domain.repository;
+    exports org.acmsl.javaeda.core.domain.service;
+    exports org.acmsl.javaeda.core.application;
+    exports org.acmsl.javaeda.core.infrastructure;
+    exports org.acmsl.javaeda.core.infrastructure.port;
+    exports org.acmsl.javaeda.core.infrastructure.adapter;
+    exports org.acmsl.javaeda.core.patterns;
+    
+    requires org.acmsl.commons;
+    requires java.logging;
+    requires java.management;
+}
+
+// Base aggregate root with event sourcing support
+public abstract class AggregateRoot<ID extends DomainId> {
+    private final ID id;
+    private final List<DomainEvent> uncommittedEvents;
+    private long version;
+    
+    protected AggregateRoot(ID id) {
+        this.id = id;
+        this.uncommittedEvents = new ArrayList<>();
+        this.version = 0;
+    }
+    
+    public final ID getId() {
+        return id;
+    }
+    
+    public final long getVersion() {
+        return version;
+    }
+    
+    public final List<DomainEvent> getUncommittedEvents() {
+        return Collections.unmodifiableList(uncommittedEvents);
+    }
+    
+    public final void markEventsAsCommitted() {
+        uncommittedEvents.clear();
+    }
+    
+    protected final void addEvent(DomainEvent event) {
+        uncommittedEvents.add(event);
+    }
+    
+    public final void loadFromHistory(List<DomainEvent> history) {
+        for (DomainEvent event : history) {
+            applyEvent(event, false);
+            this.version = event.getVersion();
+        }
+    }
+    
+    protected final void applyEvent(DomainEvent event) {
+        applyEvent(event, true);
+    }
+    
+    private void applyEvent(DomainEvent event, boolean isNew) {
+        // Apply event to aggregate state
+        when(event);
+        
+        if (isNew) {
+            // Add to uncommitted events
+            addEvent(event);
+            this.version++;
+        }
+    }
+    
+    /**
+     * Override this method to handle events and update aggregate state
+     */
+    protected abstract void when(DomainEvent event);
+    
+    /**
+     * Factory method for creating new aggregates
+     */
+    public static <T extends AggregateRoot<?>> T create(Class<T> aggregateType, DomainEvent creationEvent) {
+        try {
+            T aggregate = aggregateType.getDeclaredConstructor().newInstance();
+            aggregate.applyEvent(creationEvent);
+            return aggregate;
+        } catch (Exception e) {
+            throw new AggregateCreationException("Failed to create aggregate", e);
+        }
+    }
+}
+#+END_SRC
+
+*** Event-Driven Application Framework
+#+BEGIN_SRC java
+public abstract class EventDrivenApplication {
+    private final EventBus eventBus;
+    private final CommandBus commandBus;
+    private final QueryBus queryBus;
+    private final DomainEventStore eventStore;
+    private final Map<Class<?>, EventHandler<?>> eventHandlers;
+    private final Map<Class<?>, CommandHandler<?>> commandHandlers;
+    private final Map<Class<?>, QueryHandler<?, ?>> queryHandlers;
+    
+    protected EventDrivenApplication() {
+        this.eventBus = createEventBus();
+        this.commandBus = createCommandBus();
+        this.queryBus = createQueryBus();
+        this.eventStore = createEventStore();
+        this.eventHandlers = new ConcurrentHashMap<>();
+        this.commandHandlers = new ConcurrentHashMap<>();
+        this.queryHandlers = new ConcurrentHashMap<>();
+        
+        initialize();
+    }
+    
+    protected abstract EventBus createEventBus();
+    protected abstract CommandBus createCommandBus();
+    protected abstract QueryBus createQueryBus();
+    protected abstract DomainEventStore createEventStore();
+    
+    protected abstract void configureApplication();
+    
+    private void initialize() {
+        // Configure application-specific handlers
+        configureApplication();
+        
+        // Setup event sourcing
+        setupEventSourcing();
+        
+        // Setup CQRS
+        setupCQRS();
+        
+        // Start application
+        startApplication();
+    }
+    
+    public final <T extends DomainEvent> void registerEventHandler(Class<T> eventType, EventHandler<T> handler) {
+        eventHandlers.put(eventType, handler);
+        eventBus.subscribe(eventType, handler);
+    }
+    
+    public final <T extends Command> void registerCommandHandler(Class<T> commandType, CommandHandler<T> handler) {
+        commandHandlers.put(commandType, handler);
+        commandBus.register(commandType, handler);
+    }
+    
+    public final <Q extends Query, R> void registerQueryHandler(Class<Q> queryType, QueryHandler<Q, R> handler) {
+        queryHandlers.put(queryType, handler);
+        queryBus.register(queryType, handler);
+    }
+    
+    public final void publishEvent(DomainEvent event) {
+        // Store event first
+        eventStore.saveEvent(event);
+        
+        // Then publish to handlers
+        eventBus.publish(event);
+    }
+    
+    public final <T> T sendCommand(Command command) {
+        return commandBus.send(command);
+    }
+    
+    public final <T> T sendQuery(Query query) {
+        return queryBus.send(query);
+    }
+    
+    private void setupEventSourcing() {
+        // Setup event sourcing infrastructure
+        EventSourcingManager eventSourcingManager = new EventSourcingManager(eventStore);
+        eventSourcingManager.initialize();
+    }
+    
+    private void setupCQRS() {
+        // Setup CQRS infrastructure
+        CQRSManager cqrsManager = new CQRSManager(commandBus, queryBus);
+        cqrsManager.initialize();
+    }
+}
+
+// Example event-driven application
+public class OrderManagementApplication extends EventDrivenApplication {
+    
+    @Override
+    protected void configureApplication() {
+        // Register domain event handlers
+        registerEventHandler(OrderCreated.class, new OrderCreatedHandler());
+        registerEventHandler(OrderUpdated.class, new OrderUpdatedHandler());
+        registerEventHandler(OrderCanceled.class, new OrderCanceledHandler());
+        
+        // Register command handlers
+        registerCommandHandler(CreateOrderCommand.class, new CreateOrderCommandHandler());
+        registerCommandHandler(UpdateOrderCommand.class, new UpdateOrderCommandHandler());
+        registerCommandHandler(CancelOrderCommand.class, new CancelOrderCommandHandler());
+        
+        // Register query handlers
+        registerQueryHandler(GetOrderQuery.class, new GetOrderQueryHandler());
+        registerQueryHandler(SearchOrdersQuery.class, new SearchOrdersQueryHandler());
+    }
+    
+    @Override
+    protected EventBus createEventBus() {
+        return new AsyncEventBus(Executors.newCachedThreadPool());
+    }
+    
+    @Override
+    protected CommandBus createCommandBus() {
+        return new SynchronousCommandBus();
+    }
+    
+    @Override
+    protected QueryBus createQueryBus() {
+        return new SynchronousQueryBus();
+    }
+    
+    @Override
+    protected DomainEventStore createEventStore() {
+        return new InMemoryEventStore(); // Use persistent store in production
+    }
+}
+#+END_SRC
+
+*** Hexagonal Architecture Framework
+#+BEGIN_SRC java
+// Port interface for repository pattern
+public interface Repository<T extends AggregateRoot<ID>, ID extends DomainId> {
+    Optional<T> findById(ID id);
+    void save(T aggregate);
+    void delete(ID id);
+    List<T> findAll();
+}
+
+// Abstract repository implementation with event sourcing
+public abstract class EventSourcedRepository<T extends AggregateRoot<ID>, ID extends DomainId> 
+    implements Repository<T, ID> {
+    
+    private final EventStore eventStore;
+    private final Class<T> aggregateType;
+    
+    protected EventSourcedRepository(EventStore eventStore, Class<T> aggregateType) {
+        this.eventStore = eventStore;
+        this.aggregateType = aggregateType;
+    }
+    
+    @Override
+    public Optional<T> findById(ID id) {
+        List<DomainEvent> events = eventStore.getEventsForAggregate(id);
+        
+        if (events.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        T aggregate = createNewInstance();
+        aggregate.loadFromHistory(events);
+        
+        return Optional.of(aggregate);
+    }
+    
+    @Override
+    public void save(T aggregate) {
+        List<DomainEvent> uncommittedEvents = aggregate.getUncommittedEvents();
+        
+        for (DomainEvent event : uncommittedEvents) {
+            eventStore.saveEvent(event);
+        }
+        
+        aggregate.markEventsAsCommitted();
+    }
+    
+    protected abstract T createNewInstance();
+}
+
+// Port interface for domain services
+public interface DomainService {
+    // Marker interface for domain services
+}
+
+// Port interface for application services
+public interface ApplicationService {
+    // Marker interface for application services
+}
+
+// Abstract application service with CQRS support
+public abstract class CQRSApplicationService implements ApplicationService {
+    private final CommandBus commandBus;
+    private final QueryBus queryBus;
+    private final EventBus eventBus;
+    
+    protected CQRSApplicationService(CommandBus commandBus, QueryBus queryBus, EventBus eventBus) {
+        this.commandBus = commandBus;
+        this.queryBus = queryBus;
+        this.eventBus = eventBus;
+    }
+    
+    protected final <T> T sendCommand(Command command) {
+        return commandBus.send(command);
+    }
+    
+    protected final <T> T sendQuery(Query query) {
+        return queryBus.send(query);
+    }
+    
+    protected final void publishEvent(DomainEvent event) {
+        eventBus.publish(event);
+    }
+}
+
+// Infrastructure adapter base class
+public abstract class InfrastructureAdapter implements Port {
+    private final AdapterConfiguration configuration;
+    private final HealthMonitor healthMonitor;
+    
+    protected InfrastructureAdapter(AdapterConfiguration configuration) {
+        this.configuration = configuration;
+        this.healthMonitor = createHealthMonitor();
+    }
+    
+    public abstract void initialize() throws AdapterInitializationException;
+    public abstract void shutdown() throws AdapterShutdownException;
+    public abstract boolean isHealthy();
+    
+    protected abstract HealthMonitor createHealthMonitor();
+    
+    protected final AdapterConfiguration getConfiguration() {
+        return configuration;
+    }
+    
+    protected final void validateConfiguration() throws ConfigurationException {
+        if (!configuration.isValid()) {
+            throw new ConfigurationException("Invalid adapter configuration");
+        }
+    }
+}
+#+END_SRC
+
+*** Domain-Driven Design Framework
+#+BEGIN_SRC java
+// Value object base class
+public abstract class ValueObject {
+    
+    @Override
+    public final boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        
+        return equalsCore((ValueObject) obj);
+    }
+    
+    @Override
+    public final int hashCode() {
+        return hashCodeCore();
+    }
+    
+    protected abstract boolean equalsCore(ValueObject other);
+    protected abstract int hashCodeCore();
+    
+    @Override
+    public String toString() {
+        return toStringCore();
+    }
+    
+    protected abstract String toStringCore();
+}
+
+// Entity base class
+public abstract class Entity<ID extends DomainId> {
+    private final ID id;
+    
+    protected Entity(ID id) {
+        this.id = Objects.requireNonNull(id, "Entity ID cannot be null");
+    }
+    
+    public final ID getId() {
+        return id;
+    }
+    
+    @Override
+    public final boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        
+        Entity<?> other = (Entity<?>) obj;
+        return id.equals(other.id);
+    }
+    
+    @Override
+    public final int hashCode() {
+        return id.hashCode();
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("%s{id=%s}", getClass().getSimpleName(), id);
+    }
+}
+
+// Domain service base class
+public abstract class DomainServiceImpl implements DomainService {
+    
+    protected final void validateBusinessRule(boolean condition, String errorMessage) {
+        if (!condition) {
+            throw new BusinessRuleViolationException(errorMessage);
+        }
+    }
+    
+    protected final void validateBusinessRule(Supplier<Boolean> condition, String errorMessage) {
+        validateBusinessRule(condition.get(), errorMessage);
+    }
+    
+    protected final <T> T requireNonNull(T value, String parameterName) {
+        return Objects.requireNonNull(value, parameterName + " cannot be null");
+    }
+}
+
+// Specification pattern implementation
+public abstract class Specification<T> {
+    
+    public abstract boolean isSatisfiedBy(T candidate);
+    
+    public Specification<T> and(Specification<T> other) {
+        return new AndSpecification<>(this, other);
+    }
+    
+    public Specification<T> or(Specification<T> other) {
+        return new OrSpecification<>(this, other);
+    }
+    
+    public Specification<T> not() {
+        return new NotSpecification<>(this);
+    }
+    
+    // Convenience method for validation
+    public final void validate(T candidate, String errorMessage) {
+        if (!isSatisfiedBy(candidate)) {
+            throw new SpecificationNotSatisfiedException(errorMessage);
+        }
+    }
+}
+
+// Factory pattern for domain objects
+public abstract class DomainFactory<T> {
+    
+    public abstract T create(Object... parameters);
+    
+    protected final void validateCreationParameters(Object... parameters) {
+        for (Object parameter : parameters) {
+            if (parameter == null) {
+                throw new IllegalArgumentException("Factory parameters cannot be null");
+            }
+        }
+    }
+    
+    protected final <P> P getParameter(Object[] parameters, int index, Class<P> type) {
+        if (index >= parameters.length) {
+            throw new IllegalArgumentException("Parameter index out of bounds: " + index);
+        }
+        
+        Object parameter = parameters[index];
+        if (!type.isInstance(parameter)) {
+            throw new IllegalArgumentException(
+                String.format("Parameter at index %d must be of type %s", index, type.getSimpleName()));
+        }
+        
+        return type.cast(parameter);
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Core Framework Extraction
+1. Extract DDD patterns and base classes from ByteHot
+2. Create comprehensive aggregate root and entity frameworks
+3. Build event sourcing infrastructure and patterns
+4. Implement hexagonal architecture base classes and interfaces
+
+*** Application Framework
+1. Create event-driven application foundation
+2. Build CQRS infrastructure with command/query separation
+3. Implement application service patterns and templates
+4. Create domain service framework and utilities
+
+*** Domain Modeling Framework
+1. Build comprehensive domain modeling utilities
+2. Create specification pattern implementation
+3. Implement factory pattern framework
+4. Build value object and entity base classes
+
+** Acceptance Criteria
+
+- [ ] JavaEDA framework modules build and package correctly
+- [ ] Event-driven application framework supports complex scenarios
+- [ ] Domain modeling framework enforces DDD principles
+- [ ] Hexagonal architecture patterns are well-defined and reusable
+- [ ] Framework is well-documented with comprehensive examples
+- [ ] All patterns integrate seamlessly with each other
+
+* Phase 2: Event-Driven Architecture Patterns & Templates
+
+** Objective
+Create comprehensive event-driven architecture patterns and templates that enable rapid development of robust, scalable event-driven applications.
+
+** Technical Specifications
+
+*** Event-Driven Patterns Library
+#+BEGIN_SRC java
+public class EventDrivenPatternsLibrary {
+    private final Map<String, EventDrivenPattern> patterns;
+    private final PatternTemplateEngine templateEngine;
+    
+    public EventDrivenPatternsLibrary() {
+        this.patterns = initializePatterns();
+        this.templateEngine = new PatternTemplateEngine();
+    }
+    
+    public EventDrivenPattern getPattern(String patternName) {
+        EventDrivenPattern pattern = patterns.get(patternName);
+        if (pattern == null) {
+            throw new IllegalArgumentException("Unknown event-driven pattern: " + patternName);
+        }
+        return pattern;
+    }
+    
+    public ApplicationTemplate generateApplication(String patternName, ApplicationContext context) {
+        EventDrivenPattern pattern = getPattern(patternName);
+        return templateEngine.generateTemplate(pattern, context);
+    }
+    
+    private Map<String, EventDrivenPattern> initializePatterns() {
+        Map<String, EventDrivenPattern> patterns = new HashMap<>();
+        
+        // Event Sourcing Pattern
+        patterns.put("event-sourcing", new EventSourcingPattern());
+        
+        // CQRS Pattern
+        patterns.put("cqrs", new CQRSPattern());
+        
+        // Saga Pattern
+        patterns.put("saga", new SagaPattern());
+        
+        // Event Streaming Pattern
+        patterns.put("event-streaming", new EventStreamingPattern());
+        
+        // Microservices Event-Driven Pattern
+        patterns.put("microservices-event-driven", new MicroservicesEventDrivenPattern());
+        
+        return patterns;
+    }
+}
+
+public class EventSourcingPattern implements EventDrivenPattern {
+    
+    @Override
+    public String getName() {
+        return "Event Sourcing";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Store all changes as sequence of events and reconstruct state from events";
+    }
+    
+    @Override
+    public ApplicationTemplate generateTemplate(ApplicationContext context) {
+        EventSourcingTemplateBuilder builder = new EventSourcingTemplateBuilder();
+        
+        // Generate aggregate root
+        builder.addAggregateRoot(context.getDomainName());
+        
+        // Generate domain events
+        for (String eventName : context.getDomainEvents()) {
+            builder.addDomainEvent(eventName);
+        }
+        
+        // Generate event store
+        builder.addEventStore(context.getStorageType());
+        
+        // Generate event sourced repository
+        builder.addEventSourcedRepository();
+        
+        // Generate event handlers
+        for (String handlerName : context.getEventHandlers()) {
+            builder.addEventHandler(handlerName);
+        }
+        
+        // Generate application service
+        builder.addApplicationService();
+        
+        return builder.build();
+    }
+    
+    @Override
+    public List<String> getRequiredDependencies() {
+        return Arrays.asList(
+            "org.acmsl.javaeda.core",
+            "org.acmsl.javaeda.eventsourcing",
+            "org.acmsl.commons"
+        );
+    }
+}
+
+public class SagaPattern implements EventDrivenPattern {
+    
+    @Override
+    public String getName() {
+        return "Saga";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Manage long-running business transactions across multiple services";
+    }
+    
+    @Override
+    public ApplicationTemplate generateTemplate(ApplicationContext context) {
+        SagaTemplateBuilder builder = new SagaTemplateBuilder();
+        
+        // Generate saga orchestrator
+        builder.addSagaOrchestrator(context.getSagaName());
+        
+        // Generate saga steps
+        for (SagaStepDefinition step : context.getSagaSteps()) {
+            builder.addSagaStep(step);
+        }
+        
+        // Generate compensation handlers
+        for (SagaStepDefinition step : context.getSagaSteps()) {
+            if (step.isCompensatable()) {
+                builder.addCompensationHandler(step);
+            }
+        }
+        
+        // Generate saga events
+        builder.addSagaEvents();
+        
+        // Generate saga state machine
+        builder.addSagaStateMachine();
+        
+        return builder.build();
+    }
+}
+#+END_SRC
+
+*** CQRS Framework
+#+BEGIN_SRC java
+public class CQRSFramework {
+    private final CommandSide commandSide;
+    private final QuerySide querySide;
+    private final EventBridge eventBridge;
+    
+    public CQRSFramework(CQRSConfiguration configuration) {
+        this.commandSide = new CommandSide(configuration.getCommandConfiguration());
+        this.querySide = new QuerySide(configuration.getQueryConfiguration());
+        this.eventBridge = new EventBridge(configuration.getEventBridgeConfiguration());
+    }
+    
+    public void initialize() {
+        commandSide.initialize();
+        querySide.initialize();
+        eventBridge.initialize();
+        
+        // Connect command side events to query side
+        eventBridge.connectCommandToQuery(commandSide, querySide);
+    }
+    
+    public <T> T sendCommand(Command command) {
+        return commandSide.handle(command);
+    }
+    
+    public <T> T sendQuery(Query query) {
+        return querySide.handle(query);
+    }
+}
+
+public class CommandSide {
+    private final CommandBus commandBus;
+    private final EventStore eventStore;
+    private final DomainEventPublisher eventPublisher;
+    private final Map<Class<?>, AggregateRepository<?>> repositories;
+    
+    public CommandSide(CommandConfiguration configuration) {
+        this.commandBus = createCommandBus(configuration);
+        this.eventStore = createEventStore(configuration);
+        this.eventPublisher = createEventPublisher(configuration);
+        this.repositories = new ConcurrentHashMap<>();
+    }
+    
+    public <T> T handle(Command command) {
+        return commandBus.send(command);
+    }
+    
+    public <T extends AggregateRoot<?>> void registerRepository(Class<T> aggregateType, 
+                                                               AggregateRepository<T> repository) {
+        repositories.put(aggregateType, repository);
+    }
+    
+    public <T extends AggregateRoot<?>> AggregateRepository<T> getRepository(Class<T> aggregateType) {
+        @SuppressWarnings("unchecked")
+        AggregateRepository<T> repository = (AggregateRepository<T>) repositories.get(aggregateType);
+        
+        if (repository == null) {
+            throw new RepositoryNotFoundException("No repository registered for aggregate type: " + 
+                aggregateType.getSimpleName());
+        }
+        
+        return repository;
+    }
+}
+
+public class QuerySide {
+    private final QueryBus queryBus;
+    private final ReadModelStore readModelStore;
+    private final ProjectionManager projectionManager;
+    private final Map<Class<?>, ReadModelRepository<?>> readModelRepositories;
+    
+    public QuerySide(QueryConfiguration configuration) {
+        this.queryBus = createQueryBus(configuration);
+        this.readModelStore = createReadModelStore(configuration);
+        this.projectionManager = createProjectionManager(configuration);
+        this.readModelRepositories = new ConcurrentHashMap<>();
+    }
+    
+    public <T> T handle(Query query) {
+        return queryBus.send(query);
+    }
+    
+    public void registerProjection(Projection projection) {
+        projectionManager.register(projection);
+    }
+    
+    public <T> void registerReadModelRepository(Class<T> readModelType, 
+                                               ReadModelRepository<T> repository) {
+        readModelRepositories.put(readModelType, repository);
+    }
+}
+#+END_SRC
+
+*** Microservices Event-Driven Framework
+#+BEGIN_SRC java
+public class MicroservicesEventDrivenFramework {
+    private final ServiceRegistry serviceRegistry;
+    private final EventRouter eventRouter;
+    private final MessageBroker messageBroker;
+    private final ServiceDiscovery serviceDiscovery;
+    
+    public MicroservicesEventDrivenFramework(MicroservicesConfiguration configuration) {
+        this.serviceRegistry = createServiceRegistry(configuration);
+        this.eventRouter = createEventRouter(configuration);
+        this.messageBroker = createMessageBroker(configuration);
+        this.serviceDiscovery = createServiceDiscovery(configuration);
+    }
+    
+    public void registerService(MicroserviceDefinition serviceDefinition) {
+        serviceRegistry.register(serviceDefinition);
+        setupEventRouting(serviceDefinition);
+    }
+    
+    public void publishEvent(DomainEvent event, ServiceContext context) {
+        // Determine target services
+        List<ServiceEndpoint> targetServices = eventRouter.route(event);
+        
+        // Publish to message broker
+        for (ServiceEndpoint endpoint : targetServices) {
+            messageBroker.publish(event, endpoint);
+        }
+    }
+    
+    public void subscribeToEvents(Class<? extends DomainEvent> eventType, 
+                                 EventHandler<?> handler, 
+                                 ServiceContext context) {
+        messageBroker.subscribe(eventType, handler, context);
+    }
+    
+    private void setupEventRouting(MicroserviceDefinition serviceDefinition) {
+        // Setup event routing rules
+        for (EventSubscription subscription : serviceDefinition.getEventSubscriptions()) {
+            eventRouter.addRoute(subscription.getEventType(), serviceDefinition.getEndpoint());
+        }
+    }
+}
+
+public class EventDrivenMicroservice extends EventDrivenApplication {
+    private final MicroserviceConfiguration serviceConfig;
+    private final MicroservicesEventDrivenFramework framework;
+    private final ServiceHealthMonitor healthMonitor;
+    
+    public EventDrivenMicroservice(MicroserviceConfiguration serviceConfig) {
+        super();
+        this.serviceConfig = serviceConfig;
+        this.framework = new MicroservicesEventDrivenFramework(serviceConfig.getFrameworkConfig());
+        this.healthMonitor = new ServiceHealthMonitor(serviceConfig);
+    }
+    
+    @Override
+    protected void configureApplication() {
+        // Register this service with the framework
+        framework.registerService(serviceConfig.getServiceDefinition());
+        
+        // Setup health monitoring
+        healthMonitor.start();
+        
+        // Configure domain-specific handlers
+        configureDomainHandlers();
+        
+        // Setup inter-service communication
+        setupInterServiceCommunication();
+    }
+    
+    protected abstract void configureDomainHandlers();
+    
+    private void setupInterServiceCommunication() {
+        // Subscribe to external events
+        for (EventSubscription subscription : serviceConfig.getExternalEventSubscriptions()) {
+            framework.subscribeToEvents(
+                subscription.getEventType(),
+                subscription.getHandler(),
+                createServiceContext()
+            );
+        }
+    }
+    
+    @Override
+    public void publishEvent(DomainEvent event) {
+        // Publish locally first
+        super.publishEvent(event);
+        
+        // Then publish to other services if needed
+        if (shouldPublishExternally(event)) {
+            framework.publishEvent(event, createServiceContext());
+        }
+    }
+    
+    private boolean shouldPublishExternally(DomainEvent event) {
+        return serviceConfig.getExternalEventTypes().contains(event.getClass());
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Pattern Library Development
+1. Create comprehensive event-driven pattern library
+2. Build pattern template generation engine
+3. Implement specific patterns (Event Sourcing, CQRS, Saga, etc.)
+4. Create pattern validation and compatibility checking
+
+*** CQRS Framework Implementation
+1. Build complete CQRS framework with command/query separation
+2. Create read model projection management
+3. Implement event bridge between command and query sides
+4. Build read model repository patterns
+
+*** Microservices Framework
+1. Create microservices event-driven communication framework
+2. Build service registry and discovery mechanisms
+3. Implement event routing and message broker integration
+4. Create inter-service communication patterns
+
+** Acceptance Criteria
+
+- [ ] Pattern library generates working application templates
+- [ ] CQRS framework supports complex read/write scenarios
+- [ ] Microservices framework enables seamless inter-service communication
+- [ ] All patterns are well-documented with working examples
+- [ ] Templates generate production-ready code
+- [ ] Framework supports various messaging and storage technologies
+
+* Phase 3: Domain-Driven Design Scaffolding & Advanced Capabilities
+
+** Objective
+Build comprehensive DDD scaffolding and code generators along with advanced event sourcing and CQRS capabilities for complex domain requirements.
+
+** Technical Specifications
+
+*** DDD Code Generator
+#+BEGIN_SRC java
+public class DDDCodeGenerator {
+    private final TemplateEngine templateEngine;
+    private final CodeGenerationConfiguration configuration;
+    private final DomainModelValidator validator;
+    
+    public DDDCodeGenerator(CodeGenerationConfiguration configuration) {
+        this.configuration = configuration;
+        this.templateEngine = createTemplateEngine();
+        this.validator = new DomainModelValidator();
+    }
+    
+    public GenerationResult generateDomainModel(DomainModelDefinition definition) {
+        // Validate domain model
+        ValidationResult validation = validator.validate(definition);
+        if (!validation.isValid()) {
+            return GenerationResult.failure(validation.getErrors());
+        }
+        
+        GenerationResult.Builder resultBuilder = GenerationResult.builder();
+        
+        // Generate aggregates
+        for (AggregateDefinition aggregate : definition.getAggregates()) {
+            GenerationResult aggregateResult = generateAggregate(aggregate);
+            resultBuilder.mergeResult(aggregateResult);
+        }
+        
+        // Generate value objects
+        for (ValueObjectDefinition valueObject : definition.getValueObjects()) {
+            GenerationResult valueObjectResult = generateValueObject(valueObject);
+            resultBuilder.mergeResult(valueObjectResult);
+        }
+        
+        // Generate domain services
+        for (DomainServiceDefinition service : definition.getDomainServices()) {
+            GenerationResult serviceResult = generateDomainService(service);
+            resultBuilder.mergeResult(serviceResult);
+        }
+        
+        // Generate repositories
+        for (RepositoryDefinition repository : definition.getRepositories()) {
+            GenerationResult repositoryResult = generateRepository(repository);
+            resultBuilder.mergeResult(repositoryResult);
+        }
+        
+        // Generate domain events
+        for (DomainEventDefinition event : definition.getDomainEvents()) {
+            GenerationResult eventResult = generateDomainEvent(event);
+            resultBuilder.mergeResult(eventResult);
+        }
+        
+        return resultBuilder.build();
+    }
+    
+    private GenerationResult generateAggregate(AggregateDefinition definition) {
+        Map<String, Object> templateContext = new HashMap<>();
+        templateContext.put("aggregate", definition);
+        templateContext.put("package", configuration.getBasePackage() + ".domain.aggregate");
+        
+        String aggregateCode = templateEngine.process("aggregate.java.template", templateContext);
+        String testCode = templateEngine.process("aggregate-test.java.template", templateContext);
+        
+        return GenerationResult.builder()
+            .addGeneratedFile(definition.getName() + ".java", aggregateCode)
+            .addGeneratedFile(definition.getName() + "Test.java", testCode)
+            .build();
+    }
+    
+    private GenerationResult generateValueObject(ValueObjectDefinition definition) {
+        Map<String, Object> templateContext = new HashMap<>();
+        templateContext.put("valueObject", definition);
+        templateContext.put("package", configuration.getBasePackage() + ".domain.valueobject");
+        
+        String valueObjectCode = templateEngine.process("value-object.java.template", templateContext);
+        String testCode = templateEngine.process("value-object-test.java.template", templateContext);
+        
+        return GenerationResult.builder()
+            .addGeneratedFile(definition.getName() + ".java", valueObjectCode)
+            .addGeneratedFile(definition.getName() + "Test.java", testCode)
+            .build();
+    }
+}
+
+public class DomainModelScaffold {
+    private final ScaffoldConfiguration configuration;
+    private final InteractiveDomainModeler modeler;
+    private final DDDCodeGenerator codeGenerator;
+    
+    public DomainModelScaffold(ScaffoldConfiguration configuration) {
+        this.configuration = configuration;
+        this.modeler = new InteractiveDomainModeler();
+        this.codeGenerator = new DDDCodeGenerator(configuration.getCodeGenerationConfig());
+    }
+    
+    public ScaffoldResult createDomainModel() {
+        try {
+            // Interactive domain modeling session
+            DomainModelDefinition definition = modeler.guidedModelingSession();
+            
+            // Generate domain model code
+            GenerationResult generationResult = codeGenerator.generateDomainModel(definition);
+            
+            // Setup project structure
+            ProjectStructureResult projectResult = setupProjectStructure(definition);
+            
+            // Generate build configuration
+            BuildConfigurationResult buildResult = generateBuildConfiguration(definition);
+            
+            return ScaffoldResult.builder()
+                .domainModel(definition)
+                .generationResult(generationResult)
+                .projectStructure(projectResult)
+                .buildConfiguration(buildResult)
+                .build();
+                
+        } catch (Exception e) {
+            return ScaffoldResult.failure("Scaffolding failed: " + e.getMessage());
+        }
+    }
+    
+    private ProjectStructureResult setupProjectStructure(DomainModelDefinition definition) {
+        ProjectStructureBuilder builder = new ProjectStructureBuilder(configuration.getProjectRoot());
+        
+        // Create standard DDD structure
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/domain");
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/application");
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/infrastructure");
+        
+        // Create domain subdirectories
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/domain/aggregate");
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/domain/valueobject");
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/domain/service");
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/domain/repository");
+        builder.createDirectory("src/main/java/" + configuration.getBasePackage().replace('.', '/') + "/domain/event");
+        
+        // Create test directories
+        builder.createDirectory("src/test/java/" + configuration.getBasePackage().replace('.', '/'));
+        
+        return builder.build();
+    }
+}
+#+END_SRC
+
+*** Advanced Event Sourcing Framework
+#+BEGIN_SRC java
+public class AdvancedEventSourcingFramework {
+    private final EventStore eventStore;
+    private final SnapshotStore snapshotStore;
+    private final EventBus eventBus;
+    private final ProjectionManager projectionManager;
+    private final EventMigrationManager migrationManager;
+    
+    public AdvancedEventSourcingFramework(EventSourcingConfiguration configuration) {
+        this.eventStore = createEventStore(configuration);
+        this.snapshotStore = createSnapshotStore(configuration);
+        this.eventBus = createEventBus(configuration);
+        this.projectionManager = createProjectionManager(configuration);
+        this.migrationManager = createEventMigrationManager(configuration);
+    }
+    
+    public <T extends AggregateRoot<?>> T loadAggregate(Class<T> aggregateType, DomainId id) {
+        // Try to load from snapshot first
+        Optional<AggregateSnapshot<T>> snapshot = snapshotStore.getSnapshot(aggregateType, id);
+        
+        T aggregate;
+        long fromVersion = 0;
+        
+        if (snapshot.isPresent()) {
+            aggregate = snapshot.get().getAggregate();
+            fromVersion = snapshot.get().getVersion();
+        } else {
+            aggregate = createNewAggregate(aggregateType);
+        }
+        
+        // Load events since snapshot
+        List<DomainEvent> events = eventStore.getEventsForAggregate(id, fromVersion);
+        
+        // Apply migration if needed
+        events = migrationManager.migrateEvents(events);
+        
+        // Apply events to aggregate
+        aggregate.loadFromHistory(events);
+        
+        return aggregate;
+    }
+    
+    public void saveAggregate(AggregateRoot<?> aggregate) {
+        List<DomainEvent> uncommittedEvents = aggregate.getUncommittedEvents();
+        
+        // Save events to event store
+        for (DomainEvent event : uncommittedEvents) {
+            eventStore.saveEvent(event);
+            
+            // Publish event for projections
+            eventBus.publish(event);
+        }
+        
+        // Mark events as committed
+        aggregate.markEventsAsCommitted();
+        
+        // Create snapshot if needed
+        if (shouldCreateSnapshot(aggregate)) {
+            createSnapshot(aggregate);
+        }
+    }
+    
+    private boolean shouldCreateSnapshot(AggregateRoot<?> aggregate) {
+        SnapshotPolicy policy = getSnapshotPolicy(aggregate.getClass());
+        return policy.shouldCreateSnapshot(aggregate);
+    }
+    
+    private void createSnapshot(AggregateRoot<?> aggregate) {
+        AggregateSnapshot<?> snapshot = AggregateSnapshot.builder()
+            .aggregate(aggregate)
+            .version(aggregate.getVersion())
+            .timestamp(Instant.now())
+            .build();
+        
+        snapshotStore.saveSnapshot(snapshot);
+    }
+}
+
+public class EventMigrationManager {
+    private final Map<String, EventMigration> migrations;
+    private final EventVersionRegistry versionRegistry;
+    
+    public EventMigrationManager() {
+        this.migrations = new ConcurrentHashMap<>();
+        this.versionRegistry = new EventVersionRegistry();
+    }
+    
+    public void registerMigration(String eventType, int fromVersion, int toVersion, EventMigration migration) {
+        String migrationKey = createMigrationKey(eventType, fromVersion, toVersion);
+        migrations.put(migrationKey, migration);
+    }
+    
+    public List<DomainEvent> migrateEvents(List<DomainEvent> events) {
+        List<DomainEvent> migratedEvents = new ArrayList<>();
+        
+        for (DomainEvent event : events) {
+            DomainEvent migratedEvent = migrateEvent(event);
+            migratedEvents.add(migratedEvent);
+        }
+        
+        return migratedEvents;
+    }
+    
+    private DomainEvent migrateEvent(DomainEvent event) {
+        String eventType = event.getClass().getSimpleName();
+        int currentVersion = event.getEventVersion();
+        int latestVersion = versionRegistry.getLatestVersion(eventType);
+        
+        if (currentVersion == latestVersion) {
+            return event; // No migration needed
+        }
+        
+        DomainEvent migratedEvent = event;
+        
+        // Apply migrations step by step
+        for (int version = currentVersion; version < latestVersion; version++) {
+            String migrationKey = createMigrationKey(eventType, version, version + 1);
+            EventMigration migration = migrations.get(migrationKey);
+            
+            if (migration != null) {
+                migratedEvent = migration.migrate(migratedEvent);
+            }
+        }
+        
+        return migratedEvent;
+    }
+}
+#+END_SRC
+
+*** Complex Domain Patterns
+#+BEGIN_SRC java
+public class DomainPatternLibrary {
+    private final Map<String, DomainPattern> patterns;
+    
+    public DomainPatternLibrary() {
+        this.patterns = initializeDomainPatterns();
+    }
+    
+    private Map<String, DomainPattern> initializeDomainPatterns() {
+        Map<String, DomainPattern> patterns = new HashMap<>();
+        
+        // Aggregate patterns
+        patterns.put("aggregate-with-entities", new AggregateWithEntitiesPattern());
+        patterns.put("aggregate-with-nested-value-objects", new AggregateWithNestedValueObjectsPattern());
+        
+        // Domain service patterns
+        patterns.put("domain-service-with-policy", new DomainServiceWithPolicyPattern());
+        patterns.put("domain-service-coordination", new DomainServiceCoordinationPattern());
+        
+        // Repository patterns
+        patterns.put("event-sourced-repository", new EventSourcedRepositoryPattern());
+        patterns.put("cqrs-repository", new CQRSRepositoryPattern());
+        
+        // Complex business rules patterns
+        patterns.put("specification-composite", new SpecificationCompositePattern());
+        patterns.put("business-rule-engine", new BusinessRuleEnginePattern());
+        
+        return patterns;
+    }
+}
+
+public class BusinessRuleEnginePattern implements DomainPattern {
+    
+    @Override
+    public ApplicationTemplate generateTemplate(ApplicationContext context) {
+        BusinessRuleEngineTemplateBuilder builder = new BusinessRuleEngineTemplateBuilder();
+        
+        // Generate rule engine
+        builder.addRuleEngine(context.getDomainName());
+        
+        // Generate rule definitions
+        for (BusinessRuleDefinition rule : context.getBusinessRules()) {
+            builder.addBusinessRule(rule);
+        }
+        
+        // Generate rule evaluator
+        builder.addRuleEvaluator();
+        
+        // Generate rule repository
+        builder.addRuleRepository();
+        
+        // Generate rule execution service
+        builder.addRuleExecutionService();
+        
+        return builder.build();
+    }
+}
+
+public class AdvancedDomainService extends DomainServiceImpl {
+    private final BusinessRuleEngine ruleEngine;
+    private final DomainEventPublisher eventPublisher;
+    private final PolicyRegistry policyRegistry;
+    
+    protected AdvancedDomainService(BusinessRuleEngine ruleEngine,
+                                   DomainEventPublisher eventPublisher,
+                                   PolicyRegistry policyRegistry) {
+        this.ruleEngine = ruleEngine;
+        this.eventPublisher = eventPublisher;
+        this.policyRegistry = policyRegistry;
+    }
+    
+    protected final void executeBusinessRules(Object context, String ruleCategory) {
+        List<BusinessRule> rules = ruleEngine.getRulesForCategory(ruleCategory);
+        
+        for (BusinessRule rule : rules) {
+            RuleExecutionResult result = rule.execute(context);
+            
+            if (!result.isPassed()) {
+                throw new BusinessRuleViolationException(rule.getName(), result.getFailureReason());
+            }
+            
+            // Publish events for successful rule execution
+            for (DomainEvent event : result.getGeneratedEvents()) {
+                eventPublisher.publish(event);
+            }
+        }
+    }
+    
+    protected final void applyPolicy(String policyName, Object context) {
+        Policy policy = policyRegistry.getPolicy(policyName);
+        PolicyExecutionResult result = policy.apply(context);
+        
+        if (!result.isSuccessful()) {
+            throw new PolicyViolationException(policyName, result.getFailureReason());
+        }
+        
+        // Publish policy execution events
+        for (DomainEvent event : result.getGeneratedEvents()) {
+            eventPublisher.publish(event);
+        }
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** DDD Scaffolding
+1. Create comprehensive domain model code generator
+2. Build interactive domain modeling tools
+3. Implement project structure scaffolding
+4. Create DDD pattern templates and generators
+
+*** Advanced Event Sourcing
+1. Build advanced event sourcing framework with snapshots
+2. Create event migration and versioning capabilities
+3. Implement projection management and CQRS integration
+4. Build performance optimization features
+
+*** Complex Domain Patterns
+1. Create business rule engine and policy framework
+2. Build specification pattern implementations
+3. Implement complex aggregate and entity patterns
+4. Create domain service coordination patterns
+
+** Acceptance Criteria
+
+- [ ] Code generator produces high-quality, production-ready code
+- [ ] Advanced event sourcing handles complex scenarios efficiently
+- [ ] Domain patterns support sophisticated business logic
+- [ ] All generated code follows DDD principles and best practices
+- [ ] Framework supports event migration and versioning
+- [ ] Complex domain scenarios are well-supported with patterns
+
+* Dependencies & Integration
+
+** Framework Dependencies
+- Java Platform Module System for proper module structure
+- Reflection and annotation processing for code generation
+- Template engines (Freemarker, Velocity) for code generation
+- Build tool integration (Maven, Gradle) for project generation
+
+** Event Sourcing Dependencies
+- Event storage systems (EventStore, Apache Kafka, PostgreSQL)
+- Serialization frameworks (Jackson, Protocol Buffers)
+- Messaging systems (RabbitMQ, Apache Kafka, ActiveMQ)
+- Snapshot storage systems (Redis, MongoDB, PostgreSQL)
+
+* Testing Strategy
+
+** Framework Testing
+- Generated code testing with various domain scenarios
+- Template testing and validation
+- Integration testing with different storage and messaging systems
+- Performance testing with large event streams
+
+** Pattern Validation Testing
+- Domain pattern implementation testing
+- Business rule engine testing with complex scenarios
+- Event sourcing testing with migration scenarios
+- CQRS testing with read/write consistency validation
+
+** Production Readiness Testing
+- Load testing with high-volume event streams
+- Fault tolerance testing with storage and messaging failures
+- Performance regression testing
+- Security testing for event storage and transmission
+
+* Success Metrics
+
+** Framework Success Metrics
+- Code generation quality: Generated code passes all quality gates
+- Developer productivity: >50% reduction in boilerplate code
+- Framework adoption: >80% of new projects using JavaEDA patterns
+- Documentation completeness: All patterns documented with working examples
+
+** Architecture Success Metrics
+- Event sourcing performance: <10ms event save, <100ms aggregate reconstruction
+- CQRS consistency: Read models consistent within 1 second
+- Domain pattern effectiveness: Business rules clearly expressed and maintainable
+- Framework extensibility: Easy addition of new patterns and capabilities
+
+This milestone establishes JavaEDA as the premier framework for building sophisticated event-driven Java applications with proven DDD and Hexagonal Architecture patterns.

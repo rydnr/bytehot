@@ -1,0 +1,1348 @@
+#+TITLE: Milestone 17: IDE Deep Integration (IntelliJ, Eclipse, VS Code)
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-07-03
+
+* Overview
+
+Milestone 17 provides native IDE integration for seamless development experience across major development environments. This milestone enables developers to use ByteHot transparently within their favorite IDEs with optimized user experience and IDE-specific features.
+
+** Goals
+
+- Create IntelliJ IDEA plugin with native hot-swap integration and advanced IDE features
+- Build Eclipse plugin with comprehensive project integration and tooling support
+- Develop VS Code extension with debugging integration and modern developer experience
+- Implement IDE-specific optimization and user experience enhancements
+- Ensure cross-IDE compatibility and consistent experience across platforms
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want ByteHot to work seamlessly within my IDE of choice, providing native integration that feels like a built-in feature with IDE-specific optimizations and zero configuration required."
+#+END_QUOTE
+
+* IDE Integration Architecture
+
+** Cross-IDE Integration Platform
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────────────┐
+│                  IDE Integration Platform                   │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  IntelliJ   │  │   Eclipse   │  │   VS Code   │        │
+│  │    IDEA     │  │   Plugin    │  │ Extension   │        │
+│  │   Plugin    │  │& Tooling    │  │& Debugging  │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │IDE-Specific │  │Cross-IDE    │  │   Common    │        │
+│  │Optimization │  │Compatibility│  │ Integration │        │
+│  │ & Features  │  │& Standards  │  │ Framework   │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Key Components
+
+- *IntelliJ IDEA Plugin*: Native integration with advanced IDE features and IDEA-specific optimizations
+- *Eclipse Plugin*: Comprehensive Eclipse ecosystem integration with workbench and project tooling
+- *VS Code Extension*: Modern extension with debugging integration and Language Server Protocol support
+- *IDE-Specific Optimization*: Platform-specific performance and user experience enhancements
+- *Cross-IDE Framework*: Common integration patterns and consistent experience across IDEs
+
+* IDE Integration Implementation
+
+## IntelliJ IDEA Plugin with Native Hot-Swap Integration
+Deep IDEA integration with advanced IDE features and platform-specific optimizations
+
+## Eclipse Plugin with Project Integration & Tooling Support
+Comprehensive Eclipse ecosystem integration with workbench and development tools
+
+## VS Code Extension with Debugging Integration
+Modern extension with LSP support and debugging capabilities
+
+## IDE-Specific Optimization & User Experience
+Platform-specific performance enhancements and native user interface integration
+
+## Cross-IDE Compatibility & Consistent Experience
+Common integration framework ensuring consistent behavior across all supported IDEs
+
+This milestone provides transparent ByteHot integration within developers' preferred development environments.
+
+* Phase 1: IntelliJ IDEA Plugin with Native Integration
+
+** Objective
+Create comprehensive IntelliJ IDEA plugin that provides seamless ByteHot integration with advanced IDE features, native UI components, and IDEA-specific optimizations.
+
+** Technical Specifications
+
+*** IntelliJ Plugin Foundation
+#+BEGIN_SRC xml
+<!-- plugin.xml - IntelliJ Plugin Descriptor -->
+<idea-plugin>
+    <id>org.acmsl.bytehot.intellij</id>
+    <name>ByteHot</name>
+    <version>1.0.0</version>
+    <vendor email="support@bytehot.org" url="https://bytehot.org">ByteHot</vendor>
+    
+    <description><![CDATA[
+    ByteHot IntelliJ IDEA plugin provides seamless hot-swapping capabilities
+    directly within the IDE with zero configuration and native integration.
+    ]]></description>
+    
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>com.intellij.modules.lang</depends>
+    
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Tool Windows -->
+        <toolWindow id="ByteHot" 
+                   anchor="bottom" 
+                   factoryClass="org.acmsl.bytehot.intellij.toolwindow.ByteHotToolWindowFactory"/>
+        
+        <!-- Project Services -->
+        <projectService serviceInterface="org.acmsl.bytehot.intellij.service.ByteHotProjectService"
+                       serviceImplementation="org.acmsl.bytehot.intellij.service.impl.ByteHotProjectServiceImpl"/>
+        
+        <!-- File Listeners -->
+        <projectListener implementation="org.acmsl.bytehot.intellij.listener.ByteHotProjectListener"/>
+        
+        <!-- Actions -->
+        <action id="ByteHot.ToggleHotSwap" 
+                class="org.acmsl.bytehot.intellij.action.ToggleHotSwapAction"
+                text="Toggle ByteHot Hot-Swap"
+                description="Enable or disable ByteHot hot-swapping">
+            <add-to-group group-id="BuildMenu" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift H"/>
+        </action>
+        
+        <!-- Inspections -->
+        <localInspection language="JAVA"
+                        shortName="ByteHotCompatibility"
+                        displayName="ByteHot Compatibility"
+                        groupName="ByteHot"
+                        enabledByDefault="true"
+                        implementationClass="org.acmsl.bytehot.intellij.inspection.HotSwapCompatibilityInspection"/>
+    </extensions>
+    
+    <actions>
+        <group id="ByteHotActions" text="ByteHot" popup="true">
+            <action id="ByteHot.HotSwapFile" 
+                    class="org.acmsl.bytehot.intellij.action.HotSwapFileAction"
+                    text="Hot-Swap This File"
+                    description="Perform hot-swap for current file"/>
+            <action id="ByteHot.HotSwapClass" 
+                    class="org.acmsl.bytehot.intellij.action.HotSwapClassAction"
+                    text="Hot-Swap Class"
+                    description="Perform hot-swap for current class"/>
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </group>
+    </actions>
+</idea-plugin>
+#+END_SRC
+
+*** ByteHot Project Service
+#+BEGIN_SRC java
+@Service
+public class ByteHotProjectServiceImpl implements ByteHotProjectService {
+    private final Project project;
+    private final ByteHotAgentManager agentManager;
+    private final HotSwapStatusNotifier statusNotifier;
+    private final IDEAIntegrationBridge integrationBridge;
+    
+    public ByteHotProjectServiceImpl(@NotNull Project project) {
+        this.project = project;
+        this.agentManager = new ByteHotAgentManager(project);
+        this.statusNotifier = new HotSwapStatusNotifier(project);
+        this.integrationBridge = new IDEAIntegrationBridge(project);
+    }
+    
+    @Override
+    public void initializeByteHot() {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                // Initialize ByteHot agent
+                boolean initialized = agentManager.initializeAgent();
+                
+                if (initialized) {
+                    // Setup file watching
+                    setupFileWatching();
+                    
+                    // Setup build integration
+                    setupBuildIntegration();
+                    
+                    // Setup debugging integration
+                    setupDebugIntegration();
+                    
+                    // Notify successful initialization
+                    statusNotifier.notifyInitialized();
+                    
+                } else {
+                    statusNotifier.notifyInitializationFailed("Failed to initialize ByteHot agent");
+                }
+                
+            } catch (Exception e) {
+                statusNotifier.notifyInitializationFailed("Error initializing ByteHot: " + e.getMessage());
+            }
+        });
+    }
+    
+    @Override
+    public CompletableFuture<HotSwapResult> performHotSwap(@NotNull PsiFile file) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Get compiled class file
+                VirtualFile classFile = findCompiledClass(file);
+                if (classFile == null) {
+                    return HotSwapResult.failure("No compiled class found for " + file.getName());
+                }
+                
+                // Perform hot-swap
+                HotSwapResult result = agentManager.performHotSwap(
+                    getClassName(file), 
+                    classFile.contentsToByteArray()
+                );
+                
+                // Update IDE state
+                if (result.isSuccessful()) {
+                    updateIDEState(file, result);
+                }
+                
+                // Notify result
+                statusNotifier.notifyHotSwapResult(result);
+                
+                return result;
+                
+            } catch (Exception e) {
+                HotSwapResult result = HotSwapResult.failure("Hot-swap failed: " + e.getMessage());
+                statusNotifier.notifyHotSwapResult(result);
+                return result;
+            }
+        });
+    }
+    
+    private void setupFileWatching() {
+        VirtualFileManager.getInstance().addVirtualFileListener(
+            new VirtualFileListener() {
+                @Override
+                public void contentsChanged(@NotNull VirtualFileEvent event) {
+                    if (isJavaFile(event.getFile()) && isAutoHotSwapEnabled()) {
+                        scheduleHotSwap(event.getFile());
+                    }
+                }
+            }
+        );
+    }
+    
+    private void setupBuildIntegration() {
+        project.getMessageBus().connect().subscribe(
+            CompilerTopics.COMPILATION_STATUS,
+            new CompilationStatusListener() {
+                @Override
+                public void compilationFinished(boolean aborted, int errors, int warnings, 
+                                              CompileContext compileContext) {
+                    if (!aborted && errors == 0 && isAutoHotSwapEnabled()) {
+                        performPostCompilationHotSwap(compileContext);
+                    }
+                }
+            }
+        );
+    }
+}
+#+END_SRC
+
+*** IntelliJ Tool Window
+#+BEGIN_SRC java
+public class ByteHotToolWindowFactory implements ToolWindowFactory {
+    
+    @Override
+    public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
+        ByteHotToolWindow byteHotToolWindow = new ByteHotToolWindow(project);
+        ContentFactory contentFactory = ContentFactory.SERVICE.getInstance();
+        Content content = contentFactory.createContent(byteHotToolWindow.getContent(), "", false);
+        toolWindow.getContentManager().addContent(content);
+    }
+}
+
+public class ByteHotToolWindow {
+    private final JPanel mainPanel;
+    private final Project project;
+    private final ByteHotProjectService byteHotService;
+    
+    public ByteHotToolWindow(@NotNull Project project) {
+        this.project = project;
+        this.byteHotService = project.getService(ByteHotProjectService.class);
+        this.mainPanel = createMainPanel();
+        
+        setupEventListeners();
+    }
+    
+    private JPanel createMainPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        
+        // Status panel
+        JPanel statusPanel = createStatusPanel();
+        panel.add(statusPanel, BorderLayout.NORTH);
+        
+        // Operations panel
+        JPanel operationsPanel = createOperationsPanel();
+        panel.add(operationsPanel, BorderLayout.CENTER);
+        
+        // Log panel
+        JPanel logPanel = createLogPanel();
+        panel.add(logPanel, BorderLayout.SOUTH);
+        
+        return panel;
+    }
+    
+    private JPanel createStatusPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+        // Agent status indicator
+        JLabel statusLabel = new JLabel("Status: ");
+        JLabel statusValue = new JLabel("Initializing...");
+        statusValue.setIcon(AllIcons.Process.Step_1);
+        
+        // Auto hot-swap toggle
+        JCheckBox autoHotSwap = new JCheckBox("Auto Hot-Swap", true);
+        autoHotSwap.addActionListener(e -> 
+            byteHotService.setAutoHotSwapEnabled(autoHotSwap.isSelected()));
+        
+        // Statistics
+        JLabel statsLabel = new JLabel("Operations: 0 | Success: 0% | Time Saved: 0s");
+        
+        panel.add(statusLabel);
+        panel.add(statusValue);
+        panel.add(Box.createHorizontalStrut(20));
+        panel.add(autoHotSwap);
+        panel.add(Box.createHorizontalStrut(20));
+        panel.add(statsLabel);
+        
+        return panel;
+    }
+    
+    private JPanel createOperationsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Hot-Swap Operations"));
+        
+        // Operations table
+        String[] columnNames = {"Time", "Class", "Status", "Duration"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
+        JTable operationsTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(operationsTable);
+        
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        return panel;
+    }
+}
+#+END_SRC
+
+*** Hot-Swap Compatibility Inspection
+#+BEGIN_SRC java
+public class HotSwapCompatibilityInspection extends AbstractBaseJavaLocalInspectionTool {
+    
+    @NotNull
+    @Override
+    public String getDisplayName() {
+        return "ByteHot Hot-Swap Compatibility";
+    }
+    
+    @NotNull
+    @Override
+    public String getShortName() {
+        return "ByteHotCompatibility";
+    }
+    
+    @NotNull
+    @Override
+    public PsiElementVisitor buildVisitor(@NotNull ProblemsHolder holder, boolean isOnTheFly) {
+        return new JavaElementVisitor() {
+            @Override
+            public void visitMethod(PsiMethod method) {
+                super.visitMethod(method);
+                checkMethodCompatibility(method, holder);
+            }
+            
+            @Override
+            public void visitField(PsiField field) {
+                super.visitField(field);
+                checkFieldCompatibility(field, holder);
+            }
+            
+            @Override
+            public void visitClass(PsiClass aClass) {
+                super.visitClass(aClass);
+                checkClassCompatibility(aClass, holder);
+            }
+        };
+    }
+    
+    private void checkMethodCompatibility(PsiMethod method, ProblemsHolder holder) {
+        // Check for incompatible method changes
+        if (isConstructorSignatureChange(method)) {
+            holder.registerProblem(
+                method.getNameIdentifier(),
+                "Constructor signature changes are not hot-swap compatible",
+                ProblemHighlightType.WARNING
+            );
+        }
+        
+        if (hasNativeMethod(method)) {
+            holder.registerProblem(
+                method.getNameIdentifier(),
+                "Native methods cannot be hot-swapped",
+                ProblemHighlightType.WARNING
+            );
+        }
+    }
+    
+    private void checkFieldCompatibility(PsiField field, ProblemsHolder holder) {
+        // Check for incompatible field changes
+        if (isStaticFieldTypeChange(field)) {
+            holder.registerProblem(
+                field.getNameIdentifier(),
+                "Static field type changes require restart",
+                ProblemHighlightType.WARNING
+            );
+        }
+    }
+    
+    private void checkClassCompatibility(PsiClass aClass, ProblemsHolder holder) {
+        // Check for incompatible class changes
+        if (isHierarchyChange(aClass)) {
+            holder.registerProblem(
+                aClass.getNameIdentifier(),
+                "Class hierarchy changes are not hot-swap compatible",
+                ProblemHighlightType.WARNING
+            );
+        }
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** IntelliJ Core Integration
+1. Implement IntelliJ plugin foundation with proper service architecture
+2. Create ByteHot tool window with real-time status and operations
+3. Build file watching integration with VirtualFileManager
+4. Implement build system integration with CompilerManager
+
+*** Advanced IDE Features
+1. Create hot-swap compatibility inspection and quick fixes
+2. Build code completion and intention actions for ByteHot annotations
+3. Implement debugging integration with hot-swap coordination
+4. Create performance monitoring and metrics display
+
+*** User Experience Optimization
+1. Build native UI components following IntelliJ design guidelines
+2. Create keyboard shortcuts and action system integration
+3. Implement notification system and status indicators
+4. Build configuration UI with IDE preferences integration
+
+** Acceptance Criteria
+
+- [ ] Plugin installs and initializes correctly in IntelliJ IDEA
+- [ ] Hot-swap operations triggered automatically on file changes
+- [ ] Tool window displays real-time status and operation history
+- [ ] Compatibility inspection identifies potential issues
+- [ ] Build system integration coordinates with compilation
+- [ ] Native UI follows IntelliJ design patterns and performance standards
+
+* Phase 2: Eclipse Plugin with Project Integration
+
+** Objective
+Create comprehensive Eclipse plugin that integrates deeply with Eclipse workbench, project system, and development tools providing seamless ByteHot experience.
+
+** Technical Specifications
+
+*** Eclipse Plugin Foundation
+#+BEGIN_SRC xml
+<!-- plugin.xml - Eclipse Plugin Manifest -->
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension point="org.eclipse.ui.views">
+      <category name="ByteHot" id="org.acmsl.bytehot.eclipse.category"/>
+      <view
+            name="ByteHot Operations"
+            icon="icons/bytehot_view.png"
+            category="org.acmsl.bytehot.eclipse.category"
+            class="org.acmsl.bytehot.eclipse.views.ByteHotOperationsView"
+            id="org.acmsl.bytehot.eclipse.views.ByteHotOperationsView">
+      </view>
+   </extension>
+   
+   <extension point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="org.acmsl.bytehot.eclipse.handlers.ToggleHotSwapHandler"
+            id="org.acmsl.bytehot.eclipse.commands.toggleHotSwap"
+            name="Toggle ByteHot">
+      </command>
+      <command
+            defaultHandler="org.acmsl.bytehot.eclipse.handlers.HotSwapFileHandler"
+            id="org.acmsl.bytehot.eclipse.commands.hotSwapFile"
+            name="Hot-Swap File">
+      </command>
+   </extension>
+   
+   <extension point="org.eclipse.ui.bindings">
+      <key
+            commandId="org.acmsl.bytehot.eclipse.commands.toggleHotSwap"
+            contextId="org.eclipse.ui.contexts.window"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            sequence="Ctrl+Shift+H">
+      </key>
+   </extension>
+   
+   <extension point="org.eclipse.ui.menus">
+      <menuContribution locationURI="menu:org.eclipse.ui.main.menu">
+         <menu label="ByteHot" id="org.acmsl.bytehot.eclipse.menus.main">
+            <command
+                  commandId="org.acmsl.bytehot.eclipse.commands.toggleHotSwap"
+                  label="Toggle Hot-Swap"
+                  style="push">
+            </command>
+         </menu>
+      </menuContribution>
+   </extension>
+   
+   <extension point="org.eclipse.core.resources.builders">
+      <builder
+            hasNature="false"
+            id="org.acmsl.bytehot.eclipse.builder.ByteHotBuilder">
+         <run class="org.acmsl.bytehot.eclipse.builder.ByteHotBuilder"/>
+      </builder>
+   </extension>
+   
+   <extension point="org.eclipse.core.resources.natures">
+      <runtime>
+         <run class="org.acmsl.bytehot.eclipse.nature.ByteHotProjectNature"/>
+      </runtime>
+      <nature
+            id="org.acmsl.bytehot.eclipse.nature.ByteHotProjectNature"
+            name="ByteHot Nature"
+            point="org.eclipse.core.resources.natures">
+         <requires-nature id="org.eclipse.jdt.core.javanature"/>
+      </nature>
+   </extension>
+</plugin>
+#+END_SRC
+
+*** Eclipse Project Nature and Builder
+#+BEGIN_SRC java
+public class ByteHotProjectNature implements IProjectNature {
+    public static final String NATURE_ID = "org.acmsl.bytehot.eclipse.nature.ByteHotProjectNature";
+    
+    private IProject project;
+    
+    @Override
+    public void configure() throws CoreException {
+        // Add ByteHot builder to project
+        IProjectDescription desc = project.getDescription();
+        ICommand[] commands = desc.getBuildSpec();
+        
+        for (ICommand command : commands) {
+            if (ByteHotBuilder.BUILDER_ID.equals(command.getBuilderName())) {
+                return; // Builder already exists
+            }
+        }
+        
+        // Add builder
+        ICommand[] newCommands = new ICommand[commands.length + 1];
+        System.arraycopy(commands, 0, newCommands, 0, commands.length);
+        ICommand command = desc.newCommand();
+        command.setBuilderName(ByteHotBuilder.BUILDER_ID);
+        newCommands[newCommands.length - 1] = command;
+        desc.setBuildSpec(newCommands);
+        project.setDescription(desc, null);
+        
+        // Initialize ByteHot for this project
+        initializeByteHot();
+    }
+    
+    @Override
+    public void deconfigure() throws CoreException {
+        // Remove ByteHot builder
+        IProjectDescription description = getProject().getDescription();
+        ICommand[] commands = description.getBuildSpec();
+        for (int i = 0; i < commands.length; ++i) {
+            if (commands[i].getBuilderName().equals(ByteHotBuilder.BUILDER_ID)) {
+                ICommand[] newCommands = new ICommand[commands.length - 1];
+                System.arraycopy(commands, 0, newCommands, 0, i);
+                System.arraycopy(commands, i + 1, newCommands, i, commands.length - i - 1);
+                description.setBuildSpec(newCommands);
+                project.setDescription(description, null);
+                return;
+            }
+        }
+        
+        // Cleanup ByteHot for this project
+        cleanupByteHot();
+    }
+    
+    private void initializeByteHot() {
+        ByteHotEclipseManager manager = ByteHotEclipseManager.getInstance();
+        manager.initializeProject(project);
+    }
+}
+
+public class ByteHotBuilder extends IncrementalProjectBuilder {
+    public static final String BUILDER_ID = "org.acmsl.bytehot.eclipse.builder.ByteHotBuilder";
+    
+    @Override
+    protected IProject[] build(int kind, Map<String, String> args, IProgressMonitor monitor)
+            throws CoreException {
+        
+        if (kind == FULL_BUILD) {
+            fullBuild(monitor);
+        } else {
+            IResourceDelta delta = getDelta(getProject());
+            if (delta == null) {
+                fullBuild(monitor);
+            } else {
+                incrementalBuild(delta, monitor);
+            }
+        }
+        
+        return null;
+    }
+    
+    private void incrementalBuild(IResourceDelta delta, IProgressMonitor monitor) {
+        try {
+            delta.accept(new IResourceDeltaVisitor() {
+                @Override
+                public boolean visit(IResourceDelta delta) throws CoreException {
+                    IResource resource = delta.getResource();
+                    
+                    if (resource.getType() == IResource.FILE && 
+                        "class".equals(resource.getFileExtension())) {
+                        
+                        if (delta.getKind() == IResourceDelta.CHANGED) {
+                            scheduleHotSwap(resource);
+                        }
+                    }
+                    
+                    return true;
+                }
+            });
+        } catch (CoreException e) {
+            ByteHotEclipsePlugin.log(e);
+        }
+    }
+    
+    private void scheduleHotSwap(IResource classFile) {
+        Job hotSwapJob = new Job("ByteHot Hot-Swap") {
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+                try {
+                    ByteHotEclipseManager manager = ByteHotEclipseManager.getInstance();
+                    HotSwapResult result = manager.performHotSwap(classFile);
+                    
+                    if (result.isSuccessful()) {
+                        return Status.OK_STATUS;
+                    } else {
+                        return new Status(IStatus.WARNING, ByteHotEclipsePlugin.PLUGIN_ID, 
+                            "Hot-swap failed: " + result.getErrorMessage());
+                    }
+                    
+                } catch (Exception e) {
+                    return new Status(IStatus.ERROR, ByteHotEclipsePlugin.PLUGIN_ID, 
+                        "Hot-swap error", e);
+                }
+            }
+        };
+        
+        hotSwapJob.setPriority(Job.SHORT);
+        hotSwapJob.schedule();
+    }
+}
+#+END_SRC
+
+*** Eclipse Workbench Integration
+#+BEGIN_SRC java
+public class ByteHotOperationsView extends ViewPart {
+    private TableViewer operationsViewer;
+    private Text statusText;
+    private Button toggleButton;
+    private ByteHotEclipseManager byteHotManager;
+    
+    @Override
+    public void createPartControl(Composite parent) {
+        byteHotManager = ByteHotEclipseManager.getInstance();
+        
+        // Create main composite
+        Composite mainComposite = new Composite(parent, SWT.NONE);
+        mainComposite.setLayout(new GridLayout(1, false));
+        
+        // Create status area
+        createStatusArea(mainComposite);
+        
+        // Create operations table
+        createOperationsTable(mainComposite);
+        
+        // Create control buttons
+        createControlButtons(mainComposite);
+        
+        // Setup listeners
+        setupListeners();
+        
+        // Initial update
+        updateView();
+    }
+    
+    private void createStatusArea(Composite parent) {
+        Group statusGroup = new Group(parent, SWT.NONE);
+        statusGroup.setText("ByteHot Status");
+        statusGroup.setLayout(new GridLayout(2, false));
+        statusGroup.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+        
+        Label statusLabel = new Label(statusGroup, SWT.NONE);
+        statusLabel.setText("Status:");
+        
+        statusText = new Text(statusGroup, SWT.READ_ONLY | SWT.BORDER);
+        statusText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        statusText.setText("Initializing...");
+    }
+    
+    private void createOperationsTable(Composite parent) {
+        Group operationsGroup = new Group(parent, SWT.NONE);
+        operationsGroup.setText("Hot-Swap Operations");
+        operationsGroup.setLayout(new GridLayout(1, false));
+        operationsGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        
+        operationsViewer = new TableViewer(operationsGroup, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.FULL_SELECTION);
+        Table table = operationsViewer.getTable();
+        table.setHeaderVisible(true);
+        table.setLinesVisible(true);
+        table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        
+        // Create columns
+        createColumn("Time", 100);
+        createColumn("Class", 200);
+        createColumn("Status", 80);
+        createColumn("Duration", 80);
+        
+        operationsViewer.setContentProvider(new ArrayContentProvider());
+        operationsViewer.setLabelProvider(new HotSwapOperationLabelProvider());
+    }
+    
+    private void createControlButtons(Composite parent) {
+        Composite buttonComposite = new Composite(parent, SWT.NONE);
+        buttonComposite.setLayout(new RowLayout());
+        buttonComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+        
+        toggleButton = new Button(buttonComposite, SWT.TOGGLE);
+        toggleButton.setText("Enable Hot-Swap");
+        toggleButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                toggleHotSwap();
+            }
+        });
+        
+        Button configButton = new Button(buttonComposite, SWT.PUSH);
+        configButton.setText("Configuration...");
+        configButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                openConfiguration();
+            }
+        });
+        
+        Button clearButton = new Button(buttonComposite, SWT.PUSH);
+        clearButton.setText("Clear History");
+        clearButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                clearOperationsHistory();
+            }
+        });
+    }
+    
+    private void setupListeners() {
+        // Listen for ByteHot events
+        byteHotManager.addOperationListener(new HotSwapOperationListener() {
+            @Override
+            public void operationCompleted(HotSwapOperation operation) {
+                Display.getDefault().asyncExec(() -> {
+                    updateOperationsTable(operation);
+                    updateStatus();
+                });
+            }
+        });
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Eclipse Core Integration
+1. Implement Eclipse plugin with proper nature and builder
+2. Create project integration with workbench and resource management
+3. Build incremental compilation integration
+4. Implement workspace and preference integration
+
+*** Eclipse UI Integration
+1. Create native Eclipse views and editors
+2. Build command and menu integration
+3. Implement wizard and property page support
+4. Create progress monitoring and job integration
+
+*** Eclipse Tooling
+1. Build Java development tools integration
+2. Create launch configuration integration
+3. Implement debugging support and breakpoint coordination
+4. Build refactoring and search integration
+
+** Acceptance Criteria
+
+- [ ] Plugin integrates seamlessly with Eclipse workbench
+- [ ] Project nature and builder work correctly
+- [ ] Operations view displays real-time status
+- [ ] Incremental compilation triggers hot-swap
+- [ ] Workspace preferences persist correctly
+- [ ] JDT integration coordinates with Java tooling
+
+* Phase 3: VS Code Extension & Cross-IDE Framework
+
+** Objective
+Create modern VS Code extension with Language Server Protocol support and establish cross-IDE compatibility framework ensuring consistent experience across all platforms.
+
+** Technical Specifications
+
+*** VS Code Extension Foundation
+#+BEGIN_SRC json
+// package.json - VS Code Extension Manifest
+{
+    "name": "bytehot",
+    "displayName": "ByteHot",
+    "description": "Hot-swapping for Java applications without restart",
+    "version": "1.0.0",
+    "publisher": "bytehot",
+    "engines": {
+        "vscode": "^1.60.0"
+    },
+    "categories": ["Other", "Debuggers"],
+    "keywords": ["java", "hot-swap", "development", "productivity"],
+    "activationEvents": [
+        "onLanguage:java",
+        "workspaceContains:**/*.java",
+        "onCommand:bytehot.toggle"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "bytehot.toggle",
+                "title": "Toggle ByteHot Hot-Swap",
+                "category": "ByteHot"
+            },
+            {
+                "command": "bytehot.hotswapFile",
+                "title": "Hot-Swap Current File",
+                "category": "ByteHot"
+            },
+            {
+                "command": "bytehot.showOperations",
+                "title": "Show ByteHot Operations",
+                "category": "ByteHot"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "bytehot.toggle",
+                "key": "ctrl+shift+h",
+                "when": "editorTextFocus && editorLangId == java"
+            }
+        ],
+        "menus": {
+            "editor/context": [
+                {
+                    "command": "bytehot.hotswapFile",
+                    "when": "resourceExtname == .java",
+                    "group": "bytehot@1"
+                }
+            ],
+            "commandPalette": [
+                {
+                    "command": "bytehot.toggle",
+                    "when": "workspaceFolderCount != 0"
+                }
+            ]
+        },
+        "views": {
+            "explorer": [
+                {
+                    "id": "bytehotOperations",
+                    "name": "ByteHot Operations",
+                    "when": "bytehot:active"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "ByteHot",
+            "properties": {
+                "bytehot.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable ByteHot hot-swapping"
+                },
+                "bytehot.autoHotSwap": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically perform hot-swap on file save"
+                },
+                "bytehot.agentPath": {
+                    "type": "string",
+                    "description": "Path to ByteHot agent JAR file"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.60.0",
+        "@types/node": "14.x",
+        "typescript": "^4.4.4"
+    },
+    "dependencies": {
+        "vscode-languageclient": "^7.0.0"
+    }
+}
+#+END_SRC
+
+*** VS Code Extension Implementation
+#+BEGIN_SRC typescript
+// src/extension.ts - Main Extension Module
+import * as vscode from 'vscode';
+import { ByteHotLanguageClient } from './languageClient';
+import { ByteHotOperationsProvider } from './operationsProvider';
+import { ByteHotStatusBar } from './statusBar';
+import { ByteHotConfigurationManager } from './configurationManager';
+
+export function activate(context: vscode.ExtensionContext) {
+    console.log('ByteHot extension is being activated');
+
+    // Initialize components
+    const configManager = new ByteHotConfigurationManager();
+    const statusBar = new ByteHotStatusBar();
+    const languageClient = new ByteHotLanguageClient(context, configManager);
+    const operationsProvider = new ByteHotOperationsProvider();
+
+    // Register commands
+    registerCommands(context, languageClient, operationsProvider, statusBar);
+
+    // Setup file watchers
+    setupFileWatchers(context, languageClient);
+
+    // Initialize language client
+    languageClient.start().then(() => {
+        console.log('ByteHot language client started');
+        statusBar.setStatus('ready');
+    }).catch(error => {
+        console.error('Failed to start ByteHot language client:', error);
+        statusBar.setStatus('error', error.message);
+    });
+
+    // Register tree data provider
+    vscode.window.registerTreeDataProvider('bytehotOperations', operationsProvider);
+
+    // Set context for conditional UI
+    vscode.commands.executeCommand('setContext', 'bytehot:active', true);
+
+    console.log('ByteHot extension activated successfully');
+}
+
+function registerCommands(
+    context: vscode.ExtensionContext,
+    languageClient: ByteHotLanguageClient,
+    operationsProvider: ByteHotOperationsProvider,
+    statusBar: ByteHotStatusBar
+) {
+    // Toggle ByteHot command
+    const toggleCommand = vscode.commands.registerCommand('bytehot.toggle', async () => {
+        const config = vscode.workspace.getConfiguration('bytehot');
+        const currentEnabled = config.get<boolean>('enabled', true);
+        
+        await config.update('enabled', !currentEnabled, vscode.ConfigurationTarget.Workspace);
+        
+        if (!currentEnabled) {
+            await languageClient.start();
+            statusBar.setStatus('ready');
+            vscode.window.showInformationMessage('ByteHot enabled');
+        } else {
+            await languageClient.stop();
+            statusBar.setStatus('disabled');
+            vscode.window.showInformationMessage('ByteHot disabled');
+        }
+    });
+
+    // Hot-swap file command
+    const hotSwapFileCommand = vscode.commands.registerCommand('bytehot.hotswapFile', async () => {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor || activeEditor.document.languageId !== 'java') {
+            vscode.window.showWarningMessage('Please open a Java file to perform hot-swap');
+            return;
+        }
+
+        try {
+            statusBar.setStatus('hotswap-in-progress');
+            
+            const result = await languageClient.performHotSwap(activeEditor.document.uri);
+            
+            if (result.success) {
+                vscode.window.showInformationMessage(`Hot-swap successful: ${result.className}`);
+                operationsProvider.addOperation({
+                    timestamp: new Date(),
+                    className: result.className,
+                    status: 'success',
+                    duration: result.duration
+                });
+                statusBar.setStatus('ready');
+            } else {
+                vscode.window.showErrorMessage(`Hot-swap failed: ${result.error}`);
+                statusBar.setStatus('error', result.error);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Hot-swap error: ${error.message}`);
+            statusBar.setStatus('error', error.message);
+        }
+    });
+
+    // Show operations command
+    const showOperationsCommand = vscode.commands.registerCommand('bytehot.showOperations', () => {
+        vscode.commands.executeCommand('workbench.view.explorer');
+        vscode.commands.executeCommand('bytehotOperations.focus');
+    });
+
+    context.subscriptions.push(
+        toggleCommand,
+        hotSwapFileCommand,
+        showOperationsCommand,
+        statusBar,
+        operationsProvider
+    );
+}
+
+function setupFileWatchers(context: vscode.ExtensionContext, languageClient: ByteHotLanguageClient) {
+    // Watch for Java file changes
+    const javaWatcher = vscode.workspace.createFileSystemWatcher('**/*.java');
+    
+    javaWatcher.onDidChange(async (uri) => {
+        const config = vscode.workspace.getConfiguration('bytehot');
+        if (config.get<boolean>('autoHotSwap', true) && config.get<boolean>('enabled', true)) {
+            // Debounce rapid changes
+            setTimeout(async () => {
+                try {
+                    await languageClient.performHotSwap(uri);
+                } catch (error) {
+                    console.error('Auto hot-swap failed:', error);
+                }
+            }, 500);
+        }
+    });
+
+    context.subscriptions.push(javaWatcher);
+}
+#+END_SRC
+
+*** Language Server Protocol Integration
+#+BEGIN_SRC typescript
+// src/languageClient.ts - ByteHot Language Client
+import * as vscode from 'vscode';
+import {
+    LanguageClient,
+    LanguageClientOptions,
+    ServerOptions,
+    TransportKind
+} from 'vscode-languageclient/node';
+
+export class ByteHotLanguageClient {
+    private client: LanguageClient | undefined;
+    private context: vscode.ExtensionContext;
+    private configManager: ByteHotConfigurationManager;
+
+    constructor(context: vscode.ExtensionContext, configManager: ByteHotConfigurationManager) {
+        this.context = context;
+        this.configManager = configManager;
+    }
+
+    async start(): Promise<void> {
+        if (this.client) {
+            return; // Already started
+        }
+
+        const serverOptions: ServerOptions = {
+            run: {
+                command: 'java',
+                args: [
+                    '-jar',
+                    this.getLanguageServerPath(),
+                    '--stdio'
+                ],
+                transport: TransportKind.stdio
+            },
+            debug: {
+                command: 'java',
+                args: [
+                    '-jar',
+                    this.getLanguageServerPath(),
+                    '--stdio',
+                    '--debug'
+                ],
+                transport: TransportKind.stdio
+            }
+        };
+
+        const clientOptions: LanguageClientOptions = {
+            documentSelector: [{ scheme: 'file', language: 'java' }],
+            synchronize: {
+                configurationSection: 'bytehot',
+                fileEvents: vscode.workspace.createFileSystemWatcher('**/*.java')
+            },
+            initializationOptions: {
+                workspaceFolder: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+                agentPath: this.configManager.getAgentPath()
+            }
+        };
+
+        this.client = new LanguageClient(
+            'bytehot',
+            'ByteHot Language Server',
+            serverOptions,
+            clientOptions
+        );
+
+        await this.client.start();
+        this.setupNotificationHandlers();
+    }
+
+    async stop(): Promise<void> {
+        if (this.client) {
+            await this.client.stop();
+            this.client = undefined;
+        }
+    }
+
+    async performHotSwap(documentUri: vscode.Uri): Promise<HotSwapResult> {
+        if (!this.client) {
+            throw new Error('ByteHot language client not started');
+        }
+
+        const result = await this.client.sendRequest('bytehot/performHotSwap', {
+            documentUri: documentUri.toString()
+        });
+
+        return result as HotSwapResult;
+    }
+
+    private setupNotificationHandlers() {
+        if (!this.client) return;
+
+        this.client.onNotification('bytehot/operationCompleted', (params: any) => {
+            // Handle hot-swap operation completion
+            vscode.commands.executeCommand('bytehot.operationCompleted', params);
+        });
+
+        this.client.onNotification('bytehot/statusChanged', (params: any) => {
+            // Handle status changes
+            vscode.commands.executeCommand('bytehot.statusChanged', params);
+        });
+    }
+
+    private getLanguageServerPath(): string {
+        // Try to find language server JAR
+        const extensionPath = this.context.extensionPath;
+        return `${extensionPath}/server/bytehot-language-server.jar`;
+    }
+}
+
+interface HotSwapResult {
+    success: boolean;
+    className?: string;
+    duration?: number;
+    error?: string;
+}
+#+END_SRC
+
+*** Cross-IDE Compatibility Framework
+#+BEGIN_SRC java
+public class CrossIDECompatibilityFramework {
+    private final Map<String, IDEAdapter> ideAdapters;
+    private final CompatibilityValidator validator;
+    private final CommonIntegrationAPI commonAPI;
+    
+    public CrossIDECompatibilityFramework() {
+        this.ideAdapters = initializeIDEAdapters();
+        this.validator = new CompatibilityValidator();
+        this.commonAPI = new CommonIntegrationAPI();
+    }
+    
+    public CompatibilityReport validateCrossIDECompatibility() {
+        CompatibilityReport.Builder reportBuilder = CompatibilityReport.builder();
+        
+        // Test each IDE adapter
+        for (Map.Entry<String, IDEAdapter> entry : ideAdapters.entrySet()) {
+            String ideName = entry.getKey();
+            IDEAdapter adapter = entry.getValue();
+            
+            IDECompatibilityResult result = validator.validateIDE(ideName, adapter);
+            reportBuilder.addIDEResult(ideName, result);
+        }
+        
+        // Test cross-IDE consistency
+        ConsistencyResult consistency = validator.validateConsistency(ideAdapters);
+        reportBuilder.consistencyResult(consistency);
+        
+        return reportBuilder.build();
+    }
+    
+    public CommonIntegrationAPI getCommonAPI() {
+        return commonAPI;
+    }
+    
+    private Map<String, IDEAdapter> initializeIDEAdapters() {
+        Map<String, IDEAdapter> adapters = new HashMap<>();
+        
+        // Try to load IDE-specific adapters
+        try {
+            adapters.put("IntelliJ IDEA", new IntelliJIDEAdapter());
+        } catch (Exception e) {
+            // IntelliJ not available
+        }
+        
+        try {
+            adapters.put("Eclipse", new EclipseIDEAdapter());
+        } catch (Exception e) {
+            // Eclipse not available
+        }
+        
+        try {
+            adapters.put("VS Code", new VSCodeIDEAdapter());
+        } catch (Exception e) {
+            // VS Code not available
+        }
+        
+        return adapters;
+    }
+}
+
+public interface IDEAdapter {
+    String getIDEName();
+    String getIDEVersion();
+    boolean isAvailable();
+    void initialize() throws IDEIntegrationException;
+    HotSwapResult performHotSwap(String className, byte[] bytecode);
+    void showNotification(String message, NotificationType type);
+    void updateStatus(String status);
+    List<OpenFile> getOpenFiles();
+    void registerHotSwapListener(HotSwapListener listener);
+}
+
+public class CommonIntegrationAPI {
+    private final EventBus eventBus;
+    private final ConfigurationManager configManager;
+    private final StatusManager statusManager;
+    
+    public void broadcastHotSwapEvent(HotSwapEvent event) {
+        eventBus.post(event);
+    }
+    
+    public Configuration getConfiguration() {
+        return configManager.getConfiguration();
+    }
+    
+    public void updateStatus(String status) {
+        statusManager.updateStatus(status);
+    }
+    
+    public void showNotification(String message, NotificationType type) {
+        eventBus.post(new NotificationEvent(message, type));
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** VS Code Extension Development
+1. Implement VS Code extension with TypeScript
+2. Create Language Server Protocol integration
+3. Build native VS Code UI components and views
+4. Implement debugging integration and breakpoint coordination
+
+*** Cross-IDE Framework
+1. Create common integration API and interfaces
+2. Build compatibility validation and testing framework
+3. Implement consistent behavior patterns across IDEs
+4. Create shared configuration and state management
+
+*** Advanced Features
+1. Build live debugging integration across all IDEs
+2. Create shared analytics and metrics collection
+3. Implement cross-IDE configuration synchronization
+4. Build unified documentation and help system
+
+** Acceptance Criteria
+
+- [ ] VS Code extension installs and functions correctly
+- [ ] Language Server Protocol integration provides real-time features
+- [ ] Cross-IDE compatibility framework validates consistent behavior
+- [ ] Common integration API works across all supported IDEs
+- [ ] Configuration and preferences synchronized across platforms
+- [ ] Performance and user experience optimized for each platform
+
+* Dependencies & Integration
+
+** IDE Platform Dependencies
+- IntelliJ Platform SDK and plugin development framework
+- Eclipse Plugin Development Environment (PDE) and workbench APIs
+- VS Code Extension API and Language Server Protocol libraries
+- TypeScript and Node.js for VS Code extension development
+
+** Cross-Platform Dependencies
+- Common integration framework with shared interfaces
+- Event bus system for cross-IDE communication
+- Configuration management with platform-specific adapters
+- Logging and diagnostics framework
+
+* Testing Strategy
+
+** IDE-Specific Testing
+- Each plugin tested with respective IDE versions and configurations
+- User interface and user experience testing in native environments
+- Integration testing with IDE-specific features and workflows
+- Performance and memory usage testing for each platform
+
+** Cross-IDE Testing
+- Compatibility testing across different IDE combinations
+- Configuration synchronization and state management testing
+- Common API functionality validation across platforms
+- User experience consistency testing
+
+** Real-World Testing
+- Testing with actual development projects in each IDE
+- User acceptance testing with developers using different IDEs
+- Performance benchmarking across platforms
+- Integration testing with various project structures and configurations
+
+* Success Metrics
+
+** IDE Integration Success Metrics
+- Plugin installation and activation success rate: >99%
+- User experience rating: >4.5/5 for each IDE
+- Performance overhead: <2% additional memory usage
+- Feature parity: >95% of core features available in each IDE
+
+** Cross-IDE Compatibility Metrics
+- Configuration synchronization accuracy: 100%
+- API consistency validation: All tests passing
+- User experience consistency: Uniform behavior across platforms
+- Developer adoption: Active usage across all supported IDEs
+
+This milestone establishes ByteHot as the premier hot-swapping solution with native integration across all major Java development environments.

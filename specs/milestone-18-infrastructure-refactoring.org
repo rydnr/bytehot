@@ -1,0 +1,1268 @@
+#+TITLE: Milestone 18: Infrastructure Refactoring & Reusability
+#+AUTHOR: ByteHot Development Team
+#+DATE: 2025-07-03
+
+* Overview
+
+Milestone 18 extracts reusable infrastructure components for broader ecosystem development, accelerating the creation of related tools and integrations. This milestone establishes ByteHot's infrastructure as a foundation for rapid development of development tools and applications.
+
+** Goals
+
+- Extract java-commons-infrastructure module with reusable deployment and monitoring patterns
+- Create reusable deployment and monitoring patterns for production environments
+- Build shared testing and quality assurance frameworks for consistent validation
+- Develop common development tool integrations and utilities
+- Provide infrastructure-as-code templates and examples for rapid deployment
+
+** User Value Proposition
+
+#+BEGIN_QUOTE
+"I want to leverage ByteHot's proven infrastructure patterns to rapidly develop new development tools and integrations, without rebuilding common components from scratch."
+#+END_QUOTE
+
+* Infrastructure Refactoring Architecture
+
+** Reusable Infrastructure Platform
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────────────┐
+│                Infrastructure Refactoring Platform         │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │java-commons │  │ Deployment  │  │   Shared    │        │
+│  │Infrastructure│  │& Monitoring │  │  Testing    │        │
+│  │   Module    │  │  Patterns   │  │ Framework   │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │Development  │  │Infrastructure│  │ Template    │        │
+│  │    Tool     │  │  as Code    │  │& Example    │        │
+│  │Integration  │  │ Templates   │  │  Library    │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Key Components
+
+- *Infrastructure Module*: Comprehensive java-commons-infrastructure with proven patterns
+- *Deployment Patterns*: Reusable deployment and monitoring patterns for various environments
+- *Testing Framework*: Shared testing and quality assurance frameworks with common utilities
+- *Tool Integrations*: Common development tool integrations and extension points
+- *Infrastructure as Code*: Templates and examples for rapid deployment and configuration
+
+* Infrastructure Implementation
+
+## java-commons-infrastructure Module Extraction
+Comprehensive infrastructure module with deployment, monitoring, and operational patterns
+
+## Reusable Deployment and Monitoring Patterns
+Proven patterns for production deployment across different environments and platforms
+
+## Shared Testing and Quality Assurance Frameworks
+Common testing utilities and quality gates for consistent validation across projects
+
+## Common Development Tool Integrations
+Reusable integrations and utilities for development tools and environments
+
+## Infrastructure-as-Code Templates and Examples
+Ready-to-use templates and examples for rapid deployment and configuration
+
+This milestone establishes reusable infrastructure foundation accelerating development tool ecosystem growth.
+
+* Phase 1: java-commons-infrastructure Module Extraction
+
+** Objective
+Extract comprehensive infrastructure components from ByteHot into reusable java-commons-infrastructure module, providing proven patterns for deployment, monitoring, and operations.
+
+** Technical Specifications
+
+*** Infrastructure Module Architecture
+#+BEGIN_SRC java
+// Module structure for java-commons-infrastructure
+module org.acmsl.commons.infrastructure {
+    exports org.acmsl.commons.infrastructure.deployment;
+    exports org.acmsl.commons.infrastructure.monitoring;
+    exports org.acmsl.commons.infrastructure.configuration;
+    exports org.acmsl.commons.infrastructure.security;
+    exports org.acmsl.commons.infrastructure.networking;
+    exports org.acmsl.commons.infrastructure.persistence;
+    exports org.acmsl.commons.infrastructure.messaging;
+    exports org.acmsl.commons.infrastructure.observability;
+    
+    requires org.acmsl.commons;
+    requires java.management;
+    requires java.security.jgss;
+    requires java.net.http;
+    requires java.logging;
+}
+#+END_SRC
+
+*** Deployment Infrastructure
+#+BEGIN_SRC java
+public abstract class AbstractDeploymentManager {
+    protected final DeploymentConfiguration configuration;
+    protected final HealthMonitor healthMonitor;
+    protected final MetricsCollector metricsCollector;
+    protected final ErrorHandler errorHandler;
+    
+    protected AbstractDeploymentManager(DeploymentConfiguration configuration) {
+        this.configuration = configuration;
+        this.healthMonitor = createHealthMonitor();
+        this.metricsCollector = createMetricsCollector();
+        this.errorHandler = createErrorHandler();
+    }
+    
+    public abstract DeploymentResult deploy(DeploymentArtifact artifact);
+    public abstract DeploymentStatus getDeploymentStatus();
+    public abstract void rollback(String deploymentId);
+    public abstract void shutdown();
+    
+    protected abstract HealthMonitor createHealthMonitor();
+    protected abstract MetricsCollector createMetricsCollector();
+    protected abstract ErrorHandler createErrorHandler();
+    
+    protected final void validatePreDeployment() throws DeploymentException {
+        // Common pre-deployment validation
+        if (!configuration.isValid()) {
+            throw new DeploymentException("Invalid deployment configuration");
+        }
+        
+        if (!healthMonitor.isSystemHealthy()) {
+            throw new DeploymentException("System health check failed");
+        }
+        
+        if (!hasRequiredResources()) {
+            throw new DeploymentException("Insufficient resources for deployment");
+        }
+    }
+    
+    protected final void postDeploymentVerification(String deploymentId) throws DeploymentException {
+        // Common post-deployment verification
+        Duration timeout = configuration.getVerificationTimeout();
+        Instant deadline = Instant.now().plus(timeout);
+        
+        while (Instant.now().isBefore(deadline)) {
+            DeploymentStatus status = getDeploymentStatus(deploymentId);
+            
+            if (status.isSuccessful()) {
+                metricsCollector.recordSuccessfulDeployment(deploymentId);
+                return;
+            }
+            
+            if (status.isFailed()) {
+                errorHandler.handleDeploymentFailure(deploymentId, status.getError());
+                throw new DeploymentException("Deployment failed: " + status.getError());
+            }
+            
+            try {
+                Thread.sleep(configuration.getVerificationInterval().toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new DeploymentException("Deployment verification interrupted");
+            }
+        }
+        
+        throw new DeploymentException("Deployment verification timeout");
+    }
+}
+
+public class ContainerDeploymentManager extends AbstractDeploymentManager {
+    private final ContainerOrchestrator orchestrator;
+    private final ImageRegistry imageRegistry;
+    private final NetworkManager networkManager;
+    
+    public ContainerDeploymentManager(DeploymentConfiguration configuration,
+                                    ContainerOrchestrator orchestrator) {
+        super(configuration);
+        this.orchestrator = orchestrator;
+        this.imageRegistry = createImageRegistry();
+        this.networkManager = createNetworkManager();
+    }
+    
+    @Override
+    public DeploymentResult deploy(DeploymentArtifact artifact) {
+        try {
+            validatePreDeployment();
+            
+            // Build container image
+            ContainerImage image = buildContainerImage(artifact);
+            
+            // Push to registry
+            imageRegistry.push(image);
+            
+            // Deploy to orchestrator
+            String deploymentId = orchestrator.deploy(image, configuration);
+            
+            // Verify deployment
+            postDeploymentVerification(deploymentId);
+            
+            return DeploymentResult.success(deploymentId);
+            
+        } catch (Exception e) {
+            errorHandler.handleDeploymentError(e);
+            return DeploymentResult.failure(e.getMessage());
+        }
+    }
+    
+    private ContainerImage buildContainerImage(DeploymentArtifact artifact) {
+        return ContainerImageBuilder.builder()
+            .baseImage(configuration.getBaseImage())
+            .artifact(artifact)
+            .configuration(configuration)
+            .build();
+    }
+}
+#+END_SRC
+
+*** Monitoring Infrastructure
+#+BEGIN_SRC java
+public abstract class AbstractMonitoringSystem {
+    protected final MonitoringConfiguration configuration;
+    protected final MetricsRegistry metricsRegistry;
+    protected final AlertManager alertManager;
+    protected final HealthCheckRegistry healthCheckRegistry;
+    
+    protected AbstractMonitoringSystem(MonitoringConfiguration configuration) {
+        this.configuration = configuration;
+        this.metricsRegistry = createMetricsRegistry();
+        this.alertManager = createAlertManager();
+        this.healthCheckRegistry = createHealthCheckRegistry();
+    }
+    
+    public abstract void startMonitoring();
+    public abstract void stopMonitoring();
+    public abstract MonitoringReport generateReport(TimeWindow window);
+    
+    protected abstract MetricsRegistry createMetricsRegistry();
+    protected abstract AlertManager createAlertManager();
+    protected abstract HealthCheckRegistry createHealthCheckRegistry();
+    
+    public final void registerMetric(String name, Metric metric) {
+        metricsRegistry.register(name, metric);
+    }
+    
+    public final void registerHealthCheck(String name, HealthCheck healthCheck) {
+        healthCheckRegistry.register(name, healthCheck);
+    }
+    
+    public final void sendAlert(AlertLevel level, String message, Map<String, Object> context) {
+        Alert alert = Alert.builder()
+            .level(level)
+            .message(message)
+            .context(context)
+            .timestamp(Instant.now())
+            .build();
+        
+        alertManager.sendAlert(alert);
+    }
+    
+    protected final void collectSystemMetrics() {
+        // Common system metrics collection
+        Runtime runtime = Runtime.getRuntime();
+        
+        metricsRegistry.gauge("system.memory.total", () -> runtime.totalMemory());
+        metricsRegistry.gauge("system.memory.free", () -> runtime.freeMemory());
+        metricsRegistry.gauge("system.memory.used", () -> runtime.totalMemory() - runtime.freeMemory());
+        
+        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+        metricsRegistry.gauge("system.cpu.load", osBean::getProcessCpuLoad);
+        
+        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        metricsRegistry.gauge("system.threads.count", threadBean::getThreadCount);
+    }
+}
+
+public class PrometheusMonitoringSystem extends AbstractMonitoringSystem {
+    private final PrometheusRegistry prometheusRegistry;
+    private final HTTPServer metricsServer;
+    
+    public PrometheusMonitoringSystem(MonitoringConfiguration configuration) {
+        super(configuration);
+        this.prometheusRegistry = new PrometheusRegistry();
+        this.metricsServer = createMetricsServer();
+    }
+    
+    @Override
+    public void startMonitoring() {
+        try {
+            // Start metrics collection
+            startMetricsCollection();
+            
+            // Start HTTP metrics server
+            metricsServer.start();
+            
+            // Register default metrics
+            registerDefaultMetrics();
+            
+            // Start health checks
+            startHealthChecks();
+            
+        } catch (Exception e) {
+            throw new MonitoringException("Failed to start Prometheus monitoring", e);
+        }
+    }
+    
+    @Override
+    public void stopMonitoring() {
+        try {
+            metricsServer.stop();
+            stopMetricsCollection();
+            stopHealthChecks();
+        } catch (Exception e) {
+            throw new MonitoringException("Failed to stop Prometheus monitoring", e);
+        }
+    }
+    
+    private void registerDefaultMetrics() {
+        // Register JVM metrics
+        new StandardExports().register(prometheusRegistry);
+        new MemoryPoolsExports().register(prometheusRegistry);
+        new GarbageCollectorExports().register(prometheusRegistry);
+        new ThreadExports().register(prometheusRegistry);
+        new ClassLoadingExports().register(prometheusRegistry);
+    }
+}
+#+END_SRC
+
+*** Configuration Infrastructure
+#+BEGIN_SRC java
+public abstract class AbstractConfigurationManager {
+    protected final ConfigurationSource source;
+    protected final ConfigurationValidator validator;
+    protected final ConfigurationCache cache;
+    protected final List<ConfigurationChangeListener> listeners;
+    
+    protected AbstractConfigurationManager(ConfigurationSource source) {
+        this.source = source;
+        this.validator = createValidator();
+        this.cache = createCache();
+        this.listeners = new CopyOnWriteArrayList<>();
+    }
+    
+    public abstract <T> T getConfiguration(String key, Class<T> type);
+    public abstract <T> T getConfiguration(String key, Class<T> type, T defaultValue);
+    public abstract void setConfiguration(String key, Object value);
+    public abstract void reloadConfiguration();
+    
+    protected abstract ConfigurationValidator createValidator();
+    protected abstract ConfigurationCache createCache();
+    
+    public final void addChangeListener(ConfigurationChangeListener listener) {
+        listeners.add(listener);
+    }
+    
+    public final void removeChangeListener(ConfigurationChangeListener listener) {
+        listeners.remove(listener);
+    }
+    
+    protected final void notifyConfigurationChange(String key, Object oldValue, Object newValue) {
+        ConfigurationChangeEvent event = new ConfigurationChangeEvent(key, oldValue, newValue);
+        
+        for (ConfigurationChangeListener listener : listeners) {
+            try {
+                listener.onConfigurationChange(event);
+            } catch (Exception e) {
+                // Log error but don't fail other listeners
+                getLogger().error("Error notifying configuration change listener", e);
+            }
+        }
+    }
+    
+    protected final <T> T validateConfiguration(String key, T value, Class<T> type) {
+        ValidationResult result = validator.validate(key, value, type);
+        
+        if (!result.isValid()) {
+            throw new ConfigurationException(
+                "Invalid configuration for key '" + key + "': " + result.getErrorMessage());
+        }
+        
+        return value;
+    }
+}
+
+public class HierarchicalConfigurationManager extends AbstractConfigurationManager {
+    private final List<ConfigurationSource> sources;
+    private final ConfigurationMerger merger;
+    
+    public HierarchicalConfigurationManager(List<ConfigurationSource> sources) {
+        super(sources.get(0)); // Primary source
+        this.sources = sources;
+        this.merger = new ConfigurationMerger();
+    }
+    
+    @Override
+    public <T> T getConfiguration(String key, Class<T> type) {
+        // Check cache first
+        T cachedValue = cache.get(key, type);
+        if (cachedValue != null) {
+            return cachedValue;
+        }
+        
+        // Merge configurations from all sources
+        Map<String, Object> mergedConfig = mergeConfigurations();
+        
+        Object value = mergedConfig.get(key);
+        if (value == null) {
+            throw new ConfigurationNotFoundException("Configuration not found: " + key);
+        }
+        
+        T typedValue = convertValue(value, type);
+        T validatedValue = validateConfiguration(key, typedValue, type);
+        
+        // Cache the result
+        cache.put(key, validatedValue);
+        
+        return validatedValue;
+    }
+    
+    private Map<String, Object> mergeConfigurations() {
+        Map<String, Object> result = new HashMap<>();
+        
+        // Merge in reverse priority order (last source wins)
+        for (int i = sources.size() - 1; i >= 0; i--) {
+            ConfigurationSource source = sources.get(i);
+            Map<String, Object> sourceConfig = source.loadConfiguration();
+            result = merger.merge(result, sourceConfig);
+        }
+        
+        return result;
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Infrastructure Module Creation
+1. Extract common infrastructure patterns from ByteHot codebase
+2. Create java-commons-infrastructure module with proper module structure
+3. Build deployment management abstractions and implementations
+4. Implement monitoring and observability infrastructure
+
+*** Configuration Management
+1. Create hierarchical configuration management system
+2. Build configuration validation and type conversion framework
+3. Implement configuration change notification and hot-reloading
+4. Create environment-specific configuration sources
+
+*** Security Infrastructure
+1. Extract security patterns and authentication frameworks
+2. Build authorization and access control abstractions
+3. Create secure communication and encryption utilities
+4. Implement audit logging and compliance frameworks
+
+** Acceptance Criteria
+
+- [ ] java-commons-infrastructure module builds and packages correctly
+- [ ] Deployment patterns work across different environments
+- [ ] Monitoring infrastructure integrates with major platforms
+- [ ] Configuration management supports hierarchical sources
+- [ ] Security infrastructure provides comprehensive coverage
+- [ ] All extracted components maintain backward compatibility
+
+* Phase 2: Reusable Deployment and Monitoring Patterns
+
+** Objective
+Create proven deployment and monitoring patterns that can be reused across different projects and environments, providing battle-tested infrastructure solutions.
+
+** Technical Specifications
+
+*** Deployment Pattern Library
+#+BEGIN_SRC java
+public class DeploymentPatternLibrary {
+    private final Map<String, DeploymentPattern> patterns;
+    private final PatternValidator validator;
+    
+    public DeploymentPatternLibrary() {
+        this.patterns = initializePatterns();
+        this.validator = new PatternValidator();
+    }
+    
+    public DeploymentPattern getPattern(String patternName) {
+        DeploymentPattern pattern = patterns.get(patternName);
+        if (pattern == null) {
+            throw new IllegalArgumentException("Unknown deployment pattern: " + patternName);
+        }
+        return pattern;
+    }
+    
+    public List<String> getAvailablePatterns() {
+        return new ArrayList<>(patterns.keySet());
+    }
+    
+    private Map<String, DeploymentPattern> initializePatterns() {
+        Map<String, DeploymentPattern> patterns = new HashMap<>();
+        
+        // Blue-Green Deployment Pattern
+        patterns.put("blue-green", new BlueGreenDeploymentPattern());
+        
+        // Rolling Deployment Pattern
+        patterns.put("rolling", new RollingDeploymentPattern());
+        
+        // Canary Deployment Pattern
+        patterns.put("canary", new CanaryDeploymentPattern());
+        
+        // A/B Testing Deployment Pattern
+        patterns.put("ab-testing", new ABTestingDeploymentPattern());
+        
+        // Shadow Deployment Pattern
+        patterns.put("shadow", new ShadowDeploymentPattern());
+        
+        return patterns;
+    }
+}
+
+public class BlueGreenDeploymentPattern implements DeploymentPattern {
+    
+    @Override
+    public String getName() {
+        return "Blue-Green Deployment";
+    }
+    
+    @Override
+    public String getDescription() {
+        return "Deploy to parallel environment and switch traffic atomically";
+    }
+    
+    @Override
+    public DeploymentResult execute(DeploymentContext context) {
+        try {
+            // Phase 1: Deploy to green environment
+            Environment greenEnv = prepareGreenEnvironment(context);
+            DeploymentResult greenDeployment = deployToEnvironment(greenEnv, context.getArtifact());
+            
+            if (!greenDeployment.isSuccessful()) {
+                return greenDeployment;
+            }
+            
+            // Phase 2: Validate green environment
+            ValidationResult validation = validateEnvironment(greenEnv, context.getValidationRules());
+            
+            if (!validation.isValid()) {
+                cleanupEnvironment(greenEnv);
+                return DeploymentResult.failure("Green environment validation failed: " + validation.getErrors());
+            }
+            
+            // Phase 3: Switch traffic to green
+            TrafficSwitchResult switchResult = switchTrafficToGreen(context.getBlueEnvironment(), greenEnv);
+            
+            if (!switchResult.isSuccessful()) {
+                rollbackTraffic(context.getBlueEnvironment(), greenEnv);
+                return DeploymentResult.failure("Traffic switch failed: " + switchResult.getError());
+            }
+            
+            // Phase 4: Cleanup blue environment
+            scheduleBlueEnvironmentCleanup(context.getBlueEnvironment(), context.getCleanupDelay());
+            
+            return DeploymentResult.success("Blue-green deployment completed successfully");
+            
+        } catch (Exception e) {
+            return DeploymentResult.failure("Blue-green deployment failed: " + e.getMessage());
+        }
+    }
+    
+    private Environment prepareGreenEnvironment(DeploymentContext context) {
+        return EnvironmentBuilder.builder()
+            .basedOn(context.getBlueEnvironment())
+            .withNewConfiguration(context.getConfiguration())
+            .withScaling(context.getScalingPolicy())
+            .build();
+    }
+}
+
+public class CanaryDeploymentPattern implements DeploymentPattern {
+    
+    @Override
+    public DeploymentResult execute(DeploymentContext context) {
+        try {
+            CanaryConfiguration canaryConfig = context.getCanaryConfiguration();
+            
+            // Phase 1: Deploy canary version
+            Environment canaryEnv = deployCanaryVersion(context);
+            
+            // Phase 2: Route small percentage of traffic
+            routeTrafficToCanary(canaryEnv, canaryConfig.getInitialTrafficPercentage());
+            
+            // Phase 3: Monitor metrics and gradually increase traffic
+            for (TrafficStep step : canaryConfig.getTrafficSteps()) {
+                // Wait for step duration
+                Thread.sleep(step.getDuration().toMillis());
+                
+                // Check metrics
+                MetricsValidationResult metricsResult = validateCanaryMetrics(canaryEnv, step.getMetricsThresholds());
+                
+                if (!metricsResult.isValid()) {
+                    // Rollback canary
+                    rollbackCanary(canaryEnv);
+                    return DeploymentResult.failure("Canary metrics validation failed: " + metricsResult.getFailures());
+                }
+                
+                // Increase traffic to canary
+                routeTrafficToCanary(canaryEnv, step.getTrafficPercentage());
+            }
+            
+            // Phase 4: Complete rollout
+            completeCanaryRollout(canaryEnv, context.getProductionEnvironment());
+            
+            return DeploymentResult.success("Canary deployment completed successfully");
+            
+        } catch (Exception e) {
+            return DeploymentResult.failure("Canary deployment failed: " + e.getMessage());
+        }
+    }
+}
+#+END_SRC
+
+*** Monitoring Pattern Library
+#+BEGIN_SRC java
+public class MonitoringPatternLibrary {
+    private final Map<String, MonitoringPattern> patterns;
+    
+    public MonitoringPatternLibrary() {
+        this.patterns = initializeMonitoringPatterns();
+    }
+    
+    private Map<String, MonitoringPattern> initializeMonitoringPatterns() {
+        Map<String, MonitoringPattern> patterns = new HashMap<>();
+        
+        // Application Performance Monitoring (APM)
+        patterns.put("apm", new APMMonitoringPattern());
+        
+        // Infrastructure Monitoring
+        patterns.put("infrastructure", new InfrastructureMonitoringPattern());
+        
+        // Business Metrics Monitoring
+        patterns.put("business-metrics", new BusinessMetricsMonitoringPattern());
+        
+        // Security Monitoring
+        patterns.put("security", new SecurityMonitoringPattern());
+        
+        // Synthetic Monitoring
+        patterns.put("synthetic", new SyntheticMonitoringPattern());
+        
+        return patterns;
+    }
+}
+
+public class APMMonitoringPattern implements MonitoringPattern {
+    
+    @Override
+    public void setupMonitoring(MonitoringContext context) {
+        ApplicationContext appContext = context.getApplicationContext();
+        
+        // Setup request/response monitoring
+        setupRequestMonitoring(appContext);
+        
+        // Setup error tracking
+        setupErrorTracking(appContext);
+        
+        // Setup performance monitoring
+        setupPerformanceMonitoring(appContext);
+        
+        // Setup dependency monitoring
+        setupDependencyMonitoring(appContext);
+        
+        // Setup user experience monitoring
+        setupUserExperienceMonitoring(appContext);
+    }
+    
+    private void setupRequestMonitoring(ApplicationContext context) {
+        // Monitor HTTP requests
+        context.addInterceptor(new RequestMonitoringInterceptor());
+        
+        // Track request rates
+        context.registerMetric("http.requests.rate", 
+            Timer.builder("http.requests")
+                .description("HTTP request timer")
+                .register(context.getMeterRegistry()));
+        
+        // Track response times
+        context.registerMetric("http.response.time",
+            Timer.builder("http.response.time")
+                .description("HTTP response time")
+                .register(context.getMeterRegistry()));
+    }
+    
+    private void setupErrorTracking(ApplicationContext context) {
+        // Global error handler
+        context.addErrorHandler(new ErrorTrackingHandler());
+        
+        // Error rate metrics
+        context.registerMetric("application.errors.rate",
+            Counter.builder("application.errors")
+                .description("Application error counter")
+                .register(context.getMeterRegistry()));
+        
+        // Error categorization
+        context.addErrorCategorizer(new ErrorCategorizer());
+    }
+}
+
+public class InfrastructureMonitoringPattern implements MonitoringPattern {
+    
+    @Override
+    public void setupMonitoring(MonitoringContext context) {
+        InfrastructureContext infraContext = context.getInfrastructureContext();
+        
+        // Setup system metrics
+        setupSystemMetrics(infraContext);
+        
+        // Setup container metrics
+        setupContainerMetrics(infraContext);
+        
+        // Setup network metrics
+        setupNetworkMetrics(infraContext);
+        
+        // Setup storage metrics
+        setupStorageMetrics(infraContext);
+        
+        // Setup alerts
+        setupInfrastructureAlerts(infraContext);
+    }
+    
+    private void setupSystemMetrics(InfrastructureContext context) {
+        MeterRegistry registry = context.getMeterRegistry();
+        
+        // CPU metrics
+        registry.gauge("system.cpu.usage", this, self -> getCPUUsage());
+        registry.gauge("system.cpu.load.1m", this, self -> getLoadAverage1m());
+        
+        // Memory metrics
+        registry.gauge("system.memory.usage", this, self -> getMemoryUsage());
+        registry.gauge("system.memory.available", this, self -> getAvailableMemory());
+        
+        // Disk metrics
+        registry.gauge("system.disk.usage", this, self -> getDiskUsage());
+        registry.gauge("system.disk.io.read", this, self -> getDiskReadRate());
+        registry.gauge("system.disk.io.write", this, self -> getDiskWriteRate());
+    }
+}
+#+END_SRC
+
+*** Infrastructure as Code Templates
+#+BEGIN_SRC yaml
+# Docker Compose template for ByteHot-based applications
+version: '3.8'
+
+services:
+  application:
+    build:
+      context: .
+      dockerfile: Dockerfile.bytehot
+    environment:
+      - BYTEHOT_ENABLED=true
+      - BYTEHOT_AUTO_HOTSWAP=true
+      - JVM_OPTS=-javaagent:/app/bytehot-agent.jar
+    volumes:
+      - ./src:/app/src:ro
+      - ./target/classes:/app/classes
+    ports:
+      - "8080:8080"
+      - "8090:8090"  # ByteHot management port
+    depends_on:
+      - monitoring
+      - logging
+    networks:
+      - bytehot-network
+    
+  monitoring:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - bytehot-network
+      
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3000:3000"
+    depends_on:
+      - monitoring
+    networks:
+      - bytehot-network
+      
+  logging:
+    image: elastic/elasticsearch:7.15.0
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - bytehot-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  elasticsearch-data:
+
+networks:
+  bytehot-network:
+    driver: bridge
+#+END_SRC
+
+** Implementation Tasks
+
+*** Deployment Patterns
+1. Implement comprehensive deployment pattern library
+2. Create blue-green, rolling, canary, and A/B testing patterns
+3. Build deployment validation and rollback mechanisms
+4. Create environment management and traffic routing
+
+*** Monitoring Patterns
+1. Build comprehensive monitoring pattern library
+2. Create APM, infrastructure, business, and security monitoring patterns
+3. Implement metrics collection and alerting frameworks
+4. Build dashboard and visualization templates
+
+*** Infrastructure Templates
+1. Create Docker and Kubernetes deployment templates
+2. Build cloud provider-specific infrastructure templates
+3. Create monitoring and logging infrastructure templates
+4. Build CI/CD pipeline templates for ByteHot applications
+
+** Acceptance Criteria
+
+- [ ] Deployment patterns work across different environments
+- [ ] Monitoring patterns provide comprehensive observability
+- [ ] Infrastructure templates enable rapid deployment
+- [ ] All patterns are well-documented with examples
+- [ ] Templates support customization and configuration
+- [ ] Patterns integrate seamlessly with ByteHot capabilities
+
+* Phase 3: Shared Testing Framework & Development Tool Integration
+
+** Objective
+Build comprehensive shared testing and quality assurance frameworks along with common development tool integrations that accelerate development across the ecosystem.
+
+** Technical Specifications
+
+*** Shared Testing Framework
+#+BEGIN_SRC java
+public abstract class AbstractIntegrationTestFramework {
+    protected final TestConfiguration configuration;
+    protected final TestEnvironmentManager environmentManager;
+    protected final TestDataManager dataManager;
+    protected final AssertionFramework assertionFramework;
+    
+    protected AbstractIntegrationTestFramework(TestConfiguration configuration) {
+        this.configuration = configuration;
+        this.environmentManager = createEnvironmentManager();
+        this.dataManager = createDataManager();
+        this.assertionFramework = createAssertionFramework();
+    }
+    
+    public abstract void setupTest() throws TestSetupException;
+    public abstract void teardownTest() throws TestTeardownException;
+    public abstract TestResult executeTest(TestScenario scenario);
+    
+    protected abstract TestEnvironmentManager createEnvironmentManager();
+    protected abstract TestDataManager createDataManager();
+    protected abstract AssertionFramework createAssertionFramework();
+    
+    @BeforeEach
+    public final void baseSetup() throws TestSetupException {
+        // Common setup for all integration tests
+        environmentManager.prepareTestEnvironment();
+        dataManager.loadTestData();
+        setupTest();
+    }
+    
+    @AfterEach
+    public final void baseTeardown() throws TestTeardownException {
+        try {
+            teardownTest();
+        } finally {
+            dataManager.cleanupTestData();
+            environmentManager.cleanupTestEnvironment();
+        }
+    }
+    
+    protected final void waitForCondition(Supplier<Boolean> condition, Duration timeout, String description) {
+        Instant deadline = Instant.now().plus(timeout);
+        
+        while (Instant.now().isBefore(deadline)) {
+            if (condition.get()) {
+                return;
+            }
+            
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new TestException("Interrupted while waiting for condition: " + description);
+            }
+        }
+        
+        throw new TestTimeoutException("Timeout waiting for condition: " + description);
+    }
+}
+
+public class ByteHotIntegrationTestFramework extends AbstractIntegrationTestFramework {
+    private final ByteHotTestAgent testAgent;
+    private final HotSwapTestHelper hotSwapHelper;
+    
+    public ByteHotIntegrationTestFramework(TestConfiguration configuration) {
+        super(configuration);
+        this.testAgent = new ByteHotTestAgent(configuration);
+        this.hotSwapHelper = new HotSwapTestHelper(testAgent);
+    }
+    
+    @Override
+    public void setupTest() throws TestSetupException {
+        // Initialize ByteHot test agent
+        testAgent.initialize();
+        
+        // Setup hot-swap monitoring
+        setupHotSwapMonitoring();
+        
+        // Prepare test classes
+        prepareTestClasses();
+    }
+    
+    @Override
+    public TestResult executeTest(TestScenario scenario) {
+        try {
+            // Execute test scenario
+            ScenarioResult scenarioResult = scenario.execute(hotSwapHelper);
+            
+            // Validate hot-swap operations
+            HotSwapValidationResult hotSwapValidation = validateHotSwapOperations();
+            
+            // Combine results
+            return TestResult.builder()
+                .scenarioResult(scenarioResult)
+                .hotSwapValidation(hotSwapValidation)
+                .testMetrics(collectTestMetrics())
+                .build();
+                
+        } catch (Exception e) {
+            return TestResult.failure(e);
+        }
+    }
+    
+    public HotSwapTestResult performHotSwapAndVerify(String className, String newImplementation) {
+        return hotSwapHelper.performHotSwapAndVerify(className, newImplementation);
+    }
+    
+    public void assertHotSwapSuccessful(String className) {
+        HotSwapOperation operation = testAgent.getLastHotSwapOperation(className);
+        assertionFramework.assertNotNull(operation, "No hot-swap operation found for class: " + className);
+        assertionFramework.assertTrue(operation.isSuccessful(), "Hot-swap failed for class: " + className);
+    }
+    
+    public void assertInstanceUpdated(Object instance, String expectedBehavior) {
+        // Verify that instance reflects new behavior after hot-swap
+        BehaviorValidationResult result = hotSwapHelper.validateInstanceBehavior(instance, expectedBehavior);
+        assertionFramework.assertTrue(result.isValid(), "Instance behavior not updated: " + result.getFailureReason());
+    }
+}
+#+END_SRC
+
+*** Development Tool Integration Framework
+#+BEGIN_SRC java
+public abstract class AbstractDevelopmentToolIntegration {
+    protected final ToolConfiguration configuration;
+    protected final EventBus eventBus;
+    protected final ConfigurationManager configManager;
+    
+    protected AbstractDevelopmentToolIntegration(ToolConfiguration configuration) {
+        this.configuration = configuration;
+        this.eventBus = createEventBus();
+        this.configManager = createConfigurationManager();
+    }
+    
+    public abstract String getToolName();
+    public abstract String getToolVersion();
+    public abstract boolean isToolAvailable();
+    public abstract void initialize() throws ToolIntegrationException;
+    public abstract void shutdown() throws ToolIntegrationException;
+    
+    protected abstract EventBus createEventBus();
+    protected abstract ConfigurationManager createConfigurationManager();
+    
+    public final void registerEventHandler(Class<?> eventType, EventHandler handler) {
+        eventBus.register(eventType, handler);
+    }
+    
+    public final void publishEvent(Object event) {
+        eventBus.publish(event);
+    }
+    
+    protected final void validateToolCompatibility() throws ToolIntegrationException {
+        if (!isToolAvailable()) {
+            throw new ToolIntegrationException("Tool not available: " + getToolName());
+        }
+        
+        String requiredVersion = configuration.getRequiredVersion();
+        String actualVersion = getToolVersion();
+        
+        if (!isVersionCompatible(requiredVersion, actualVersion)) {
+            throw new ToolIntegrationException(
+                String.format("Tool version incompatible. Required: %s, Actual: %s", 
+                    requiredVersion, actualVersion));
+        }
+    }
+}
+
+public class MavenIntegration extends AbstractDevelopmentToolIntegration {
+    private final MavenProjectManager projectManager;
+    private final MavenLifecycleMonitor lifecycleMonitor;
+    
+    public MavenIntegration(ToolConfiguration configuration) {
+        super(configuration);
+        this.projectManager = new MavenProjectManager(configuration);
+        this.lifecycleMonitor = new MavenLifecycleMonitor();
+    }
+    
+    @Override
+    public void initialize() throws ToolIntegrationException {
+        validateToolCompatibility();
+        
+        // Setup Maven project monitoring
+        projectManager.initialize();
+        
+        // Monitor Maven lifecycle events
+        lifecycleMonitor.addLifecycleListener(new ByteHotMavenListener());
+        
+        // Register event handlers
+        registerEventHandler(MavenCompileEvent.class, this::handleCompileEvent);
+        registerEventHandler(MavenTestEvent.class, this::handleTestEvent);
+        registerEventHandler(MavenPackageEvent.class, this::handlePackageEvent);
+    }
+    
+    private void handleCompileEvent(MavenCompileEvent event) {
+        if (event.isSuccessful()) {
+            // Trigger hot-swap for compiled classes
+            List<CompiledClass> compiledClasses = event.getCompiledClasses();
+            
+            for (CompiledClass compiledClass : compiledClasses) {
+                if (shouldHotSwap(compiledClass)) {
+                    publishEvent(new HotSwapRequestEvent(compiledClass));
+                }
+            }
+        }
+    }
+    
+    private boolean shouldHotSwap(CompiledClass compiledClass) {
+        return configManager.getBoolean("maven.hotswap.auto", true) &&
+               compiledClass.isHotSwapCompatible();
+    }
+}
+
+public class GradleIntegration extends AbstractDevelopmentToolIntegration {
+    private final GradleProjectManager projectManager;
+    private final GradleBuildMonitor buildMonitor;
+    
+    public GradleIntegration(ToolConfiguration configuration) {
+        super(configuration);
+        this.projectManager = new GradleProjectManager(configuration);
+        this.buildMonitor = new GradleBuildMonitor();
+    }
+    
+    @Override
+    public void initialize() throws ToolIntegrationException {
+        validateToolCompatibility();
+        
+        // Setup Gradle project monitoring
+        projectManager.initialize();
+        
+        // Monitor Gradle build events
+        buildMonitor.addBuildListener(new ByteHotGradleListener());
+        
+        // Register event handlers
+        registerEventHandler(GradleCompileEvent.class, this::handleCompileEvent);
+        registerEventHandler(GradleTestEvent.class, this::handleTestEvent);
+    }
+    
+    public void createByteHotGradlePlugin() {
+        // Generate Gradle plugin for ByteHot integration
+        GradlePluginGenerator generator = new GradlePluginGenerator();
+        
+        generator.addTask("enableByteHot", EnableByteHotTask.class);
+        generator.addTask("hotSwapClasses", HotSwapClassesTask.class);
+        generator.addTask("byteHotStatus", ByteHotStatusTask.class);
+        
+        generator.generatePlugin(projectManager.getProjectDirectory());
+    }
+}
+#+END_SRC
+
+*** Quality Assurance Framework
+#+BEGIN_SRC java
+public class QualityAssuranceFramework {
+    private final List<QualityCheck> qualityChecks;
+    private final QualityMetricsCollector metricsCollector;
+    private final QualityReportGenerator reportGenerator;
+    
+    public QualityAssuranceFramework() {
+        this.qualityChecks = initializeQualityChecks();
+        this.metricsCollector = new QualityMetricsCollector();
+        this.reportGenerator = new QualityReportGenerator();
+    }
+    
+    public QualityAssessmentResult assessQuality(QualityContext context) {
+        QualityAssessmentResult.Builder resultBuilder = QualityAssessmentResult.builder();
+        
+        for (QualityCheck check : qualityChecks) {
+            try {
+                QualityCheckResult checkResult = check.performCheck(context);
+                resultBuilder.addCheckResult(check.getName(), checkResult);
+                
+                // Collect metrics
+                metricsCollector.recordCheckResult(check.getName(), checkResult);
+                
+            } catch (Exception e) {
+                QualityCheckResult errorResult = QualityCheckResult.error(e.getMessage());
+                resultBuilder.addCheckResult(check.getName(), errorResult);
+            }
+        }
+        
+        QualityAssessmentResult result = resultBuilder.build();
+        
+        // Generate quality report
+        generateQualityReport(result, context);
+        
+        return result;
+    }
+    
+    private List<QualityCheck> initializeQualityChecks() {
+        List<QualityCheck> checks = new ArrayList<>();
+        
+        // Code quality checks
+        checks.add(new CodeCoverageCheck());
+        checks.add(new StaticAnalysisCheck());
+        checks.add(new SecurityVulnerabilityCheck());
+        checks.add(new PerformanceRegressionCheck());
+        
+        // ByteHot-specific checks
+        checks.add(new HotSwapCompatibilityCheck());
+        checks.add(new HotSwapPerformanceCheck());
+        checks.add(new HotSwapReliabilityCheck());
+        
+        // Documentation checks
+        checks.add(new DocumentationCompletenessCheck());
+        checks.add(new APIDocumentationCheck());
+        
+        return checks;
+    }
+}
+
+public class HotSwapCompatibilityCheck implements QualityCheck {
+    
+    @Override
+    public String getName() {
+        return "Hot-Swap Compatibility";
+    }
+    
+    @Override
+    public QualityCheckResult performCheck(QualityContext context) {
+        List<ClassFile> classFiles = context.getCompiledClasses();
+        CompatibilityAnalyzer analyzer = new CompatibilityAnalyzer();
+        
+        QualityCheckResult.Builder resultBuilder = QualityCheckResult.builder();
+        
+        for (ClassFile classFile : classFiles) {
+            CompatibilityAnalysisResult analysis = analyzer.analyzeCompatibility(classFile);
+            
+            if (analysis.isCompatible()) {
+                resultBuilder.addSuccess(classFile.getName() + " is hot-swap compatible");
+            } else {
+                for (CompatibilityIssue issue : analysis.getIssues()) {
+                    resultBuilder.addWarning(classFile.getName() + ": " + issue.getDescription());
+                }
+            }
+        }
+        
+        return resultBuilder.build();
+    }
+}
+#+END_SRC
+
+** Implementation Tasks
+
+*** Testing Framework Development
+1. Create comprehensive integration testing framework
+2. Build ByteHot-specific testing utilities and helpers
+3. Implement test environment management and data handling
+4. Create assertion frameworks for hot-swap validation
+
+*** Development Tool Integrations
+1. Build Maven and Gradle integration frameworks
+2. Create IDE integration utilities and helpers
+3. Implement CI/CD pipeline integration tools
+4. Build version control system integrations
+
+*** Quality Assurance Implementation
+1. Create comprehensive quality check framework
+2. Build hot-swap specific quality validators
+3. Implement quality metrics collection and reporting
+4. Create quality gate enforcement mechanisms
+
+** Acceptance Criteria
+
+- [ ] Testing framework supports comprehensive integration testing
+- [ ] Development tool integrations work with major build systems
+- [ ] Quality assurance framework identifies common issues
+- [ ] All frameworks are well-documented with examples
+- [ ] Integration utilities accelerate development workflows
+- [ ] Quality checks enforce best practices and standards
+
+* Dependencies & Integration
+
+** Infrastructure Dependencies
+- Cloud provider SDKs (AWS, GCP, Azure) for deployment patterns
+- Container orchestration platforms (Kubernetes, Docker Swarm)
+- Monitoring platforms (Prometheus, Grafana, ELK stack)
+- Configuration management systems (Consul, etcd, Spring Cloud Config)
+
+** Development Tool Dependencies
+- Maven and Gradle APIs for build system integration
+- IDE plugin development frameworks
+- CI/CD platform APIs (Jenkins, GitLab CI, GitHub Actions)
+- Version control system APIs (Git, SVN)
+
+* Testing Strategy
+
+** Infrastructure Testing
+- Deployment pattern testing across different environments
+- Monitoring pattern validation with real metrics
+- Configuration management testing with various sources
+- Security framework penetration and vulnerability testing
+
+** Integration Testing
+- Development tool integration testing with real projects
+- Quality assurance framework validation with diverse codebases
+- Testing framework validation with complex scenarios
+- Cross-platform compatibility testing
+
+** Performance Testing
+- Infrastructure pattern performance benchmarking
+- Development tool integration overhead measurement
+- Testing framework execution time optimization
+- Quality check performance impact analysis
+
+* Success Metrics
+
+** Infrastructure Success Metrics
+- Deployment success rate: >99% across all patterns
+- Monitoring coverage: 100% of critical infrastructure components
+- Configuration management reliability: Zero configuration loss incidents
+- Security framework effectiveness: Zero critical vulnerabilities
+
+** Development Productivity Metrics
+- Tool integration setup time: <5 minutes for new projects
+- Quality check execution time: <2 minutes for medium-sized projects
+- Testing framework adoption: >80% of ByteHot projects using framework
+- Developer satisfaction: >4.5/5 rating for infrastructure tools
+
+This milestone establishes comprehensive reusable infrastructure foundation that accelerates development tool ecosystem growth and provides battle-tested patterns for production deployment.
