@@ -1,0 +1,70 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /ecommerce
+
+spring:
+  application:
+    name: bytehot-ecommerce-system
+  
+  datasource:
+    url: jdbc:h2:mem:ecommerce;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+    
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        
+  cache:
+    cache-names:
+      - products
+      - categories
+      - pricing
+    caffeine:
+      spec: maximumSize=1000,expireAfterAccess=300s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    org.acmsl.bytehot.examples.ecommerce: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# ByteHot Configuration
+bytehot:
+  enabled: true
+  config:
+    hotswap:
+      enabled: true
+    monitoring:
+      enabled: true
+    classes:
+      - "org.acmsl.bytehot.examples.ecommerce.domain.**"
+      - "org.acmsl.bytehot.examples.ecommerce.application.**"
+      - "org.acmsl.bytehot.examples.ecommerce.infrastructure.**"
