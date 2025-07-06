@@ -1,0 +1,215 @@
+# ByteHot Docker Integration - Application Configuration
+# This configuration can be hot-swapped to change application behavior
+
+spring:
+  application:
+    name: bytehot-docker-integration
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:default}
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:h2:mem:testdb}
+    driver-class-name: ${DATABASE_DRIVER:org.h2.Driver}
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:}
+    
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: ${JPA_SHOW_SQL:false}
+    database-platform: ${JPA_PLATFORM:org.hibernate.dialect.H2Dialect}
+    
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+    
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${CONTEXT_PATH:/}
+  
+  # Tomcat configuration for hot-swapping
+  tomcat:
+    max-threads: ${TOMCAT_MAX_THREADS:200}
+    min-spare-threads: ${TOMCAT_MIN_THREADS:10}
+    connection-timeout: ${TOMCAT_CONNECTION_TIMEOUT:20000}
+
+# ByteHot Configuration
+bytehot:
+  enabled: true
+  
+  # Hot-swap configuration
+  hotswap:
+    enabled: true
+    watch-directory: ${BYTEHOT_WATCH_DIR:/app/hotswap}
+    poll-interval: ${BYTEHOT_POLL_INTERVAL:1000}
+    backup-enabled: true
+    backup-directory: ${BYTEHOT_BACKUP_DIR:/app/hotswap/backup}
+    
+  # Security configuration
+  security:
+    enabled: true
+    whitelist-packages:
+      - org.acmsl.bytehot.examples
+      - com.example.hotswap
+    blacklist-packages:
+      - java.lang
+      - java.security
+      
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    metrics-enabled: true
+    jmx-enabled: true
+    prometheus-enabled: true
+    
+  # Development configuration
+  development:
+    fast-reload: ${BYTEHOT_FAST_RELOAD:false}
+    debug-mode: ${BYTEHOT_DEBUG:false}
+    verbose-logging: ${BYTEHOT_VERBOSE:false}
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,bytehot
+      base-path: /actuator
+  
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+      
+  # Custom ByteHot management endpoint
+  bytehot:
+    enabled: true
+    
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 30s
+      jmx:
+        enabled: true
+
+# Logging configuration
+logging:
+  level:
+    org.acmsl.bytehot: ${BYTEHOT_LOG_LEVEL:INFO}
+    org.springframework: ${SPRING_LOG_LEVEL:INFO}
+    com.example: ${APP_LOG_LEVEL:INFO}
+    
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+    
+  file:
+    name: ${LOG_FILE:/app/logs/application.log}
+    max-size: ${LOG_MAX_SIZE:100MB}
+    max-history: ${LOG_MAX_HISTORY:30}
+
+---
+# Docker profile configuration
+spring:
+  config:
+    activate:
+      on-profile: docker
+      
+  datasource:
+    url: jdbc:postgresql://postgres:5432/bytehot
+    driver-class-name: org.postgresql.Driver
+    username: bytehot
+    password: bytehot123
+    
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    
+  redis:
+    host: redis
+    port: 6379
+
+bytehot:
+  development:
+    fast-reload: false
+    debug-mode: true
+    
+logging:
+  level:
+    org.acmsl.bytehot: DEBUG
+    org.springframework.boot.actuate: INFO
+
+---
+# Development profile configuration
+spring:
+  config:
+    activate:
+      on-profile: development
+      
+  devtools:
+    restart:
+      enabled: false  # Disable in favor of ByteHot
+      
+  jpa:
+    show-sql: true
+    
+bytehot:
+  hotswap:
+    poll-interval: 500  # Faster polling for development
+    
+  development:
+    fast-reload: true
+    debug-mode: true
+    verbose-logging: true
+    
+  security:
+    enabled: false  # Relaxed security for development
+    
+logging:
+  level:
+    org.acmsl.bytehot: DEBUG
+    org.springframework: INFO
+    com.example: DEBUG
+
+---
+# Production profile configuration
+spring:
+  config:
+    activate:
+      on-profile: production
+      
+  jpa:
+    show-sql: false
+    
+bytehot:
+  hotswap:
+    poll-interval: 5000  # Slower polling for production
+    
+  development:
+    fast-reload: false
+    debug-mode: false
+    verbose-logging: false
+    
+  security:
+    enabled: true
+    
+  monitoring:
+    enabled: true
+    
+logging:
+  level:
+    org.acmsl.bytehot: INFO
+    org.springframework: WARN
+    com.example: INFO

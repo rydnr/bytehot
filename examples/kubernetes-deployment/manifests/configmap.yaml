@@ -1,0 +1,276 @@
+# ByteHot Kubernetes Deployment - ConfigMap
+# Configuration for ByteHot applications in Kubernetes
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bytehot-config
+  namespace: bytehot
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: configuration
+    app.kubernetes.io/part-of: bytehot-platform
+  annotations:
+    bytehot.org/hot-swappable: "true"
+    bytehot.org/config-version: "1.0.0"
+data:
+  # Application configuration
+  application.yml: |
+    spring:
+      application:
+        name: bytehot-k8s-app
+      profiles:
+        active: kubernetes
+      
+      datasource:
+        url: jdbc:postgresql://postgres-service:5432/bytehot
+        driver-class-name: org.postgresql.Driver
+        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD}
+        
+      jpa:
+        hibernate:
+          ddl-auto: update
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+        
+      redis:
+        host: redis-service
+        port: 6379
+        password: ${REDIS_PASSWORD}
+        
+    server:
+      port: 8080
+      
+    # ByteHot Configuration
+    bytehot:
+      enabled: true
+      hotswap:
+        enabled: true
+        watch-directory: /app/hotswap
+        poll-interval: 2000
+        backup-enabled: true
+        backup-directory: /app/hotswap/backup
+        
+      security:
+        enabled: true
+        whitelist-packages:
+          - org.acmsl.bytehot.examples
+          - com.example.k8s
+          
+      monitoring:
+        enabled: true
+        metrics-enabled: true
+        prometheus-enabled: true
+        
+    # Management endpoints
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: health,info,metrics,prometheus,bytehot
+          base-path: /actuator
+      endpoint:
+        health:
+          show-details: always
+      metrics:
+        export:
+          prometheus:
+            enabled: true
+            step: 30s
+            
+    # Logging
+    logging:
+      level:
+        org.acmsl.bytehot: INFO
+        org.springframework: INFO
+      pattern:
+        console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+
+  # ByteHot specific configuration
+  bytehot.properties: |
+    # ByteHot Kubernetes Configuration
+    bytehot.enabled=true
+    bytehot.watch.enabled=true
+    bytehot.watch.directory=/app/hotswap
+    bytehot.watch.recursive=true
+    bytehot.watch.poll.interval=2000
+    
+    # Hot-swap policies
+    bytehot.hotswap.classes.enabled=true
+    bytehot.hotswap.methods.enabled=true
+    bytehot.hotswap.resources.enabled=true
+    bytehot.hotswap.jars.enabled=true
+    
+    # Kubernetes-specific settings
+    bytehot.k8s.enabled=true
+    bytehot.k8s.namespace=bytehot
+    bytehot.k8s.pod.name=${HOSTNAME}
+    bytehot.k8s.service.account=${SERVICE_ACCOUNT}
+    
+    # Security settings
+    bytehot.security.enabled=true
+    bytehot.security.whitelist.packages=org.acmsl.bytehot.examples,com.example.k8s
+    bytehot.security.require.signature=false
+    
+    # Monitoring and metrics
+    bytehot.metrics.enabled=true
+    bytehot.metrics.jmx.enabled=true
+    bytehot.metrics.prometheus.enabled=true
+    bytehot.metrics.kubernetes.enabled=true
+    bytehot.metrics.port=9090
+    
+    # Logging
+    bytehot.logging.level=INFO
+    bytehot.logging.file=/app/logs/bytehot.log
+
+  # JVM configuration
+  jvm.conf: |
+    # JVM Configuration for ByteHot in Kubernetes
+    -javaagent:/app/bytehot-agent.jar
+    -Xms512m
+    -Xmx1g
+    -XX:+UseG1GC
+    -XX:+UnlockExperimentalVMOptions
+    -XX:MaxGCPauseMillis=200
+    -XX:+DisableExplicitGC
+    
+    # ByteHot specific JVM options
+    -Dbytehot.hotswap.enabled=true
+    -Dbytehot.watch.directory=/app/hotswap
+    -Dbytehot.config.file=/app/config/bytehot.properties
+    
+    # Kubernetes integration
+    -Dkubernetes.namespace=${KUBERNETES_NAMESPACE}
+    -Dkubernetes.pod.name=${HOSTNAME}
+    -Dkubernetes.service.name=${SERVICE_NAME}
+    
+    # Monitoring
+    -Dcom.sun.management.jmxremote
+    -Dcom.sun.management.jmxremote.authenticate=false
+    -Dcom.sun.management.jmxremote.ssl=false
+    -Dcom.sun.management.jmxremote.port=9999
+    -Dcom.sun.management.jmxremote.rmi.port=9999
+    -Djava.rmi.server.hostname=0.0.0.0
+    
+    # GC logging
+    -Xloggc:/app/logs/gc.log
+    -XX:+PrintGCDetails
+    -XX:+PrintGCTimeStamps
+    -XX:+PrintGCDateStamps
+    -XX:+UseGCLogFileRotation
+    -XX:NumberOfGCLogFiles=5
+    -XX:GCLogFileSize=10M
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bytehot-scripts
+  namespace: bytehot
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: scripts
+    app.kubernetes.io/part-of: bytehot-platform
+  annotations:
+    bytehot.org/hot-swappable: "true"
+data:
+  # Hot-swap deployment script for Kubernetes
+  k8s-hotswap-deploy.sh: |
+    #!/bin/bash
+    # ByteHot Kubernetes Hot-swap Deployment Script
+    
+    set -e
+    
+    NAMESPACE="${KUBERNETES_NAMESPACE:-bytehot}"
+    DEPLOYMENT="${DEPLOYMENT_NAME:-bytehot-app}"
+    HOTSWAP_DIR="${HOTSWAP_DIR:-/app/hotswap}"
+    
+    log_message() {
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    }
+    
+    deploy_to_pods() {
+        local file_path="$1"
+        local target_subdir="$2"
+        
+        log_message "Deploying $file_path to all pods in deployment $DEPLOYMENT"
+        
+        # Get all pod names for the deployment
+        local pods=$(kubectl get pods -n "$NAMESPACE" -l app="$DEPLOYMENT" -o jsonpath='{.items[*].metadata.name}')
+        
+        for pod in $pods; do
+            log_message "Deploying to pod: $pod"
+            
+            # Copy file to pod
+            kubectl cp "$file_path" "$NAMESPACE/$pod:$HOTSWAP_DIR/$target_subdir/$(basename "$file_path")"
+            
+            # Trigger hot-swap in pod
+            kubectl exec -n "$NAMESPACE" "$pod" -- /app/scripts/hotswap-deploy.sh deploy "$HOTSWAP_DIR/$target_subdir/$(basename "$file_path")"
+        done
+    }
+    
+    case "${1:-help}" in
+        "deploy-class")
+            deploy_to_pods "$2" "classes"
+            ;;
+        "deploy-jar")
+            deploy_to_pods "$2" "jars"
+            ;;
+        "deploy-resource")
+            deploy_to_pods "$2" "resources"
+            ;;
+        *)
+            echo "Usage: $0 {deploy-class|deploy-jar|deploy-resource} <file>"
+            exit 1
+            ;;
+    esac
+
+  # Health check script
+  health-check.sh: |
+    #!/bin/bash
+    # ByteHot Kubernetes Health Check Script
+    
+    # Check application health
+    curl -f http://localhost:8080/actuator/health || exit 1
+    
+    # Check ByteHot agent status
+    if [ ! -f /tmp/bytehot-agent.pid ]; then
+        echo "ByteHot agent not running"
+        exit 1
+    fi
+    
+    # Check hot-swap directory
+    if [ ! -d /app/hotswap ]; then
+        echo "Hot-swap directory not accessible"
+        exit 1
+    fi
+    
+    echo "ByteHot application healthy"
+
+  # Startup script
+  startup.sh: |
+    #!/bin/bash
+    # ByteHot Kubernetes Startup Script
+    
+    set -e
+    
+    # Setup environment
+    mkdir -p /app/hotswap/{classes,jars,resources,backup} /app/logs
+    
+    # Load JVM configuration
+    if [ -f /app/config/jvm.conf ]; then
+        export JAVA_OPTS="$(cat /app/config/jvm.conf | tr '\n' ' ')"
+    fi
+    
+    # Set Kubernetes-specific environment
+    export KUBERNETES_NAMESPACE="${KUBERNETES_NAMESPACE:-bytehot}"
+    export SERVICE_NAME="${SERVICE_NAME:-bytehot-app}"
+    export SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-bytehot-service-account}"
+    
+    # Start application
+    echo "Starting ByteHot application in Kubernetes..."
+    echo "Namespace: $KUBERNETES_NAMESPACE"
+    echo "Pod: $HOSTNAME"
+    echo "Service: $SERVICE_NAME"
+    
+    exec java $JAVA_OPTS -jar /app/application.jar

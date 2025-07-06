@@ -1,0 +1,92 @@
+# ByteHot Docker Integration - Prometheus Configuration
+# Monitors ByteHot applications and hot-swapping operations
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "bytehot_rules.yml"
+
+scrape_configs:
+  # ByteHot main application
+  - job_name: 'bytehot-application'
+    static_configs:
+      - targets: ['bytehot-app:9090']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    scrape_timeout: 10s
+    
+  # ByteHot development application
+  - job_name: 'bytehot-development'
+    static_configs:
+      - targets: ['bytehot-dev:9090']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 5s  # Faster scraping for development
+    scrape_timeout: 5s
+    
+  # Spring Boot actuator endpoints
+  - job_name: 'spring-actuator'
+    static_configs:
+      - targets: ['bytehot-app:8080', 'bytehot-dev:8080']
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 30s
+    
+  # JVM metrics
+  - job_name: 'jvm-metrics'
+    static_configs:
+      - targets: ['bytehot-app:9090', 'bytehot-dev:9090']
+    metrics_path: '/actuator/prometheus'
+    params:
+      module: [jvm]
+    scrape_interval: 15s
+    
+  # PostgreSQL metrics (if exporter is available)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:5432']
+    scrape_interval: 30s
+    
+  # Redis metrics (if exporter is available)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Custom recording rules for ByteHot metrics
+recording_rules:
+  - name: bytehot.rules
+    rules:
+      # Hot-swap operation rate
+      - record: bytehot:hotswap_rate_5m
+        expr: rate(bytehot_hotswap_operations_total[5m])
+        
+      # Hot-swap success rate
+      - record: bytehot:hotswap_success_rate_5m
+        expr: rate(bytehot_hotswap_operations_total{status="success"}[5m]) / rate(bytehot_hotswap_operations_total[5m])
+        
+      # Average hot-swap duration
+      - record: bytehot:hotswap_duration_avg_5m
+        expr: rate(bytehot_hotswap_duration_seconds_sum[5m]) / rate(bytehot_hotswap_duration_seconds_count[5m])
+        
+      # Memory usage after hot-swap
+      - record: bytehot:memory_usage_post_hotswap
+        expr: jvm_memory_used_bytes{area="heap"} offset 1m
+        
+      # GC impact from hot-swapping
+      - record: bytehot:gc_impact_5m
+        expr: rate(jvm_gc_collection_seconds_sum[5m])
+        
+      # Application response time percentiles
+      - record: bytehot:response_time_p95_5m
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))
+        
+      # Error rate after hot-swap
+      - record: bytehot:error_rate_post_hotswap_5m
+        expr: rate(http_server_requests_total{status=~"5.."}[5m])

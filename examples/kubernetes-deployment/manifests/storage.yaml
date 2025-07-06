@@ -1,0 +1,146 @@
+# ByteHot Kubernetes Deployment - Persistent Storage
+# Storage for hot-swap files and application logs
+
+# Storage Class for hot-swap operations
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: bytehot-fast-ssd
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/part-of: bytehot-platform
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+    bytehot.org/optimized-for: "hot-swap-operations"
+provisioner: kubernetes.io/no-provisioner  # Use local storage or cloud-specific provisioner
+parameters:
+  type: ssd
+  replication-type: lrs
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+volumeBindingMode: WaitForFirstConsumer
+
+---
+# Persistent Volume for hot-swap data
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: bytehot-hotswap-pv
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: persistent-volume
+    app.kubernetes.io/part-of: bytehot-platform
+    bytehot.org/volume-type: "hotswap"
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: bytehot-fast-ssd
+  mountOptions:
+    - hard
+    - nfsvers=4.1
+  nfs:  # Replace with appropriate volume type for your environment
+    path: /exports/bytehot/hotswap
+    server: nfs-server.example.com
+  # Alternative: hostPath for single-node testing
+  # hostPath:
+  #   path: /var/lib/bytehot/hotswap
+  #   type: DirectoryOrCreate
+
+---
+# Persistent Volume Claim for hot-swap data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bytehot-hotswap-pvc
+  namespace: bytehot
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: persistent-volume-claim
+    app.kubernetes.io/part-of: bytehot-platform
+    bytehot.org/volume-type: "hotswap"
+  annotations:
+    bytehot.org/shared-across-pods: "true"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: bytehot-fast-ssd
+  volumeName: bytehot-hotswap-pv
+
+---
+# Persistent Volume for application logs
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: bytehot-logs-pv
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: persistent-volume
+    app.kubernetes.io/part-of: bytehot-platform
+    bytehot.org/volume-type: "logs"
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: bytehot-fast-ssd
+  nfs:  # Replace with appropriate volume type
+    path: /exports/bytehot/logs
+    server: nfs-server.example.com
+  # Alternative: hostPath for single-node testing
+  # hostPath:
+  #   path: /var/lib/bytehot/logs
+  #   type: DirectoryOrCreate
+
+---
+# Persistent Volume Claim for application logs
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bytehot-logs-pvc
+  namespace: bytehot
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: persistent-volume-claim
+    app.kubernetes.io/part-of: bytehot-platform
+    bytehot.org/volume-type: "logs"
+  annotations:
+    bytehot.org/log-retention: "30d"
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: bytehot-fast-ssd
+  volumeName: bytehot-logs-pv
+
+---
+# Volume for temporary hot-swap staging (local to each pod)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bytehot-staging-pvc
+  namespace: bytehot
+  labels:
+    app.kubernetes.io/name: bytehot
+    app.kubernetes.io/component: staging-volume
+    app.kubernetes.io/part-of: bytehot-platform
+    bytehot.org/volume-type: "staging"
+  annotations:
+    bytehot.org/temporary: "true"
+    bytehot.org/cleanup-policy: "delete-on-pod-termination"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: bytehot-fast-ssd

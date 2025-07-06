@@ -1,0 +1,334 @@
+# ByteHot Kubernetes Deployment - Main Application
+# Scalable deployment with hot-swapping capabilities
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bytehot-app
+  namespace: bytehot
+  labels:
+    app: bytehot-app
+    app.kubernetes.io/name: bytehot-app
+    app.kubernetes.io/component: application
+    app.kubernetes.io/part-of: bytehot-platform
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    bytehot.org/hot-swap-enabled: "true"
+    bytehot.org/auto-scaling: "true"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: bytehot-app
+  template:
+    metadata:
+      labels:
+        app: bytehot-app
+        app.kubernetes.io/name: bytehot-app
+        app.kubernetes.io/component: application
+        app.kubernetes.io/part-of: bytehot-platform
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/actuator/prometheus"
+        bytehot.org/hot-swap-enabled: "true"
+        bytehot.org/watch-directory: "/app/hotswap"
+    spec:
+      serviceAccountName: bytehot-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      
+      # Init container to setup hot-swap environment
+      initContainers:
+        - name: setup-hotswap
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Setting up hot-swap environment..."
+              mkdir -p /app/hotswap/{classes,jars,resources,backup}
+              mkdir -p /app/logs
+              chmod 755 /app/hotswap /app/logs
+              echo "Hot-swap environment ready"
+          volumeMounts:
+            - name: hotswap-volume
+              mountPath: /app/hotswap
+            - name: logs-volume
+              mountPath: /app/logs
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+      
+      containers:
+        # Main ByteHot application container
+        - name: bytehot-app
+          image: bytehot/docker-integration:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: jmx
+              containerPort: 9999
+              protocol: TCP
+          
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes"
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SERVICE_NAME
+              value: "bytehot-app"
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: bytehot-secrets
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bytehot-secrets
+                  key: DB_PASSWORD
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bytehot-secrets
+                  key: REDIS_PASSWORD
+            - name: BYTEHOT_SIGNATURE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: bytehot-secrets
+                  key: BYTEHOT_SIGNATURE_KEY
+            - name: JAVA_OPTS
+              value: "-Xms512m -Xmx1g -XX:+UseG1GC"
+          
+          command: ["/app/scripts/startup.sh"]
+          
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            - name: scripts-volume
+              mountPath: /app/scripts
+              readOnly: true
+            - name: hotswap-volume
+              mountPath: /app/hotswap
+            - name: logs-volume
+              mountPath: /app/logs
+          
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+        
+        # Sidecar container for hot-swap deployment monitoring
+        - name: hotswap-monitor
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Starting hot-swap monitor..."
+              while true; do
+                if [ -f /app/hotswap/.hotswap_trigger ]; then
+                  echo "Hot-swap trigger detected"
+                  # Process hot-swap trigger
+                  # In a real implementation, this would coordinate with the main container
+                  echo "$(date): Hot-swap processed" >> /app/logs/hotswap-monitor.log
+                  rm -f /app/hotswap/.hotswap_trigger
+                fi
+                sleep 5
+              done
+          volumeMounts:
+            - name: hotswap-volume
+              mountPath: /app/hotswap
+            - name: logs-volume
+              mountPath: /app/logs
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "50m"
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      
+      volumes:
+        - name: config-volume
+          configMap:
+            name: bytehot-config
+            defaultMode: 0644
+        - name: scripts-volume
+          configMap:
+            name: bytehot-scripts
+            defaultMode: 0755
+        - name: hotswap-volume
+          persistentVolumeClaim:
+            claimName: bytehot-hotswap-pvc
+        - name: logs-volume
+          persistentVolumeClaim:
+            claimName: bytehot-logs-pvc
+      
+      # Node selection and pod scheduling
+      nodeSelector:
+        kubernetes.io/os: linux
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - bytehot-app
+                topologyKey: kubernetes.io/hostname
+      
+      tolerations:
+        - key: "bytehot.org/hot-swap"
+          operator: "Equal"
+          value: "enabled"
+          effect: "NoSchedule"
+      
+      terminationGracePeriodSeconds: 30
+      
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+
+---
+# Development deployment with faster hot-swapping
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bytehot-dev
+  namespace: bytehot
+  labels:
+    app: bytehot-dev
+    app.kubernetes.io/name: bytehot-dev
+    app.kubernetes.io/component: development
+    app.kubernetes.io/part-of: bytehot-platform
+    app.kubernetes.io/version: "1.0.0-dev"
+  annotations:
+    bytehot.org/hot-swap-enabled: "true"
+    bytehot.org/fast-reload: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bytehot-dev
+  template:
+    metadata:
+      labels:
+        app: bytehot-dev
+        app.kubernetes.io/name: bytehot-dev
+        app.kubernetes.io/component: development
+        version: v1-dev
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        bytehot.org/hot-swap-poll-interval: "1000"
+    spec:
+      serviceAccountName: bytehot-service-account
+      containers:
+        - name: bytehot-dev
+          image: bytehot/docker-integration:latest
+          command: ["development"]
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: metrics
+              containerPort: 9090
+            - name: debug
+              containerPort: 5005
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "kubernetes,development"
+            - name: ENABLE_DEBUG
+              value: "true"
+            - name: BYTEHOT_FAST_RELOAD
+              value: "true"
+            - name: BYTEHOT_POLL_INTERVAL
+              value: "1000"
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx512m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+            - name: hotswap-dev-volume
+              mountPath: /app/hotswap
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "250m"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: bytehot-config
+        - name: hotswap-dev-volume
+          emptyDir: {}

@@ -1,0 +1,125 @@
+# ByteHot Kubernetes Deployment - Horizontal Pod Autoscaler
+# Auto-scaling configuration for ByteHot applications
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: bytehot-app-hpa
+  namespace: bytehot
+  labels:
+    app: bytehot-app
+    app.kubernetes.io/name: bytehot-app
+    app.kubernetes.io/component: autoscaler
+    app.kubernetes.io/part-of: bytehot-platform
+  annotations:
+    bytehot.org/scaling-policy: "hot-swap-aware"
+    bytehot.org/scale-down-delay: "5m"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bytehot-app
+  
+  minReplicas: 2
+  maxReplicas: 10
+  
+  metrics:
+    # CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    
+    # Memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    
+    # Custom metric: HTTP requests per second
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "100"
+    
+    # Custom metric: Hot-swap operations rate
+    - type: Pods
+      pods:
+        metric:
+          name: bytehot_hotswap_operations_per_second
+        target:
+          type: AverageValue
+          averageValue: "5"
+  
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+    
+    scaleUp:
+      stabilizationWindowSeconds: 60   # 1 minute
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+
+---
+# Vertical Pod Autoscaler (optional, requires VPA to be installed)
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: bytehot-app-vpa
+  namespace: bytehot
+  labels:
+    app: bytehot-app
+    app.kubernetes.io/name: bytehot-app
+    app.kubernetes.io/component: vertical-autoscaler
+    app.kubernetes.io/part-of: bytehot-platform
+  annotations:
+    bytehot.org/vpa-mode: "Auto"
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: bytehot-app
+  
+  updatePolicy:
+    updateMode: "Auto"  # Auto, Recreation, or Off
+    minReplicas: 2
+  
+  resourcePolicy:
+    containerPolicies:
+      - containerName: bytehot-app
+        maxAllowed:
+          cpu: "2"
+          memory: "4Gi"
+        minAllowed:
+          cpu: "100m"
+          memory: "256Mi"
+        controlledResources: ["cpu", "memory"]
+      - containerName: hotswap-monitor
+        maxAllowed:
+          cpu: "100m"
+          memory: "128Mi"
+        minAllowed:
+          cpu: "10m"
+          memory: "32Mi"
+        controlledResources: ["cpu", "memory"]

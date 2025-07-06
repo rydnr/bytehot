@@ -188,7 +188,7 @@ public class ByteHotLogger {
      * @param operation Type of hot-swap operation
      * @param className Class being hot-swapped
      * @param success Whether the operation succeeded
-     * @param duration Duration of the operation
+     * @param durationMs Duration of the operation
      * @param details Additional operation details
      */
     public void hotSwap(final HotSwapOperationType operation, final String className, 

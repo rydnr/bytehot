@@ -1,0 +1,204 @@
+# ByteHot Docker Integration - Docker Compose Configuration
+# Demonstrates ByteHot hot-swapping in containerized environments
+
+version: '3.8'
+
+services:
+  # Main ByteHot application
+  bytehot-app:
+    build:
+      context: ../../
+      dockerfile: examples/docker-integration/Dockerfile
+    container_name: bytehot-application
+    ports:
+      - "8080:8080"   # Application port
+      - "9090:9090"   # Metrics port
+      - "5005:5005"   # Debug port
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - ENABLE_DEBUG=true
+      - ENABLE_MEMORY_MONITORING=true
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/bytehot
+      - REDIS_URL=redis://redis:6379
+      - JAVA_OPTS=-Xms512m -Xmx1g -XX:+UseG1GC
+    volumes:
+      - hotswap-data:/app/hotswap
+      - logs-data:/app/logs
+      - ./config:/app/config:ro
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Development environment with fast hot-swapping
+  bytehot-dev:
+    build:
+      context: ../../
+      dockerfile: examples/docker-integration/Dockerfile
+    container_name: bytehot-development
+    command: ["development"]
+    ports:
+      - "8081:8080"   # Application port (different from main)
+      - "9091:9090"   # Metrics port
+      - "5006:5005"   # Debug port
+    environment:
+      - SPRING_PROFILES_ACTIVE=development
+      - ENABLE_DEBUG=true
+      - BYTEHOT_WATCH_INTERVAL=500
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    volumes:
+      - hotswap-dev-data:/app/hotswap
+      - logs-dev-data:/app/logs
+      - ./config:/app/config:ro
+      - ./dev-classes:/app/hotswap/classes:rw  # Mount for quick class updates
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+    profiles:
+      - development
+
+  # Performance benchmarking container
+  bytehot-benchmark:
+    build:
+      context: ../../
+      dockerfile: examples/docker-integration/Dockerfile
+    container_name: bytehot-benchmarks
+    command: ["benchmark"]
+    environment:
+      - JAVA_OPTS=-Xms2g -Xmx4g -XX:+UseEpsilonGC
+    volumes:
+      - benchmark-results:/app/benchmark-results
+      - logs-benchmark-data:/app/logs
+    networks:
+      - bytehot-network
+    restart: "no"
+    profiles:
+      - benchmark
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:13-alpine
+    container_name: bytehot-postgres
+    environment:
+      - POSTGRES_DB=bytehot
+      - POSTGRES_USER=bytehot
+      - POSTGRES_PASSWORD=bytehot123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+
+  # Redis for caching and session management
+  redis:
+    image: redis:6-alpine
+    container_name: bytehot-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: bytehot-prometheus
+    ports:
+      - "9191:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Grafana for metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bytehot-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Hot-swap deployment service
+  hotswap-deployer:
+    build:
+      context: ../../
+      dockerfile: examples/docker-integration/Dockerfile.deployer
+    container_name: bytehot-deployer
+    volumes:
+      - hotswap-data:/app/hotswap
+      - ./deployments:/deployments:ro
+    environment:
+      - HOTSWAP_DIR=/app/hotswap
+      - WATCH_DIR=/deployments
+    networks:
+      - bytehot-network
+    restart: unless-stopped
+    profiles:
+      - deployment
+
+# Named volumes for persistent data
+volumes:
+  hotswap-data:
+    driver: local
+  hotswap-dev-data:
+    driver: local
+  logs-data:
+    driver: local
+  logs-dev-data:
+    driver: local
+  logs-benchmark-data:
+    driver: local
+  benchmark-results:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+
+# Networks
+networks:
+  bytehot-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
