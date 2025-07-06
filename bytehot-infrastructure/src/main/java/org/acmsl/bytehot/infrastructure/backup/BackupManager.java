@@ -811,7 +811,7 @@ public class BackupManager {
                 if (result.getStatus() == BackupStatus.COMPLETED) {
                     LOGGER.info("Automatic full backup completed: {}", backupName);
                 } else {
-                    LOGGER.error("Automatic full backup failed: {}", backupName);
+                    LOGGER.warn("Automatic full backup failed: {}", backupName);
                 }
             });
         }
@@ -833,7 +833,7 @@ public class BackupManager {
                     if (result.getStatus() == BackupStatus.COMPLETED) {
                         LOGGER.info("Automatic incremental backup completed: {}", backupName);
                     } else {
-                        LOGGER.error("Automatic incremental backup failed: {}", backupName);
+                        LOGGER.warn("Automatic incremental backup failed: {}", backupName);
                     }
                 });
             }

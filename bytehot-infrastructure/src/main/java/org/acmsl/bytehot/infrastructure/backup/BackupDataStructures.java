@@ -53,7 +53,7 @@ import java.io.Serializable;
 /**
  * Backup result containing comprehensive operation information.
  */
-public class BackupResult implements Serializable {
+class BackupResult implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
@@ -130,7 +130,7 @@ public class BackupResult implements Serializable {
 /**
  * Backup metadata containing detailed information about a backup.
  */
-public class BackupMetadata implements Serializable {
+class BackupMetadata implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
@@ -203,7 +203,7 @@ public class BackupMetadata implements Serializable {
 /**
  * Backup entry combining metadata and state snapshot.
  */
-public class BackupEntry implements Serializable {
+class BackupEntry implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
@@ -234,7 +234,7 @@ public class BackupEntry implements Serializable {
 /**
  * State snapshot representing system state at a point in time.
  */
-public class BackupStateSnapshot implements Serializable {
+class BackupStateSnapshot implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
@@ -267,7 +267,7 @@ public class BackupStateSnapshot implements Serializable {
 /**
  * Individual state component within a backup snapshot.
  */
-public class StateComponent implements Serializable {
+class StateComponent implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
@@ -328,7 +328,7 @@ public class StateComponent implements Serializable {
 /**
  * Storage result for backup operations.
  */
-public class BackupStorageResult {
+class BackupStorageResult {
     
     private final boolean success;
     private final Path storageLocation;
@@ -352,7 +352,7 @@ public class BackupStorageResult {
 /**
  * Restore operation result.
  */
-public class RestoreResult implements Serializable {
+class RestoreResult implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
@@ -407,7 +407,7 @@ public class RestoreResult implements Serializable {
 /**
  * Restore operation internal result.
  */
-public class RestoreOperationResult {
+class RestoreOperationResult {
     
     private final boolean success;
     private final int restoredComponents;
@@ -431,7 +431,7 @@ public class RestoreOperationResult {
 /**
  * Backup deletion result.
  */
-public class BackupDeletionResult {
+class BackupDeletionResult {
     
     private final boolean success;
     private final String backupName;
@@ -486,7 +486,7 @@ public class BackupDeletionResult {
 /**
  * Backup cleanup result.
  */
-public class BackupCleanupResult {
+class BackupCleanupResult {
     
     private final boolean success;
     private final int deletedCount;
@@ -522,7 +522,7 @@ public class BackupCleanupResult {
 /**
  * Backup system statistics.
  */
-public class BackupStatistics {
+class BackupStatistics {
     
     private final int totalBackups;
     private final int fullBackups;
