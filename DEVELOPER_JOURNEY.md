@@ -111,6 +111,23 @@ Welcome to the ByteHot Online Learning Academy! Our comprehensive course catalog
 
 **📋 Track Assessment: Master Consultant Certification Portfolio**
 
+### 🔄 **Repository Architecture & Publishing Stage** (10-15 hours total)
+*Professional repository structure and Maven Central publishing*
+
+**Course 16: Repository Architecture & Decomposition** ⭐⭐⭐⭐ EXPERT
+- 📚 5 Learning Modules | 🧪 10 Quizzes | 💻 6 Hands-On Labs | 🏅 3 Badges
+- Monorepo splitting strategies, git subtree/filter-repo techniques
+- Multi-repository coordination, dependency management across repos
+- [Start Course →](courses/16-repository-architecture-decomposition/)
+
+**Course 17: Maven Central Publishing & Distribution** ⭐⭐⭐⭐ EXPERT
+- 📚 6 Learning Modules | 🧪 12 Quizzes | 💻 7 Hands-On Labs | 🏅 4 Badges
+- Sonatype Central Portal setup, artifact signing, release automation
+- GitHub Actions CI/CD pipelines, semantic versioning strategies
+- [Start Course →](courses/17-maven-central-publishing-distribution/)
+
+**📋 Final Assessment: Professional Distribution Mastery**
+
 ## 🎮 Interactive Learning Features
 
 ### 🏅 Gamification & Progress Tracking
@@ -169,6 +186,15 @@ Welcome to the ByteHot Online Learning Academy! Our comprehensive course catalog
 - ✅ Implement enterprise DevOps pipelines with infrastructure as code and GitOps workflows
 - ✅ Lead enterprise ByteHot transformations as a certified consultant and architect
 - ✅ Conduct architecture assessments and deliver comprehensive training programs
+
+### 🎯 **Professional Distribution Level** (Courses 16-17)
+**Skills Gained:**
+- ✅ Decompose monorepos into professional multi-repository architectures with history preservation
+- ✅ Master git-filter-repo and automated repository splitting with dependency coordination
+- ✅ Implement Maven Central publishing with Sonatype Central Portal and automated pipelines
+- ✅ Design cross-repository dependency management with semantic versioning strategies
+- ✅ Architect professional CI/CD pipelines with GitHub Actions and release automation
+- ✅ Establish industry-standard artifact distribution and maintenance practices
 
 ---
 

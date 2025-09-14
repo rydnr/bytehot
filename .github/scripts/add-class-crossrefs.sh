@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Add Class Cross-References Script
@@ -10,17 +10,17 @@ echo "🔗 Adding class cross-references to documentation..."
 add_literate_section() {
     local file=$1
     echo "🔗 Adding literate programming links to $file"
-    
+
     if [ -f "$file" ]; then
         # Create a temporary file for the modified content
         temp_file=$(mktemp)
-        
+
         # Check if the file already has a literate programming section
         if grep -q "literate-section" "$file"; then
             echo "   ✓ Already has literate programming section"
             return
         fi
-        
+
         # Add literate programming section before the footer
         sed '/class="footer"/i \
         <div class="literate-section">\
@@ -34,8 +34,8 @@ add_literate_section() {
                 <a href="RollbackManager.html" class="docs-link">↩️ Rollback Manager</a>\
                 <a href="InstanceTracker.html" class="docs-link">📊 Instance Tracker</a>\
             </div>\
-        </div>' "$file" > "$temp_file"
-        
+        </div>' "$file" >"$temp_file"
+
         # Replace the original file
         mv "$temp_file" "$file"
         echo "   ✅ Added literate programming section to $file"
@@ -48,11 +48,11 @@ add_literate_section() {
 enhance_class_references() {
     local file=$1
     echo "🔍 Enhancing class references in $file"
-    
+
     if [ -f "$file" ]; then
         # Create a temporary file for the modified content
         temp_file=$(mktemp)
-        
+
         # Add class reference links for key classes
         sed -e 's/\bByteHot\b/<a href="ByteHot.html" class="class-ref">ByteHot<\/a>/g' \
             -e 's/\bByteHotApplication\b/<a href="ByteHotApplication.html" class="class-ref">ByteHotApplication<\/a>/g' \
@@ -64,8 +64,8 @@ enhance_class_references() {
             -e 's/\bHotSwapManager\b/<a href="HotSwapManager.html" class="class-ref">HotSwapManager<\/a>/g' \
             -e 's/\bClassFileWatcher\b/<a href="ClassFileWatcher.html" class="class-ref">ClassFileWatcher<\/a>/g' \
             -e 's/\bUserContextResolver\b/<a href="UserContextResolver.html" class="class-ref">UserContextResolver<\/a>/g' \
-            "$file" > "$temp_file"
-        
+            "$file" >"$temp_file"
+
         # Replace the original file
         mv "$temp_file" "$file"
         echo "   ✅ Enhanced class references in $file"
@@ -106,7 +106,7 @@ find bytehot -name "*.html" -type f | while read -r html_file; do
         # Check if the navigation already includes literate docs
         if ! grep -q "literate-docs.html" "$html_file"; then
             echo "   📝 Updating navigation in $html_file"
-            
+
             # Add literate docs link to navigation if missing
             sed -i 's|<a href="implementation.html" class="nav-link">⚙️ Implementation</a>|<a href="implementation.html" class="nav-link">⚙️ Implementation</a>\
             <a href="literate-docs.html" class="nav-link">📚 Literate Docs</a>|g' "$html_file"
