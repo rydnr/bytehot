@@ -1,0 +1,102 @@
+name: Build and Deploy Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC to keep documentation fresh
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper git operations
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Install Pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc emacs-nox
+
+          echo "📋 Installed tools versions:"
+          pandoc --version | head -2
+          emacs --version | head -1
+
+      - name: Verify Enhanced Pandoc installation
+        run: |
+          pandoc --version
+          echo "📋 Pandoc filters available:"
+          pandoc --list-highlight-languages | head -10
+
+          echo "📋 Pandoc writers available:"
+          pandoc --list-output-formats | grep -E 'html|org' || echo "HTML and org formats available"
+
+      - name: Build project and install dependencies
+        run: |
+          # Build and install the multi-module project from root
+          mvn clean install -DskipTests -q
+
+      - name: Make scripts executable
+        run: chmod +x .github/scripts/*.sh
+
+      - name: Pre-process org files to fix code blocks
+        run: .github/scripts/preprocess-org-files.sh
+
+      - name: Generate Javadocs
+        run: .github/scripts/generate-javadocs.sh
+
+      - name: Copy Javadocs to documentation
+        run: .github/scripts/copy-javadocs.sh
+
+      - name: Generate Documentation
+        run: .github/scripts/generate-docs.sh
+
+      - name: Debug generated files and structure
+        run: .github/scripts/debug-docs-structure.sh
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          enablement: true
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'bytehot'
+
+      - name: Deploy to GitHub Pages
+        if: ${{ !env.ACT }}
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          enablement: true

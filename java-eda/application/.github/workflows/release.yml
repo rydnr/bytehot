@@ -1,0 +1,51 @@
+name: Unified Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'  # Semver without v prefix (1.0.0)
+      - 'v[0-9]+.[0-9]+.[0-9]+' # Semver with v prefix (v1.0.0)
+      - 'milestone-*'           # Milestone releases
+      - 'test-*'               # Test releases
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout code with full history
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+          
+    - name: Make scripts executable
+      run: chmod +x .github/scripts/*.sh
+      
+    - name: Execute release workflow
+      run: |
+        TAG=${GITHUB_REF#refs/tags/}
+        .github/scripts/release-workflow.sh "$TAG" "${{ env.JAVA_VERSION }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_SHA: ${{ github.sha }}

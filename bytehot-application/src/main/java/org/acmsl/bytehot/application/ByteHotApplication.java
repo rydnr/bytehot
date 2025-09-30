@@ -46,6 +46,7 @@ import org.acmsl.bytehot.domain.HotSwapManager;
 import org.acmsl.bytehot.domain.InstrumentationService;
 import org.acmsl.bytehot.domain.JvmInstrumentationService;
 import org.acmsl.bytehot.domain.Ports;
+import org.acmsl.bytehot.domain.ports.EventBusPort;
 import org.acmsl.bytehot.domain.events.BytecodeValidated;
 import org.acmsl.bytehot.domain.events.ByteHotAgentAttached;
 import org.acmsl.bytehot.domain.events.ByteHotAttachRequested;
@@ -58,6 +59,7 @@ import org.acmsl.commons.patterns.Adapter;
 import org.acmsl.commons.patterns.Application;
 import org.acmsl.commons.patterns.DomainEvent;
 import org.acmsl.commons.patterns.DomainResponseEvent;
+import org.acmsl.commons.patterns.EventBus;
 import org.acmsl.commons.patterns.Port;
 import org.acmsl.commons.patterns.eventsourcing.VersionedDomainEvent;
 
@@ -97,6 +99,11 @@ public class ByteHotApplication
     private static InstrumentationService instrumentationService;
 
     /**
+     * The event bus for event orchestration
+     */
+    private EventBus eventBus;
+
+    /**
      * Default constructor to point to the singleton.
      */
     protected ByteHotApplication() {}
@@ -132,8 +139,12 @@ public class ByteHotApplication
                     
                     // Initialize user context before anything else
                     initializeUserContext();
-                    
+
                     discoverAndInjectAdapters(instrumentation);
+
+                    // Initialize EventBus if available
+                    initializeEventBus();
+
                     adaptersInitialized = true;
                 }
             }
@@ -147,10 +158,29 @@ public class ByteHotApplication
         try {
             // TODO: Implement user context initialization when UserContextResolver is fully implemented
             System.out.println("ByteHot initialized (user context pending)");
-            
+
         } catch (final Exception e) {
             System.err.println("Failed to initialize user context: " + e.getMessage());
             // Continue without user context - the system should still function
+        }
+    }
+
+    /**
+     * Initializes the EventBus for event orchestration.
+     */
+    private static void initializeEventBus() {
+        try {
+            // Try to resolve EventBusPort from available adapters
+            final EventBusPort eventBusPort = Ports.resolve(EventBusPort.class);
+            if (eventBusPort != null) {
+                getInstance().eventBus = eventBusPort;
+                System.out.println("EventBus initialized successfully");
+            } else {
+                System.out.println("EventBus not available - using direct event emission");
+            }
+        } catch (final Exception e) {
+            System.err.println("Failed to initialize EventBus: " + e.getMessage());
+            // Continue without EventBus - fall back to direct event emission
         }
     }
 
@@ -239,10 +269,18 @@ public class ByteHotApplication
             final List<? extends DomainResponseEvent<?>> pipelineEvents = executeHotSwapPipelineWithEvents(event);
             responseEvents.addAll(pipelineEvents);
             
-            // Emit the response events
+            // Emit the response events through both EventEmitter and EventBus
             try {
-                final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
-                eventEmitter.emit(responseEvents);
+                // Try EventBus first (preferred)
+                if (eventBus != null) {
+                    for (final DomainResponseEvent<?> responseEvent : responseEvents) {
+                        eventBus.publishAsync(responseEvent);
+                    }
+                } else {
+                    // Fall back to EventEmitter if EventBus not available
+                    final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+                    eventEmitter.emit(responseEvents);
+                }
             } catch (final Exception e) {
                 System.err.println("Failed to emit response events: " + e.getMessage());
             }
@@ -269,10 +307,18 @@ public class ByteHotApplication
             // TODO: Implement full documentation generation when DocProvider is fully implemented
             // For now, just log that the request was received
             
-            // Emit the response events
+            // Emit the response events through both EventEmitter and EventBus
             try {
-                final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
-                eventEmitter.emit(responseEvents);
+                // Try EventBus first (preferred)
+                if (eventBus != null) {
+                    for (final DomainResponseEvent<?> responseEvent : responseEvents) {
+                        eventBus.publishAsync(responseEvent);
+                    }
+                } else {
+                    // Fall back to EventEmitter if EventBus not available
+                    final EventEmitterPort eventEmitter = Ports.resolve(EventEmitterPort.class);
+                    eventEmitter.emit(responseEvents);
+                }
             } catch (final Exception e) {
                 System.err.println("Failed to emit documentation response events: " + e.getMessage());
             }

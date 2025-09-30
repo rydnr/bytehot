@@ -1,0 +1,57 @@
+name: Auto Patch Release
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      force_patch:
+        description: 'Force patch release creation'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  JAVA_VERSION: '17'
+
+jobs:
+  auto-patch:
+    name: Auto Patch Detection
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout with full history
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ env.JAVA_VERSION }}
+        distribution: 'temurin'
+        
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+          
+    - name: Make scripts executable
+      run: chmod +x .github/scripts/*.sh
+      
+    - name: Execute auto patch detection
+      run: .github/scripts/auto-patch-detection.sh "${{ env.JAVA_VERSION }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
